@@ -60,7 +60,7 @@ bool Character::ReadFromFile(const std::filesystem::path& path)
         std::shared_ptr<EncodedFileReader> readerPtr = EncodedFileReader::Open(path.c_str());
         if (!readerPtr)
         {
-            Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to open file: \"%\"", path.c_str());
+            Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to open file: \"%\"", path.string().c_str());
             return false;
         }
 
@@ -88,7 +88,7 @@ bool Character::ReadFromFile(const std::filesystem::path& path)
         }
         catch (std::runtime_error&)
         {
-            Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to load character file \"%\"", path.c_str());
+            Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to load character file \"%\"", path.string().c_str());
             return false;
         }
     }

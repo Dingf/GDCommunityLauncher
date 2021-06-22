@@ -14,6 +14,6 @@ src/Client.cpp
 src/ClientHooks.cpp
 src/main.cpp)
 
-add_dependencies(dll game)
+target_link_libraries(dll game)
 
 set_target_properties(dll PROPERTIES OUTPUT_NAME "GDCommunityLauncher")

@@ -10,7 +10,9 @@ struct Item : public Object
 {
     public:
         Item() {}
-        Item(EncodedFileReader* reader);
+        Item(EncodedFileReader* reader) { Read(reader); }
+
+        void Read(EncodedFileReader* reader);
 
         std::string _itemName;
         std::string _itemPrefix;

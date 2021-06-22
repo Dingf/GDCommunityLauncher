@@ -25,7 +25,7 @@ const std::unordered_map<Factions, std::string> factionNameLookup =
     { FACTION_ELDRITCH_HORRORS,    "Eldritch Horrors" },
 };
 
-Faction::Faction(EncodedFileReader* reader)
+void Faction::Read(EncodedFileReader* reader)
 {
     _factionIsModified = reader->ReadInt8();
     _factionIsUnlocked = reader->ReadInt8();

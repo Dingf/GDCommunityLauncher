@@ -2,7 +2,7 @@
 
 Skill::~Skill() {}
 
-ClassSkill::ClassSkill(EncodedFileReader* reader)
+void ClassSkill::Read(EncodedFileReader* reader)
 {
     _skillName = reader->ReadString();
     _skillLevel = reader->ReadInt32();
@@ -14,13 +14,17 @@ ClassSkill::ClassSkill(EncodedFileReader* reader)
     _skillUnk2 = reader->ReadInt8();
     _skillDevotionBind = reader->ReadString();
     _skillDevotionTrigger = reader->ReadString();
+
+    SetState(true);
 }
 
-ItemSkill::ItemSkill(EncodedFileReader* reader)
+void ItemSkill::Read(EncodedFileReader* reader)
 {
     _skillName = reader->ReadString();
     _skillDevotionBind = reader->ReadString();
     _skillDevotionTrigger = reader->ReadString();
     _skillItemSlot = reader->ReadInt32();
     _skillItemID = reader->ReadString();
+
+    SetState(true);
 }

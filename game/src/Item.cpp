@@ -1,6 +1,6 @@
 #include "Item.h"
 
-Item::Item(EncodedFileReader* reader)
+void Item::Read(EncodedFileReader* reader)
 {
     _itemName = reader->ReadString();
     _itemPrefix = reader->ReadString();

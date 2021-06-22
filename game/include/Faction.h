@@ -37,7 +37,9 @@ struct Faction : public Object
 {
     public:
         Faction() {}
-        Faction(EncodedFileReader* reader);
+        Faction(EncodedFileReader* reader) { Read(reader); }
+
+        void Read(EncodedFileReader* reader);
 
         Factions _factionID;
         uint8_t  _factionIsModified;

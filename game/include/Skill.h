@@ -4,8 +4,9 @@
 #include <memory>
 #include <string>
 #include "FileReader.h"
+#include "Object.h"
 
-struct Skill
+struct Skill : public Object
 {
     public:
         virtual ~Skill() = 0;
@@ -18,7 +19,10 @@ struct Skill
 struct ClassSkill : public Skill
 {
     public:
-        ClassSkill(EncodedFileReader* reader);
+        ClassSkill() {}
+        ClassSkill(EncodedFileReader* reader) { Read(reader); }
+
+        void Read(EncodedFileReader* reader);
 
         uint32_t    _skillLevel;
         bool        _skillEnabled;
@@ -32,7 +36,10 @@ struct ClassSkill : public Skill
 struct ItemSkill : public Skill
 {
     public:
-        ItemSkill(EncodedFileReader* reader);
+        ItemSkill() {}
+        ItemSkill(EncodedFileReader* reader) { Read(reader); }
+
+        void Read(EncodedFileReader* reader);
 
         uint32_t    _skillItemSlot;
         std::string _skillItemID;

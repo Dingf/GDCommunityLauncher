@@ -18,6 +18,7 @@ class GDDataBlock : public Object
         uint32_t GetBlockID()          const { return _blockID; }
         uint32_t GetBlockVersion()     const { return _blockVersion; }
         uint32_t GetBlockVersionMask() const { return _blockVersionMask; }
+        uint32_t GetBlockLength()      const { return _blockLength; }
 
         void ReadBlockStart(EncodedFileReader* reader, uint32_t flags = (GD_DATA_BLOCK_READ_ID | GD_DATA_BLOCK_READ_VERSION));
         void ReadBlockEnd(EncodedFileReader* reader);
