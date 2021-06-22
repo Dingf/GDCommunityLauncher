@@ -16,7 +16,6 @@ class FileReader
             }
             _bufferPos = 0;
             _bufferSize = 0;
-            _filename = {};
         }
 
         static std::shared_ptr<FileReader> Open(const std::string& filename)
@@ -26,11 +25,19 @@ class FileReader
                 return nullptr;
 
             std::shared_ptr<FileReader> reader(new FileReader(file));
-            reader->_filename = filename;
             return reader;
         }
 
-        std::string GetFilename() const { return _filename; }
+        static std::shared_ptr<FileReader> Open(const std::wstring& filename)
+        {
+            FILE* file;
+            if (_wfopen_s(&file, filename.c_str(), L"rb") != 0)
+                return nullptr;
+
+            std::shared_ptr<FileReader> reader(new FileReader(file));
+            return reader;
+        }
+
         int64_t GetPosition() const { return _bufferPos; }
 
         void SetPosition(int64_t position) { _bufferPos = position; }
@@ -119,8 +126,6 @@ class FileReader
             fclose(file);
         }
 
-        std::string _filename;
-
         uint8_t* _buffer;
         int64_t _bufferSize;
         int64_t _bufferPos;
@@ -136,7 +141,16 @@ class EncodedFileReader : public FileReader
                 return nullptr;
 
             std::shared_ptr<EncodedFileReader> reader(new EncodedFileReader(file));
-            reader->_filename = filename;
+            return reader;
+        }
+
+        static std::shared_ptr<EncodedFileReader> Open(const std::wstring& filename)
+        {
+            FILE* file;
+            if (_wfopen_s(&file, filename.c_str(), L"rb") != 0)
+                return nullptr;
+
+            std::shared_ptr<EncodedFileReader> reader(new EncodedFileReader(file));
             return reader;
         }
 
