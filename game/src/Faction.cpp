@@ -32,4 +32,6 @@ Faction::Faction(EncodedFileReader* reader)
     _factionRepValue = reader->ReadFloat();
     _factionPositiveBoost = reader->ReadFloat();
     _factionNegativeBoost = reader->ReadFloat();
+
+    SetState(true);
 }

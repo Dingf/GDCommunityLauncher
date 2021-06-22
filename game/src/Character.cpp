@@ -53,23 +53,46 @@ const std::unordered_map<CharacterClass, std::string> classNameLookup =
     { CHAR_CLASS_OPPRESSOR,     "Oppressor" },
 };
 
-Character::Character(EncodedFileReader* reader)
+bool Character::ReadFromFile(const std::filesystem::path& path)
 {
-    ReadHeaderBlock(reader);
-    ReadInfoBlock(reader);
-    ReadAttributesBlock(reader);
-    ReadInventoryBlock(reader);
-    ReadStashBlock(reader);
-    ReadRespawnBlock(reader);
-    ReadWaypointBlock(reader);
-    ReadMarkerBlock(reader);
-    ReadShrineBlock(reader);
-    ReadSkillBlock(reader);
-    ReadNotesBlock(reader);
-    ReadFactionBlock(reader);
-    ReadUIBlock(reader);
-    ReadTutorialBlock(reader);
-    ReadStatsBlock(reader);
+    if (!IsValid() && std::filesystem::is_regular_file(path))
+    {
+        std::shared_ptr<EncodedFileReader> readerPtr = EncodedFileReader::Open(path.c_str());
+        if (!readerPtr)
+        {
+            Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to open file: \"%\"", path.c_str());
+            return false;
+        }
+
+        EncodedFileReader* reader = readerPtr.get();
+        try
+        {
+            ReadHeaderBlock(reader);
+            ReadInfoBlock(reader);
+            ReadAttributesBlock(reader);
+            ReadInventoryBlock(reader);
+            ReadStashBlock(reader);
+            ReadRespawnBlock(reader);
+            ReadWaypointBlock(reader);
+            ReadMarkerBlock(reader);
+            ReadShrineBlock(reader);
+            ReadSkillBlock(reader);
+            ReadNotesBlock(reader);
+            ReadFactionBlock(reader);
+            ReadUIBlock(reader);
+            ReadTutorialBlock(reader);
+            ReadStatsBlock(reader);
+
+            SetState(true);
+            return true;
+        }
+        catch (std::runtime_error&)
+        {
+            Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to load character file \"%\"", path.c_str());
+            return false;
+        }
+    }
+    return false;
 }
 
 void Character::ReadHeaderBlock(EncodedFileReader* reader)
@@ -114,6 +137,7 @@ void Character::ReadHeaderBlock(EncodedFileReader* reader)
 
     _headerBlock.ReadBlockStart(reader, GD_DATA_BLOCK_READ_VERSION);
     _headerBlock._charUID = UID16(reader);
+    _headerBlock.SetState(true);
 }
 
 void Character::ReadInfoBlock(EncodedFileReader* reader)
@@ -163,6 +187,7 @@ void Character::ReadInfoBlock(EncodedFileReader* reader)
     }
 
     _infoBlock.ReadBlockEnd(reader);
+    _infoBlock.SetState(true);
 }
 
 void Character::ReadAttributesBlock(EncodedFileReader* reader)
@@ -186,6 +211,7 @@ void Character::ReadAttributesBlock(EncodedFileReader* reader)
     _attributesBlock._charEnergy = reader->ReadFloat();
 
     _attributesBlock.ReadBlockEnd(reader);
+    _attributesBlock.SetState(true);
 }
 
 void Character::ReadInventoryBlock(EncodedFileReader* reader)
@@ -220,6 +246,7 @@ void Character::ReadInventoryBlock(EncodedFileReader* reader)
     }
 
     _inventoryBlock.ReadBlockEnd(reader);
+    _inventoryBlock.SetState(true);
 }
 
 void Character::ReadStashBlock(EncodedFileReader* reader)
@@ -235,6 +262,7 @@ void Character::ReadStashBlock(EncodedFileReader* reader)
     _stashBlock._charStash.SetHardcore(_headerBlock._charIsHardcore);
 
     _stashBlock.ReadBlockEnd(reader);
+    _stashBlock.SetState(true);
 }
 
 void Character::ReadRespawnBlock(EncodedFileReader* reader)
@@ -264,6 +292,7 @@ void Character::ReadRespawnBlock(EncodedFileReader* reader)
     _respawnBlock._charCurrentRespawnUltimate = UID16(reader);
 
     _respawnBlock.ReadBlockEnd(reader);
+    _respawnBlock.SetState(true);
 }
 
 void Character::ReadWaypointBlock(EncodedFileReader* reader)
@@ -289,6 +318,7 @@ void Character::ReadWaypointBlock(EncodedFileReader* reader)
     }
 
     _waypointBlock.ReadBlockEnd(reader);
+    _waypointBlock.SetState(true);
 }
 
 void Character::ReadMarkerBlock(EncodedFileReader* reader)
@@ -314,6 +344,7 @@ void Character::ReadMarkerBlock(EncodedFileReader* reader)
     }
 
     _markerBlock.ReadBlockEnd(reader);
+    _markerBlock.SetState(true);
 }
 
 void Character::ReadShrineBlock(EncodedFileReader* reader)
@@ -330,6 +361,7 @@ void Character::ReadShrineBlock(EncodedFileReader* reader)
     }
 
     _shrineBlock.ReadBlockEnd(reader);
+    _shrineBlock.SetState(true);
 }
 
 void Character::ReadSkillBlock(EncodedFileReader* reader)
@@ -353,6 +385,7 @@ void Character::ReadSkillBlock(EncodedFileReader* reader)
     }
 
     _skillBlock.ReadBlockEnd(reader);
+    _skillBlock.SetState(true);
 }
 
 void Character::ReadNotesBlock(EncodedFileReader* reader)
@@ -366,6 +399,7 @@ void Character::ReadNotesBlock(EncodedFileReader* reader)
     }
 
     _notesBlock.ReadBlockEnd(reader);
+    _notesBlock.SetState(true);
 }
 
 void Character::ReadFactionBlock(EncodedFileReader* reader)
@@ -382,6 +416,7 @@ void Character::ReadFactionBlock(EncodedFileReader* reader)
     }
 
     _factionBlock.ReadBlockEnd(reader);
+    _factionBlock.SetState(true);
 }
 
 void Character::ReadUIBlock(EncodedFileReader* reader)
@@ -399,6 +434,7 @@ void Character::ReadUIBlock(EncodedFileReader* reader)
         unknown._unk1 = reader->ReadString();
         unknown._unk2 = reader->ReadString();
         unknown._unk3 = reader->ReadInt8();
+        unknown.SetState(true);
         _UIBlock._unk4.push_back(unknown);
     }
 
@@ -431,12 +467,14 @@ void Character::ReadUIBlock(EncodedFileReader* reader)
             default:
                 throw std::runtime_error(Logger::LogMessage(LOG_LEVEL_WARN, "Invalid or unsupported item slot type \"%\"", slot._slotType));
         }
+        slot.SetState(true);
         _UIBlock._charUISlots.push_back(slot);
     }
 
     _UIBlock._charCameraDistance = reader->ReadFloat();
 
     _UIBlock.ReadBlockEnd(reader);
+    _UIBlock.SetState(true);
 }
 
 void Character::ReadTutorialBlock(EncodedFileReader* reader)
@@ -450,6 +488,7 @@ void Character::ReadTutorialBlock(EncodedFileReader* reader)
     }
 
     _tutorialBlock.ReadBlockEnd(reader);
+    _tutorialBlock.SetState(true);
 }
 
 void Character::ReadStatsBlock(EncodedFileReader* reader)
@@ -477,6 +516,7 @@ void Character::ReadStatsBlock(EncodedFileReader* reader)
         _statsBlock._charDifficultyStats[i]._greatestEnemyHealth = reader->ReadInt32();
         _statsBlock._charDifficultyStats[i]._lastAttacked = reader->ReadString();
         _statsBlock._charDifficultyStats[i]._lastAttackedBy = reader->ReadString();
+        _statsBlock._charDifficultyStats[i].SetState(true);
     }
 
     _statsBlock._charChampionKills = reader->ReadInt32();
@@ -536,4 +576,5 @@ void Character::ReadStatsBlock(EncodedFileReader* reader)
     _statsBlock._unk2 = reader->ReadInt32();
 
     _statsBlock.ReadBlockEnd(reader);
+    _statsBlock.SetState(true);
 }

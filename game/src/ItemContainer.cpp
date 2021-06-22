@@ -53,7 +53,7 @@ void ItemContainer::AddItem(const std::shared_ptr<Item>& item, int32_t x, int32_
             width = entry._width;
             height = entry._height;
         }
-        catch (std::out_of_range& ex)
+        catch (std::out_of_range&)
         {
             Logger::LogMessage(LOG_LEVEL_WARN, "Tried to add item \"%\" that does not exist in item database. Item has not been added!", item->_itemName);
             return;

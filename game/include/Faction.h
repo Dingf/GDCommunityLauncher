@@ -4,6 +4,7 @@
 #include <memory>
 #include <string>
 #include "FileReader.h"
+#include "Object.h"
 
 enum Factions
 {
@@ -32,7 +33,7 @@ enum Factions
     FACTION_ELDRITCH_HORRORS = 22,
 };
 
-struct Faction
+struct Faction : public Object
 {
     public:
         Faction() {}

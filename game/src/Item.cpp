@@ -16,4 +16,6 @@ Item::Item(EncodedFileReader* reader)
     _itemAugmentSeed = reader->ReadInt32();
     _itemUnk2 = reader->ReadInt32();
     _itemStackCount = reader->ReadInt32();
+
+    SetState(true);
 }

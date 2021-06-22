@@ -1,6 +1,7 @@
 #ifndef INC_GDCL_GAME_GD_DATA_BLOCK_H
 #define INC_GDCL_GAME_GD_DATA_BLOCK_H
 
+#include "Object.h"
 #include "FileReader.h"
 
 enum GDDataBlockReadFlags
@@ -9,7 +10,7 @@ enum GDDataBlockReadFlags
     GD_DATA_BLOCK_READ_VERSION = 0x02
 };
 
-class GDDataBlock
+class GDDataBlock : public Object
 {
     public:
         GDDataBlock(uint32_t ID, uint32_t versionMask) : _blockID(ID), _blockVersionMask(versionMask) {}

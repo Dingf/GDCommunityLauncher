@@ -3,7 +3,35 @@
 #include "GDDataBlock.h"
 #include "SharedStash.h"
 
-SharedStash::SharedStash(EncodedFileReader* reader)
+bool SharedStash::ReadFromFile(const std::filesystem::path& path)
+{
+    if (!IsValid() && std::filesystem::is_regular_file(path))
+    {
+        std::shared_ptr<EncodedFileReader> readerPtr = EncodedFileReader::Open(path.c_str());
+        if (!readerPtr)
+        {
+            Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to open file: \"%\"", path.c_str());
+            return false;
+        }
+
+        EncodedFileReader* reader = readerPtr.get();
+        try
+        {
+            ReadSharedStashData(reader);
+
+            SetState(true);
+            return true;
+        }
+        catch (std::runtime_error&)
+        {
+            Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to load shared stash file \"%\"", path.c_str());
+            return false;
+        }
+    }
+    return false;
+}
+
+void SharedStash::ReadSharedStashData(EncodedFileReader* reader)
 {
     uint32_t fileVersion = reader->ReadInt32();
     uint32_t headerStart = reader->ReadInt32();
@@ -37,3 +65,4 @@ SharedStash::SharedStash(EncodedFileReader* reader)
         ReadStashTab(reader);
     }
 }
+

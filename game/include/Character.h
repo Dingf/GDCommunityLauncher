@@ -4,7 +4,9 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <filesystem>
 #include "FileReader.h"
+#include "Object.h"
 #include "GDDataBlock.h"
 #include "UID.h"
 #include "ItemContainer.h"
@@ -83,10 +85,13 @@ enum CharacterInventorySlot
     MAX_CHAR_INV_SLOT = 16,
 };
 
-class Character
+class Character : public Object
 {
     public:
-        Character(EncodedFileReader* reader);
+        Character() {}
+        Character(const std::filesystem::path& path) { ReadFromFile(path); }
+
+        bool ReadFromFile(const std::filesystem::path& path);
 
     private:
         void ReadHeaderBlock(EncodedFileReader* reader);
@@ -302,14 +307,14 @@ class Character
         {
             CharacterUIBlock() : GDDataBlock(0x0E, 0x18) {}
 
-            struct CharacterUIUnkData
+            struct CharacterUIUnkData : public Object
             {
                 std::string    _unk1;
                 std::string    _unk2;
                 uint8_t        _unk3;
             };
 
-            struct CharacterUISlot
+            struct CharacterUISlot : public Object
             {
                 int32_t        _slotType;           // 0 = item/class skill, 4 = item
                 std::string    _slotSkillName;
@@ -344,7 +349,7 @@ class Character
         {
             CharacterStatsBlock() : GDDataBlock(0x10, 0x540) {}
 
-            struct CharacterPerDifficultyStats
+            struct CharacterPerDifficultyStats : public Object
             {
                 uint32_t    _difficulty;
                 std::string _greatestEnemyKilled;

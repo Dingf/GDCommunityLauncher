@@ -3,10 +3,11 @@
 
 #include <memory>
 #include <vector>
+#include "Object.h"
 #include "GDDataBlock.h"
 #include "ItemContainer.h"
 
-class Stash
+class Stash : public Object
 {
     public:
         virtual ~Stash() = 0;

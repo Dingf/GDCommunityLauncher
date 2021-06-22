@@ -3,11 +3,13 @@ include_directories(../common/include)
 
 add_library(game
 include/UID.h
+include/Object.h
 include/GDDataBlock.h
 include/Item.h
 include/ItemContainer.h
 include/Skill.h
 include/Faction.h
+include/Quest.h
 include/Stash.h
 include/SharedStash.h
 include/Character.h
@@ -18,6 +20,7 @@ src/Item.cpp
 src/ItemContainer.cpp
 src/Skill.cpp
 src/Faction.cpp
+src/Quest.cpp
 src/Stash.cpp
 src/SharedStash.cpp
 src/Character.cpp

@@ -4,10 +4,12 @@
 #include <memory>
 #include <string>
 #include "FileReader.h"
+#include "Object.h"
 
-struct Item
+struct Item : public Object
 {
     public:
+        Item() {}
         Item(EncodedFileReader* reader);
 
         std::string _itemName;
