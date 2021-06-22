@@ -1,0 +1,15 @@
+# Visual Studio Data
+/.vs
+
+# Build directories
+/build
+/build64
+
+# Node.js intermediate files
+package-lock.json
+
+# Node modules
+/node_modules
+
+# Log files
+*.log
