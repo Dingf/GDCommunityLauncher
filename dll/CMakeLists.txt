@@ -1,7 +1,8 @@
 include_directories(include)
+include_directories(../common/include)
+include_directories(../game/include)
 
 add_library(dll SHARED
-include/Log.h
 include/HookManager.h
 include/EngineAPI.h
 include/GameAPI.h
@@ -12,5 +13,7 @@ src/GameAPI.cpp
 src/Client.cpp
 src/ClientHooks.cpp
 src/main.cpp)
+
+add_dependencies(dll game)
 
 set_target_properties(dll PROPERTIES OUTPUT_NAME "GDCommunityLauncher")

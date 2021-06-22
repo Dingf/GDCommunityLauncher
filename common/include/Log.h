@@ -1,5 +1,5 @@
-#ifndef INC_GDCL_DLL_LOG_H
-#define INC_GDCL_DLL_LOG_H
+#ifndef INC_GDCL_LOG_H
+#define INC_GDCL_LOG_H
 
 #include <stdio.h>
 #include <string>
@@ -183,4 +183,4 @@ class Logger
 };
 
 
-#endif//INC_GDCL_DLL_LOG_H
+#endif//INC_GDCL_LOG_H

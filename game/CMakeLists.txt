@@ -1,0 +1,26 @@
+include_directories(include)
+include_directories(../common/include)
+
+add_library(game
+include/UID.h
+include/GDDataBlock.h
+include/Item.h
+include/ItemContainer.h
+include/Skill.h
+include/Faction.h
+include/Stash.h
+include/SharedStash.h
+include/Character.h
+include/ItemDatabase.h
+src/UID.cpp
+src/GDDataBlock.cpp
+src/Item.cpp
+src/ItemContainer.cpp
+src/Skill.cpp
+src/Faction.cpp
+src/Stash.cpp
+src/SharedStash.cpp
+src/Character.cpp
+src/ItemDatabase.cpp)
+
+set_target_properties(game PROPERTIES OUTPUT_NAME "game")
