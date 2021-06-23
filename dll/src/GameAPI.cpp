@@ -40,3 +40,18 @@ const wchar_t* GameAPI::GetPlayerName(PULONG_PTR player)
 
     return (const wchar_t*)callback((LPVOID)player);
 }
+
+bool GameAPI::IsPlayerHardcore(PULONG_PTR player)
+{
+    typedef bool(__thiscall* IsPlayerHardcoreProto)(LPVOID);
+
+    HMODULE gameDLL = GetModuleHandle(TEXT("Game.dll"));
+    if ((!gameDLL) || (!player))
+        return nullptr;
+
+    IsPlayerHardcoreProto callback = (IsPlayerHardcoreProto)GetProcAddress(gameDLL, GAPI_NAME_IS_HARDCORE);
+    if (!callback)
+        return nullptr;
+
+    return callback((LPVOID)player);
+}
