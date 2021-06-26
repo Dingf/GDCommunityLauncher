@@ -33,10 +33,12 @@ LPVOID HookManager::CreateHook(LPCSTR moduleName, LPCSTR functionName, PVOID fun
     if (ntHeader->Signature != IMAGE_NT_SIGNATURE)
         return NULL;
 
+    std::string moduleString(moduleName);
+    std::string functionString(functionName);
     IMAGE_DATA_DIRECTORY imports = ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT];
     for (PIMAGE_IMPORT_DESCRIPTOR descriptor = (PIMAGE_IMPORT_DESCRIPTOR)(start + imports.VirtualAddress); descriptor->Name != NULL; descriptor++)
     {
-        if (std::string(moduleName) != (LPCSTR)(start + descriptor->Name))
+        if ((LPCSTR)(start + descriptor->Name) != moduleString)
             continue;
 
         if ((descriptor->FirstThunk == NULL) || (descriptor->OriginalFirstThunk == NULL))
@@ -48,7 +50,7 @@ LPVOID HookManager::CreateHook(LPCSTR moduleName, LPCSTR functionName, PVOID fun
         for (; originalThunk->u1.AddressOfData != NULL; originalThunk++, thunk++)
         {
             PIMAGE_IMPORT_BY_NAME importData = (PIMAGE_IMPORT_BY_NAME)(start + originalThunk->u1.AddressOfData);
-            if (std::string(functionName) != (LPCSTR)importData->Name)
+            if ((LPCSTR)importData->Name != functionString)
                 continue;
 
             DWORD originalProtect;
@@ -84,10 +86,12 @@ BOOL HookManager::DeleteHook(LPCSTR moduleName, LPCSTR functionName)
     if (ntHeader->Signature != IMAGE_NT_SIGNATURE)
         return FALSE;
 
+    std::string moduleString(moduleName);
+    std::string functionString(functionName);
     IMAGE_DATA_DIRECTORY imports = ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT];
     for (PIMAGE_IMPORT_DESCRIPTOR descriptor = (PIMAGE_IMPORT_DESCRIPTOR)(start + imports.VirtualAddress); descriptor->Name != NULL; descriptor++)
     {
-        if (std::string(moduleName) != (LPCSTR)(start + descriptor->Name))
+        if ((LPCSTR)(start + descriptor->Name) != moduleString)
             continue;
 
         if ((descriptor->FirstThunk == NULL) || (descriptor->OriginalFirstThunk == NULL))
@@ -99,7 +103,7 @@ BOOL HookManager::DeleteHook(LPCSTR moduleName, LPCSTR functionName)
         for (; originalThunk->u1.AddressOfData != NULL; originalThunk++, thunk++)
         {
             PIMAGE_IMPORT_BY_NAME importData = (PIMAGE_IMPORT_BY_NAME)(start + originalThunk->u1.AddressOfData);
-            if (std::string(functionName) != (LPCSTR)importData->Name)
+            if ((LPCSTR)importData->Name != functionString)
                 continue;
 
             DWORD originalProtect;

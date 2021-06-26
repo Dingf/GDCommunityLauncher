@@ -14,6 +14,8 @@ src/Client.cpp
 src/ClientHooks.cpp
 src/main.cpp)
 
+target_compile_definitions(dll INTERFACE GDCL_DLL=1)
+
 target_link_libraries(dll game)
 
 set_target_properties(dll PROPERTIES OUTPUT_NAME "GDCommunityLauncher")

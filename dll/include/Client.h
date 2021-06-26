@@ -9,20 +9,20 @@ class Client
         static Client& GetInstance();
 
         bool SetupClientHooks();
-
         void CLeanupClientHooks();
+
+        bool IsValid() const { return (!_name.empty() && !_authToken.empty()); }
 
         const std::string& GetName() const { return _name; }
         const std::string& GetAuthToken() const { return _authToken; }
 
     private:
-        Client() : _isInitialized(false) {}
+        Client() : _name({}), _authToken({}) {}
 
-        void ReadClientDataFromPipe();
+        void ReadDataFromPipe();
 
-        bool _isInitialized;
         std::string _name;
         std::string _authToken;
 };
 
-#endif
+#endif//INC_GDCL_DLL_CLIENT_H

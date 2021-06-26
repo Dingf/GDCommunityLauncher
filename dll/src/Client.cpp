@@ -6,16 +6,16 @@
 Client& Client::GetInstance()
 {
     static Client instance;
-    if (!instance._isInitialized)
+    if (!instance.IsValid())
     {
-        instance.ReadClientDataFromPipe();
+        instance.ReadDataFromPipe();
     }
     return instance;
 }
 
-void Client::ReadClientDataFromPipe()
+void Client::ReadDataFromPipe()
 {
-    if (!_isInitialized)
+    if (!IsValid())
     {
         HANDLE pipeIn = GetStdHandle(STD_INPUT_HANDLE);
 
@@ -64,7 +64,5 @@ void Client::ReadClientDataFromPipe()
         delete[] authBuffer;
 
         CloseHandle(pipeIn);
-        
-        _isInitialized = true;
     }
 }

@@ -6,8 +6,6 @@
 #include "Client.h"
 #include "Log.h"
 
-#include "Quest.h"
-
 std::string versionString;
 
 const char* HandleGetVersion(void* arg1)
@@ -55,10 +53,9 @@ void HandleSaveNewFormatData(void* arg1, void* arg2)
             playerFolderName += playerName;
 
             std::filesystem::path basePath = pathBuffer;
-            std::filesystem::path characterPath = basePath / "My Games" / "Grim Dawn" / "save" / "user" / playerFolderName;
-            std::filesystem::path characterSavePath = characterPath / "player.gdc";
+            std::filesystem::path characterPath = basePath / "My Games" / "Grim Dawn" / "save" / "user" / playerFolderName / "player.gdc";
 
-            if (!std::filesystem::is_directory(characterPath) || !std::filesystem::is_regular_file(characterSavePath))
+            if (!std::filesystem::is_regular_file(characterPath))
             {
                 Logger::LogMessage(LOG_LEVEL_ERROR, "Could not find saved character data. Make sure that cloud saving is disabled.");
                 return;
