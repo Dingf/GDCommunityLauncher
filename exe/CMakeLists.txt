@@ -1,15 +1,16 @@
-include_directories(include)
-include_directories(../common/include)
-
 add_executable(exe WIN32
 include/Client.h
 include/GameLauncher.h
-include/LoginPrompt.h
-res/LoginPrompt.rc
+include/LoginDialog.h
+include/ServerAuth.h
+res/LoginDialog.rc
 src/Client.cpp
 src/GameLauncher.cpp
+src/LoginDialog.cpp
+src/ServerAuth.cpp
 src/main.cpp)
 
-target_compile_definitions(exe INTERFACE GDCL_EXE=1)
+target_include_directories(exe PRIVATE include)
+target_link_libraries(exe PRIVATE Boost::thread)
 
 set_target_properties(exe PROPERTIES OUTPUT_NAME "GDCommunityLauncher")

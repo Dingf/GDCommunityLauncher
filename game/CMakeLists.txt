@@ -1,9 +1,5 @@
-include_directories(include)
-include_directories(../common/include)
-
 add_library(game
 include/UID.h
-include/Object.h
 include/GDDataBlock.h
 include/Item.h
 include/ItemContainer.h
@@ -25,5 +21,7 @@ src/Stash.cpp
 src/SharedStash.cpp
 src/Character.cpp
 src/ItemDatabase.cpp)
+
+target_include_directories(game PUBLIC include)
 
 set_target_properties(game PROPERTIES OUTPUT_NAME "game")
