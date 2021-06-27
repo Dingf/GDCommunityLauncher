@@ -37,9 +37,9 @@ void HandleSaveNewFormatData(void* arg1, void* arg2)
     {
         callback(arg1, arg2);
 
-        std::string modName = EngineAPI::GetModName();
         //TODO: Change mod name for S3
-        if (modName == "GrimLeagueS02_HC")
+        const char* modName = EngineAPI::GetModName();
+        if ((modName) && (std::string(modName) == "GrimLeagueS02_HC"))
         {
             char pathBuffer[260];
             if (!SHGetSpecialFolderPath(NULL, pathBuffer, CSIDL_PERSONAL, FALSE))
@@ -75,9 +75,9 @@ void HandleSaveTransferStash(void* arg1)
     {
         callback(arg1);
 
-        std::string modName = EngineAPI::GetModName();
         //TODO: Change mod name for S3
-        if (modName == "GrimLeagueS02_HC")
+        const char* modName = EngineAPI::GetModName();
+        if ((modName) && (std::string(modName) == "GrimLeagueS02_HC"))
         {
             char pathBuffer[260];
             if (!SHGetSpecialFolderPath(NULL, pathBuffer, CSIDL_PERSONAL, FALSE))
