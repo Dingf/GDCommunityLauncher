@@ -1,4 +1,6 @@
-#include "Client.h"
+#include <filesystem>
+#include <windows.h>
+#include "LoginDialog.h"
 #include "GameLauncher.h"
 
 #include "Log.h"
@@ -20,14 +22,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
         return EXIT_FAILURE;
     }
 
-    if (!GameLauncher::CreateLoginDialog())
+    if (!LoginDialog::CreateLoginDialog())
     {
         MessageBox(NULL, TEXT("Failed to start the launcher process."), NULL, MB_OK | MB_ICONERROR);
         return EXIT_FAILURE;
     }
     
-    Client& client = Client::GetInstance("TestUser123", "TestAuthToken");
-    if (!GameLauncher::LaunchProcess(client, grimDawnPath, libraryPath))
+    if (!GameLauncher::LaunchProcess(grimDawnPath, libraryPath))
     {
         //TODO: Replace me with a more useful error message that gets the last error code from Windows
         MessageBox(NULL, TEXT("Failed to launch Grim Dawn."), NULL, MB_OK | MB_ICONERROR);
