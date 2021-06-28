@@ -23,7 +23,6 @@ void SetDialogState(HWND hwnd, BOOL state)
     EnableWindow(GetDlgItem(hwnd, IDC_EDIT1), state);
     EnableWindow(GetDlgItem(hwnd, IDC_EDIT2), state);
     EnableWindow(GetDlgItem(hwnd, IDC_CHECK1), state);
-    EnableWindow(GetDlgItem(hwnd, IDC_CHECK2), state);
     EnableWindow(GetDlgItem(hwnd, IDOK), state);
     EnableWindow(GetDlgItem(hwnd, IDHELP), state);
 }
@@ -53,7 +52,7 @@ void SetConfigurationData(HWND hwnd, Configuration* config)
     {
         bool isRememberMeChecked = (IsDlgButtonChecked(hwnd, IDC_CHECK1) == BST_CHECKED);
 
-        config->SetValue("Login", "remember", isRememberMeChecked);
+        config->SetValue("Login", "autologin", isRememberMeChecked);
         if (isRememberMeChecked)
         {
             std::string username = GetFieldText(hwnd, IDC_EDIT1);
@@ -66,8 +65,6 @@ void SetConfigurationData(HWND hwnd, Configuration* config)
             config->SetValue("Login", "username", "");
             config->SetValue("Login", "password", "");
         }
-
-        config->SetValue("Login", "autologin", (IsDlgButtonChecked(hwnd, IDC_CHECK2) == BST_CHECKED));
     }
 }
 
@@ -119,12 +116,9 @@ INT_PTR CALLBACK LoginDialogHandler(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 
             Configuration* config = (Configuration*)lp;
 
-            Value* rememberMeValue = config->GetValue("Login", "remember");
-            if ((rememberMeValue) && (rememberMeValue->GetType() == VALUE_TYPE_BOOL) && (rememberMeValue->ToBool()))
+            Value* autoLoginValue = config->GetValue("Login", "autologin");
+            if ((autoLoginValue) && (autoLoginValue->GetType() == VALUE_TYPE_BOOL) && (autoLoginValue->ToBool()))
             {
-                HWND rememberMeCheckbox = GetDlgItem(hwnd, IDC_CHECK1);
-                SendMessage(rememberMeCheckbox, BM_SETCHECK, BST_CHECKED, NULL);
-
                 Value* usernameValue = config->GetValue("Login", "username");
                 Value* passwordValue = config->GetValue("Login", "password");
 
@@ -133,12 +127,8 @@ INT_PTR CALLBACK LoginDialogHandler(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 
                 if ((passwordValue) && (passwordValue->GetType() == VALUE_TYPE_STRING))
                     SetDlgItemText(hwnd, IDC_EDIT2, passwordValue->ToString());
-            }
 
-            Value* autoLoginValue = config->GetValue("Login", "autologin");
-            if ((autoLoginValue) && (autoLoginValue->GetType() == VALUE_TYPE_BOOL) && (autoLoginValue->ToBool()))
-            {
-                HWND autoLoginCheckbox = GetDlgItem(hwnd, IDC_CHECK2);
+                HWND autoLoginCheckbox = GetDlgItem(hwnd, IDC_CHECK1);
                 SendMessage(autoLoginCheckbox, BM_SETCHECK, BST_CHECKED, NULL);
             }
 

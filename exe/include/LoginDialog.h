@@ -6,7 +6,6 @@
 #define IDC_EDIT1                       1000
 #define IDC_EDIT2                       1001
 #define IDC_CHECK1                      1002
-#define IDC_CHECK2                      1004
 #define IDC_IMAGE1                      1084
 #define IDC_STATIC                      -1
 #define IDB_BITMAP1                     102

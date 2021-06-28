@@ -35,7 +35,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
         config.SetValue("Login", "hostname", "https://www.grimleague.com/");
         config.SetValue("Login", "username", "");
         config.SetValue("Login", "password", "");
-        config.SetValue("Login", "remember", false);
         config.SetValue("Login", "autologin", false);
         config.Save(configPath);
     }
