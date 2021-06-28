@@ -6,26 +6,10 @@
 #include "Client.h"
 #include "Log.h"
 
-std::string versionString;
-
 const char* HandleGetVersion(void* arg1)
 {
-    typedef const char*(__thiscall* GetVersionProto)(void*);
-
-    versionString.clear();
-
     Client& client = Client::GetInstance();
-    GetVersionProto callback = (GetVersionProto)HookManager::GetOriginalFunction("Engine.dll", EngineAPI::EAPI_NAME_GET_VERSION);
-    if (callback)
-    {
-        const char* result = callback(arg1);
-        versionString.append(result);
-        versionString.append("\n{^F}GrimLeague S3 (");
-        versionString.append(client.GetName());
-        versionString.append(")");
-    }
-
-    return versionString.c_str();
+    return client.GetVersionInfoText().c_str();
 }
 
 void HandleSaveNewFormatData(void* arg1, void* arg2)
@@ -143,6 +127,8 @@ bool Client::SetupClientHooks()
         !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_SAVE_NEW_FORMAT_DATA, &HandleSaveNewFormatData) ||
         !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_SAVE_TRANSFER_STASH, &HandleSaveTransferStash))
         return false;
+
+    UpdateVersionInfoText();
 
     return true;
 }

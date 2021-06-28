@@ -1,6 +1,7 @@
 #include <Windows.h>
 #include "HookManager.h"
 #include "Client.h"
+#include "EngineAPI.h"
 #include "Log.h"
 
 Client& Client::GetInstance()
@@ -66,6 +67,26 @@ void Client::ReadDataFromPipe()
         CloseHandle(pipeIn);
 
         UpdateLeagueInfoText();
+        UpdateVersionInfoText();
+    }
+}
+
+void Client::UpdateVersionInfoText()
+{
+    typedef const char* (__thiscall* GetVersionProto)(void*);
+
+    _versionInfoText.clear();
+
+    GetVersionProto callback = (GetVersionProto)HookManager::GetOriginalFunction("Engine.dll", EngineAPI::EAPI_NAME_GET_VERSION);
+    PULONG_PTR engine = EngineAPI::GetEngineHandle();
+
+    if ((callback) && (engine))
+    {
+        const char* result = callback((void*)*engine);
+        _versionInfoText.append(result);
+        _versionInfoText.append("\n{^F}GrimLeague S3 (");
+        _versionInfoText.append(GetName());
+        _versionInfoText.append(")");
     }
 }
 

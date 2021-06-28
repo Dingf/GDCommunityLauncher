@@ -17,7 +17,8 @@ class Client
         uint32_t GetPoints() const { return _points; }
         uint32_t GetRank() const { return _rank; }
 
-        const std::wstring& GetLeagueInfoText() const { return _leagueInfoText; }
+        const std::string&  GetVersionInfoText() const { return _versionInfoText; }
+        const std::wstring& GetLeagueInfoText()  const { return _leagueInfoText; }
 
         const std::string& GetName() const { return _name; }
         const std::string& GetAuthToken() const { return _authToken; }
@@ -37,6 +38,7 @@ class Client
     private:
         Client() : _name({}), _authToken({}), _rank(0), _points(0) {}
 
+        void UpdateVersionInfoText();
         void UpdateLeagueInfoText();
 
         void ReadDataFromPipe();
@@ -46,6 +48,7 @@ class Client
 
         std::string _name;
         std::string _authToken;
+        std::string _versionInfoText;
         std::wstring _leagueInfoText;
 };
 
