@@ -8,16 +8,16 @@ bool InjectDLL(HANDLE process, const std::filesystem::path& dllPath)
 {
     if (process)
     {
-        LPVOID loadLibraryAddress = (LPVOID)GetProcAddress(GetModuleHandle("kernel32.dll"), "LoadLibraryA");
+        LPVOID loadLibraryAddress = (LPVOID)GetProcAddress(GetModuleHandle("kernel32.dll"), "LoadLibraryW");
         if (!loadLibraryAddress)
             return FALSE;
 
-        std::string dllString = dllPath.string();
-        LPVOID writeAddress = (LPVOID)VirtualAllocEx(process, NULL, dllString.length(), MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+        std::wstring dllString = dllPath.wstring();
+        LPVOID writeAddress = (LPVOID)VirtualAllocEx(process, NULL, dllString.length() * sizeof(wchar_t), MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
         if (!writeAddress)
             return FALSE;
 
-        if (!WriteProcessMemory(process, writeAddress, dllString.c_str(), dllString.length(), NULL))
+        if (!WriteProcessMemory(process, writeAddress, dllString.c_str(), dllString.length() * sizeof(wchar_t), NULL))
             return FALSE;
 
         if (!CreateRemoteThread(process, NULL, 0, (LPTHREAD_START_ROUTINE)loadLibraryAddress, writeAddress, NULL, NULL))

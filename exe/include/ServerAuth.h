@@ -14,8 +14,9 @@ typedef void(*ServerAuthCallback)(ServerAuthResult);
 
 namespace ServerAuth
 {
-
     void ValidateCredentials(const std::string& username, const std::string& password, ServerAuthCallback callback);
+
+    ServerAuthResult ValidateCredentials(const std::string& username, const std::string& password);
 }
 
 #endif//INC_GDCL_EXE_SERVER_AUTH_H
