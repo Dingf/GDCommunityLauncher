@@ -62,6 +62,10 @@ void HandleSaveNewFormatData(void* arg1, void* arg2)
             }
 
             //TODO: Load the character data and send it to the server
+            //TODO: Also, since the file may be updated frequently when putting in skill/devotion points, we need to wait like ~5s. During that 5s,
+            //      any further saves should not create a new request but instead extend the timer on the old one. This way, the server doesn't get
+            //      flooded with save messages.
+            //      This should also allow for enough time to properly save the character/quest data on the filesystem
         }
     }
 }
@@ -117,9 +121,11 @@ bool Client::SetupClientHooks()
     return true;
 }
 
-void Client::CLeanupClientHooks()
+void Client::CleanupClientHooks()
 {
     HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_GET_VERSION);
     HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_SAVE_NEW_FORMAT_DATA);
     HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_SAVE_TRANSFER_STASH);
+
+    //TODO: (In another function perhaps) scan the user save directory for all characters and upload them to the server
 }

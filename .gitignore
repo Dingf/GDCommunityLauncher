@@ -16,6 +16,7 @@ package-lock.json
 *.bmp
 *.jpg
 *.png
+*.ico
 
 # Generated files
 game/src/ItemDatabase.cpp

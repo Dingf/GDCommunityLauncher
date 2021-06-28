@@ -7,7 +7,7 @@ set(Boost_USE_STATIC_LIBS ON)
 set(Boost_USE_MULTITHREADED ON) 
 set(Boost_USE_STATIC_RUNTIME OFF)
 
-find_package(Boost 1.75.0 COMPONENTS thread REQUIRED)
+find_package(Boost 1.75.0)
 if (Boost_FOUND)
     include_directories(${Boost_INCLUDE_DIRS})
     link_directories(${Boost_LIBARY_DIRS})

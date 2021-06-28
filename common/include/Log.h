@@ -5,7 +5,6 @@
 #include <string>
 #include <sstream>
 #include <time.h>
-#include <unordered_map>
 
 enum LogLevel
 {

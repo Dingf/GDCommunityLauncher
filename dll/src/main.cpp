@@ -10,7 +10,7 @@ BOOL APIENTRY DllMain(HINSTANCE hInstDLL, DWORD fdwReason, LPVOID lpReserved)
             client.SetupClientHooks();
             break;
         case DLL_PROCESS_DETACH:
-            client.CLeanupClientHooks();
+            client.CleanupClientHooks();
             break;
         case DLL_THREAD_ATTACH:
             break;

@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <string>
+#include <stdio.h>
 
 class FileReader
 {

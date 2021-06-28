@@ -9,7 +9,7 @@ class Client
         static Client& GetInstance();
 
         bool SetupClientHooks();
-        void CLeanupClientHooks();
+        void CleanupClientHooks();
 
         bool IsValid() const { return (!_name.empty() && !_authToken.empty()); }
 
