@@ -64,5 +64,27 @@ void Client::ReadDataFromPipe()
         delete[] authBuffer;
 
         CloseHandle(pipeIn);
+
+        UpdateLeagueInfoText();
     }
+}
+
+void Client::UpdateLeagueInfoText()
+{
+    _leagueInfoText.clear();
+
+    _leagueInfoText = L"GrimLeague Season 3\n";
+    _leagueInfoText += std::wstring(_name.begin(), _name.end());
+    if (_points > 0)
+    {
+        _leagueInfoText += L" {^L}(Rank ";
+        _leagueInfoText += std::to_wstring(_rank);
+        _leagueInfoText += L" ~ ";
+    }
+    else
+    {
+        _leagueInfoText += L" {^L}(";
+    }
+    _leagueInfoText += std::to_wstring(_points);
+    _leagueInfoText += L" points)";
 }

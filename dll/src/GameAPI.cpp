@@ -1,6 +1,10 @@
 #include "GameAPI.h"
 
-PULONG_PTR GameAPI::GetGameEngineHandle()
+namespace GameAPI
+{
+
+
+PULONG_PTR GetGameEngineHandle()
 {
     HMODULE gameDLL = GetModuleHandle(TEXT("Game.dll"));
     if (!gameDLL)
@@ -9,7 +13,7 @@ PULONG_PTR GameAPI::GetGameEngineHandle()
     return (PULONG_PTR)GetProcAddress(gameDLL, GAPI_NAME_GAME_ENGINE);
 }
 
-PULONG_PTR GameAPI::GetMainPlayer()
+PULONG_PTR GetMainPlayer()
 {
     typedef PULONG_PTR(__thiscall* GetMainPlayerProto)(LPVOID);
 
@@ -26,7 +30,7 @@ PULONG_PTR GameAPI::GetMainPlayer()
     return callback((LPVOID)*gameEngine);
 }
 
-const wchar_t* GameAPI::GetPlayerName(PULONG_PTR player)
+const wchar_t* GetPlayerName(PULONG_PTR player)
 {
     typedef PULONG_PTR(__thiscall* GetPlayerNameProto)(LPVOID);
 
@@ -41,7 +45,7 @@ const wchar_t* GameAPI::GetPlayerName(PULONG_PTR player)
     return (const wchar_t*)callback((LPVOID)player);
 }
 
-bool GameAPI::IsPlayerHardcore(PULONG_PTR player)
+bool IsPlayerHardcore(PULONG_PTR player)
 {
     typedef bool(__thiscall* IsPlayerHardcoreProto)(LPVOID);
 
@@ -54,4 +58,6 @@ bool GameAPI::IsPlayerHardcore(PULONG_PTR player)
         return nullptr;
 
     return callback((LPVOID)player);
+}
+
 }

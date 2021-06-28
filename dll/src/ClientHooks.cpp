@@ -111,9 +111,35 @@ void HandleSaveTransferStash(void* arg1)
     }
 }
 
+void HandleRender(void* arg1)
+{
+    typedef void(__thiscall* RenderProto)(void*);
+    
+    RenderProto callback = (RenderProto)HookManager::GetOriginalFunction("Engine.dll", EngineAPI::EAPI_NAME_RENDER);
+    if (callback)
+    {
+        callback(arg1);
+
+        const char* modName = EngineAPI::GetModName();
+        PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
+        if ((modName) && (mainPlayer) && (std::string(modName) == "GrimLeagueS02_HC"))
+        {
+            Client& client = Client::GetInstance();
+            const std::wstring& text = client.GetLeagueInfoText();
+            PULONG_PTR font = EngineAPI::LoadFontDirect("fonts/nevisshadow.fnt");
+            EngineAPI::RenderText2D(10, 28, EngineAPI::Color::TAN, text.c_str(), font, 19, EngineAPI::GRAPHICS_X_ALIGN_LEFT, EngineAPI::GRAPHICS_Y_ALIGN_TOP, 0, 0);
+
+            //TODO: Delete me, this is just testing code
+            client.SetRank((client.GetRank() + 1) % 10);
+            client.SetPoints(client.GetPoints() + 1);
+        }
+    }
+}
+
 bool Client::SetupClientHooks()
 {
     if (!HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_GET_VERSION, &HandleGetVersion) ||
+        !HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_RENDER, &HandleRender) ||
         !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_SAVE_NEW_FORMAT_DATA, &HandleSaveNewFormatData) ||
         !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_SAVE_TRANSFER_STASH, &HandleSaveTransferStash))
         return false;
@@ -124,6 +150,7 @@ bool Client::SetupClientHooks()
 void Client::CleanupClientHooks()
 {
     HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_GET_VERSION);
+    HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_RENDER);
     HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_SAVE_NEW_FORMAT_DATA);
     HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_SAVE_TRANSFER_STASH);
 
