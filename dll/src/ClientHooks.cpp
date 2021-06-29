@@ -23,7 +23,8 @@ void HandleSaveNewFormatData(void* arg1, void* arg2)
 
         //TODO: Change mod name for S3
         const char* modName = EngineAPI::GetModName();
-        if ((modName) && (std::string(modName) == "GrimLeagueS02_HC"))
+        PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
+        if ((modName) && (mainPlayer) && (std::string(modName) == "GrimLeagueS02_HC"))
         {
             char pathBuffer[260];
             if (!SHGetSpecialFolderPath(NULL, pathBuffer, CSIDL_PERSONAL, FALSE))
@@ -32,7 +33,10 @@ void HandleSaveNewFormatData(void* arg1, void* arg2)
                 return;
             }
 
-            std::wstring playerName = GameAPI::GetPlayerName(GameAPI::GetMainPlayer());
+            const wchar_t * playerName = GameAPI::GetPlayerName(mainPlayer);
+            if (playerName == nullptr)
+                return;
+
             std::wstring playerFolderName = L"_";
             playerFolderName += playerName;
 
@@ -65,7 +69,8 @@ void HandleSaveTransferStash(void* arg1)
 
         //TODO: Change mod name for S3
         const char* modName = EngineAPI::GetModName();
-        if ((modName) && (std::string(modName) == "GrimLeagueS02_HC"))
+        PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
+        if ((modName) && (mainPlayer) && (std::string(modName) == "GrimLeagueS02_HC"))
         {
             char pathBuffer[260];
             if (!SHGetSpecialFolderPath(NULL, pathBuffer, CSIDL_PERSONAL, FALSE))
@@ -74,7 +79,6 @@ void HandleSaveTransferStash(void* arg1)
                 return;
             }
 
-            PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
             bool hardcore = GameAPI::IsPlayerHardcore(mainPlayer);
 
             std::filesystem::path stashPath = pathBuffer;
