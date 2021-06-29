@@ -3,7 +3,6 @@
 namespace GameAPI
 {
 
-
 PULONG_PTR GetGameEngineHandle()
 {
     HMODULE gameDLL = GetModuleHandle(TEXT("Game.dll"));
@@ -58,6 +57,23 @@ bool IsPlayerHardcore(PULONG_PTR player)
         return nullptr;
 
     return callback((LPVOID)player);
+}
+
+bool IsGameLoading()
+{
+    typedef bool(__thiscall* IsGameLoadingProto)(LPVOID);
+
+    HMODULE gameDLL = GetModuleHandle(TEXT("Game.dll"));
+    if (!gameDLL)
+        return nullptr;
+
+    IsGameLoadingProto callback = (IsGameLoadingProto)GetProcAddress(gameDLL, GAPI_NAME_IS_GAME_LOADING);
+    PULONG_PTR gameEngine = GetGameEngineHandle();
+
+    if ((!callback) || (!gameEngine))
+        return nullptr;
+
+    return callback((LPVOID)*gameEngine);
 }
 
 }

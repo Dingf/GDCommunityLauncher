@@ -110,7 +110,7 @@ void HandleRender(void* arg1)
 
         const char* modName = EngineAPI::GetModName();
         PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
-        if ((modName) && (mainPlayer) && (std::string(modName) == "GrimLeagueS02_HC"))
+        if ((modName) && (mainPlayer) && (!GameAPI::IsGameLoading()) && (std::string(modName) == "GrimLeagueS02_HC"))
         {
             Client& client = Client::GetInstance();
             const std::wstring& text = client.GetLeagueInfoText();

@@ -1,5 +1,6 @@
 #include <windows.h>
 #include "Client.h"
+#include "Log.h"
 
 BOOL APIENTRY DllMain(HINSTANCE hInstDLL, DWORD fdwReason, LPVOID lpReserved)
 {
@@ -7,7 +8,11 @@ BOOL APIENTRY DllMain(HINSTANCE hInstDLL, DWORD fdwReason, LPVOID lpReserved)
     switch (fdwReason)
     {
         case DLL_PROCESS_ATTACH:
-            client.SetupClientHooks();
+            if (!client.SetupClientHooks())
+            {
+                Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to load GDCommunityLauncher.dll");
+                return FALSE;
+            }
             break;
         case DLL_PROCESS_DETACH:
             client.CleanupClientHooks();

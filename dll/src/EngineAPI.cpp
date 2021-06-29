@@ -97,7 +97,15 @@ const char* GetModName()
         return nullptr;
 
     PULONG_PTR result = callback(gameInfo);
-    return (const char*)(*result);
+
+    // For some reason Steam sometimes stores a pointer and sometimes just stores the string itself
+    // It seems like it depends on the length of the mod name? 
+
+    // If it's a pointer, then it should be relatively close in memory so compare the first 32 bits
+    if (((ULONGLONG)result & 0xFFFFFFFF00000000L) == ((ULONGLONG)(*result) & 0xFFFFFFFF00000000L))
+        return (const char*)(*result);
+    else
+        return (const char*)result;
 }
 
 PULONG_PTR GetStyleManager()
