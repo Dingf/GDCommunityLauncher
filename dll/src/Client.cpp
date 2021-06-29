@@ -96,7 +96,7 @@ void Client::UpdateLeagueInfoText()
 
     _leagueInfoText = L"GrimLeague Season 3\n";
     _leagueInfoText += std::wstring(_name.begin(), _name.end());
-    if (_points > 0)
+    if ((_points > 0) && (_rank > 0))
     {
         _leagueInfoText += L" {^L}(Rank ";
         _leagueInfoText += std::to_wstring(_rank);

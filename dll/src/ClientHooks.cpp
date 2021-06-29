@@ -111,10 +111,10 @@ void HandleRender(void* arg1)
             Client& client = Client::GetInstance();
             const std::wstring& text = client.GetLeagueInfoText();
             PULONG_PTR font = EngineAPI::LoadFontDirect("fonts/nevisshadow.fnt");
-            EngineAPI::RenderText2D(10, 28, EngineAPI::Color::TAN, text.c_str(), font, 19, EngineAPI::GRAPHICS_X_ALIGN_LEFT, EngineAPI::GRAPHICS_Y_ALIGN_TOP, 0, 0);
+            EngineAPI::RenderText2D(10, 29, EngineAPI::Color::TAN, text.c_str(), font, 19, EngineAPI::GRAPHICS_X_ALIGN_LEFT, EngineAPI::GRAPHICS_Y_ALIGN_TOP, 0, 0);
 
             //TODO: Delete me, this is just testing code
-            client.SetRank((client.GetRank() + 1) % 10);
+            client.SetRank((client.GetRank() + 1) % 100 + 1);
             client.SetPoints(client.GetPoints() + 1);
         }
     }
