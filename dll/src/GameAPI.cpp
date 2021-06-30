@@ -44,6 +44,23 @@ const wchar_t* GetPlayerName(PULONG_PTR player)
     return (const wchar_t*)callback((LPVOID)player);
 }
 
+std::string GetBaseFolder()
+{
+    typedef std::string(__thiscall* GetBaseFolderProto)(LPVOID);
+
+    HMODULE gameDLL = GetModuleHandle(TEXT("Game.dll"));
+    if (!gameDLL)
+        return {};
+
+    GetBaseFolderProto callback = (GetBaseFolderProto)GetProcAddress(gameDLL, GAPI_NAME_GET_BASE_FOLDER);
+    PULONG_PTR gameEngine = GetGameEngineHandle();
+
+    if ((!callback) || (!gameEngine))
+        return {};
+
+    return callback((LPVOID)*gameEngine);
+}
+
 bool IsPlayerHardcore(PULONG_PTR player)
 {
     typedef bool(__thiscall* IsPlayerHardcoreProto)(LPVOID);

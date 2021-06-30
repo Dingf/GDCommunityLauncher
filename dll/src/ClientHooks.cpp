@@ -1,5 +1,4 @@
 #include <filesystem>
-#include <shlobj.h>
 #include "EngineAPI.h"
 #include "GameAPI.h"
 #include "HookManager.h"
@@ -26,22 +25,19 @@ void HandleSaveNewFormatData(void* arg1, void* arg2)
         PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
         if ((modName) && (mainPlayer) && (std::string(modName) == "GrimLeagueS02_HC"))
         {
-            char pathBuffer[260];
-            if (!SHGetSpecialFolderPath(NULL, pathBuffer, CSIDL_PERSONAL, FALSE))
+            std::string baseFolder = GameAPI::GetBaseFolder();
+            const wchar_t* playerName = GameAPI::GetPlayerName(mainPlayer);
+            if ((playerName == nullptr) || (baseFolder.empty()))
             {
-                Logger::LogMessage(LOG_LEVEL_ERROR, "Call to SHGetSpecialFolderPath() failed.");
+                Logger::LogMessage(LOG_LEVEL_ERROR, "Could not determine character save location.");
                 return;
             }
 
-            const wchar_t * playerName = GameAPI::GetPlayerName(mainPlayer);
-            if (playerName == nullptr)
-                return;
+            std::filesystem::path characterPath = std::filesystem::path(baseFolder) / "save" / "user" / "_";
+            characterPath += playerName;
+            characterPath /= "player.gdc";
 
-            std::wstring playerFolderName = L"_";
-            playerFolderName += playerName;
-
-            std::filesystem::path basePath = pathBuffer;
-            std::filesystem::path characterPath = basePath / "My Games" / "Grim Dawn" / "save" / "user" / playerFolderName / "player.gdc";
+            Logger::LogMessage(LOG_LEVEL_DEBUG, "The character path is %", characterPath.string().c_str());
 
             if (!std::filesystem::is_regular_file(characterPath))
             {
@@ -72,25 +68,22 @@ void HandleSaveTransferStash(void* arg1)
         PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
         if ((modName) && (mainPlayer) && (std::string(modName) == "GrimLeagueS02_HC"))
         {
-            char pathBuffer[260];
-            if (!SHGetSpecialFolderPath(NULL, pathBuffer, CSIDL_PERSONAL, FALSE))
+            std::string baseFolder = GameAPI::GetBaseFolder();
+            if (baseFolder.empty())
             {
-                Logger::LogMessage(LOG_LEVEL_ERROR, "Call to SHGetSpecialFolderPath() failed.");
+                Logger::LogMessage(LOG_LEVEL_ERROR, "Could not determine shared stash save location.");
                 return;
             }
 
-            bool hardcore = GameAPI::IsPlayerHardcore(mainPlayer);
-
-            std::filesystem::path stashPath = pathBuffer;
-            stashPath = stashPath / "My Games" / "Grim Dawn" / "save" / modName;
-            if (hardcore)
+            std::filesystem::path stashPath = std::filesystem::path(GameAPI::GetBaseFolder()) / "save" / modName;
+            if (GameAPI::IsPlayerHardcore(mainPlayer))
                 stashPath /= "transfer.gsh";
             else
                 stashPath /= "transfer.gst";
 
             if (!std::filesystem::is_regular_file(stashPath))
             {
-                Logger::LogMessage(LOG_LEVEL_ERROR, "Could not find saved shared stash data. Make sure that cloud saving is disabled.");
+                Logger::LogMessage(LOG_LEVEL_ERROR, "Could not find shared stash data. Make sure that cloud saving is disabled.");
                 return;
             }
 
@@ -143,20 +136,20 @@ bool HandleLoadWorld(void* arg1, const char* arg2, bool arg3, bool arg4)
 
 bool HandleKeyEvent(void* arg1, EngineAPI::KeyButtonEvent& arg2)
 {
-    typedef bool(__thiscall* TestProto)(void*, EngineAPI::KeyButtonEvent&);
+    typedef bool(__thiscall* HandleKeyEventProto)(void*, EngineAPI::KeyButtonEvent&);
 
-    TestProto callback = (TestProto)HookManager::GetOriginalFunction("Engine.dll", EngineAPI::EAPI_NAME_HANDLE_KEY_EVENT);
+    HandleKeyEventProto callback = (HandleKeyEventProto)HookManager::GetOriginalFunction("Engine.dll", EngineAPI::EAPI_NAME_HANDLE_KEY_EVENT);
     if (callback)
     {
+        // TODO: Re-enable for S3
         // Disable the tilde key to prevent console access
-        if (arg2._keyCode == EngineAPI::KEY_TILDE)
-            return true;
-        else
+        //if (arg2._keyCode == EngineAPI::KEY_TILDE)
+        //    return true;
+        //else
             return callback(arg1, arg2);
     }
     return false;
 }
-
 
 bool Client::SetupClientHooks()
 {

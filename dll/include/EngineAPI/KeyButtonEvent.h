@@ -121,9 +121,9 @@ enum KeyState : uint32_t
 
 struct KeyButtonEvent
 {
-    uint64_t   _unk1;    // A pointer to some API function, always constant
-    KeyCode    _keyCode;
-    KeyState   _keyState;
+    uint64_t _unk1;    // A pointer to some API function, always constant
+    KeyCode  _keyCode;
+    KeyState _keyState;
 };
 
 }

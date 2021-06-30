@@ -4,10 +4,6 @@
 #include "GameLauncher.h"
 #include "Client.h"
 
-#include "Log.h"
-
-#include <stdio.h>
-
 typedef std::basic_string<TCHAR, std::char_traits<TCHAR>, std::allocator<TCHAR>> TSTRING;
 
 TSTRING operator+(const TCHAR* arg1, const std::filesystem::path& arg2)
