@@ -110,7 +110,7 @@ void HandleRender(void* arg1)
 
         const char* modName = EngineAPI::GetModName();
         PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
-        if ((modName) && (mainPlayer) && (!GameAPI::IsGameLoading()) && (std::string(modName) == "GrimLeagueS02_HC"))
+        if ((modName) && (mainPlayer) && (!GameAPI::IsGameLoading()) && ((std::string(modName) == "GrimLeagueS02_HC") || (std::string(modName) == "GrimLeagueS03")))
         {
             Client& client = Client::GetInstance();
             const std::wstring& text = client.GetLeagueInfoText();
@@ -124,10 +124,46 @@ void HandleRender(void* arg1)
     }
 }
 
+// void World::Load(World* this, const char* mapName, bool unk1, bool modded)
+bool HandleLoadWorld(void* arg1, const char* arg2, bool arg3, bool arg4)
+{
+    typedef bool(__thiscall* LoadWorldProto)(void*, const char*, bool, bool);
+
+    LoadWorldProto callback = (LoadWorldProto)HookManager::GetOriginalFunction("Engine.dll", EngineAPI::EAPI_NAME_LOAD_WORLD);
+    if (callback)
+    {
+        bool result = callback(arg1, arg2, arg3, arg4);
+
+        // Insert any code that needs to happen on map load here
+
+        return result;
+    }
+    return false;
+}
+
+bool HandleKeyEvent(void* arg1, EngineAPI::KeyButtonEvent& arg2)
+{
+    typedef bool(__thiscall* TestProto)(void*, EngineAPI::KeyButtonEvent&);
+
+    TestProto callback = (TestProto)HookManager::GetOriginalFunction("Engine.dll", EngineAPI::EAPI_NAME_HANDLE_KEY_EVENT);
+    if (callback)
+    {
+        // Disable the tilde key to prevent console access
+        if (arg2._keyCode == EngineAPI::KEY_TILDE)
+            return true;
+        else
+            return callback(arg1, arg2);
+    }
+    return false;
+}
+
+
 bool Client::SetupClientHooks()
 {
     if (!HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_GET_VERSION, &HandleGetVersion) ||
         !HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_RENDER, &HandleRender) ||
+        !HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_LOAD_WORLD, &HandleLoadWorld) ||
+        !HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_HANDLE_KEY_EVENT, &HandleKeyEvent) ||
         !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_SAVE_NEW_FORMAT_DATA, &HandleSaveNewFormatData) ||
         !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_SAVE_TRANSFER_STASH, &HandleSaveTransferStash))
         return false;
@@ -141,6 +177,8 @@ void Client::CleanupClientHooks()
 {
     HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_GET_VERSION);
     HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_RENDER);
+    HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_LOAD_WORLD);
+    HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_HANDLE_KEY_EVENT);
     HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_SAVE_NEW_FORMAT_DATA);
     HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_SAVE_TRANSFER_STASH);
 
