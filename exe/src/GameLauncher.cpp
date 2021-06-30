@@ -4,6 +4,10 @@
 #include "GameLauncher.h"
 #include "Client.h"
 
+#include "Log.h"
+
+#include <stdio.h>
+
 typedef std::basic_string<TCHAR, std::char_traits<TCHAR>, std::allocator<TCHAR>> TSTRING;
 
 TSTRING operator+(const TCHAR* arg1, const std::filesystem::path& arg2)
@@ -48,7 +52,7 @@ LPVOID BuildEnvironmentVariables()
     std::filesystem::path steamDir = steamappsDir.parent_path(); 
 
     // If Steam is present, we need to build a whole slew of environment variables to bypass Steam's launcher
-    if ((installDir.stem() == "Grim Dawn") && (commonDir.stem() == "common") && (steamappsDir.stem() == "steamapps") && (steamDir.stem() == "Steam"))
+    if ((installDir.stem() == "Grim Dawn") && (commonDir.stem() == "common") && (steamappsDir.stem() == "steamapps"))
     {
         std::vector<TSTRING> env =
         {
