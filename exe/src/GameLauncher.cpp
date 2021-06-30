@@ -45,15 +45,19 @@ bool InjectDLL(HANDLE process, const std::filesystem::path& dllPath)
 
 LPVOID BuildEnvironmentVariables()
 {
-    // Trace the install dir path to determine whether we are running on Steam or GOG
+    // Look for steam_api.dll to determine whether or not we are running on Steam
     std::filesystem::path installDir = std::filesystem::current_path();
-    std::filesystem::path commonDir = installDir.parent_path();
-    std::filesystem::path steamappsDir = commonDir.parent_path();
-    std::filesystem::path steamDir = steamappsDir.parent_path(); 
+    std::filesystem::path steamApiFile = installDir / "steam_api.dll";
 
     // If Steam is present, we need to build a whole slew of environment variables to bypass Steam's launcher
-    if ((installDir.stem() == "Grim Dawn") && (commonDir.stem() == "common") && (steamappsDir.stem() == "steamapps"))
+    if (std::filesystem::is_regular_file(steamApiFile))
     {
+        std::filesystem::path commonDir = installDir.parent_path();
+        std::filesystem::path steamappsDir = commonDir.parent_path();
+        std::filesystem::path steamDir = steamappsDir.parent_path();
+
+        //TODO: Some of these can probably be trimmed/removed. Figure out which ones are necessary to run the launcher
+        //      and get rid of the rest
         std::vector<TSTRING> env =
         {
             TEXT("SteamEnv=1"),
