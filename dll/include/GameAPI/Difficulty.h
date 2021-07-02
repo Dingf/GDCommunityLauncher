@@ -1,0 +1,18 @@
+#ifndef INC_GDCL_DLL_GAME_API_DIFFICULTY_H
+#define INC_GDCL_DLL_GAME_API_DIFFICULTY_H
+
+#include <stdint.h>
+
+namespace GameAPI
+{
+
+enum Difficulty : int32_t
+{
+    GAME_DIFFICULTY_NORMAL,
+    GAME_DIFFICULTY_ELITE,
+    GAME_DIFFICULTY_ULTIMATE,
+};
+
+}
+
+#endif//INC_GDCL_DLL_GAME_API_DIFFICULTY_H

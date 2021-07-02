@@ -61,6 +61,23 @@ std::string GetBaseFolder()
     return callback((LPVOID)*gameEngine);
 }
 
+Difficulty GetGameDifficulty()
+{
+    typedef Difficulty(__thiscall* GetGameDifficultyProto)(LPVOID);
+
+    HMODULE gameDLL = GetModuleHandle(TEXT("Game.dll"));
+    if (!gameDLL)
+        return {};
+
+    GetGameDifficultyProto callback = (GetGameDifficultyProto)GetProcAddress(gameDLL, GAPI_NAME_GET_GAME_DIFFICULTY);
+    PULONG_PTR gameEngine = GetGameEngineHandle();
+
+    if ((!callback) || (!gameEngine))
+        return GAME_DIFFICULTY_NORMAL;
+
+    return callback((LPVOID)*gameEngine);
+}
+
 bool IsPlayerHardcore(PULONG_PTR player)
 {
     typedef bool(__thiscall* IsPlayerHardcoreProto)(LPVOID);
