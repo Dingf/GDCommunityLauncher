@@ -1,14 +1,60 @@
 #include <filesystem>
+#include "HookManager.h"
+#include "UpdateThread.h"
 #include "EngineAPI.h"
 #include "GameAPI.h"
-#include "HookManager.h"
 #include "Client.h"
+#include "Character.h"
+#include "SharedStash.h"
 #include "Log.h"
+
+#include <fstream>
+
+namespace
+{
+
+std::shared_ptr<UpdateThread> characterUpdateThread;
+std::shared_ptr<UpdateThread> stashUpdateThread;
+
+}
 
 const char* HandleGetVersion(void* _this)
 {
     Client& client = Client::GetInstance();
     return client.GetVersionInfoText().c_str();
+}
+
+void UpdateCharacterData()
+{
+    PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
+    std::string baseFolder = GameAPI::GetBaseFolder();
+    const wchar_t* playerName = GameAPI::GetPlayerName(mainPlayer);
+    if ((playerName == nullptr) || (baseFolder.empty()))
+    {
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Could not determine character save location.");
+        return;
+    }
+
+    std::filesystem::path characterPath = std::filesystem::path(baseFolder) / "save" / "user" / "_";
+    characterPath += playerName;
+    characterPath /= "player.gdc";
+
+    if (!std::filesystem::is_regular_file(characterPath))
+    {
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Could not find saved character data. Make sure that cloud saving is disabled.");
+        return;
+    }
+
+    Character characterData;
+    if (!characterData.ReadFromFile(characterPath))
+    {
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to load character data.");
+        return;
+    }
+
+    web::json::value characterJSON = characterData.ToJSON();
+
+    //TODO: Send the character JSON data to the server
 }
 
 void HandleSaveNewFormatData(void* _this, void* writer)
@@ -25,33 +71,44 @@ void HandleSaveNewFormatData(void* _this, void* writer)
         PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
         if ((modName) && (mainPlayer) && (std::string(modName) == "GrimLeagueS02_HC"))
         {
-            std::string baseFolder = GameAPI::GetBaseFolder();
-            const wchar_t* playerName = GameAPI::GetPlayerName(mainPlayer);
-            if ((playerName == nullptr) || (baseFolder.empty()))
-            {
-                Logger::LogMessage(LOG_LEVEL_ERROR, "Could not determine character save location.");
-                return;
-            }
-
-            std::filesystem::path characterPath = std::filesystem::path(baseFolder) / "save" / "user" / "_";
-            characterPath += playerName;
-            characterPath /= "player.gdc";
-
-            Logger::LogMessage(LOG_LEVEL_DEBUG, "The character path is %", characterPath.string().c_str());
-
-            if (!std::filesystem::is_regular_file(characterPath))
-            {
-                Logger::LogMessage(LOG_LEVEL_ERROR, "Could not find saved character data. Make sure that cloud saving is disabled.");
-                return;
-            }
-
-            //TODO: Load the character data and send it to the server
-            //TODO: Also, since the file may be updated frequently when putting in skill/devotion points, we need to wait like ~5s. During that 5s,
-            //      any further saves should not create a new request but instead extend the timer on the old one. This way, the server doesn't get
-            //      flooded with save messages.
-            //      This should also allow for enough time to properly save the character/quest data on the filesystem
+            characterUpdateThread->Update(1000);
         }
     }
+}
+
+void UpdateStashData()
+{
+    std::string baseFolder = GameAPI::GetBaseFolder();
+    if (baseFolder.empty())
+    {
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Could not determine shared stash save location.");
+        return;
+    }
+
+    const char* modName = EngineAPI::GetModName();
+    PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
+    std::filesystem::path stashPath = std::filesystem::path(GameAPI::GetBaseFolder()) / "save" / modName;
+    if (GameAPI::IsPlayerHardcore(mainPlayer))
+        stashPath /= "transfer.gsh";
+    else
+        stashPath /= "transfer.gst";
+
+    if (!std::filesystem::is_regular_file(stashPath))
+    {
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Could not find shared stash data. Make sure that cloud saving is disabled.");
+        return;
+    }
+
+    SharedStash stashData;
+    if (!stashData.ReadFromFile(stashPath))
+    {
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to load shared stash data.");
+        return;
+    }
+
+    web::json::value stashJSON = stashData.ToJSON();
+
+    //TODO: Send the shared stash JSON data to the server
 }
 
 void HandleSaveTransferStash(void* _this)
@@ -68,26 +125,7 @@ void HandleSaveTransferStash(void* _this)
         PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
         if ((modName) && (mainPlayer) && (std::string(modName) == "GrimLeagueS02_HC"))
         {
-            std::string baseFolder = GameAPI::GetBaseFolder();
-            if (baseFolder.empty())
-            {
-                Logger::LogMessage(LOG_LEVEL_ERROR, "Could not determine shared stash save location.");
-                return;
-            }
-
-            std::filesystem::path stashPath = std::filesystem::path(GameAPI::GetBaseFolder()) / "save" / modName;
-            if (GameAPI::IsPlayerHardcore(mainPlayer))
-                stashPath /= "transfer.gsh";
-            else
-                stashPath /= "transfer.gst";
-
-            if (!std::filesystem::is_regular_file(stashPath))
-            {
-                Logger::LogMessage(LOG_LEVEL_ERROR, "Could not find shared stash data. Make sure that cloud saving is disabled.");
-                return;
-            }
-
-            //TODO: Load the shared stash data and send it to the server
+            stashUpdateThread->Update(5000);
         }
     }
 }
@@ -164,7 +202,7 @@ void HandleRenderStyledText2D(void* _this, const EngineAPI::Rect& rect, const wc
 
         // If the player is in-game on the S3 mod, append the league info to the difficulty text in the upper left corner
         // We modify the text instead of creating new text because that way it preserves the Z-order and doesn't conflict with the loading screen/pause overlay/etc.
-        if ((rect._x == 10) && (rect._y == 10) && (modName) && (mainPlayer)&& ((std::string(modName) == "GrimLeagueS02_HC") || (std::string(modName) == "GrimLeagueS03")))
+        if ((rect._x == 10) && (rect._y == 10) && (modName) && (mainPlayer) && ((std::string(modName) == "GrimLeagueS02_HC") || (std::string(modName) == "GrimLeagueS03")))
         {
             Client& client = Client::GetInstance();
             std::wstring textString(text);
@@ -199,6 +237,9 @@ bool Client::SetupClientHooks()
 
     UpdateVersionInfoText();
 
+    characterUpdateThread = std::make_shared<UpdateThread>(&UpdateCharacterData, 1000);
+    stashUpdateThread = std::make_shared<UpdateThread>(&UpdateStashData, 1000);
+
     return true;
 }
 
@@ -211,6 +252,9 @@ void Client::CleanupClientHooks()
     HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_RENDER_STYLED_TEXT_2D);
     HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_SAVE_NEW_FORMAT_DATA);
     HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_SAVE_TRANSFER_STASH);
+
+    characterUpdateThread->Stop();
+    stashUpdateThread->Stop();
 
     //TODO: (In another function perhaps) scan the user save directory for all characters and upload them to the server
 }

@@ -1,5 +1,6 @@
 add_library(dll SHARED
 include/HookManager.h
+include/UpdateThread.h
 include/EngineAPI.h
 include/EngineAPI/Color.h
 include/EngineAPI/Rect.h
@@ -9,6 +10,7 @@ include/GameAPI.h
 include/GameAPI/Difficulty.h
 include/Client.h
 src/HookManager.cpp
+src/UpdateThread.cpp
 src/EngineApi.cpp
 src/EngineAPI/Color.cpp
 src/GameAPI.cpp
