@@ -8,8 +8,6 @@
 #include "SharedStash.h"
 #include "Log.h"
 
-#include <fstream>
-
 namespace
 {
 
@@ -140,20 +138,6 @@ void HandleRender(void* _this)
         callback(_this);
 
         // Insert any code that needs to happen every frame during rendering here. Note that this will occur after all other entities have been rendered
-
-        /*const char* modName = EngineAPI::GetModName();
-        PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
-        if ((modName) && (mainPlayer) && (!GameAPI::IsGameLoading()) && ((std::string(modName) == "GrimLeagueS02_HC") || (std::string(modName) == "GrimLeagueS03")))
-        {
-            Client& client = Client::GetInstance();
-            const std::wstring& text = client.GetLeagueInfoText();
-            PULONG_PTR font = EngineAPI::LoadFontDirect("fonts/nevisshadow.fnt");
-            EngineAPI::RenderText2D(10, 29, EngineAPI::Color::TAN, text.c_str(), font, 19, EngineAPI::GRAPHICS_X_ALIGN_LEFT, EngineAPI::GRAPHICS_Y_ALIGN_TOP, 0, 0);
-
-            //TODO: Delete me, this is just testing code
-            client.SetRank((client.GetRank() + 1) % 100 + 1);
-            client.SetPoints(client.GetPoints() + 1);
-        }*/
     }
 }
 
@@ -202,7 +186,7 @@ void HandleRenderStyledText2D(void* _this, const EngineAPI::Rect& rect, const wc
 
         // If the player is in-game on the S3 mod, append the league info to the difficulty text in the upper left corner
         // We modify the text instead of creating new text because that way it preserves the Z-order and doesn't conflict with the loading screen/pause overlay/etc.
-        if ((rect._x == 10) && (rect._y == 10) && (modName) && (mainPlayer) && ((std::string(modName) == "GrimLeagueS02_HC") || (std::string(modName) == "GrimLeagueS03")))
+        if ((rect._x == 10.0f) && (rect._y == 10.0f) && (modName) && (mainPlayer) && ((std::string(modName) == "GrimLeagueS02_HC") || (std::string(modName) == "GrimLeagueS03")))
         {
             Client& client = Client::GetInstance();
             std::wstring textString(text);

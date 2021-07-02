@@ -1,8 +1,8 @@
 #include "Client.h"
 
-Client& Client::GetInstance(const std::string& name, const std::string& authToken)
+Client& Client::GetInstance(const std::string& name, const std::string& authToken, const std::string& hostName)
 {
-    static Client instance(name, authToken);
+    static Client instance(name, authToken, hostName);
     return instance;
 }
 
@@ -33,6 +33,18 @@ bool Client::WriteDataToPipe(HANDLE pipe) const
         return FALSE;
 
     if (!WriteFile(pipe, _authToken.c_str(), authLength, &bytesWritten, NULL) || (bytesWritten != authLength))
+        return FALSE;
+
+    uint32_t hostLength = (uint32_t)_hostName.length();
+    sizeBuffer[0] =  hostLength & 0x000000FF;
+    sizeBuffer[1] = (hostLength & 0x0000FF00) >> 8;
+    sizeBuffer[2] = (hostLength & 0x00FF0000) >> 16;
+    sizeBuffer[3] = (hostLength & 0xFF000000) >> 24;
+
+    if (!WriteFile(pipe, sizeBuffer, 4, &bytesWritten, NULL) || (bytesWritten != 4))
+        return FALSE;
+
+    if (!WriteFile(pipe, _hostName.c_str(), hostLength, &bytesWritten, NULL) || (bytesWritten != hostLength))
         return FALSE;
 
     CloseHandle(pipe);

@@ -43,6 +43,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
     Value* autoLoginValue = config.GetValue("Login", "autologin");
     if ((autoLoginValue) && (autoLoginValue->GetType() == VALUE_TYPE_BOOL) && (autoLoginValue->ToBool()))
     {
+        std::string hostName;
+        Value* hostValue = config.GetValue("Login", "hostname");
+        if ((hostValue) && (hostValue->GetType() == VALUE_TYPE_STRING))
+            hostName = hostValue->ToString();
+
         std::string username;
         Value* usernameValue = config.GetValue("Login", "username");
         if ((usernameValue) && (usernameValue->GetType() == VALUE_TYPE_STRING))
@@ -53,9 +58,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
         if ((passwordValue) && (passwordValue->GetType() == VALUE_TYPE_STRING))
             password = passwordValue->ToString();
 
-        if ((!username.empty()) && (!password.empty()))
+        if ((!hostName.empty()) && (!username.empty()) && (!password.empty()))
         {
-            ServerAuthResult loginResult = ServerAuth::ValidateCredentials(username, password);
+            ServerAuthResult loginResult = ServerAuth::ValidateCredentials(hostName, username, password);
             if (loginResult == SERVER_AUTH_OK)
                 autoLogin = true;
             else if (loginResult == SERVER_AUTH_FAIL)

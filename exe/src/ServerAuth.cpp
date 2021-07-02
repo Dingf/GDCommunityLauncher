@@ -12,7 +12,7 @@ const std::map<std::string,std::string> fakeServerCredentials =
     { "Mr Wednesday", "Yet Another Password?" }
 };
 
-ServerAuthResult FakeServerAuth(std::string username, std::string password, ServerAuthCallback callback)
+ServerAuthResult FakeServerAuth(std::string hostName, std::string username, std::string password, ServerAuthCallback callback)
 {
     std::this_thread::sleep_for(std::chrono::seconds(2));
 
@@ -20,7 +20,7 @@ ServerAuthResult FakeServerAuth(std::string username, std::string password, Serv
     {
         std::string authToken("TODO: This should actually be a randomly generated string");
 
-        Client& client = Client::GetInstance(username, authToken);
+        Client& client = Client::GetInstance(username, authToken, hostName);
         if (callback)
             callback(SERVER_AUTH_OK);
         return SERVER_AUTH_OK;
@@ -33,14 +33,14 @@ ServerAuthResult FakeServerAuth(std::string username, std::string password, Serv
     }
 }
 
-void ServerAuth::ValidateCredentials(const std::string& username, const std::string& password, ServerAuthCallback callback)
+void ServerAuth::ValidateCredentials(const std::string& hostName, const std::string& username, const std::string& password, ServerAuthCallback callback)
 {
-    std::thread t(&FakeServerAuth, username, password, callback);
+    std::thread t(&FakeServerAuth, hostName, username, password, callback);
     t.detach();
 }
 
-ServerAuthResult ServerAuth::ValidateCredentials(const std::string& username, const std::string& password)
+ServerAuthResult ServerAuth::ValidateCredentials(const std::string& hostName, const std::string& username, const std::string& password)
 {
-    std::future<ServerAuthResult> future = std::async(&FakeServerAuth, username, password, nullptr);
+    std::future<ServerAuthResult> future = std::async(&FakeServerAuth, hostName, username, password, nullptr);
     return future.get();
 }

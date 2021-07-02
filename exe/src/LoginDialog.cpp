@@ -85,8 +85,17 @@ INT_PTR CALLBACK LoginDialogHandler(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
                 {
                     std::string username = GetFieldText(hwnd, IDC_EDIT1);
                     std::string password = GetFieldText(hwnd, IDC_EDIT2);
-                    ServerAuth::ValidateCredentials(username, password, LoginValidateCallback);
-                    SetDialogState(hwnd, FALSE);
+
+                    Value* hostValue = dialogConfig->GetValue("Login", "hostname");
+                    if ((hostValue) && (hostValue->GetType() == VALUE_TYPE_STRING))
+                    {
+                        ServerAuth::ValidateCredentials(hostValue->ToString(), username, password, LoginValidateCallback);
+                        SetDialogState(hwnd, FALSE);
+                    }
+                    else
+                    {
+                        MessageBoxA(hwnd, "Could not resolve the server hostname.", "Error", MB_OK | MB_ICONERROR);
+                    }
                     return TRUE;
                 }
                 case IDHELP:

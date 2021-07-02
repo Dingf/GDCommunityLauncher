@@ -64,6 +64,27 @@ void Client::ReadDataFromPipe()
 
         delete[] authBuffer;
 
+        if (!ReadFile(pipeIn, &sizeBuffer, 4, &bytesRead, NULL) || (bytesRead != 4))
+        {
+            Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to read client data from stdin pipe.");
+            return;
+        }
+
+        uint32_t hostLength = (uint32_t)sizeBuffer[0] | ((uint32_t)sizeBuffer[1] << 8) | ((uint32_t)sizeBuffer[2] << 16) | ((uint32_t)sizeBuffer[3] << 24);
+
+        char* hostBuffer = new char[hostLength + 1];
+        if (!ReadFile(pipeIn, (LPVOID)hostBuffer, hostLength, &bytesRead, NULL) || (bytesRead != hostLength))
+        {
+            Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to read client data from stdin pipe.");
+            delete[] hostBuffer;
+            return;
+        }
+
+        hostBuffer[hostLength] = '\0';
+        _hostName = hostBuffer;
+
+        delete[] hostBuffer;
+
         CloseHandle(pipeIn);
 
         UpdateLeagueInfoText();
