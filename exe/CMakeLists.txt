@@ -13,5 +13,6 @@ src/ServerAuth.cpp
 src/main.cpp)
 
 target_include_directories(exe PRIVATE include)
+target_link_libraries(exe PRIVATE ${cpprestsdk_LIBRARY})
 
 set_target_properties(exe PROPERTIES OUTPUT_NAME "GDCommunityLauncher")

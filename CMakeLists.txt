@@ -7,12 +7,20 @@ set(Boost_USE_STATIC_LIBS ON)
 set(Boost_USE_MULTITHREADED ON) 
 set(Boost_USE_STATIC_RUNTIME OFF)
 
+find_package(cpprestsdk REQUIRED)
+if (cpprestsdk_FOUND)
+    find_path(cpprestsdk_INCLUDE_DIR cpprest/json.h)
+    find_library(cpprestsdk_LIBRARY cpprest_2_10.lib)
+    include_directories(${cpprestsdk_INCLUDE_DIR})
+endif()
+
 find_package(Boost 1.75.0)
 if (Boost_FOUND)
     include_directories(${Boost_INCLUDE_DIRS})
     link_directories(${Boost_LIBARY_DIRS})
     add_definitions(-DBOOST_ALL_NO_LIB)
 endif()
+
 include_directories(common/include)
 
 if (WIN32 AND CMAKE_SYSTEM_VERSION)

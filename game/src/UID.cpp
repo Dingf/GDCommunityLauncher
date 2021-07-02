@@ -43,3 +43,8 @@ std::string UID16::ToString() const
     }
     return result;
 }
+
+web::json::value UID16::ToJSON() const
+{
+    return web::json::value::string(utility::conversions::to_utf16string(ToString()));
+}

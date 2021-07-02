@@ -4,17 +4,19 @@
 #include <vector>
 #include <filesystem>
 #include "FileReader.h"
-#include "Object.h"
+#include "JSONObject.h"
 #include "GDDataBlock.h"
 #include "UID.h"
 
-class Quest : public Object
+class Quest : public JSONObject
 {
     public:
-        struct QuestTask : public Object
+        struct QuestTask : public JSONObject
         {
             QuestTask() {}
             QuestTask(EncodedFileReader* reader) { Read(reader); }
+
+            web::json::value ToJSON();
 
             void Read(EncodedFileReader* reader);
 
@@ -25,10 +27,12 @@ class Quest : public Object
             std::vector<uint32_t> _objectives;
         };
 
-        struct QuestData : public Object
+        struct QuestData : public JSONObject
         {
             QuestData() {}
             QuestData(EncodedFileReader* reader) { Read(reader); }
+
+            web::json::value ToJSON();
 
             void Read(EncodedFileReader* reader);
 
@@ -39,6 +43,8 @@ class Quest : public Object
 
         Quest() {}
         Quest(const std::filesystem::path& path) { ReadFromFile(path); }
+
+        web::json::value ToJSON();
 
         bool ReadFromFile(const std::filesystem::path& path);
 
@@ -54,6 +60,8 @@ class Quest : public Object
         {
             QuestTokensBlock() : GDDataBlock(0x0A, 0x02) {}
 
+            web::json::value ToJSON();
+
             std::vector<std::string> _questTokens;
         }
         _tokensBlock;
@@ -62,6 +70,8 @@ class Quest : public Object
         struct QuestDataBlock : public GDDataBlock
         {
             QuestDataBlock() : GDDataBlock(0x0B, 0x04) {}
+
+            web::json::value ToJSON();
 
             std::vector<QuestData> _questData;
         }

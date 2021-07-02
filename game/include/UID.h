@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <string>
+#include <cpprest/json.h>
 #include "FileReader.h"
 
 class UID16
@@ -17,6 +18,8 @@ class UID16
         char& operator[](uint8_t index) { return _data[index]; }
 
         std::string ToString() const;
+
+        web::json::value ToJSON() const;
 
     private:
         char _data[16];

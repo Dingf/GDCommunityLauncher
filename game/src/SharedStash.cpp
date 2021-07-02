@@ -5,7 +5,7 @@
 
 bool SharedStash::ReadFromFile(const std::filesystem::path& path)
 {
-    if (!IsValid() && std::filesystem::is_regular_file(path))
+    if (std::filesystem::is_regular_file(path))
     {
         std::shared_ptr<EncodedFileReader> readerPtr = EncodedFileReader::Open(path.c_str());
         if (!readerPtr)
@@ -18,8 +18,6 @@ bool SharedStash::ReadFromFile(const std::filesystem::path& path)
         try
         {
             ReadSharedStashData(reader);
-
-            SetState(true);
             return true;
         }
         catch (std::runtime_error&)

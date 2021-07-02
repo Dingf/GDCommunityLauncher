@@ -6,7 +6,7 @@
 #include <unordered_map>
 #include <filesystem>
 #include "FileReader.h"
-#include "Object.h"
+#include "JSONObject.h"
 #include "GDDataBlock.h"
 #include "UID.h"
 #include "ItemContainer.h"
@@ -85,13 +85,15 @@ enum CharacterInventorySlot
     MAX_CHAR_INV_SLOT = 16,
 };
 
-class Character : public Object
+class Character : public JSONObject
 {
     public:
         Character() {}
         Character(const std::filesystem::path& path) { ReadFromFile(path); }
 
         bool ReadFromFile(const std::filesystem::path& path);
+
+        web::json::value ToJSON(bool verbose);
 
     private:
         void ReadHeaderBlock(EncodedFileReader* reader);
@@ -115,6 +117,8 @@ class Character : public Object
         {
             CharacterHeaderBlock() : GDDataBlock(0x00, 0xE0) {}
 
+            web::json::value ToJSON();
+
             std::wstring   _charName;
             uint8_t        _charSex;
             CharacterClass _charClass;
@@ -129,6 +133,8 @@ class Character : public Object
         struct CharacterInfoBlock : public GDDataBlock
         {
             CharacterInfoBlock() : GDDataBlock(0x01, 0x1C) {}
+
+            web::json::value ToJSON();
 
             uint8_t        _charIsModded;
             uint8_t        _charIsInGame;
@@ -152,6 +158,8 @@ class Character : public Object
         {
             CharacterAttributeBlock() : GDDataBlock(0x02, 0x80) {}
 
+            web::json::value ToJSON();
+
             uint32_t       _charLevel;
             uint32_t       _charExperience;
             uint32_t       _charAttributePoints;
@@ -170,6 +178,8 @@ class Character : public Object
         struct CharacterInventoryBlock : public GDDataBlock
         {
             CharacterInventoryBlock() : GDDataBlock(0x03, 0x08) {}
+
+            web::json::value ToJSON();
 
             class CharacterInventory : public Stash
             {
@@ -215,6 +225,8 @@ class Character : public Object
         {
             CharacterStashBlock() : GDDataBlock(0x04, 0x30) {}
 
+            web::json::value ToJSON();
+
             class CharacterStash : public Stash
             {
                 public:
@@ -228,6 +240,8 @@ class Character : public Object
         struct CharacterRespawnBlock : public GDDataBlock
         {
             CharacterRespawnBlock() : GDDataBlock(0x05, 0x01) {}
+
+            web::json::value ToJSON();
 
             std::vector<UID16> _charRespawnsNormal;
             std::vector<UID16> _charRespawnsElite;
@@ -243,6 +257,8 @@ class Character : public Object
         {
             CharacterWaypointBlock() : GDDataBlock(0x06, 0x01) {}
 
+            web::json::value ToJSON();
+
             std::vector<UID16> _charWaypointsNormal;
             std::vector<UID16> _charWaypointsElite;
             std::vector<UID16> _charWaypointsUltimate;
@@ -253,6 +269,8 @@ class Character : public Object
         struct CharacterMarkerBlock : public GDDataBlock
         {
             CharacterMarkerBlock() : GDDataBlock(0x07, 0x01) {}
+
+            web::json::value ToJSON();
 
             std::vector<UID16> _charMarkersNormal;
             std::vector<UID16> _charMarkersElite;
@@ -265,6 +283,8 @@ class Character : public Object
         {
             CharacterShrineBlock() : GDDataBlock(0x11, 0x02) {}
 
+            web::json::value ToJSON();
+
             // Two lists per difficulty; first is for restored, second is for discovered
             std::vector<UID16> _charShrines[6];
         }
@@ -274,6 +294,8 @@ class Character : public Object
         struct CharacterSkillBlock : public GDDataBlock
         {
             CharacterSkillBlock() : GDDataBlock(0x08, 0x10) {}
+
+            web::json::value ToJSON();
 
             uint32_t           _charMasteriesAllowed;    // Always 2?
             uint32_t           _charSkillReclaimed;
@@ -288,6 +310,8 @@ class Character : public Object
         {
             CharacterNotesBlock() : GDDataBlock(0x0C, 0x01) {}
 
+            web::json::value ToJSON();
+
             std::vector<std::string> _charNotes;
         }
         _notesBlock;
@@ -296,6 +320,8 @@ class Character : public Object
         struct CharacterFactionBlock : public GDDataBlock
         {
             CharacterFactionBlock() : GDDataBlock(0x0D, 0x10) {}
+
+            web::json::value ToJSON();
 
             uint32_t             _unk1;             // GDStash has this listed as "faction", not sure what that means... value appears to always be 0
             std::vector<Faction> _charFactions;
@@ -307,15 +333,21 @@ class Character : public Object
         {
             CharacterUIBlock() : GDDataBlock(0x0E, 0x18) {}
 
-            struct CharacterUIUnkData : public Object
+            web::json::value ToJSON();
+
+            struct CharacterUIUnkData : public JSONObject
             {
+                web::json::value ToJSON();
+
                 std::string    _unk1;
                 std::string    _unk2;
                 uint8_t        _unk3;
             };
 
-            struct CharacterUISlot : public Object
+            struct CharacterUISlot : public JSONObject
             {
+                web::json::value ToJSON();
+
                 int32_t        _slotType;           // 0 = item/class skill, 4 = item
                 std::string    _slotSkillName;
                 std::string    _slotItemName;       // For skills, this will be the item that grants the skill (if applicable)
@@ -340,6 +372,8 @@ class Character : public Object
         {
             CharacterTutorialBlock() : GDDataBlock(0x0F, 0x01) {}
 
+            web::json::value ToJSON();
+
             std::vector<uint32_t> _charTutorials;
         }
         _tutorialBlock;
@@ -349,8 +383,12 @@ class Character : public Object
         {
             CharacterStatsBlock() : GDDataBlock(0x10, 0x540) {}
 
-            struct CharacterPerDifficultyStats : public Object
+            web::json::value ToJSON();
+
+            struct CharacterPerDifficultyStats : public JSONObject
             {
+                web::json::value ToJSON();
+
                 uint32_t    _difficulty;
                 std::string _greatestEnemyKilled;
                 uint32_t    _greatestEnemyLevel;

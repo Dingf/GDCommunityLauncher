@@ -55,7 +55,7 @@ const std::unordered_map<CharacterClass, std::string> classNameLookup =
 
 bool Character::ReadFromFile(const std::filesystem::path& path)
 {
-    if (!IsValid() && std::filesystem::is_regular_file(path))
+    if (std::filesystem::is_regular_file(path))
     {
         std::shared_ptr<EncodedFileReader> readerPtr = EncodedFileReader::Open(path.c_str());
         if (!readerPtr)
@@ -83,7 +83,6 @@ bool Character::ReadFromFile(const std::filesystem::path& path)
             ReadTutorialBlock(reader);
             ReadStatsBlock(reader);
 
-            SetState(true);
             return true;
         }
         catch (std::runtime_error&)
@@ -137,7 +136,6 @@ void Character::ReadHeaderBlock(EncodedFileReader* reader)
 
     _headerBlock.ReadBlockStart(reader, GD_DATA_BLOCK_READ_VERSION);
     _headerBlock._charUID = UID16(reader);
-    _headerBlock.SetState(true);
 }
 
 void Character::ReadInfoBlock(EncodedFileReader* reader)
@@ -177,8 +175,10 @@ void Character::ReadInfoBlock(EncodedFileReader* reader)
     _infoBlock._charAlternateConfig = reader->ReadInt8();
     _infoBlock._charIsAlternateConfigEnabled = reader->ReadInt8();
     _infoBlock._charTexture = reader->ReadString();
+
     if (blockVersion >= 5)
     {
+        _infoBlock._charLootFilters.clear();
         uint32_t numLootFilters = reader->ReadInt32();
         for (uint32_t i = 0; i < numLootFilters; ++i)
         {
@@ -187,7 +187,6 @@ void Character::ReadInfoBlock(EncodedFileReader* reader)
     }
 
     _infoBlock.ReadBlockEnd(reader);
-    _infoBlock.SetState(true);
 }
 
 void Character::ReadAttributesBlock(EncodedFileReader* reader)
@@ -211,7 +210,6 @@ void Character::ReadAttributesBlock(EncodedFileReader* reader)
     _attributesBlock._charEnergy = reader->ReadFloat();
 
     _attributesBlock.ReadBlockEnd(reader);
-    _attributesBlock.SetState(true);
 }
 
 void Character::ReadInventoryBlock(EncodedFileReader* reader)
@@ -246,7 +244,6 @@ void Character::ReadInventoryBlock(EncodedFileReader* reader)
     }
 
     _inventoryBlock.ReadBlockEnd(reader);
-    _inventoryBlock.SetState(true);
 }
 
 void Character::ReadStashBlock(EncodedFileReader* reader)
@@ -262,25 +259,27 @@ void Character::ReadStashBlock(EncodedFileReader* reader)
     _stashBlock._charStash.SetHardcore(_headerBlock._charIsHardcore);
 
     _stashBlock.ReadBlockEnd(reader);
-    _stashBlock.SetState(true);
 }
 
 void Character::ReadRespawnBlock(EncodedFileReader* reader)
 {
     _respawnBlock.ReadBlockStart(reader);
 
+    _respawnBlock._charRespawnsNormal.clear();
     uint32_t numNormalIDs = reader->ReadInt32();
     for (uint32_t i = 0; i < numNormalIDs; ++i)
     {
         _respawnBlock._charRespawnsNormal.emplace_back(reader);
     }
 
+    _respawnBlock._charRespawnsElite.clear();
     uint32_t numEliteIDs = reader->ReadInt32();
     for (uint32_t i = 0; i < numEliteIDs; ++i)
     {
         _respawnBlock._charRespawnsElite.emplace_back(reader);
     }
 
+    _respawnBlock._charRespawnsUltimate.clear();
     uint32_t numUltimateIDs = reader->ReadInt32();
     for (uint32_t i = 0; i < numUltimateIDs; ++i)
     {
@@ -292,25 +291,27 @@ void Character::ReadRespawnBlock(EncodedFileReader* reader)
     _respawnBlock._charCurrentRespawnUltimate = UID16(reader);
 
     _respawnBlock.ReadBlockEnd(reader);
-    _respawnBlock.SetState(true);
 }
 
 void Character::ReadWaypointBlock(EncodedFileReader* reader)
 {
     _waypointBlock.ReadBlockStart(reader);
 
+    _waypointBlock._charWaypointsNormal.clear();
     uint32_t numNormalIDs = reader->ReadInt32();
     for (uint32_t i = 0; i < numNormalIDs; ++i)
     {
         _waypointBlock._charWaypointsNormal.emplace_back(reader);
     }
 
+    _waypointBlock._charWaypointsElite.clear();
     uint32_t numEliteIDs = reader->ReadInt32();
     for (uint32_t i = 0; i < numEliteIDs; ++i)
     {
         _waypointBlock._charWaypointsElite.emplace_back(reader);
     }
 
+    _waypointBlock._charWaypointsUltimate.clear();
     uint32_t numUltimateIDs = reader->ReadInt32();
     for (uint32_t i = 0; i < numUltimateIDs; ++i)
     {
@@ -318,25 +319,27 @@ void Character::ReadWaypointBlock(EncodedFileReader* reader)
     }
 
     _waypointBlock.ReadBlockEnd(reader);
-    _waypointBlock.SetState(true);
 }
 
 void Character::ReadMarkerBlock(EncodedFileReader* reader)
 {
     _markerBlock.ReadBlockStart(reader);
 
+    _markerBlock._charMarkersNormal.clear();
     uint32_t numNormalIDs = reader->ReadInt32();
     for (uint32_t i = 0; i < numNormalIDs; ++i)
     {
         _markerBlock._charMarkersNormal.emplace_back(reader);
     }
 
+    _markerBlock._charMarkersElite.clear();
     uint32_t numEliteIDs = reader->ReadInt32();
     for (uint32_t i = 0; i < numEliteIDs; ++i)
     {
         _markerBlock._charMarkersElite.emplace_back(reader);
     }
 
+    _markerBlock._charMarkersUltimate.clear();
     uint32_t numUltimateIDs = reader->ReadInt32();
     for (uint32_t i = 0; i < numUltimateIDs; ++i)
     {
@@ -344,7 +347,6 @@ void Character::ReadMarkerBlock(EncodedFileReader* reader)
     }
 
     _markerBlock.ReadBlockEnd(reader);
-    _markerBlock.SetState(true);
 }
 
 void Character::ReadShrineBlock(EncodedFileReader* reader)
@@ -353,6 +355,7 @@ void Character::ReadShrineBlock(EncodedFileReader* reader)
 
     for (uint32_t i = 0; i < 6; ++i)
     {
+        _shrineBlock._charShrines[i].clear();
         uint32_t numIDs = reader->ReadInt32();
         for (uint32_t j = 0; j < numIDs; ++j)
         {
@@ -361,13 +364,13 @@ void Character::ReadShrineBlock(EncodedFileReader* reader)
     }
 
     _shrineBlock.ReadBlockEnd(reader);
-    _shrineBlock.SetState(true);
 }
 
 void Character::ReadSkillBlock(EncodedFileReader* reader)
 {
     _skillBlock.ReadBlockStart(reader);
 
+    _skillBlock._charClassSkills.clear();
     uint32_t numSkills = reader->ReadInt32();
     for (uint32_t i = 0; i < numSkills; ++i)
     {
@@ -378,6 +381,7 @@ void Character::ReadSkillBlock(EncodedFileReader* reader)
     _skillBlock._charSkillReclaimed = reader->ReadInt32();
     _skillBlock._charDevotionReclaimed = reader->ReadInt32();
 
+    _skillBlock._charItemSkills.clear();
     numSkills = reader->ReadInt32();
     for (uint32_t i = 0; i < numSkills; ++i)
     {
@@ -385,13 +389,13 @@ void Character::ReadSkillBlock(EncodedFileReader* reader)
     }
 
     _skillBlock.ReadBlockEnd(reader);
-    _skillBlock.SetState(true);
 }
 
 void Character::ReadNotesBlock(EncodedFileReader* reader)
 {
     _notesBlock.ReadBlockStart(reader);
 
+    _notesBlock._charNotes.clear();
     uint32_t numNotes = reader->ReadInt32();
     for (uint32_t i = 0; i < numNotes; ++i)
     {
@@ -399,7 +403,6 @@ void Character::ReadNotesBlock(EncodedFileReader* reader)
     }
 
     _notesBlock.ReadBlockEnd(reader);
-    _notesBlock.SetState(true);
 }
 
 void Character::ReadFactionBlock(EncodedFileReader* reader)
@@ -408,6 +411,7 @@ void Character::ReadFactionBlock(EncodedFileReader* reader)
 
     _factionBlock._unk1 = reader->ReadInt32();
 
+    _factionBlock._charFactions.clear();
     uint32_t numFactions = reader->ReadInt32();
     for (uint32_t i = 0; i < numFactions; ++i)
     {
@@ -416,7 +420,6 @@ void Character::ReadFactionBlock(EncodedFileReader* reader)
     }
 
     _factionBlock.ReadBlockEnd(reader);
-    _factionBlock.SetState(true);
 }
 
 void Character::ReadUIBlock(EncodedFileReader* reader)
@@ -428,16 +431,17 @@ void Character::ReadUIBlock(EncodedFileReader* reader)
     _UIBlock._unk3 = reader->ReadInt8();
 
     // Is this always hardcoded at 5? Not sure... it would probably help to know what this actually does
+    _UIBlock._unk4.clear();
     for (uint32_t i = 0; i < 5; ++i)
     {
         CharacterUIBlock::CharacterUIUnkData unknown;
         unknown._unk1 = reader->ReadString();
         unknown._unk2 = reader->ReadString();
         unknown._unk3 = reader->ReadInt8();
-        unknown.SetState(true);
         _UIBlock._unk4.push_back(unknown);
     }
 
+    _UIBlock._charUISlots.clear();
     uint32_t numSlots = (_UIBlock.GetBlockVersion() >= 5) ? 46 : 36;
     for (uint32_t i = 0; i < numSlots; ++i)
     {
@@ -467,20 +471,19 @@ void Character::ReadUIBlock(EncodedFileReader* reader)
             default:
                 throw std::runtime_error(Logger::LogMessage(LOG_LEVEL_WARN, "Invalid or unsupported item slot type \"%\"", slot._slotType));
         }
-        slot.SetState(true);
         _UIBlock._charUISlots.push_back(slot);
     }
 
     _UIBlock._charCameraDistance = reader->ReadFloat();
 
     _UIBlock.ReadBlockEnd(reader);
-    _UIBlock.SetState(true);
 }
 
 void Character::ReadTutorialBlock(EncodedFileReader* reader)
 {
     _tutorialBlock.ReadBlockStart(reader);
 
+    _tutorialBlock._charTutorials.clear();
     uint32_t numTutorials = reader->ReadInt32();
     for (uint32_t i = 0; i < numTutorials; ++i)
     {
@@ -488,7 +491,6 @@ void Character::ReadTutorialBlock(EncodedFileReader* reader)
     }
 
     _tutorialBlock.ReadBlockEnd(reader);
-    _tutorialBlock.SetState(true);
 }
 
 void Character::ReadStatsBlock(EncodedFileReader* reader)
@@ -516,7 +518,6 @@ void Character::ReadStatsBlock(EncodedFileReader* reader)
         _statsBlock._charDifficultyStats[i]._greatestEnemyHealth = reader->ReadInt32();
         _statsBlock._charDifficultyStats[i]._lastAttacked = reader->ReadString();
         _statsBlock._charDifficultyStats[i]._lastAttackedBy = reader->ReadString();
-        _statsBlock._charDifficultyStats[i].SetState(true);
     }
 
     _statsBlock._charChampionKills = reader->ReadInt32();
@@ -576,5 +577,497 @@ void Character::ReadStatsBlock(EncodedFileReader* reader)
     _statsBlock._unk2 = reader->ReadInt32();
 
     _statsBlock.ReadBlockEnd(reader);
-    _statsBlock.SetState(true);
+}
+
+web::json::value Character::ToJSON(bool verbose)
+{
+    web::json::value obj = web::json::value::object();
+
+    obj[U("HeaderBlock")] = _headerBlock.ToJSON();
+    obj[U("InfoBlock")] = _infoBlock.ToJSON();
+    obj[U("AttributesBlock")] = _attributesBlock.ToJSON();
+    obj[U("InventoryBlock")] = _inventoryBlock.ToJSON();
+    obj[U("StashBlock")] = _stashBlock.ToJSON();
+    obj[U("RespawnBlock")] = _respawnBlock.ToJSON();
+    obj[U("WaypointBlock")] = _waypointBlock.ToJSON();
+    obj[U("MarkerBlock")] = _markerBlock.ToJSON();
+    obj[U("ShrineBlock")] = _shrineBlock.ToJSON();
+    obj[U("SkillBlock")] = _skillBlock.ToJSON();
+    obj[U("NotesBlock")] = _notesBlock.ToJSON();
+    obj[U("FactionBlock")] = _factionBlock.ToJSON();
+    obj[U("UIBlock")] = _UIBlock.ToJSON();
+    obj[U("TutorialBlock")] = _tutorialBlock.ToJSON();
+    obj[U("StatsBlock")] = _statsBlock.ToJSON();
+
+    return obj;
+}
+
+web::json::value Character::CharacterHeaderBlock::ToJSON()
+{
+    std::string className = (classNameLookup.count(_charClass) > 0) ? classNameLookup.at(_charClass) : "";
+
+    web::json::value obj = web::json::value::object();
+
+    obj[U("BlockID")] = GetBlockID();
+    obj[U("BlockVersion")] = GetBlockVersion();
+    obj[U("Name")] = web::json::value::string(_charName);
+    obj[U("Sex")] = _charSex;
+    obj[U("Level")] = _charLevel;
+    obj[U("Hardcore")] = _charIsHardcore;
+    obj[U("Expansions")] = _charExpansions;
+    obj[U("ClassName")] = JSONString(className);
+    obj[U("ClassID")] = _charClass;
+    obj[U("UID")] = JSONString(_charUID.ToString());
+
+    return obj;
+}
+
+web::json::value Character::CharacterInfoBlock::ToJSON()
+{
+    web::json::value obj = web::json::value::object();
+
+    obj[U("BlockID")] = GetBlockID();
+    obj[U("BlockVersion")] = GetBlockVersion();
+    obj[U("IsModCharacter")] = _charIsModded;
+    obj[U("IsInGame")] = _charIsInGame;
+    obj[U("CurrentDifficulty")] = _charDifficulty;
+    obj[U("MaxDifficulty")] = _charMaxDifficulty;
+    obj[U("Money")] = _charMoney;
+    obj[U("CrucibleDifficulty")] = _charCrucibleDifficulty;
+    obj[U("CrucibleTributes")] = _charCrucibleTributes;
+    obj[U("CompassState")] = _charCompassState;
+    obj[U("LootMode")] = _charLootMode;
+    obj[U("SkillWindowHelp")] = _charSkillWindowHelp;
+    obj[U("AlternateConfig")] = _charAlternateConfig;
+    obj[U("AlternateConfigEnabled")] = _charIsAlternateConfigEnabled;
+    obj[U("Texture")] = JSONString(_charTexture);
+
+    web::json::value lootFilter = web::json::value::array();
+    for (uint32_t i = 0; i < _charLootFilters.size(); ++i)
+    {
+        lootFilter[i] = _charLootFilters[i];
+    }
+    obj[U("LootFilter")] = lootFilter;
+
+    return obj;
+}
+
+web::json::value Character::CharacterAttributeBlock::ToJSON()
+{
+    web::json::value obj = web::json::value::object();
+
+    obj[U("BlockID")] = GetBlockID();
+    obj[U("BlockVersion")] = GetBlockVersion();
+    obj[U("Level")] = _charLevel;
+    obj[U("Experience")] = _charExperience;
+    obj[U("AttributePoints")] = _charAttributePoints;
+    obj[U("SkillPoints")] = _charSkillPoints;
+    obj[U("DevotionPoints")] = _charDevotionPoints;
+    obj[U("TotalDevotionPoints")] = _charTotalDevotionPoints;
+    obj[U("Physique")] = _charPhysique;
+    obj[U("Cunning")] = _charCunning;
+    obj[U("Spirit")] = _charSpirit;
+    obj[U("Health")] = _charHealth;
+    obj[U("Energy")] = _charEnergy;
+
+    return obj;
+}
+
+web::json::value Character::CharacterInventoryBlock::ToJSON()
+{
+    web::json::value obj = web::json::value::object();
+
+    obj[U("BlockID")] = GetBlockID();
+    obj[U("BlockVersion")] = GetBlockVersion();
+
+    web::json::value inventory = _charInventory.ToJSON();
+    inventory[U("FocusedTab")] = _charInventory.GetFocusedTab();
+    inventory[U("SelectedTab")] = _charInventory.GetSelectedTab();
+    obj[U("Inventory")] = inventory;
+
+    uint32_t i = 0;
+    web::json::value equipped = web::json::value::object();
+    web::json::value equippedItems = web::json::value::array();
+    for (std::pair<Item*, uint64_t> pair : _charEquipped.GetItemList())
+    {
+        uint32_t index = ((pair.second >> 32) & 0xFFFFFFFF);
+        web::json::value item = pair.first->ToJSON();
+        item[U("Slot")] = index;
+        item[U("Attached")] = _charEquipped.GetAttachState(index);
+        equippedItems[i++] = item;
+    }
+    equipped[U("Items")] = equippedItems;
+    equipped[U("WeaponSwap")] = _charEquipped.IsUsingSecondaryWeaponSet();
+    obj[U("Equipped")] = equipped;
+
+    return obj;
+}
+
+web::json::value Character::CharacterStashBlock::ToJSON()
+{
+    web::json::value obj = web::json::value::object();
+
+    obj[U("BlockID")] = GetBlockID();
+    obj[U("BlockVersion")] = GetBlockVersion();
+    obj[U("Stash")] = _charStash.ToJSON();
+
+    return obj;
+}
+
+web::json::value Character::CharacterRespawnBlock::ToJSON()
+{
+    web::json::value obj = web::json::value::object();
+
+    obj[U("BlockID")] = GetBlockID();
+    obj[U("BlockVersion")] = GetBlockVersion();
+
+    web::json::value respawnsNormal = web::json::value::array();
+    for (uint32_t i = 0; i < _charRespawnsNormal.size(); ++i)
+    {
+        respawnsNormal[i] = _charRespawnsNormal[i].ToJSON();
+    }
+    obj[U("RespawnsNormal")] = respawnsNormal;
+
+    web::json::value respawnsElite = web::json::value::array();;
+    for (uint32_t i = 0; i < _charRespawnsElite.size(); ++i)
+    {
+        respawnsElite[i] = _charRespawnsElite[i].ToJSON();
+    }
+    obj[U("RespawnsElite")] = respawnsElite;
+
+    web::json::value respawnsUltimate = web::json::value::array();;
+    for (uint32_t i = 0; i < _charRespawnsUltimate.size(); ++i)
+    {
+        respawnsUltimate[i] = _charRespawnsUltimate[i].ToJSON();
+    }
+    obj[U("RespawnsUltimate")] = respawnsUltimate;
+
+    obj[U("CurrentRespawnNormal")] = _charCurrentRespawnNormal.ToJSON();
+    obj[U("CurrentRespawnElite")] = _charCurrentRespawnElite.ToJSON();
+    obj[U("CurrentRespawnUltimate")] = _charCurrentRespawnUltimate.ToJSON();
+
+    return obj;
+}
+
+web::json::value Character::CharacterWaypointBlock::ToJSON()
+{
+    web::json::value obj = web::json::value::object();
+
+    obj[U("BlockID")] = GetBlockID();
+    obj[U("BlockVersion")] = GetBlockVersion();
+
+    web::json::value waypointsNormal = web::json::value::array();
+    for (uint32_t i = 0; i < _charWaypointsNormal.size(); ++i)
+    {
+        waypointsNormal[i] = _charWaypointsNormal[i].ToJSON();
+    }
+    obj[U("WaypointsNormal")] = waypointsNormal;
+
+    web::json::value waypointsElite = web::json::value::array();
+    for (uint32_t i = 0; i < _charWaypointsElite.size(); ++i)
+    {
+        waypointsElite[i] = _charWaypointsElite[i].ToJSON();
+    }
+    obj[U("WaypointsElite")] = waypointsElite;
+
+    web::json::value waypointsUltimate = web::json::value::array();
+    for (uint32_t i = 0; i < _charWaypointsUltimate.size(); ++i)
+    {
+        waypointsUltimate[i] = _charWaypointsUltimate[i].ToJSON();
+    }
+    obj[U("WaypointsUltimate")] = waypointsUltimate;
+
+    return obj;
+}
+
+web::json::value Character::CharacterMarkerBlock::ToJSON()
+{
+    web::json::value obj = web::json::value::object();
+
+    obj[U("BlockID")] = GetBlockID();
+    obj[U("BlockVersion")] = GetBlockVersion();
+
+    web::json::value markersNormal = web::json::value::array();
+    for (uint32_t i = 0; i < _charMarkersNormal.size(); ++i)
+    {
+        markersNormal[i] = _charMarkersNormal[i].ToJSON();
+    }
+    obj[U("MarkersNormal")] = markersNormal;
+
+    web::json::value markersElite = web::json::value::array();
+    for (uint32_t i = 0; i < _charMarkersElite.size(); ++i)
+    {
+        markersElite[i] = _charMarkersElite[i].ToJSON();
+    }
+    obj[U("MarkersElite")] = markersElite;
+
+    web::json::value markersUltimate = web::json::value::array();
+    for (uint32_t i = 0; i < _charMarkersUltimate.size(); ++i)
+    {
+        markersUltimate[i] = _charMarkersUltimate[i].ToJSON();
+    }
+    obj[U("MarkersUltimate")] = markersUltimate;
+
+    return obj;
+}
+
+web::json::value Character::CharacterShrineBlock::ToJSON()
+{
+    web::json::value obj = web::json::value::object();
+
+    obj[U("BlockID")] = GetBlockID();
+    obj[U("BlockVersion")] = GetBlockVersion();
+
+    web::json::value shrinesNormalRestored = web::json::value::array();
+    for (uint32_t i = 0; i < _charShrines[0].size(); ++i)
+    {
+        shrinesNormalRestored[i] = _charShrines[0][i].ToJSON();
+    }
+    obj[U("ShrinesNormalRestored")] = shrinesNormalRestored;
+
+    web::json::value shrinesNormalDiscovered = web::json::value::array();
+    for (uint32_t i = 0; i < _charShrines[1].size(); ++i)
+    {
+        shrinesNormalDiscovered[i] = _charShrines[1][i].ToJSON();
+    }
+    obj[U("ShrinesNormalDiscovered")] = shrinesNormalDiscovered;
+
+    web::json::value shrinesEliteRestored = web::json::value::array();
+    for (uint32_t i = 0; i < _charShrines[2].size(); ++i)
+    {
+        shrinesEliteRestored[i] = _charShrines[2][i].ToJSON();
+    }
+    obj[U("ShrinesEliteRestored")] = shrinesEliteRestored;
+
+    web::json::value shrinesEliteDiscovered = web::json::value::array();
+    for (uint32_t i = 0; i < _charShrines[3].size(); ++i)
+    {
+        shrinesEliteDiscovered[i] = _charShrines[3][i].ToJSON();
+    }
+    obj[U("ShrinesEliteDiscovered")] = shrinesEliteDiscovered;
+
+    web::json::value shrinesUltimateRestored = web::json::value::array();
+    for (uint32_t i = 0; i < _charShrines[4].size(); ++i)
+    {
+        shrinesUltimateRestored[i] = _charShrines[4][i].ToJSON();
+    }
+    obj[U("ShrinesUltimateRestored")] = shrinesUltimateRestored;
+
+    web::json::value shrinesUltimateDiscovered = web::json::value::array();
+    for (uint32_t i = 0; i < _charShrines[5].size(); ++i)
+    {
+        shrinesUltimateDiscovered[i] = _charShrines[5][i].ToJSON();
+    }
+    obj[U("ShrinesUltimateDiscovered")] = shrinesUltimateDiscovered;
+
+    return obj;
+}
+
+web::json::value Character::CharacterSkillBlock::ToJSON()
+{
+    web::json::value obj = web::json::value::object();
+
+    obj[U("BlockID")] = GetBlockID();
+    obj[U("BlockVersion")] = GetBlockVersion();
+    obj[U("MasteriesAllowed")] = _charMasteriesAllowed;
+    obj[U("SkillPointsReclaimed")] = _charSkillReclaimed;
+    obj[U("DevotionPointsReclaimed")] = _charDevotionReclaimed;
+
+    web::json::value classSkills = web::json::value::array();
+    for (uint32_t i = 0; i < _charClassSkills.size(); ++i)
+    {
+        classSkills[i] = _charClassSkills[i].ToJSON();
+    }
+    obj[U("ClassSkills")] = classSkills;
+
+    web::json::value itemSkills = web::json::value::array();
+    for (uint32_t i = 0; i < _charItemSkills.size(); ++i)
+    {
+        itemSkills[i] = _charItemSkills[i].ToJSON();
+    }
+    obj[U("ItemSkills")] = itemSkills;
+
+    return obj;
+}
+
+web::json::value Character::CharacterNotesBlock::ToJSON()
+{
+    web::json::value obj = web::json::value::object();
+
+    obj[U("BlockID")] = GetBlockID();
+    obj[U("BlockVersion")] = GetBlockVersion();
+
+    web::json::value notes = web::json::value::array();
+    for (uint32_t i = 0; i < _charNotes.size(); ++i)
+    {
+        notes[i] = JSONString(_charNotes[i]);
+    }
+    obj[U("Notes")] = notes;
+
+    return obj;
+}
+
+web::json::value Character::CharacterFactionBlock::ToJSON()
+{
+    web::json::value obj = web::json::value::object();
+
+    obj[U("BlockID")] = GetBlockID();
+    obj[U("BlockVersion")] = GetBlockVersion();
+    obj[U("Unknown1")] = _unk1;
+
+    web::json::value factions = web::json::value::array();
+    for (uint32_t i = 0; i < _charFactions.size(); ++i)
+    {
+        factions[i] = _charFactions[i].ToJSON();
+    }
+    obj[U("Factions")] = factions;
+
+    return obj;
+}
+
+web::json::value Character::CharacterUIBlock::CharacterUIUnkData::ToJSON()
+{
+    web::json::value obj = web::json::value::object();
+
+    obj[U("UnknownData1")] = JSONString(_unk1);
+    obj[U("UnknownData2")] = JSONString(_unk2);
+    obj[U("UnknownData3")] = _unk3;
+
+    return obj;
+}
+
+web::json::value Character::CharacterUIBlock::CharacterUISlot::ToJSON()
+{
+    web::json::value obj = web::json::value::object();
+
+    obj[U("SlotType")] = _slotType;
+    obj[U("SkillName")] = JSONString(_slotSkillName);
+    obj[U("ItemName")] = JSONString(_slotItemName);
+    obj[U("IsItemSkill")] = _slotIsItemSkill;
+    obj[U("EquipSlot")] = _slotEquip;
+    obj[U("BitmapUp")] = JSONString(_slotBitmapUp);
+    obj[U("BitmapDown")] = JSONString(_slotBitmapDown);
+    obj[U("Label")] = web::json::value::string(_slotLabel);
+
+    return obj;
+}
+
+web::json::value Character::CharacterUIBlock::ToJSON()
+{
+    web::json::value obj = web::json::value::object();
+
+    obj[U("BlockID")] = GetBlockID();
+    obj[U("BlockVersion")] = GetBlockVersion();
+    obj[U("Unknown1")] = _unk1;
+    obj[U("Unknown2")] = _unk2;
+    obj[U("Unknown3")] = _unk3;
+    obj[U("CameraDistance")] = _charCameraDistance;
+
+    web::json::value unknown = web::json::value::array();
+    for (uint32_t i = 0; i < _unk4.size(); ++i)
+    {
+        unknown[i] = _unk4[i].ToJSON();
+    }
+    obj[U("Unknown")] = unknown;
+
+    web::json::value UISlots = web::json::value::array();
+    for (uint32_t i = 0; i < _charUISlots.size(); ++i)
+    {
+        UISlots[i] = _charUISlots[i].ToJSON();
+    }
+    obj[U("UISlots")] = UISlots;
+
+    return obj;
+}
+
+web::json::value Character::CharacterTutorialBlock::ToJSON()
+{
+    web::json::value obj = web::json::value::object();
+
+    obj[U("BlockID")] = GetBlockID();
+    obj[U("BlockVersion")] = GetBlockVersion();
+
+    web::json::value tutorials = web::json::value::object();
+    for (uint32_t i = 0; i < _charTutorials.size(); ++i)
+    {
+        tutorials[i] = _charTutorials[i];
+    }
+    obj[U("Tutorials")] = tutorials;
+
+    return obj;
+}
+
+web::json::value Character::CharacterStatsBlock::CharacterPerDifficultyStats::ToJSON()
+{
+    web::json::value obj = web::json::value::object();
+
+    obj[U("Difficulty")] = _difficulty;
+    obj[U("GreatestEnemyKilled")] = JSONString(_greatestEnemyKilled);
+    obj[U("GreatestEnemyLevel")] = _greatestEnemyLevel;
+    obj[U("GreatestEnemyHealth")] = _greatestEnemyHealth;
+    obj[U("LastAttacked")] = JSONString(_lastAttacked);
+    obj[U("LastAttackedBy")] = JSONString(_lastAttackedBy);
+    obj[U("NemesisKills")] = _nemesisKills;
+
+    return obj;
+}
+
+web::json::value Character::CharacterStatsBlock::ToJSON()
+{
+    web::json::value obj = web::json::value::object();
+
+    obj[U("BlockID")] = GetBlockID();
+    obj[U("BlockVersion")] = GetBlockVersion();
+
+    obj[U("PlayedTime")] = _charPlayTime;
+    obj[U("Deaths")] = _charDeaths;
+    obj[U("Kills")] = _charKills;
+    obj[U("ExpFromKills")] = _charExpFromKills;
+    obj[U("HealthPotsUsed")] = _charHealthPotsUsed;
+    obj[U("ManaPotsUsed")] = _charManaPotsUsed;
+    obj[U("MaxLevel")] = _charMaxLevel;
+    obj[U("HitsReceived")] = _charHitsReceived;
+    obj[U("HitsInflicted")] = _charHitsInflicted;
+    obj[U("CritsReceived")] = _charCritsReceived;
+    obj[U("CritsInflicted")] = _charCritsInflicted;
+    obj[U("LargestHitReceived")] = _charGreatestDamageReceived;
+    obj[U("LargestHitInflicted")] = _charGreatestDamageInflicted;
+    obj[U("ChampionKills")] = _charChampionKills;
+    obj[U("HeroKills")] = _charHeroKills;
+    obj[U("ItemsCrafted")] = _charItemsCrafted;
+    obj[U("RelicsCrafted")] = _charRelicsCrafted;
+    obj[U("TranscendentRelicsCrafted")] = _charTranscendentRelicsCrafted;
+    obj[U("MythicalRelicsCrafted")] = _charMythicalRelicsCrafted;
+    obj[U("ShrinesRestored")] = _charShrinesRestored;
+    obj[U("OneShotChestsOpened")] = _charOneShotChestsOpened;
+    obj[U("LoreNotesCollected")] = _charLoreNotesCollected;
+    obj[U("Unknown1")] = _unk1;
+    obj[U("Unknown2")] = _unk2;
+    obj[U("LastAttackedDA")] = _charLastAttackedDA;
+    obj[U("LastAttackedByOA")] = _charLastAttackedByOA;
+
+    web::json::value perDifficultyStats = web::json::value::array();
+    for (uint32_t i = 0; i < 3; ++i)
+    {
+        perDifficultyStats[i] = _charDifficultyStats[i].ToJSON();
+    }
+    obj[U("PerDifficultyStats")] = perDifficultyStats;
+
+    obj[U("CrucibleGreatestWave")] = _charCrucibleGreatestWave;
+    obj[U("CrucibleGreatestScore")] = _charCrucibleGreatestScore;
+    obj[U("CrucibleDefensesBuilt")] = _charCrucibleDefensesBuilt;
+    obj[U("CrucibleBuffsUsed")] = _charCrucibleBuffsUsed;
+
+    uint32_t j = 0;
+    web::json::value SRShrinesUsed = web::json::value::object();
+    for (std::pair<std::string, uint32_t> pair : _charSRShrinesUsed)
+    {
+        SRShrinesUsed[utility::conversions::to_utf16string(pair.first)] = pair.second;
+    }
+    obj[U("SRShrinesUsed")] = SRShrinesUsed;
+    obj[U("SRSoulsCollected")] = _charSRSoulsCollected;
+    obj[U("SRFlag")] = _charSRFlag;
+    obj[U("MeritUsed")] = _charMeritUsed;
+
+    return obj;
 }

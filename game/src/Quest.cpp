@@ -3,7 +3,7 @@
 
 bool Quest::ReadFromFile(const std::filesystem::path& path)
 {
-    if (!IsValid() && std::filesystem::is_regular_file(path))
+    if (std::filesystem::is_regular_file(path))
     {
         std::shared_ptr<EncodedFileReader> readerPtr = EncodedFileReader::Open(path.c_str());
         if (!readerPtr)
@@ -18,8 +18,6 @@ bool Quest::ReadFromFile(const std::filesystem::path& path)
             ReadHeaderData(reader);
             ReadTokensBlock(reader);
             ReadDataBlock(reader);
-
-            SetState(true);
             return true;
         }
         catch (std::runtime_error&)
@@ -55,7 +53,6 @@ void Quest::ReadTokensBlock(EncodedFileReader* reader)
     }
 
     _tokensBlock.ReadBlockEnd(reader);
-    _tokensBlock.SetState(true);
 }
 
 void Quest::ReadDataBlock(EncodedFileReader* reader)
@@ -71,7 +68,6 @@ void Quest::ReadDataBlock(EncodedFileReader* reader)
     }
 
     _dataBlock.ReadBlockEnd(reader);
-    _dataBlock.SetState(true);
 }
 
 void Quest::QuestTask::Read(EncodedFileReader* reader)
@@ -94,7 +90,6 @@ void Quest::QuestTask::Read(EncodedFileReader* reader)
     }
 
     questTaskBlock.ReadBlockEnd(reader);
-    SetState(true);
 }
 
 void Quest::QuestData::Read(EncodedFileReader* reader)
@@ -114,5 +109,86 @@ void Quest::QuestData::Read(EncodedFileReader* reader)
     }
 
     questDataBlock.ReadBlockEnd(reader);
-    SetState(true);
+}
+
+web::json::value Quest::QuestTask::ToJSON()
+{
+    web::json::value obj = web::json::value::object();
+
+    obj[U("ID1")] = _id1;
+    obj[U("ID2")] = _id2.ToJSON();
+    obj[U("State")] = _state;
+    obj[U("InProgress")] = _isInProgress;
+
+    web::json::value objectives = web::json::value::array();
+    for (uint32_t i = 0; i < _objectives.size(); ++i)
+    {
+        objectives[i] = _objectives[i];
+    }
+    obj[U("Objectives")] = objectives;
+
+    return obj;
+}
+
+web::json::value Quest::QuestData::ToJSON()
+{
+    web::json::value obj = web::json::value::object();
+
+    obj[U("ID1")] = _id1;
+    obj[U("ID2")] = _id2.ToJSON();
+
+    web::json::value tasks = web::json::value::array();
+    for (uint32_t i = 0; i < _tasks.size(); ++i)
+    {
+        tasks[i] = _tasks[i].ToJSON();
+    }
+    obj[U("Tasks")] = tasks;
+
+    return obj;
+}
+
+web::json::value Quest::ToJSON()
+{
+    web::json::value obj = web::json::value::object();
+
+    obj[U("ID")] = _id.ToJSON();
+
+    obj[U("Tokens")] = _tokensBlock.ToJSON();
+    obj[U("Data")] = _dataBlock.ToJSON();
+
+    return obj;
+}
+
+web::json::value Quest::QuestTokensBlock::ToJSON()
+{
+    web::json::value obj = web::json::value::object();
+
+    obj[U("BlockID")] = GetBlockID();
+    obj[U("BlockVersion")] = GetBlockVersion();
+
+    web::json::value tokens = web::json::value::array();
+    for (uint32_t i = 0; i < _questTokens.size(); ++i)
+    {
+        tokens[i] = JSONString(_questTokens[i]);
+    }
+    obj[U("Tokens")] = tokens;
+
+    return obj;
+}
+
+web::json::value Quest::QuestDataBlock::ToJSON()
+{
+    web::json::value obj = web::json::value::object();
+
+    obj[U("BlockID")] = GetBlockID();
+    obj[U("BlockVersion")] = GetBlockVersion();
+
+    web::json::value data = web::json::value::array();
+    for (uint32_t i = 0; i < _questData.size(); ++i)
+    {
+        data[i] = _questData[i].ToJSON();
+    }
+    obj[U("Data")] = data;
+
+    return obj;
 }

@@ -26,3 +26,13 @@ void GDDataBlock::ReadBlockEnd(EncodedFileReader* reader)
     if ((_blockStart + _blockLength != reader->GetPosition()) || (reader->ReadInt32(false) != 0))
         throw std::runtime_error(Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to read block end for block %", _blockID));
 }
+
+web::json::value GDDataBlock::ToJSON()
+{
+    web::json::value obj = web::json::value::object();
+
+    obj[U("BlockID")] = GetBlockID();
+    obj[U("BlockVersion")] = GetBlockVersion();
+
+    return obj;
+}

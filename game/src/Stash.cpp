@@ -56,8 +56,47 @@ void Stash::ReadStashTab(EncodedFileReader* reader)
         throw std::runtime_error(Logger::LogMessage(LOG_LEVEL_ERROR, "The number of items read from the container (%) does not match the expected number of items (%)", stashTab->GetItemCount(), numItems));
 
     stashTabBlock->ReadBlockEnd(reader);
-    stashTabBlock->SetState(true);
 
     stashTabBlock->_stashTab = std::move(stashTab);
     _stashTabs.push_back(std::move(stashTabBlock));
+}
+
+web::json::value Stash::ToJSON()
+{
+    web::json::value obj = web::json::value::object();
+
+    obj[U("ContainerType")] = GetContainerType();
+    obj[U("Hardcore")] = _isHardcore;
+
+    web::json::value stashTabs = web::json::value::array();
+    for (uint32_t i = 0; i < _stashTabs.size(); ++i)
+    {
+        web::json::value tabObject = _stashTabs[i]->ToJSON();
+        tabObject[U("ID")] = i;
+        stashTabs[i] = tabObject;
+    }
+    obj[U("Tabs")] = stashTabs;
+
+    return obj;
+}
+
+web::json::value Stash::StashTabBlock::ToJSON()
+{
+    web::json::value obj = web::json::value::object();
+
+    if (_stashTab)
+    {
+        uint32_t i = 0;
+        web::json::value items = web::json::value::array();
+        for (std::pair<Item*, uint64_t> pair : _stashTab->GetItemList())
+        {
+            web::json::value item = pair.first->ToJSON();
+            item[U("X")] = ((pair.second >> 32) & 0xFFFFFFFF);
+            item[U("Y")] = (pair.second & 0xFFFFFFFF);
+            items[i++] = item;
+        }
+        obj[U("Items")] = items;
+    }
+
+    return obj;
 }

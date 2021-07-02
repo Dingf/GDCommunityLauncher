@@ -32,6 +32,21 @@ void Faction::Read(EncodedFileReader* reader)
     _factionRepValue = reader->ReadFloat();
     _factionPositiveBoost = reader->ReadFloat();
     _factionNegativeBoost = reader->ReadFloat();
+}
 
-    SetState(true);
+web::json::value Faction::ToJSON()
+{
+    std::string factionName = (factionNameLookup.count(_factionID) > 0) ? factionNameLookup.at(_factionID) : "";
+
+    web::json::value obj = web::json::value::object();
+    
+    obj[U("FactionID")] = _factionID;
+    obj[U("FactionName")] = JSONString(factionName);
+    obj[U("IsModified")] = _factionIsModified;
+    obj[U("IsUnlocked")] = _factionIsUnlocked;
+    obj[U("Reputation")] = _factionRepValue;
+    obj[U("PositiveModifier")] = _factionPositiveBoost;
+    obj[U("NegativeModifier")] = _factionNegativeBoost;
+
+    return obj;
 }

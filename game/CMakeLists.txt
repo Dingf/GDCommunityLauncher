@@ -23,5 +23,6 @@ src/Character.cpp
 src/ItemDatabase.cpp)
 
 target_include_directories(game PUBLIC include)
+target_link_libraries(game PRIVATE ${cpprestsdk_LIBRARY})
 
 set_target_properties(game PROPERTIES OUTPUT_NAME "game")

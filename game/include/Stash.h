@@ -3,14 +3,16 @@
 
 #include <memory>
 #include <vector>
-#include "Object.h"
+#include "JSONObject.h"
 #include "GDDataBlock.h"
 #include "ItemContainer.h"
 
-class Stash : public Object
+class Stash : public JSONObject
 {
     public:
         virtual ~Stash() = 0;
+
+        virtual web::json::value ToJSON();
 
         virtual ItemContainerType GetContainerType() const = 0;
 
@@ -37,6 +39,8 @@ class Stash : public Object
         {
             StashTabBlock() : GDDataBlock(0x00, 0x00) {}
             ~StashTabBlock() {}
+
+            web::json::value ToJSON();
 
             std::unique_ptr<StashTab> _stashTab;
         };

@@ -4,13 +4,15 @@
 #include <memory>
 #include <string>
 #include "FileReader.h"
-#include "Object.h"
+#include "JSONObject.h"
 
-struct Item : public Object
+struct Item : public JSONObject
 {
     public:
         Item() {}
         Item(EncodedFileReader* reader) { Read(reader); }
+
+        web::json::value ToJSON();
 
         void Read(EncodedFileReader* reader);
 
