@@ -242,21 +242,21 @@ class EncodedFileReader : public FileReader
         std::wstring ReadWideString()
         {
             uint32_t length = ReadInt32(true);
-            if ((length == 0) || (_bufferPos + length * 2 > _bufferSize))
+            if ((length == 0) || (_bufferPos + (length * 2) > _bufferSize))
                 return {};
 
             std::wstring str(length, '\0');
             for (uint32_t i = 0; i < length; ++i)
             {
                 uint8_t c1 = _buffer[_bufferPos++];
-                uint32_t result = c1 ^ _key;
+                wchar_t result1 = (c1 ^ _key) & 0xFF;
                 _key ^= _table[c1];
 
                 uint8_t c2 = _buffer[_bufferPos++];
-                result = (((c2 ^ _key) & 0xFF) << 8) | result;
+                wchar_t result2 = (c2 ^ _key) & 0xFF;
                 _key ^= _table[c2];
 
-                str[i] = (wchar_t)(result & 0xFFFF);
+                str[i] = ((result2 << 8) | result1);
             }
             return str;
         }
