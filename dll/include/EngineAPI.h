@@ -4,6 +4,7 @@
 #include <string>
 #include <Windows.h>
 #include "EngineAPI/Color.h"
+#include "EngineAPI/Rect.h"
 #include "EngineAPI/GraphicsAlign.h"
 #include "EngineAPI/KeyButtonEvent.h"
 
@@ -21,6 +22,7 @@ constexpr char EAPI_NAME_LOAD_WORLD[] = "?Load@World@GAME@@QEAA_NPEBD_N1@Z";
 constexpr char EAPI_NAME_LOAD_FONT_DIRECT[] = "?LoadFontDirect@StyleManager@GAME@@QEAAPEBVGraphicsFont2@2@AEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z";
 constexpr char EAPI_NAME_RENDER[] = "?Render@Engine@GAME@@QEAAXXZ";
 constexpr char EAPI_NAME_RENDER_TEXT_2D[] = "?RenderText2d@GraphicsCanvas@GAME@@QEAAXHHAEBVColor@2@PEBGPEBVGraphicsFont2@2@HW4GraphicsXAlign@2@W4GraphicsYAlign@2@W4FontStyleFlag@2@W4FontLayout@2@@Z";
+constexpr char EAPI_NAME_RENDER_STYLED_TEXT_2D[] = "?RenderText2d@GraphicsCanvas@GAME@@QEAAXVRect@2@PEBGAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@MW4GraphicsXAlign@2@W4GraphicsYAlign@2@W4FontLayout@2@@Z";
 constexpr char EAPI_NAME_HANDLE_KEY_EVENT[] = "?HandleKeyEvent@DisplayWidget@GAME@@UEAA_NAEBVButtonEvent@InputDevice@2@@Z";
 #else
 constexpr char EAPI_NAME_ENGINE[] = "?gEngine@GAME@@3PAVEngine@1@A";
@@ -34,6 +36,7 @@ constexpr char EAPI_NAME_LOAD_WORLD[] = "?Load@World@GAME@@QAE_NPBD_N1@Z";
 constexpr char EAPI_NAME_LOAD_FONT_DIRECT[] = "?LoadFontDirect@StyleManager@GAME@@QAEPBVGraphicsFont2@2@ABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z";
 constexpr char EAPI_NAME_RENDER[] = "?Render@Engine@GAME@@QAEXXZ";
 constexpr char EAPI_NAME_RENDER_TEXT_2D[] = "?RenderText2d@GraphicsCanvas@GAME@@QAEXHHABVColor@2@PBGPBVGraphicsFont2@2@HW4GraphicsXAlign@2@W4GraphicsYAlign@2@W4FontStyleFlag@2@W4FontLayout@2@@Z";
+constexpr char EAPI_NAME_RENDER_STYLED_TEXT_2D[] = "?RenderText2d@GraphicsCanvas@GAME@@QAEXVRect@2@PBGABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@MW4GraphicsXAlign@2@W4GraphicsYAlign@2@W4FontLayout@2@@Z";
 constexpr char EAPI_NAME_HANDLE_KEY_EVENT[] = "?HandleKeyEvent@DisplayWidget@GAME@@UAE_NABVButtonEvent@InputDevice@2@@Z";
 #endif
 

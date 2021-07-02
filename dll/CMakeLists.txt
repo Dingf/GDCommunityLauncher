@@ -2,6 +2,7 @@ add_library(dll SHARED
 include/HookManager.h
 include/EngineAPI.h
 include/EngineAPI/Color.h
+include/EngineAPI/Rect.h
 include/EngineAPI/GraphicsAlign.h
 include/EngineAPI/KeyButtonEvent.h
 include/GameAPI.h
