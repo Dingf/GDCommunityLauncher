@@ -93,7 +93,7 @@ class Character : public JSONObject
 
         bool ReadFromFile(const std::filesystem::path& path);
 
-        web::json::value ToJSON(bool verbose);
+        web::json::value ToJSON();
 
     private:
         void ReadHeaderBlock(EncodedFileReader* reader);

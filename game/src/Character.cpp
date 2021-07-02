@@ -579,7 +579,7 @@ void Character::ReadStatsBlock(EncodedFileReader* reader)
     _statsBlock.ReadBlockEnd(reader);
 }
 
-web::json::value Character::ToJSON(bool verbose)
+web::json::value Character::ToJSON()
 {
     web::json::value obj = web::json::value::object();
 
@@ -617,7 +617,7 @@ web::json::value Character::CharacterHeaderBlock::ToJSON()
     obj[U("Expansions")] = _charExpansions;
     obj[U("ClassName")] = JSONString(className);
     obj[U("ClassID")] = _charClass;
-    obj[U("UID")] = JSONString(_charUID.ToString());
+    obj[U("UID")] = _charUID.ToJSON();
 
     return obj;
 }
@@ -987,7 +987,7 @@ web::json::value Character::CharacterTutorialBlock::ToJSON()
     obj[U("BlockID")] = GetBlockID();
     obj[U("BlockVersion")] = GetBlockVersion();
 
-    web::json::value tutorials = web::json::value::object();
+    web::json::value tutorials = web::json::value::array();
     for (uint32_t i = 0; i < _charTutorials.size(); ++i)
     {
         tutorials[i] = _charTutorials[i];
