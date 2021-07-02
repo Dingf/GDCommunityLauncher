@@ -12,7 +12,7 @@ bool Client::WriteDataToPipe(HANDLE pipe) const
     char sizeBuffer[4];
 
     uint32_t nameLength = (uint32_t)_name.length();
-    sizeBuffer[0] = nameLength & 0x000000FF;
+    sizeBuffer[0] =  nameLength & 0x000000FF;
     sizeBuffer[1] = (nameLength & 0x0000FF00) >> 8;
     sizeBuffer[2] = (nameLength & 0x00FF0000) >> 16;
     sizeBuffer[3] = (nameLength & 0xFF000000) >> 24;
@@ -24,7 +24,7 @@ bool Client::WriteDataToPipe(HANDLE pipe) const
         return FALSE;
 
     uint32_t authLength = (uint32_t)_authToken.length();
-    sizeBuffer[0] = authLength & 0x000000FF;
+    sizeBuffer[0] =  authLength & 0x000000FF;
     sizeBuffer[1] = (authLength & 0x0000FF00) >> 8;
     sizeBuffer[2] = (authLength & 0x00FF0000) >> 16;
     sizeBuffer[3] = (authLength & 0xFF000000) >> 24;

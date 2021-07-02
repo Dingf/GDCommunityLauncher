@@ -5,8 +5,13 @@
 #include "LoginDialog.h"
 #include "ServerAuth.h"
 
+namespace
+{
+
 Configuration* dialogConfig = NULL;
 HWND dialogWindow = NULL;
+
+}
 
 std::string GetFieldText(HWND hwnd, int id)
 {
