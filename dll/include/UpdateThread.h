@@ -1,30 +1,63 @@
 #ifndef INC_GDCL_DLL_UPDATE_THREAD_H
 #define INC_GDCL_DLL_UPDATE_THREAD_H
 
+#include <string>
 #include <memory>
 #include <thread>
+#include <functional>
 
-typedef void(*UpdateCallback)(void);
-
+template <typename... Ts>
 class UpdateThread
 {
     public:
-        UpdateThread(UpdateCallback callback, uint64_t intervalMS);
+        typedef void(*UpdateCallback)(Ts...);
+
+        UpdateThread(UpdateCallback func, uint64_t intervalMS) : _updateTime(0), _updateIntervalMS(intervalMS), _callbackProto(func)
+        {
+            _thread = std::make_unique<std::thread>(&UpdateThread::Tick, this);
+            _thread->detach();
+        }
+
         ~UpdateThread() { Stop(); }
 
-        bool IsRunning() const { return (_callback == nullptr); }
+        bool IsRunning() const { return (_callbackProto != nullptr); }
 
-        void Stop() { _callback = nullptr; }
+        void Stop() { _callbackProto = nullptr; }
 
-        void Update(uint64_t delay);
+        void Update(uint64_t delay, Ts... args)
+        {
+            std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
+            _updateTime = ms.count() + delay;
+
+            auto f = std::bind(std::forward<UpdateCallback>(_callbackProto), std::forward<Ts>(args)...);
+            _callback = [f]{ f(); };
+        }
 
     private:
-        void Tick();
+        void Tick()
+        {
+            while (IsRunning())
+            {
+                std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
+                if ((_updateTime > 0) && ((uint64_t)ms.count() >= _updateTime))
+                {
+                    if (_callback)
+                    {
+                        _callback();
+                        _callback = nullptr;
+                    }
+                    _updateTime = 0;
+                }
+
+                std::this_thread::sleep_for(std::chrono::milliseconds(_updateIntervalMS));
+            }
+        }
 
         uint64_t _updateTime;
         uint64_t _updateIntervalMS;
 
-        UpdateCallback _callback;
+        UpdateCallback _callbackProto;
+        std::function<void()> _callback;
 
         std::unique_ptr<std::thread> _thread;
 };

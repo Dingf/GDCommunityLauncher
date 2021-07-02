@@ -10,7 +10,6 @@ include/GameAPI.h
 include/GameAPI/Difficulty.h
 include/Client.h
 src/HookManager.cpp
-src/UpdateThread.cpp
 src/EngineApi.cpp
 src/EngineAPI/Color.cpp
 src/GameAPI.cpp

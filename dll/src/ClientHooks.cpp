@@ -11,8 +11,8 @@
 namespace
 {
 
-std::shared_ptr<UpdateThread> characterUpdateThread;
-std::shared_ptr<UpdateThread> stashUpdateThread;
+std::shared_ptr<UpdateThread<std::wstring>> characterUpdateThread;
+std::shared_ptr<UpdateThread<std::string, bool>> stashUpdateThread;
 
 }
 
@@ -22,14 +22,12 @@ const char* HandleGetVersion(void* _this)
     return client.GetVersionInfoText().c_str();
 }
 
-void UpdateCharacterData()
+void UpdateCharacterData(std::wstring playerName)
 {
-    PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
     std::string baseFolder = GameAPI::GetBaseFolder();
-    const wchar_t* playerName = GameAPI::GetPlayerName(mainPlayer);
-    if ((playerName == nullptr) || (baseFolder.empty()))
+    if (baseFolder.empty())
     {
-        Logger::LogMessage(LOG_LEVEL_ERROR, "Could not determine character save location.");
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Could not determine save location.");
         return;
     }
 
@@ -69,24 +67,22 @@ void HandleSaveNewFormatData(void* _this, void* writer)
         PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
         if ((modName) && (mainPlayer) && (std::string(modName) == "GrimLeagueS02_HC"))
         {
-            characterUpdateThread->Update(1000);
+            characterUpdateThread->Update(5000, GameAPI::GetPlayerName(mainPlayer));
         }
     }
 }
 
-void UpdateStashData()
+void UpdateStashData(std::string modName, bool hardcore)
 {
     std::string baseFolder = GameAPI::GetBaseFolder();
     if (baseFolder.empty())
     {
-        Logger::LogMessage(LOG_LEVEL_ERROR, "Could not determine shared stash save location.");
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Could not determine save location.");
         return;
     }
 
-    const char* modName = EngineAPI::GetModName();
-    PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
     std::filesystem::path stashPath = std::filesystem::path(GameAPI::GetBaseFolder()) / "save" / modName;
-    if (GameAPI::IsPlayerHardcore(mainPlayer))
+    if (hardcore)
         stashPath /= "transfer.gsh";
     else
         stashPath /= "transfer.gst";
@@ -123,7 +119,7 @@ void HandleSaveTransferStash(void* _this)
         PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
         if ((modName) && (mainPlayer) && (std::string(modName) == "GrimLeagueS02_HC"))
         {
-            stashUpdateThread->Update(5000);
+            stashUpdateThread->Update(5000, modName, GameAPI::IsPlayerHardcore(mainPlayer));
         }
     }
 }
@@ -221,8 +217,8 @@ bool Client::SetupClientHooks()
 
     UpdateVersionInfoText();
 
-    characterUpdateThread = std::make_shared<UpdateThread>(&UpdateCharacterData, 1000);
-    stashUpdateThread = std::make_shared<UpdateThread>(&UpdateStashData, 1000);
+    characterUpdateThread = std::make_shared<UpdateThread<std::wstring>>(&UpdateCharacterData, 1000);
+    stashUpdateThread = std::make_shared<UpdateThread<std::string, bool>>(&UpdateStashData, 1000);
 
     return true;
 }
