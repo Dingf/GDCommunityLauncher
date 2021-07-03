@@ -1,4 +1,5 @@
 add_library(game
+include/JSONObject.h
 include/UID.h
 include/GDDataBlock.h
 include/Item.h
