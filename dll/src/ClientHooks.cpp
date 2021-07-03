@@ -6,12 +6,13 @@
 #include "Client.h"
 #include "Character.h"
 #include "SharedStash.h"
+#include "Quest.h"
 #include "Log.h"
 
 namespace
 {
 
-std::shared_ptr<UpdateThread<std::wstring>> characterUpdateThread;
+std::shared_ptr<UpdateThread<std::wstring, GameAPI::Difficulty>> characterUpdateThread;
 std::shared_ptr<UpdateThread<std::string, bool>> stashUpdateThread;
 
 }
@@ -22,7 +23,7 @@ const char* HandleGetVersion(void* _this)
     return client.GetVersionInfoText().c_str();
 }
 
-void UpdateCharacterData(std::wstring playerName)
+void UpdateCharacterData(std::wstring playerName, GameAPI::Difficulty difficulty)
 {
     std::string baseFolder = GameAPI::GetBaseFolder();
     if (baseFolder.empty())
@@ -33,24 +34,47 @@ void UpdateCharacterData(std::wstring playerName)
 
     std::filesystem::path characterPath = std::filesystem::path(baseFolder) / "save" / "user" / "_";
     characterPath += playerName;
-    characterPath /= "player.gdc";
 
-    if (!std::filesystem::is_regular_file(characterPath))
+    std::filesystem::path characterSavePath = characterPath / "player.gdc";
+    std::filesystem::path characterQuestPath = characterPath / "Levels_world001.map";
+
+    switch (difficulty)
     {
-        Logger::LogMessage(LOG_LEVEL_ERROR, "Could not find saved character data. Make sure that cloud saving is disabled.");
+        case GameAPI::GAME_DIFFICULTY_NORMAL:
+            characterQuestPath /= "Normal";
+            break;
+        case GameAPI::GAME_DIFFICULTY_ELITE:
+            characterQuestPath /= "Elite";
+            break;
+        case GameAPI::GAME_DIFFICULTY_ULTIMATE:
+            characterQuestPath /= "Ultimate";
+            break;
+        default:
+            Logger::LogMessage(LOG_LEVEL_ERROR, "Tried to read character quest data for unknown difficulty \"%\".", difficulty);
+            break;
+    }
+
+    characterQuestPath /= "quests.gdd";
+
+    Character characterData;
+    if (!characterData.ReadFromFile(characterSavePath))
+    {
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to load character data. Make sure that cloud saving is diabled.");
         return;
     }
 
-    Character characterData;
-    if (!characterData.ReadFromFile(characterPath))
+    Quest questData;
+    if (!questData.ReadFromFile(characterQuestPath))
     {
-        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to load character data.");
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to load character quest data. Make sure that cloud saving is diabled.");
         return;
     }
 
     web::json::value characterJSON = characterData.ToJSON();
+    web::json::value questJSON = questData.ToJSON();
 
-    //TODO: Send the character JSON data to the server
+    //TODO: Trim and send the character JSON data to the server
+    //TODO: Trim and send the quest JSON data to the server
 }
 
 void HandleSaveNewFormatData(void* _this, void* writer)
@@ -67,7 +91,7 @@ void HandleSaveNewFormatData(void* _this, void* writer)
         PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
         if ((modName) && (mainPlayer) && (std::string(modName) == "GrimLeagueS02_HC"))
         {
-            characterUpdateThread->Update(5000, GameAPI::GetPlayerName(mainPlayer));
+            characterUpdateThread->Update(5000, GameAPI::GetPlayerName(mainPlayer), GameAPI::GetGameDifficulty());
         }
     }
 }
@@ -87,22 +111,16 @@ void UpdateStashData(std::string modName, bool hardcore)
     else
         stashPath /= "transfer.gst";
 
-    if (!std::filesystem::is_regular_file(stashPath))
-    {
-        Logger::LogMessage(LOG_LEVEL_ERROR, "Could not find shared stash data. Make sure that cloud saving is disabled.");
-        return;
-    }
-
     SharedStash stashData;
     if (!stashData.ReadFromFile(stashPath))
     {
-        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to load shared stash data.");
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to load shared stash data. Make sure that cloud saving is diabled.");
         return;
     }
 
     web::json::value stashJSON = stashData.ToJSON();
 
-    //TODO: Send the shared stash JSON data to the server
+    //TODO: Trim and send the shared stash JSON data to the server
 }
 
 void HandleSaveTransferStash(void* _this)
@@ -217,7 +235,7 @@ bool Client::SetupClientHooks()
 
     UpdateVersionInfoText();
 
-    characterUpdateThread = std::make_shared<UpdateThread<std::wstring>>(&UpdateCharacterData, 1000);
+    characterUpdateThread = std::make_shared<UpdateThread<std::wstring, GameAPI::Difficulty>>(&UpdateCharacterData, 1000);
     stashUpdateThread = std::make_shared<UpdateThread<std::string, bool>>(&UpdateStashData, 1000);
 
     return true;
