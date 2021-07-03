@@ -39,6 +39,7 @@ if (WIN32 AND CMAKE_SYSTEM_VERSION)
     add_definitions(-D_WIN32_WINNT=${winnt_version})
 endif()
 
+add_subdirectory(common)
 add_subdirectory(game)
 add_subdirectory(exe)
 add_subdirectory(dll)

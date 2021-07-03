@@ -23,7 +23,7 @@ class Configuration
             if (it == _configValues.end())
                 return nullptr;
             else
-                return &(it->second);
+                return it->second.get();
         }
 
         template <class T>
@@ -39,9 +39,7 @@ class Configuration
     private:
         typedef std::pair<std::string, std::string> ConfigKey;
 
-        void InsertValue(const std::string& section, const std::string& key, const std::string& value);
-
-        std::map<ConfigKey, Value> _configValues;
+        std::map<ConfigKey, std::unique_ptr<Value>> _configValues;
 };
 
 #endif//INC_GDCL_EXE_CONFIGURATION_H
