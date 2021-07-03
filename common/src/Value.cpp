@@ -1,3 +1,4 @@
+#include <math.h>
 #include "Value.h"
 
 bool ParseInt(const std::string& s, int* val)
@@ -61,7 +62,7 @@ bool ParseFloat(const std::string& s, float* val)
             else if (decimal <= 6)
             {
                 if (digit)
-                    result += (float)digit / pow(10.0f, (float)decimal);
+                    result += (float)digit / powf(10.0f, (float)decimal);
                 decimal++;
             }
         }

@@ -40,21 +40,21 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
     }
 
     bool autoLogin = false;
-    Value* autoLoginValue = config.GetValue("Login", "autologin");
+    const Value* autoLoginValue = config.GetValue("Login", "autologin");
     if ((autoLoginValue) && (autoLoginValue->GetType() == VALUE_TYPE_BOOL) && (autoLoginValue->ToBool()))
     {
         std::string hostName;
-        Value* hostValue = config.GetValue("Login", "hostname");
+        const Value* hostValue = config.GetValue("Login", "hostname");
         if ((hostValue) && (hostValue->GetType() == VALUE_TYPE_STRING))
             hostName = hostValue->ToString();
 
         std::string username;
-        Value* usernameValue = config.GetValue("Login", "username");
+        const  Value* usernameValue = config.GetValue("Login", "username");
         if ((usernameValue) && (usernameValue->GetType() == VALUE_TYPE_STRING))
             username = usernameValue->ToString();
 
         std::string password;
-        Value* passwordValue = config.GetValue("Login", "password");
+        const Value* passwordValue = config.GetValue("Login", "password");
         if ((passwordValue) && (passwordValue->GetType() == VALUE_TYPE_STRING))
             password = passwordValue->ToString();
 

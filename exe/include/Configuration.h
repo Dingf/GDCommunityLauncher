@@ -16,15 +16,7 @@ class Configuration
 
         bool Save(const std::filesystem::path& path);
 
-        Value* GetValue(const std::string& section, const std::string& name)
-        {
-            ConfigKey key({ section, name });
-            auto it = _configValues.find(key);
-            if (it == _configValues.end())
-                return nullptr;
-            else
-                return it->second.get();
-        }
+        const Value* GetValue(const std::string& section, const std::string& name);
 
         template <class T>
         void SetValue(const std::string& section, const std::string& name, T val)
@@ -33,7 +25,17 @@ class Configuration
             auto it = _configValues.find(key);
             if (it != _configValues.end())
                 _configValues.erase(it);
-            _configValues.emplace(key, val);
+            _configValues.insert(std::make_pair(key, std::make_unique<Value>(val)));
+        }
+
+        template <>
+        void SetValue(const std::string& section, const std::string& name, const std::string& val)
+        {
+            ConfigKey key({ section, name });
+            auto it = _configValues.find(key);
+            if (it != _configValues.end())
+                _configValues.erase(it);
+            _configValues.insert(std::make_pair(key, Value::Parse(val)));
         }
 
     private:

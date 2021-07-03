@@ -86,7 +86,7 @@ INT_PTR CALLBACK LoginDialogHandler(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
                     std::string username = GetFieldText(hwnd, IDC_EDIT1);
                     std::string password = GetFieldText(hwnd, IDC_EDIT2);
 
-                    Value* hostValue = dialogConfig->GetValue("Login", "hostname");
+                    const Value* hostValue = dialogConfig->GetValue("Login", "hostname");
                     if ((hostValue) && (hostValue->GetType() == VALUE_TYPE_STRING))
                     {
                         ServerAuth::ValidateCredentials(hostValue->ToString(), username, password, LoginValidateCallback);
@@ -130,11 +130,11 @@ INT_PTR CALLBACK LoginDialogHandler(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 
             Configuration* config = (Configuration*)lp;
 
-            Value* autoLoginValue = config->GetValue("Login", "autologin");
+            const Value* autoLoginValue = config->GetValue("Login", "autologin");
             if ((autoLoginValue) && (autoLoginValue->GetType() == VALUE_TYPE_BOOL) && (autoLoginValue->ToBool()))
             {
-                Value* usernameValue = config->GetValue("Login", "username");
-                Value* passwordValue = config->GetValue("Login", "password");
+                const Value* usernameValue = config->GetValue("Login", "username");
+                const Value* passwordValue = config->GetValue("Login", "password");
 
                 if ((usernameValue) && (usernameValue->GetType() == VALUE_TYPE_STRING))
                     SetDlgItemText(hwnd, IDC_EDIT1, usernameValue->ToString());

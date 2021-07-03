@@ -175,3 +175,14 @@ bool Configuration::Save(const std::filesystem::path& path)
     fclose(file);
     return true;
 }
+
+
+const Value* Configuration::GetValue(const std::string& section, const std::string& name)
+{
+    ConfigKey key({ section, name });
+    auto it = _configValues.find(key);
+    if (it == _configValues.end())
+        return nullptr;
+    else
+        return it->second.get();
+}
