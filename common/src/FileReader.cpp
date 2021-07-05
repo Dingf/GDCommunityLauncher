@@ -1,14 +1,14 @@
 #include "FileReader.h"
 
-FileReader::FileReader(FILE* file) : _bufferPos(0)
+FileReader::FileReader(std::ifstream& in) : _bufferPos(0)
 {
-    fseek(file, 0, SEEK_END);
-    _bufferSize = ftell(file);
-    fseek(file, 0, SEEK_SET);
+    in.seekg(0, in.end);
+    _bufferSize = in.tellg();
+    in.seekg(0, in.beg);
 
     _buffer = new uint8_t[_bufferSize];
-    fread(_buffer, 1, _bufferSize, file);
-    fclose(file);
+    in.read((char*)_buffer, _bufferSize);
+    in.close();
 }
 
 FileReader::~FileReader()
@@ -22,23 +22,13 @@ FileReader::~FileReader()
     _bufferSize = 0;
 }
 
-std::shared_ptr<FileReader> FileReader::Open(const std::string& filename)
+std::shared_ptr<FileReader> FileReader::Open(const std::filesystem::path& path)
 {
-    FILE* file;
-    if (fopen_s(&file, filename.c_str(), "rb") != 0)
+    std::ifstream in(path, std::ifstream::binary | std::ifstream::in);
+    if (!in.is_open())
         return nullptr;
 
-    std::shared_ptr<FileReader> reader(new FileReader(file));
-    return reader;
-}
-
-std::shared_ptr<FileReader> FileReader::Open(const std::wstring& filename)
-{
-    FILE* file;
-    if (_wfopen_s(&file, filename.c_str(), L"rb") != 0)
-        return nullptr;
-
-    std::shared_ptr<FileReader> reader(new FileReader(file));
+    std::shared_ptr<FileReader> reader(new FileReader(in));
     return reader;
 }
 
@@ -46,7 +36,7 @@ float FileReader::ReadFloat()
 {
     if (_bufferPos + 4 <= _bufferSize)
     {
-        uint32_t val = (uint32_t)_buffer[_bufferPos] | ((uint32_t)_buffer[_bufferPos + 1] << 8) | ((uint32_t)_buffer[_bufferPos + 2] << 16) | ((uint32_t)_buffer[_bufferPos + 3] << 24);
+        uint32_t val = *(uint32_t*)(&_buffer[_bufferPos]);
         val += 4;
         return reinterpret_cast<float&>(val);
     }
@@ -66,7 +56,7 @@ uint16_t FileReader::ReadInt16()
 {
     if (_bufferPos + 2 <= _bufferSize)
     {
-        uint16_t val = (uint16_t)_buffer[_bufferPos] | ((uint16_t)_buffer[_bufferPos + 1] << 8);
+        uint16_t val = *(uint16_t*)(&_buffer[_bufferPos]);
         _bufferPos += 2;
         return val;
     }
@@ -77,8 +67,19 @@ uint32_t FileReader::ReadInt32()
 {
     if (_bufferPos + 4 <= _bufferSize)
     {
-        uint32_t val = (uint32_t)_buffer[_bufferPos] | ((uint32_t)_buffer[_bufferPos + 1] << 8) | ((uint32_t)_buffer[_bufferPos + 2] << 16) | ((uint32_t)_buffer[_bufferPos + 3] << 24);
+        uint32_t val = *(uint32_t*)(&_buffer[_bufferPos]);
         _bufferPos += 4;
+        return val;
+    }
+    return 0;
+}
+
+uint64_t FileReader::ReadInt64()
+{
+    if (_bufferPos + 8 <= _bufferSize)
+    {
+        uint64_t val = *(uint64_t*)(&_buffer[_bufferPos]);
+        _bufferPos += 8;
         return val;
     }
     return 0;
@@ -114,7 +115,7 @@ std::wstring FileReader::ReadWideString()
     return str;
 }
 
-EncodedFileReader::EncodedFileReader(FILE* file) : FileReader(file)
+EncodedFileReader::EncodedFileReader(std::ifstream& in) : FileReader(in)
 {
     if (_bufferPos + 4 <= _bufferSize)
     {
@@ -138,23 +139,13 @@ void EncodedFileReader::UpdateKey(uint32_t val)
     }
 }
 
-std::shared_ptr<EncodedFileReader> EncodedFileReader::Open(const std::string& filename)
+std::shared_ptr<EncodedFileReader> EncodedFileReader::Open(const std::filesystem::path& path)
 {
-    FILE* file;
-    if (fopen_s(&file, filename.c_str(), "rb") != 0)
+    std::ifstream in(path, std::ifstream::binary | std::ifstream::in);
+    if (!in.is_open())
         return nullptr;
 
-    std::shared_ptr<EncodedFileReader> reader(new EncodedFileReader(file));
-    return reader;
-}
-
-std::shared_ptr<EncodedFileReader> EncodedFileReader::Open(const std::wstring& filename)
-{
-    FILE* file;
-    if (_wfopen_s(&file, filename.c_str(), L"rb") != 0)
-        return nullptr;
-
-    std::shared_ptr<EncodedFileReader> reader(new EncodedFileReader(file));
+    std::shared_ptr<EncodedFileReader> reader(new EncodedFileReader(in));
     return reader;
 }
 
@@ -162,7 +153,7 @@ float EncodedFileReader::ReadFloat(bool update)
 {
     if (_bufferPos + 4 <= _bufferSize)
     {
-        uint32_t val = (uint32_t)_buffer[_bufferPos] | ((uint32_t)_buffer[_bufferPos + 1] << 8) | ((uint32_t)_buffer[_bufferPos + 2] << 16) | ((uint32_t)_buffer[_bufferPos + 3] << 24);
+        uint32_t val = *(uint32_t*)(&_buffer[_bufferPos]);
         uint32_t result = val ^ _key;
         _bufferPos += 4;
 
@@ -193,7 +184,7 @@ uint16_t EncodedFileReader::ReadInt16(bool update)
 {
     if (_bufferPos + 2 <= _bufferSize)
     {
-        uint16_t val = (uint16_t)_buffer[_bufferPos] | ((uint16_t)_buffer[_bufferPos + 1] << 8);
+        uint16_t val = *(uint16_t*)(&_buffer[_bufferPos]);
         uint32_t result = val ^ _key;
         _bufferPos += 2;
 
@@ -209,9 +200,26 @@ uint32_t EncodedFileReader::ReadInt32(bool update)
 {
     if (_bufferPos + 4 <= _bufferSize)
     {
-        uint32_t val = (uint32_t)_buffer[_bufferPos] | ((uint32_t)_buffer[_bufferPos + 1] << 8) | ((uint32_t)_buffer[_bufferPos + 2] << 16) | ((uint32_t)_buffer[_bufferPos + 3] << 24);
+        uint32_t val = *(uint32_t*)(&_buffer[_bufferPos]);
         uint32_t result = val ^ _key;
         _bufferPos += 4;
+
+        if (update)
+            UpdateKey(val);
+
+        return result;
+    }
+    return 0;
+}
+
+uint64_t EncodedFileReader::ReadInt64(bool update)
+{
+    // This is not confirmed to work, need to find an example of this in-game
+    if (_bufferPos + 8 <= _bufferSize)
+    {
+        uint64_t val = *(uint64_t*)(&_buffer[_bufferPos]);
+        uint64_t result = val ^ _key;
+        _bufferPos += 8;
 
         if (update)
             UpdateKey(val);

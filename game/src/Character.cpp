@@ -57,7 +57,7 @@ bool Character::ReadFromFile(const std::filesystem::path& path)
 {
     if (std::filesystem::is_regular_file(path))
     {
-        std::shared_ptr<EncodedFileReader> readerPtr = EncodedFileReader::Open(path.c_str());
+        std::shared_ptr<EncodedFileReader> readerPtr = EncodedFileReader::Open(path);
         if (!readerPtr)
         {
             Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to open file: \"%\"", path.string().c_str());

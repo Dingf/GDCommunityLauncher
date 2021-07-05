@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include "Configuration.h"
+#include "FileReader.h"
 
 std::string ReadBufferedString(const char* buffer, uint32_t start, uint32_t end)
 {
@@ -21,23 +22,10 @@ bool Configuration::Load(const std::filesystem::path& path)
 {
     if (std::filesystem::is_regular_file(path) && (path.extension() == ".ini"))
     {
-        FILE* file;
-#if _WIN32
-        if (_wfopen_s(&file, path.c_str(), L"rb") != 0)
-#else
-        if (fopen_s(&file, path.c_str(), "rb") != 0)
-#endif
-        {
-            return false;
-        }
+        std::shared_ptr<FileReader> reader = FileReader::Open(path);
 
-        fseek(file, 0, SEEK_END);
-        int32_t bufferSize = ftell(file);
-        fseek(file, 0, SEEK_SET);
-
-        char* buffer = new char[bufferSize];
-        fread(buffer, 1, bufferSize, file);
-        fclose(file);
+        uint32_t bufferSize = reader->GetBufferSize();
+        const char* buffer = (const char*)reader->GetBuffer();
 
         std::string key;
         std::string section;
@@ -130,15 +118,9 @@ bool Configuration::Load(const std::filesystem::path& path)
 
 bool Configuration::Save(const std::filesystem::path& path)
 {
-    FILE* file;
-#if _WIN32
-    if (_wfopen_s(&file, path.c_str(), L"w") != 0)
-#else
-    if (fopen_s(&file, path.c_str(), "w") != 0)
-#endif
-    {
+    std::ofstream out(path, std::ofstream::out);
+    if (!out.is_open())
         return false;
-    }
 
     std::string currentSection = {};
     for (auto it = _configValues.begin(); it != _configValues.end(); ++it)
@@ -148,34 +130,33 @@ bool Configuration::Save(const std::filesystem::path& path)
 
         if (key.first != currentSection)
         {
-            fprintf(file, "[%s]\n", key.first.c_str());
+            out << "[" << key.first << "]\n";
             currentSection = key.first;
         }
 
-        fprintf(file, "%s=", key.second.c_str());
+        out << key.second << "=";
         switch (value->GetType())
         {
             case VALUE_TYPE_INT:
-                fprintf(file, "%d\n", value->ToInt());
+                out << value->ToInt() << "\n";
                 break;
             case VALUE_TYPE_FLOAT:
-                fprintf(file, "%f\n", value->ToFloat());
+                out << value->ToFloat() << "\n";
                 break;
             case VALUE_TYPE_BOOL:
-                fprintf(file, "%s\n", (value->ToBool()) ? "true" : "false");
+                out << (value->ToBool() ? "true" : "false") << "\n";
                 break;
             case VALUE_TYPE_STRING:
-                fprintf(file, "%s\n", value->ToString());
+                out << value->ToString() << "\n";
                 break;
             default:
                 return false;
         }
     }
 
-    fclose(file);
+    out.close();
     return true;
 }
-
 
 const Value* Configuration::GetValue(const std::string& section, const std::string& name)
 {
