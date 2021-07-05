@@ -1,5 +1,6 @@
 #include <algorithm>
 #include "DBRecord.h"
+#include "FileReader.h"
 
 DBRecord::~DBRecord() {}
 
@@ -11,38 +12,40 @@ const Value* DBRecord::GetVariable(const std::string& key, uint32_t index)
     return _variables[key][index].get();
 }
 
-bool DBRecord::Load(const std::string& filename)
+bool DBRecord::Load(const std::filesystem::path& path)
 {
-    FILE * file;
-    if (fopen_s(&file, filename.c_str(), "r") != 0)
-        return false;
+    // Split the given path into root and record sections
+    // The root path is used to generate absolute paths when loading files and the record path
+    // is used internally by the DBRs to reference other files
+    _rootPath.clear();
+    _recordPath.clear();
 
-    fseek(file, 0, SEEK_END);
-    uint32_t bufferSize = ftell(file);
-    fseek(file, 0, SEEK_SET);
-
-    char* buffer = new char[bufferSize];
-    fread(buffer, 1, bufferSize, file);
-    fclose(file);
-
-    std::string filenameCopy(filename);
-    std::replace(filenameCopy.begin(), filenameCopy.end(), '\\', '/');
-
-    uint32_t pathStart = filenameCopy.find("/records/");
-    if (pathStart < filenameCopy.length())
+    bool recordStart = false;
+    for (auto it = path.begin(); it != path.end(); ++it)
     {
-        _rootPath = filenameCopy.substr(0, pathStart);
-        _recordPath = filenameCopy.substr(pathStart + 1);
+        if (recordStart)
+            _recordPath /= *it;
+        else
+            _rootPath /= *it;
+
+        if ((!recordStart) && (*it == "records"))
+            recordStart = true;
     }
-    else
+
+    if ((_rootPath.empty()) || (_recordPath.empty()))
         return false;
 
-    uint32_t bufferPos = 0;
+    std::shared_ptr<FileReader> reader = FileReader::Open(path);
+    const char* buffer = (const char*)reader->GetBuffer();
+
+    // DBR files are plaintext so loop through each line and parse all of the record data
+    int64_t bufferPos = 0;
+    int64_t bufferSize = reader->GetBufferSize();
     while (bufferPos < bufferSize)
     {
-        uint32_t recordStart = bufferPos;
-        uint32_t dataStart = 0;
-        uint32_t dataEnd = 0;
+        int64_t recordStart = bufferPos;
+        int64_t dataStart = 0;
+        int64_t dataEnd = 0;
 
         while ((bufferPos < bufferSize) && (buffer[bufferPos] != '\n'))
         {
@@ -61,8 +64,6 @@ bool DBRecord::Load(const std::string& filename)
 
         std::string key(&buffer[recordStart], dataStart - recordStart);
 
-        int i;
-        float f;
         uint32_t dataCurrent = dataStart + 1;
         while (dataCurrent <= dataEnd)
         {
@@ -70,7 +71,7 @@ bool DBRecord::Load(const std::string& filename)
             if ((c == ';') || (c == ','))
             {
                 std::string val(&buffer[dataStart + 1], dataCurrent - dataStart - 1);
-                _variables[key].emplace_back(val);
+                _variables[key].push_back(Value::Parse(val));
                 dataStart = dataCurrent++;
             }
             else

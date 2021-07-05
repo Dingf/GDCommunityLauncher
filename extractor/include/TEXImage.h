@@ -1,5 +1,5 @@
-#ifndef INC_GDCL_TEX_IMAGE_H
-#define INC_GDCL_TEX_IMAGE_H
+#ifndef INC_GDCL_EXTRACTOR_TEX_IMAGE_H
+#define INC_GDCL_EXTRACTOR_TEX_IMAGE_H
 
 #include <string>
 #include <filesystem>
@@ -29,4 +29,4 @@ class TEXImage : public DDSImage
 };
 
 
-#endif//INC_GDCL_DDS_IMAGE_H
+#endif//INC_GDCL_EXTRACTOR_TEX_IMAGE_H
