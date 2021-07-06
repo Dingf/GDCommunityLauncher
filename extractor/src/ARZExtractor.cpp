@@ -27,7 +27,7 @@ bool ARZExtractor::Extract(const std::filesystem::path& src, const std::filesyst
     }
     catch (std::runtime_error&)
     {
-        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to load ARZ file \"%\"", src.string().c_str());
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to extract ARZ file \"%\"", src.string().c_str());
         return false;
     }
     return true;
@@ -79,12 +79,12 @@ void ARZExtractor::ARZRecord::Decompress(const uint8_t* buffer, const std::vecto
 
     _filename = strings[filenameID];
 
-    char* compressedBuffer = new char[_compressedSize];
-    char* decompressedBuffer = new char[_decompressedSize];
+    std::unique_ptr<char[]> compressedBuffer(new char[_compressedSize]);
+    std::unique_ptr<char[]> decompressedBuffer(new char[_decompressedSize]);
 
-    memcpy(compressedBuffer, &buffer[_offset + 24], _compressedSize);
+    memcpy(&compressedBuffer[0], &buffer[_offset + 24], _compressedSize);
 
-    LZ4_decompress_safe(compressedBuffer, decompressedBuffer, _compressedSize, _decompressedSize);
+    LZ4_decompress_safe(&compressedBuffer[0], &decompressedBuffer[0], _compressedSize, _decompressedSize);
 
     uint32_t index = 0;
     while (index < _decompressedSize)
@@ -159,11 +159,10 @@ void ARZExtractor::ARZRecord::ReadCompressed(FileReader* reader)
 void ARZExtractor::ARZRecord::Write(const std::filesystem::path& outputDir)
 {
     std::filesystem::path outputPath = outputDir / _filename;
-
     std::filesystem::path parentPath = outputPath.parent_path();
     if (!std::filesystem::is_directory(parentPath) && !std::filesystem::create_directories(parentPath))
         throw std::runtime_error(Logger::LogMessage(LOG_LEVEL_ERROR, "Could not create directory path to %", parentPath.string().c_str()));
-        
+
     std::ofstream out(outputPath, std::ofstream::out);
     if (!out.is_open())
         throw std::runtime_error(Logger::LogMessage(LOG_LEVEL_ERROR, "Could not open record file % for writing", outputPath.string().c_str()));
