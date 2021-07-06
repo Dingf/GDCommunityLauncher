@@ -1,9 +1,9 @@
 #ifndef INC_GDCL_LOG_H
 #define INC_GDCL_LOG_H
 
-#include <stdio.h>
 #include <string>
 #include <sstream>
+#include <fstream>
 #include <time.h>
 
 enum LogLevel
@@ -43,8 +43,8 @@ class Logger
             if (level < logger._minLevel)
                 return {};
 
-            FILE* file;
-            if (fopen_s(&file, logger._filename.c_str(), "a+") == 0)
+            std::ofstream out(logger._filename.c_str(), std::ofstream::out | std::ofstream::app);
+            if (out.is_open())
             {
                 tm currentTime;
                 time_t posixTime = time(0);
@@ -109,8 +109,8 @@ class Logger
                 }
                 output += "\n";
 
-                fwrite(output.c_str(), 1, output.length(), file);
-                fclose(file);
+                out << output;
+                out.close();
 
                 return formattedMessage;
             }

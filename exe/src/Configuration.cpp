@@ -1,15 +1,14 @@
 #include <stdint.h>
-#include <stdio.h>
 #include "Configuration.h"
 #include "FileReader.h"
 
-std::string ReadBufferedString(const char* buffer, uint32_t start, uint32_t end)
+std::string ReadBufferedString(const char* buffer, int64_t start, int64_t end)
 {
     if (end > start)
     {
         std::string s;
         s.reserve(end - start);
-        for (uint32_t i = start; i < end; ++i)
+        for (int64_t i = start; i < end; ++i)
         {
             s.push_back((buffer[i] == '\\') ? buffer[++i] : buffer[i]);
         }
@@ -24,15 +23,15 @@ bool Configuration::Load(const std::filesystem::path& path)
     {
         std::shared_ptr<FileReader> reader = FileReader::Open(path);
 
-        uint32_t bufferSize = reader->GetBufferSize();
+        int64_t bufferSize = reader->GetBufferSize();
         const char* buffer = (const char*)reader->GetBuffer();
 
         std::string key;
         std::string section;
-        int32_t lineStart = 0;
-        int32_t valueStart = -1;
-        int32_t sectionStart = -1;
-        for (int32_t i = 0; i < bufferSize; ++i)
+        int64_t lineStart = 0;
+        int64_t valueStart = -1;
+        int64_t sectionStart = -1;
+        for (int64_t i = 0; i < bufferSize; ++i)
         {
             switch (buffer[i])
             {

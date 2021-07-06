@@ -6,14 +6,14 @@
 
 typedef std::basic_string<TCHAR, std::char_traits<TCHAR>, std::allocator<TCHAR>> TSTRING;
 
-TSTRING operator+(const TCHAR* arg1, const std::filesystem::path& arg2)
+/*TSTRING operator+(const TCHAR* arg1, const std::filesystem::path& arg2)
 {
 #ifdef UNICODE
     return std::wstring(arg1) + arg2.wstring();
 #else
     return std::string(arg1) + arg2.string();
 #endif
-}
+}*/
 
 bool InjectDLL(HANDLE process, const std::filesystem::path& dllPath)
 {
@@ -52,8 +52,6 @@ LPVOID BuildEnvironmentVariables()
         std::filesystem::path steamappsDir = commonDir.parent_path();
         std::filesystem::path steamDir = steamappsDir.parent_path();
 
-        //TODO: Some of these can probably be trimmed/removed. Figure out which ones are necessary to run the launcher
-        //      and get rid of the rest
         std::vector<TSTRING> env =
         {
             TEXT("SteamEnv=1"),
@@ -65,7 +63,7 @@ LPVOID BuildEnvironmentVariables()
             TEXT("SteamUser=username"),
             TEXT("STEAMID=00000000000000000"),
             TEXT("SESSIONNAME=Console"),
-            TEXT("EnableConfiguratorSupport=0"),
+            /*TEXT("EnableConfiguratorSupport=0"),
             TEXT("SDL_GAMECONTROLLER_ALLOW_STEAM_VIRTUAL_GAMEPAD=1"),
             TEXT("SDL_JOYSTICK_HIDAPI_STEAMXBOX=0"),
             TEXT("SteamStreamingHardwareEncodingNVIDIA=1"),
@@ -80,10 +78,10 @@ LPVOID BuildEnvironmentVariables()
             TEXT("ENABLE_VK_LAYER_VALVE_steam_overlay_1=1"),
             TEXT("ENABLE_VK_LAYER_VALVE_steam_fossilize_1=1"),
             TEXT("MESA_DISK_CACHE_SINGLE_FILE=1"),
-            TEXT("MESA_DISK_CACHE_READ_ONLY_FOZ_DBS=steam_cache"),
+            TEXT("MESA_DISK_CACHE_READ_ONLY_FOZ_DBS=steam_cache"),*/
         };
 
-        env.push_back(TEXT("INSTALLDIR=") + installDir);
+        /*env.push_back(TEXT("INSTALLDIR=") + installDir);
         env.push_back(TEXT("ValvePlatformMutex=") + (steamDir / "steam.exe"));
         env.push_back(TEXT("MESA_GLSL_CACHE_DIR=") + (steamappsDir / "shadercache" / "219990"));
         env.push_back(TEXT("__GL_SHADER_DISK_CACHE_PATH=") + (steamappsDir / "shadercache" / "219990" / "nvidiav1"));
@@ -93,7 +91,7 @@ LPVOID BuildEnvironmentVariables()
         env.push_back(TEXT("FOSSILIZE_APPLICATION_INFO_FILTER_PATH=") + (steamDir / "fossilize_engine_filters.json"));
         env.push_back(TEXT("STEAM_COMPAT_MEDIA_PATH=") + (steamappsDir / "shadercache" / "219990" / "fozmediav1"));
         env.push_back(TEXT("STEAM_COMPAT_TRANSCODED_MEDIA_PATH=") + (steamappsDir / "shadercache" / "219990" / "swarm"));
-        env.push_back(TEXT("DXVK_STATE_CACHE_PATH=") + (steamappsDir / "shadercache" / "219990" / "DXVK_state_cache"));
+        env.push_back(TEXT("DXVK_STATE_CACHE_PATH=") + (steamappsDir / "shadercache" / "219990" / "DXVK_state_cache"));*/
 
         // Also make sure to preserve the current environment variables
         uint32_t start = 0;
