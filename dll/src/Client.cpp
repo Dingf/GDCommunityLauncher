@@ -3,6 +3,7 @@
 #include "Client.h"
 #include "EngineAPI.h"
 #include "Log.h"
+#include "Version.h"
 
 Client& Client::GetInstance()
 {
@@ -87,6 +88,10 @@ void Client::ReadDataFromPipe()
 
         CloseHandle(pipeIn);
 
+        // TODO: Temporary hack for now; need to get the actual league name from the server
+        _leagueName = "GrimLeague Season 3";
+        _leagueModName = "GrimLeagueS02_HC";
+
         UpdateLeagueInfoText();
         UpdateVersionInfoText();
     }
@@ -104,10 +109,16 @@ void Client::UpdateVersionInfoText()
     if ((callback) && (engine))
     {
         const char* result = callback((void*)*engine);
-        _versionInfoText.append(result);
-        _versionInfoText.append("\n{^F}GrimLeague S3 (");
-        _versionInfoText.append(GetName());
-        _versionInfoText.append(")");
+        _versionInfoText = result;
+        _versionInfoText += "\n{^F}GDCL v";
+        _versionInfoText += GDCL_VERSION_MAJOR;
+        _versionInfoText += ".";
+        _versionInfoText += GDCL_VERSION_MINOR;
+        _versionInfoText += ".";
+        _versionInfoText += GDCL_VERSION_PATCH;
+        _versionInfoText += " (";
+        _versionInfoText += GetName();
+        _versionInfoText += ")";
     }
 }
 
@@ -115,7 +126,9 @@ void Client::UpdateLeagueInfoText()
 {
     _leagueInfoText.clear();
 
-    _leagueInfoText = L"\nGrimLeague Season 3\n";
+    _leagueInfoText = L"\n";
+    _leagueInfoText += std::wstring(_leagueName.begin(), _leagueName.end());
+    _leagueInfoText += L"\n";
     _leagueInfoText += std::wstring(_name.begin(), _name.end());
     if ((_points > 0) && (_rank > 0))
     {

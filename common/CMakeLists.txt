@@ -2,6 +2,7 @@ add_library(common
 include/FileReader.h
 include/Log.h
 include/Value.h
+include/Version.h
 src/FileReader.cpp
 src/Value.cpp)
 

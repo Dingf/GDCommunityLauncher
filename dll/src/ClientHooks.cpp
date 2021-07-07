@@ -86,10 +86,10 @@ void HandleSaveNewFormatData(void* _this, void* writer)
     {
         callback(_this, writer);
 
-        //TODO: Change mod name for S3
+        Client& client = Client::GetInstance();
         const char* modName = EngineAPI::GetModName();
         PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
-        if ((modName) && (mainPlayer) && (std::string(modName) == "GrimLeagueS02_HC"))
+        if ((modName) && (mainPlayer) && (std::string(modName) == client.GetLeagueModName()))
         {
             characterUpdateThread->Update(5000, GameAPI::GetPlayerName(mainPlayer), GameAPI::GetGameDifficulty());
         }
@@ -132,10 +132,10 @@ void HandleSaveTransferStash(void* _this)
     {
         callback(_this);
 
-        //TODO: Change mod name for S3
+        Client& client = Client::GetInstance();
         const char* modName = EngineAPI::GetModName();
         PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
-        if ((modName) && (mainPlayer) && (std::string(modName) == "GrimLeagueS02_HC"))
+        if ((modName) && (mainPlayer) && (std::string(modName) == client.GetLeagueModName()))
         {
             stashUpdateThread->Update(5000, modName, GameAPI::IsPlayerHardcore(mainPlayer));
         }
@@ -195,14 +195,14 @@ void HandleRenderStyledText2D(void* _this, const EngineAPI::Rect& rect, const wc
     RenderTextStyled2DProto callback = (RenderTextStyled2DProto)HookManager::GetOriginalFunction("Engine.dll", EngineAPI::EAPI_NAME_RENDER_STYLED_TEXT_2D);
     if (callback)
     {
+        Client& client = Client::GetInstance();
         const char* modName = EngineAPI::GetModName();
         PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
 
         // If the player is in-game on the S3 mod, append the league info to the difficulty text in the upper left corner
         // We modify the text instead of creating new text because that way it preserves the Z-order and doesn't conflict with the loading screen/pause overlay/etc.
-        if ((rect._x == 10.0f) && (rect._y == 10.0f) && (modName) && (mainPlayer) && ((std::string(modName) == "GrimLeagueS02_HC") || (std::string(modName) == "GrimLeagueS03")))
+        if ((rect._x == 10.0f) && (rect._y == 10.0f) && (modName) && (mainPlayer) && (std::string(modName) == client.GetLeagueModName()))
         {
-            Client& client = Client::GetInstance();
             std::wstring textString(text);
             if (textString.empty())
                 textString += L"Normal";

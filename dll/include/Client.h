@@ -23,6 +23,8 @@ class Client
         const std::string& GetName() const { return _name; }
         const std::string& GetAuthToken() const { return _authToken; }
         const std::string& GetHostName() const { return _hostName; }
+        const std::string& GetLeagueName() const { return _leagueName; }
+        const std::string& GetLeagueModName() const { return _leagueModName; }
 
         //TODO: These functions are only for testing. Delete them later when the web API is implemented
         void SetPoints(uint32_t points)
@@ -50,6 +52,8 @@ class Client
         std::string _name;
         std::string _authToken;
         std::string _hostName;
+        std::string _leagueName;
+        std::string _leagueModName;
         std::string _versionInfoText;
         std::wstring _leagueInfoText;
 };

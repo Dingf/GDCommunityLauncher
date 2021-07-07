@@ -1,9 +1,12 @@
-project (GDCommunityLauncher)
 cmake_minimum_required(VERSION 3.10)
+cmake_policy(SET CMP0048 NEW)
+project (GDCommunityLauncher VERSION 1.0.0)
 
 set(CMAKE_GENERATOR_PLATFORM x64)
 set(CMAKE_CXX_STANDARD 17)
 set(GDCL_BUILD_EXTRACTOR ON)
+
+configure_file(${CMAKE_SOURCE_DIR}/common/include/Version.cmake ${CMAKE_SOURCE_DIR}/common/include/Version.h)
 
 find_package(cpprestsdk REQUIRED)
 if (cpprestsdk_FOUND)

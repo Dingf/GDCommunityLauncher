@@ -20,5 +20,6 @@ package-lock.json
 
 # Generated files
 game/src/ItemDatabase.cpp
+common/include/Version.h
 *.aps
 *.log
