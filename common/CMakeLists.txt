@@ -3,6 +3,7 @@ include/FileReader.h
 include/Log.h
 include/Value.h
 include/Version.h
+include/JSONObject.h
 src/FileReader.cpp
 src/Value.cpp)
 

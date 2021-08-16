@@ -4,43 +4,63 @@
 #include <chrono>
 #include "Client.h"
 #include "ServerAuth.h"
+#include "JSONObject.h"
+#include <cpprest/filestream.h>
+#include <cpprest/http_client.h>
 
-const std::map<std::string,std::string> fakeServerCredentials =
+ServerAuthResult ServerAuthFunction(std::string hostName, std::string username, std::string password, ServerAuthCallback callback)
 {
-    { "Mr Monday", "Testing123" },
-    { "Mr Tuesday", "Someotherpassword" },
-    { "Mr Wednesday", "Yet Another Password?" }
-};
+    if (hostName.back() != '/')
+        hostName += '/';
+    hostName += "api/Account/login";
 
-ServerAuthResult FakeServerAuth(std::string hostName, std::string username, std::string password, ServerAuthCallback callback)
-{
-    std::this_thread::sleep_for(std::chrono::seconds(2));
+    web::http::client::http_client client(utility::string_t(hostName.begin(), hostName.end()));
 
-    if ((fakeServerCredentials.count(username) > 0) && (fakeServerCredentials.at(username) == password))
+    web::json::value requestBody;
+    requestBody[U("username")] = JSONString(username);
+    requestBody[U("password")] = JSONString(password);
+
+    web::http::http_request request(web::http::methods::POST);
+    request.set_body(requestBody);
+
+    try
     {
-        std::string authToken("TODO: This should actually be a randomly generated string");
+        web::http::http_response response = client.request(request).get();
+        if (response.status_code() == web::http::status_codes::OK)
+        {
+            web::json::value responseBody = response.extract_json().get();
+            web::json::value authTokenValue = responseBody[U("access_token")];
+            if ((!authTokenValue.is_null()) && (authTokenValue.is_string()))
+            {
+                JSONString authTokenString = authTokenValue.as_string();
+                Client& client = Client::GetInstance(username, authTokenString, hostName);
 
-        Client& client = Client::GetInstance(username, authToken, hostName);
-        if (callback)
-            callback(SERVER_AUTH_OK);
-        return SERVER_AUTH_OK;
+                if (callback)
+                    callback(SERVER_AUTH_OK);
+                return SERVER_AUTH_OK;
+            }
+        }
     }
-    else
+    catch (...)
     {
         if (callback)
-            callback(SERVER_AUTH_FAIL);
-        return SERVER_AUTH_FAIL;
+            callback(SERVER_AUTH_TIMEOUT);
+        return SERVER_AUTH_TIMEOUT;
     }
+
+    if (callback)
+        callback(SERVER_AUTH_FAIL);
+    return SERVER_AUTH_FAIL;
 }
 
 void ServerAuth::ValidateCredentials(const std::string& hostName, const std::string& username, const std::string& password, ServerAuthCallback callback)
 {
-    std::thread t(&FakeServerAuth, hostName, username, password, callback);
+    std::thread t(&ServerAuthFunction, hostName, username, password, callback);
     t.detach();
 }
 
 ServerAuthResult ServerAuth::ValidateCredentials(const std::string& hostName, const std::string& username, const std::string& password)
 {
-    std::future<ServerAuthResult> future = std::async(&FakeServerAuth, hostName, username, password, nullptr);
+    std::future<ServerAuthResult> future = std::async(&ServerAuthFunction, hostName, username, password, nullptr);
     return future.get();
 }

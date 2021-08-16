@@ -14,11 +14,14 @@ class JSONString
 {
     public:
         JSONString(const std::string& s) : _s(s) {}
+        JSONString(const utility::string_t& s) : _s(utility::conversions::to_utf8string(s)) {}
 
         operator web::json::value() const
         {
             return web::json::value::string(utility::conversions::to_utf16string(_s));
         }
+
+        operator std::string() const { return _s; }
 
     private:
         const std::string& _s;
