@@ -20,6 +20,7 @@ const std::vector<std::string> searchPaths =
     "records/items",
     "records/storyelements/signs",      // For some reason Lokarr's set is stored here instead of in records/items
     "records/endlessdungeon/items",
+    "records/endlessdungeon/scriptentities",
 };
 
 

@@ -1,51 +1,40 @@
 #include "Client.h"
 
-Client& Client::GetInstance(const std::string& name, const std::string& authToken, const std::string& hostName)
+Client& Client::GetInstance(const ServerData& data)
 {
-    static Client instance(name, authToken, hostName);
+    static Client instance(data);
     return instance;
 }
 
-bool Client::WriteDataToPipe(HANDLE pipe) const
+inline bool WriteStringToPipe(HANDLE pipe, const std::string& s)
 {
     DWORD bytesWritten;
     char sizeBuffer[4];
 
-    uint32_t nameLength = (uint32_t)_name.length();
-    sizeBuffer[0] =  nameLength & 0x000000FF;
-    sizeBuffer[1] = (nameLength & 0x0000FF00) >> 8;
-    sizeBuffer[2] = (nameLength & 0x00FF0000) >> 16;
-    sizeBuffer[3] = (nameLength & 0xFF000000) >> 24;
+    uint32_t length = (uint32_t)s.length();
+    sizeBuffer[0] = length & 0x000000FF;
+    sizeBuffer[1] = (length & 0x0000FF00) >> 8;
+    sizeBuffer[2] = (length & 0x00FF0000) >> 16;
+    sizeBuffer[3] = (length & 0xFF000000) >> 24;
 
     if (!WriteFile(pipe, sizeBuffer, 4, &bytesWritten, NULL) || (bytesWritten != 4))
-        return FALSE;
+        return false;
 
-    if (!WriteFile(pipe, _name.c_str(), nameLength, &bytesWritten, NULL) || (bytesWritten != nameLength))
-        return FALSE;
+    if (!WriteFile(pipe, s.c_str(), length, &bytesWritten, NULL) || (bytesWritten != length))
+        return false;
 
-    uint32_t authLength = (uint32_t)_authToken.length();
-    sizeBuffer[0] =  authLength & 0x000000FF;
-    sizeBuffer[1] = (authLength & 0x0000FF00) >> 8;
-    sizeBuffer[2] = (authLength & 0x00FF0000) >> 16;
-    sizeBuffer[3] = (authLength & 0xFF000000) >> 24;
+    return true;
+}
 
-    if (!WriteFile(pipe, sizeBuffer, 4, &bytesWritten, NULL) || (bytesWritten != 4))
-        return FALSE;
-
-    if (!WriteFile(pipe, _authToken.c_str(), authLength, &bytesWritten, NULL) || (bytesWritten != authLength))
-        return FALSE;
-
-    uint32_t hostLength = (uint32_t)_hostName.length();
-    sizeBuffer[0] =  hostLength & 0x000000FF;
-    sizeBuffer[1] = (hostLength & 0x0000FF00) >> 8;
-    sizeBuffer[2] = (hostLength & 0x00FF0000) >> 16;
-    sizeBuffer[3] = (hostLength & 0xFF000000) >> 24;
-
-    if (!WriteFile(pipe, sizeBuffer, 4, &bytesWritten, NULL) || (bytesWritten != 4))
-        return FALSE;
-
-    if (!WriteFile(pipe, _hostName.c_str(), hostLength, &bytesWritten, NULL) || (bytesWritten != hostLength))
-        return FALSE;
+bool Client::WriteDataToPipe(HANDLE pipe) const
+{
+    if (!WriteStringToPipe(pipe, _data._name) ||
+        !WriteStringToPipe(pipe, _data._authToken) ||
+        !WriteStringToPipe(pipe, _data._refreshToken) ||
+        !WriteStringToPipe(pipe, _data._hostName) ||
+        !WriteStringToPipe(pipe, _data._leagueName) ||
+        !WriteStringToPipe(pipe, _data._leagueModName))
+        return false;
 
     CloseHandle(pipe);
     return TRUE;

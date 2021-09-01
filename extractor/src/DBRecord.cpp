@@ -82,7 +82,5 @@ bool DBRecord::Load(const std::filesystem::path& path)
         bufferPos++;
     }
 
-    delete[] buffer;
-
     return true;
 }

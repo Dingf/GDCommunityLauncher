@@ -1,5 +1,5 @@
-#ifndef INC_GDCL_GAME_JSON_OBJECT_H
-#define INC_GDCL_GAME_JSON_OBJECT_H
+#ifndef INC_GDCL_JSON_OBJECT_H
+#define INC_GDCL_JSON_OBJECT_H
 
 #include <string>
 #include <cpprest/json.h>
@@ -27,4 +27,4 @@ class JSONString
         const std::string& _s;
 };
 
-#endif//INC_GDCL_GAME_JSON_OBJECT_H
+#endif//INC_GDCL_JSON_OBJECT_H

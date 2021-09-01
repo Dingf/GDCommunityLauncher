@@ -1,4 +1,5 @@
 #include <filesystem>
+#include <cpprest/http_client.h>
 #include "HookManager.h"
 #include "UpdateThread.h"
 #include "EngineAPI.h"
@@ -8,14 +9,22 @@
 #include "SharedStash.h"
 #include "Quest.h"
 #include "Log.h"
+#include "URI.h"
 
 namespace
 {
 
-std::shared_ptr<UpdateThread<std::wstring, GameAPI::Difficulty>> characterUpdateThread;
+std::shared_ptr<UpdateThread<std::wstring>> characterUpdateThread;
 std::shared_ptr<UpdateThread<std::string, bool>> stashUpdateThread;
 
 }
+
+const std::unordered_map<std::string, const utility::char_t*> difficultyTagLookup =
+{
+    { "Normal",   U("normalQuestTags") },
+    { "Elite",    U("eliteQuestTags") },
+    { "Ultimate", U("ultimateQuestTags") },
+};
 
 const char* HandleGetVersion(void* _this)
 {
@@ -23,8 +32,84 @@ const char* HandleGetVersion(void* _this)
     return client.GetVersionInfoText().c_str();
 }
 
-void UpdateCharacterData(std::wstring playerName, GameAPI::Difficulty difficulty)
+void Client::SendRefreshToken()
 {
+    URI endpoint = URI(GetHostName()) / "api" / "Account" / "refresh-token";
+
+    web::json::value requestBody;
+    requestBody[U("refreshToken")] = JSONString(GetRefreshToken());
+
+    web::http::client::http_client httpClient((utility::string_t)endpoint);
+    web::http::http_request request(web::http::methods::POST);
+    request.set_body(requestBody);
+
+    try
+    {
+        web::http::http_response response = httpClient.request(request).get();
+        if (response.status_code() == web::http::status_codes::OK)
+        {
+            web::json::value responseBody = response.extract_json().get();
+            web::json::value authTokenValue = responseBody[U("access_token")];
+            web::json::value refreshTokenValue = responseBody[U("refresh_token")];
+            if ((!authTokenValue.is_null()) && (!refreshTokenValue.is_null()))
+            {
+                _data._authToken = JSONString(authTokenValue.as_string());
+                _data._refreshToken = JSONString(refreshTokenValue.as_string());
+            }
+        }
+        else
+        {
+            Logger::LogMessage(LOG_LEVEL_WARN, "Failed to refresh token: Server responded with status code %", response.status_code());
+        }
+    }
+    catch (...)
+    {
+        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to refresh token: Could not connect to server");
+    }
+}
+
+uint32_t GetCharacterID(std::wstring playerName)
+{
+    Client& client = Client::GetInstance();
+    URI endpoint = URI(client.GetHostName()) / "api" / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "character" / playerName;
+
+    web::http::client::http_client httpClient((utility::string_t)endpoint);
+    web::http::http_request request(web::http::methods::GET);
+
+    std::string bearerToken = "Bearer " + client.GetAuthToken();
+    request.headers().add(U("Authorization"), bearerToken.c_str());
+
+    try
+    {
+        web::http::http_response response = httpClient.request(request).get();
+        switch (response.status_code())
+        {
+            case web::http::status_codes::OK:
+            {
+                web::json::value responseBody = response.extract_json().get();
+                web::json::value characterID = responseBody[U("participantCharacterId")];
+                return characterID.as_integer();
+            }
+            case web::http::status_codes::NoContent:
+                return 0;
+            default:
+                Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve character data: Server responded with status code %", response.status_code());
+        }
+    }
+    catch (...)
+    {
+        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve character data: Could not connect to server");
+    }
+    return 0;
+}
+
+void UpdateCharacterData(std::wstring playerName)
+{
+    Client& client = Client::GetInstance();
+    client.SendRefreshToken();
+
+    uint32_t characterID = GetCharacterID(playerName);
+
     std::string baseFolder = GameAPI::GetBaseFolder();
     if (baseFolder.empty())
     {
@@ -38,24 +123,6 @@ void UpdateCharacterData(std::wstring playerName, GameAPI::Difficulty difficulty
     std::filesystem::path characterSavePath = characterPath / "player.gdc";
     std::filesystem::path characterQuestPath = characterPath / "Levels_world001.map";
 
-    switch (difficulty)
-    {
-        case GameAPI::GAME_DIFFICULTY_NORMAL:
-            characterQuestPath /= "Normal";
-            break;
-        case GameAPI::GAME_DIFFICULTY_ELITE:
-            characterQuestPath /= "Elite";
-            break;
-        case GameAPI::GAME_DIFFICULTY_ULTIMATE:
-            characterQuestPath /= "Ultimate";
-            break;
-        default:
-            Logger::LogMessage(LOG_LEVEL_ERROR, "Tried to read character quest data for unknown difficulty \"%\".", difficulty);
-            break;
-    }
-
-    characterQuestPath /= "quests.gdd";
-
     Character characterData;
     if (!characterData.ReadFromFile(characterSavePath))
     {
@@ -63,18 +130,65 @@ void UpdateCharacterData(std::wstring playerName, GameAPI::Difficulty difficulty
         return;
     }
 
-    Quest questData;
-    if (!questData.ReadFromFile(characterQuestPath))
+    web::json::value characterJSON = characterData.ToJSON();
+    web::json::value characterInfo = web::json::value::object();
+
+    characterInfo[U("name")] = characterJSON[U("HeaderBlock")][U("Name")];
+    characterInfo[U("level")] = characterJSON[U("HeaderBlock")][U("Level")];
+    characterInfo[U("className")] = characterJSON[U("HeaderBlock")][U("ClassName")];
+    characterInfo[U("hardcore")] = characterJSON[U("HeaderBlock")][U("Hardcore")];
+
+    web::json::value questInfo = web::json::value::object();
+    for (auto it = difficultyTagLookup.begin(); it != difficultyTagLookup.end(); ++it)
     {
-        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to load character quest data. Make sure that cloud saving is diabled.");
-        return;
+        Quest questData;
+        questInfo[it->second] = web::json::value::array();
+        if (questData.ReadFromFile(characterQuestPath / it->first / "quests.gdd"))
+        {
+            web::json::value questJSON = questData.ToJSON();
+            web::json::array tokensArray = questJSON[U("Tokens")][U("Tokens")].as_array();
+
+            uint32_t index = 0;
+            for (auto it2 = tokensArray.begin(); it2 != tokensArray.end(); ++it2)
+            {
+                std::string token = JSONString(it2->serialize());
+                token = std::string(token.begin() + 1, token.end() - 1);    // Trim quotes before storing as a JSON string
+                if (token.find("GDL_", 0) == 0)
+                {
+                    questInfo[it->second][index++] = JSONString(token);
+                }
+            }
+        }
     }
 
-    web::json::value characterJSON = characterData.ToJSON();
-    web::json::value questJSON = questData.ToJSON();
+    web::json::value requestBody;
+    requestBody[U("characterData")] = web::json::value::object();
+    requestBody[U("characterData")][U("characterInfo")] = characterInfo;
+    requestBody[U("characterData")][U("questInfo")] = questInfo;
+    requestBody[U("seasonParticipantId")] = client.GetParticipantID();
+    requestBody[U("participantCharacterId")] = characterID;
 
-    //TODO: Trim and send the character JSON data to the server
-    //TODO: Trim and send the quest JSON data to the server
+    URI endpoint = URI(client.GetHostName()) / "api" / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "character";
+
+    web::http::client::http_client httpClient((utility::string_t)endpoint);
+    web::http::http_request request(web::http::methods::POST);
+    request.set_body(requestBody);
+
+    std::string bearerToken = "Bearer " + client.GetAuthToken();
+    request.headers().add(U("Authorization"), bearerToken.c_str());
+
+    try
+    {
+        web::http::http_response response = httpClient.request(request).get();
+        if (response.status_code() != web::http::status_codes::OK)
+        {
+            Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload character data: Server responded with status code %", response.status_code());
+        }
+    }
+    catch (...)
+    {
+        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload character data: Could not connect to server");
+    }
 }
 
 void HandleSaveNewFormatData(void* _this, void* writer)
@@ -91,7 +205,7 @@ void HandleSaveNewFormatData(void* _this, void* writer)
         PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
         if ((modName) && (mainPlayer) && (std::string(modName) == client.GetLeagueModName()))
         {
-            characterUpdateThread->Update(5000, GameAPI::GetPlayerName(mainPlayer), GameAPI::GetGameDifficulty());
+            characterUpdateThread->Update(5000, GameAPI::GetPlayerName(mainPlayer));
         }
     }
 }
@@ -235,7 +349,7 @@ bool Client::SetupClientHooks()
 
     UpdateVersionInfoText();
 
-    characterUpdateThread = std::make_shared<UpdateThread<std::wstring, GameAPI::Difficulty>>(&UpdateCharacterData, 1000);
+    characterUpdateThread = std::make_shared<UpdateThread<std::wstring>>(&UpdateCharacterData, 1000);
     stashUpdateThread = std::make_shared<UpdateThread<std::string, bool>>(&UpdateStashData, 1000);
 
     return true;

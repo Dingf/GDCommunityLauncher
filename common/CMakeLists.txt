@@ -4,6 +4,7 @@ include/Log.h
 include/Value.h
 include/Version.h
 include/JSONObject.h
+include/URI.h
 src/FileReader.cpp
 src/Value.cpp)
 
