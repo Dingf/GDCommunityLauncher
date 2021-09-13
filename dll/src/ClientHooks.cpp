@@ -35,11 +35,11 @@ const char* HandleGetVersion(void* _this)
 void Client::SendRefreshToken()
 {
     URI endpoint = URI(GetHostName()) / "api" / "Account" / "refresh-token";
+    web::http::client::http_client httpClient((utility::string_t)endpoint);
 
     web::json::value requestBody;
     requestBody[U("refreshToken")] = JSONString(GetRefreshToken());
 
-    web::http::client::http_client httpClient((utility::string_t)endpoint);
     web::http::http_request request(web::http::methods::POST);
     request.set_body(requestBody);
 
@@ -62,9 +62,9 @@ void Client::SendRefreshToken()
             Logger::LogMessage(LOG_LEVEL_WARN, "Failed to refresh token: Server responded with status code %", response.status_code());
         }
     }
-    catch (...)
+    catch (const std::exception& ex)
     {
-        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to refresh token: Could not connect to server");
+        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to refresh token: %", ex.what());
     }
 }
 
@@ -72,7 +72,6 @@ uint32_t GetCharacterID(std::wstring playerName)
 {
     Client& client = Client::GetInstance();
     URI endpoint = URI(client.GetHostName()) / "api" / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "character" / playerName;
-
     web::http::client::http_client httpClient((utility::string_t)endpoint);
     web::http::http_request request(web::http::methods::GET);
 
@@ -96,9 +95,9 @@ uint32_t GetCharacterID(std::wstring playerName)
                 Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve character data: Server responded with status code %", response.status_code());
         }
     }
-    catch (...)
+    catch (const std::exception& ex)
     {
-        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve character data: Could not connect to server");
+        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve character data: %", ex.what());
     }
     return 0;
 }
@@ -185,9 +184,9 @@ void UpdateCharacterData(std::wstring playerName)
             Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload character data: Server responded with status code %", response.status_code());
         }
     }
-    catch (...)
+    catch (const std::exception& ex)
     {
-        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload character data: Could not connect to server");
+        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload character data: %", ex.what());
     }
 }
 
@@ -203,7 +202,7 @@ void HandleSaveNewFormatData(void* _this, void* writer)
         Client& client = Client::GetInstance();
         const char* modName = EngineAPI::GetModName();
         PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
-        if ((modName) && (mainPlayer) && (std::string(modName) == client.GetLeagueModName()))
+        if ((modName) && (mainPlayer) && (std::string(modName) == client.GetSeasonModName()))
         {
             characterUpdateThread->Update(5000, GameAPI::GetPlayerName(mainPlayer));
         }
@@ -249,7 +248,7 @@ void HandleSaveTransferStash(void* _this)
         Client& client = Client::GetInstance();
         const char* modName = EngineAPI::GetModName();
         PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
-        if ((modName) && (mainPlayer) && (std::string(modName) == client.GetLeagueModName()))
+        if ((modName) && (mainPlayer) && (std::string(modName) == client.GetSeasonModName()))
         {
             stashUpdateThread->Update(5000, modName, GameAPI::IsPlayerHardcore(mainPlayer));
         }
@@ -315,7 +314,7 @@ void HandleRenderStyledText2D(void* _this, const EngineAPI::Rect& rect, const wc
 
         // If the player is in-game on the S3 mod, append the league info to the difficulty text in the upper left corner
         // We modify the text instead of creating new text because that way it preserves the Z-order and doesn't conflict with the loading screen/pause overlay/etc.
-        if ((rect._x == 10.0f) && (rect._y == 10.0f) && (modName) && (mainPlayer) && (std::string(modName) == client.GetLeagueModName()))
+        if ((rect._x == 10.0f) && (rect._y == 10.0f) && (modName) && (mainPlayer) && (std::string(modName) == client.GetSeasonModName()))
         {
             std::wstring textString(text);
             if (textString.empty())

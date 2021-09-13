@@ -19,7 +19,7 @@ namespace LoginDialog
 {
     // This is void* to avoid having to include Configuration.h since Windows
     // doesn't like it when you include source code in resource header files
-    bool CreateLoginDialog(void* configPointer);
+    bool Login(void* configPointer);
 };
 
 #endif//INC_GDCL_EXE_LOGIN_DIALOG_H

@@ -6,15 +6,13 @@
 #include "Client.h"
 #include "ServerAuth.h"
 #include "JSONObject.h"
+#include "URI.h"
+#include "Log.h"
 
 ServerAuthResult ServerAuthFunction(std::string hostName, std::string username, std::string password, ServerAuthCallback callback)
 {
-    std::string endpointName = hostName;
-    if (endpointName.back() != '/')
-        endpointName += '/';
-    endpointName += "api/Account/login";
-
-    web::http::client::http_client httpClient(utility::string_t(endpointName.begin(), endpointName.end()));
+    URI endpoint = URI(hostName) / "api" / "Account" / "login";
+    web::http::client::http_client httpClient((utility::string_t)endpoint);
 
     web::json::value requestBody;
     requestBody[U("username")] = JSONString(username);
@@ -24,12 +22,14 @@ ServerAuthResult ServerAuthFunction(std::string hostName, std::string username, 
     request.set_body(requestBody);
 
     Client::ServerData data;
-    data._name = username;
+    data._username = username;
     data._hostName = hostName;
 
     // TODO: Replace these with values obtained from the API endpoint
-    data._leagueName = "GrimLeague Season 3";
-    data._leagueModName = "GrimLeagueS02_HC";
+    data._seasonName = "GrimLeague Season 3";
+    data._seasonModName = "GrimLeagueS02_HC";
+
+    data._participantID = 30;  //TODO: Get this value from the server API
 
     try
     {
@@ -52,8 +52,9 @@ ServerAuthResult ServerAuthFunction(std::string hostName, std::string username, 
             return SERVER_AUTH_FAIL;
         }
     }
-    catch (...)
+    catch (const std::exception& ex)
     {
+        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to authenticate credentials: %", ex.what());
         if (callback)
             callback(SERVER_AUTH_TIMEOUT);
         return SERVER_AUTH_TIMEOUT;

@@ -3,6 +3,13 @@
 
 #include <stdint.h>
 #include <string>
+#include <vector>
+
+enum SeasonType
+{
+    SEASON_TYPE_SC_TRADE = 1,
+    SEASON_TYPE_HC_SSF = 2,
+};
 
 class Client
 {
@@ -23,12 +30,12 @@ class Client
         const std::string&  GetVersionInfoText() const { return _versionInfoText; }
         const std::wstring& GetLeagueInfoText()  const { return _leagueInfoText; }
 
-        const std::string& GetName() const { return _data._name; }
+        const std::string& GetName() const { return _data._username; }
         const std::string& GetRefreshToken() const { return _data._refreshToken; }
         const std::string& GetAuthToken() const { return _data._authToken; }
         const std::string& GetHostName() const { return _data._hostName; }
-        const std::string& GetLeagueName() const { return _data._leagueName; }
-        const std::string& GetLeagueModName() const { return _data._leagueModName; }
+        const std::string& GetSeasonName() const { return _data._seasonName; }
+        const std::string& GetSeasonModName() const { return _data._seasonModName; }
 
         //TODO: These functions are only for testing. Delete them later when the web API is implemented
         void SetPoints(uint32_t points)
@@ -57,16 +64,16 @@ class Client
         {
             bool IsValid() const
             {
-                return (!_name.empty() && !_authToken.empty() && !_refreshToken.empty() && !_hostName.empty() && !_leagueName.empty() && !_leagueModName.empty());
+                return (!_username.empty() && !_authToken.empty() && !_refreshToken.empty() && !_hostName.empty() && !_seasonName.empty() && !_seasonModName.empty());
             }
 
-            std::string _name;
+            uint32_t    _participantID;
+            std::string _username;
             std::string _authToken;
             std::string _refreshToken;
             std::string _hostName;
-            std::string _leagueName;
-            std::string _leagueModName;
-            uint32_t    _participantID;
+            std::string _seasonName;
+            std::string _seasonModName;
         } _data;
 
         std::string _versionInfoText;

@@ -1,4 +1,5 @@
 #include "Client.h"
+#include "Log.h"
 
 Client& Client::GetInstance(const ServerData& data)
 {
@@ -6,21 +7,28 @@ Client& Client::GetInstance(const ServerData& data)
     return instance;
 }
 
-inline bool WriteStringToPipe(HANDLE pipe, const std::string& s)
+bool WriteIntToPipe(HANDLE pipe, uint32_t value)
 {
     DWORD bytesWritten;
-    char sizeBuffer[4];
+    uint8_t buffer[4];
 
-    uint32_t length = (uint32_t)s.length();
-    sizeBuffer[0] = length & 0x000000FF;
-    sizeBuffer[1] = (length & 0x0000FF00) >> 8;
-    sizeBuffer[2] = (length & 0x00FF0000) >> 16;
-    sizeBuffer[3] = (length & 0xFF000000) >> 24;
+    buffer[0] =  value & 0x000000FF;
+    buffer[1] = (value & 0x0000FF00) >> 8;
+    buffer[2] = (value & 0x00FF0000) >> 16;
+    buffer[3] = (value & 0xFF000000) >> 24;
 
-    if (!WriteFile(pipe, sizeBuffer, 4, &bytesWritten, NULL) || (bytesWritten != 4))
+    return (WriteFile(pipe, buffer, 4, &bytesWritten, NULL) && (bytesWritten == 4));
+}
+
+bool WriteStringToPipe(HANDLE pipe, const std::string& str)
+{
+    DWORD bytesWritten;
+    uint32_t length = (uint32_t)str.length();
+
+    if (!WriteIntToPipe(pipe, length))
         return false;
 
-    if (!WriteFile(pipe, s.c_str(), length, &bytesWritten, NULL) || (bytesWritten != length))
+    if (!WriteFile(pipe, str.c_str(), length, &bytesWritten, NULL) || (bytesWritten != length))
         return false;
 
     return true;
@@ -28,13 +36,17 @@ inline bool WriteStringToPipe(HANDLE pipe, const std::string& s)
 
 bool Client::WriteDataToPipe(HANDLE pipe) const
 {
-    if (!WriteStringToPipe(pipe, _data._name) ||
+    if (!WriteIntToPipe(pipe, _data._participantID) ||
+        !WriteStringToPipe(pipe, _data._username) ||
         !WriteStringToPipe(pipe, _data._authToken) ||
         !WriteStringToPipe(pipe, _data._refreshToken) ||
         !WriteStringToPipe(pipe, _data._hostName) ||
-        !WriteStringToPipe(pipe, _data._leagueName) ||
-        !WriteStringToPipe(pipe, _data._leagueModName))
+        !WriteStringToPipe(pipe, _data._seasonName) ||
+        !WriteStringToPipe(pipe, _data._seasonModName))
+    {
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to write client data to the stdin pipe.");
         return false;
+    }
 
     CloseHandle(pipe);
     return TRUE;

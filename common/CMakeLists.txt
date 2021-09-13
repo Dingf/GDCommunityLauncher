@@ -1,4 +1,5 @@
 add_library(common
+include/md5.hpp
 include/FileReader.h
 include/Log.h
 include/Value.h

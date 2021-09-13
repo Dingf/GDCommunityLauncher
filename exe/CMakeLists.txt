@@ -3,12 +3,15 @@ include/Client.h
 include/Configuration.h
 include/GameLauncher.h
 include/LoginDialog.h
+include/UpdateDialog.h
 include/ServerAuth.h
 res/LoginDialog.rc
+res/UpdateDialog.rc
 src/Client.cpp
 src/Configuration.cpp
 src/GameLauncher.cpp
 src/LoginDialog.cpp
+src/UpdateDialog.cpp
 src/ServerAuth.cpp
 src/main.cpp)
 

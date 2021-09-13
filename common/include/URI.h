@@ -72,7 +72,10 @@ class URI
             }
             else
             {
-                _data += std::string(str.begin(), str.end());
+                for (size_t i = 0; i < str.size(); ++i)
+                {
+                    _data.push_back((char)str[i]);
+                }
             }
         }
 

@@ -5,12 +5,10 @@
 #include "LoginDialog.h"
 #include "ServerAuth.h"
 
-namespace
+namespace LoginDialog
 {
-
-Configuration* dialogConfig = NULL;
-HWND dialogWindow = NULL;
-
+    Configuration* _config = NULL;
+    HWND _window = NULL;
 }
 
 std::string GetFieldText(HWND hwnd, int id)
@@ -34,18 +32,18 @@ void SetDialogState(HWND hwnd, BOOL state)
 
 void LoginValidateCallback(ServerAuthResult result)
 {
-    if (dialogWindow)
+    if (LoginDialog::_window)
     {
         switch (result)
         {
             case SERVER_AUTH_OK:
-                SendMessage(dialogWindow, WM_LOGIN_OK, NULL, NULL);
+                SendMessage(LoginDialog::_window, WM_LOGIN_OK, NULL, NULL);
                 break;
             case SERVER_AUTH_FAIL:
-                SendMessage(dialogWindow, WM_LOGIN_FAIL, NULL, NULL);
+                SendMessage(LoginDialog::_window, WM_LOGIN_FAIL, NULL, NULL);
                 break;
             case SERVER_AUTH_TIMEOUT:
-                SendMessage(dialogWindow, WM_LOGIN_TIMEOUT, NULL, NULL);
+                SendMessage(LoginDialog::_window, WM_LOGIN_TIMEOUT, NULL, NULL);
                 break;
         }
     }
@@ -86,7 +84,7 @@ INT_PTR CALLBACK LoginDialogHandler(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
                     std::string username = GetFieldText(hwnd, IDC_EDIT1);
                     std::string password = GetFieldText(hwnd, IDC_EDIT2);
 
-                    const Value* hostValue = dialogConfig->GetValue("Login", "hostname");
+                    const Value* hostValue = LoginDialog::_config->GetValue("Login", "hostname");
                     if ((hostValue) && (hostValue->GetType() == VALUE_TYPE_STRING))
                     {
                         ServerAuth::ValidateCredentials(hostValue->ToString(), username, password, LoginValidateCallback);
@@ -100,6 +98,7 @@ INT_PTR CALLBACK LoginDialogHandler(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
                 }
                 case IDHELP:
                 {
+                    // TODO: Implement the About button here
                     return TRUE;
                 }
             }
@@ -162,7 +161,7 @@ INT_PTR CALLBACK LoginDialogHandler(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
         }
         case WM_LOGIN_OK:
         {
-            SetConfigurationData(hwnd, dialogConfig);
+            SetConfigurationData(hwnd, LoginDialog::_config);
             DestroyWindow(hwnd);
             return TRUE;
         }
@@ -182,19 +181,58 @@ INT_PTR CALLBACK LoginDialogHandler(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
     return FALSE;
 }
 
-bool LoginDialog::CreateLoginDialog(void* configPointer)
+bool LoginDialog::Login(void* configPointer)
 {
-    if (!dialogWindow)
-    {
-        dialogConfig = (Configuration*)configPointer;
+    if (!configPointer)
+        return false;
 
+    _config = (Configuration*)configPointer;
+
+    // Try to autologin if enabled, otherwise display the login prompt
+    bool autoLogin = false;
+    const Value* autoLoginValue = _config->GetValue("Login", "autologin");
+    if ((autoLoginValue) && (autoLoginValue->GetType() == VALUE_TYPE_BOOL) && (autoLoginValue->ToBool()))
+    {
+        std::string hostName;
+        const Value* hostValue = _config->GetValue("Login", "hostname");
+        if ((hostValue) && (hostValue->GetType() == VALUE_TYPE_STRING))
+            hostName = hostValue->ToString();
+
+        std::string username;
+        const  Value* usernameValue = _config->GetValue("Login", "username");
+        if ((usernameValue) && (usernameValue->GetType() == VALUE_TYPE_STRING))
+            username = usernameValue->ToString();
+
+        std::string password;
+        const Value* passwordValue = _config->GetValue("Login", "password");
+        if ((passwordValue) && (passwordValue->GetType() == VALUE_TYPE_STRING))
+            password = passwordValue->ToString();
+
+        if ((!hostName.empty()) && (!username.empty()) && (!password.empty()))
+        {
+            ServerAuthResult loginResult = ServerAuth::ValidateCredentials(hostName, username, password);
+            if (loginResult == SERVER_AUTH_OK)
+                autoLogin = true;
+            else if (loginResult == SERVER_AUTH_FAIL)
+                MessageBoxA(NULL, "The username and/or password was incorrect.", "Error", MB_OK | MB_ICONERROR);
+            else if (loginResult == SERVER_AUTH_TIMEOUT)
+                MessageBoxA(NULL, "Could not connect to the server.", "Error", MB_OK | MB_ICONERROR);
+        }
+    }
+
+    if (autoLogin)
+    {
+        return true;
+    }
+    else if (!_window)
+    {
         HINSTANCE instance = GetModuleHandle(NULL);
-        dialogWindow = CreateDialogParam(instance, MAKEINTRESOURCE(IDD_DIALOG1), 0, LoginDialogHandler, (LPARAM)dialogConfig);
+        LoginDialog::_window = CreateDialogParam(instance, MAKEINTRESOURCE(IDD_DIALOG1), 0, LoginDialogHandler, (LPARAM)_config);
 
         MSG message;
         while (GetMessage(&message, 0, 0, 0))
         {
-            if (!IsDialogMessage(dialogWindow, &message))
+            if (!IsDialogMessage(_window, &message))
             {
                 TranslateMessage(&message);
                 DispatchMessage(&message);
@@ -202,7 +240,16 @@ bool LoginDialog::CreateLoginDialog(void* configPointer)
         }
 
         Client& client = Client::GetInstance();
-        return client.IsValid();
+        if (!client.IsValid())
+        {
+            MessageBox(NULL, TEXT("Failed to retrieve data from the server."), NULL, MB_OK | MB_ICONERROR);
+            return FALSE;
+        }
+        return TRUE;
     }
-    return FALSE;
+    else
+    {
+        MessageBox(NULL, TEXT("Failed to start the launcher process."), NULL, MB_OK | MB_ICONERROR);
+        return FALSE;
+    }
 }

@@ -15,28 +15,36 @@ Client& Client::GetInstance()
     return instance;
 }
 
-inline bool ReadStringFromPipe(HANDLE pipe, std::string& s)
+bool ReadIntFromPipe(HANDLE pipe, uint32_t& value)
 {
     DWORD bytesRead;
-    uint8_t sizeBuffer[4];
-    if (!ReadFile(pipe, &sizeBuffer, 4, &bytesRead, NULL) || (bytesRead != 4))
-    {
-        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to read client data from stdin pipe.");
-        return false;
-    }
+    uint8_t buffer[4];
 
-    uint32_t length = (uint32_t)sizeBuffer[0] | ((uint32_t)sizeBuffer[1] << 8) | ((uint32_t)sizeBuffer[2] << 16) | ((uint32_t)sizeBuffer[3] << 24);
+    if (!ReadFile(pipe, &buffer, 4, &bytesRead, NULL) || (bytesRead != 4))
+        return false;
+
+    value = (uint32_t)buffer[0] | ((uint32_t)buffer[1] << 8) | ((uint32_t)buffer[2] << 16) | ((uint32_t)buffer[3] << 24);
+
+    return true;
+}
+
+bool ReadStringFromPipe(HANDLE pipe, std::string& str)
+{
+    DWORD bytesRead;
+    uint32_t length;
+
+    if (!ReadIntFromPipe(pipe, length))
+        return false;
 
     char* buffer = new char[length + 1];
     if (!ReadFile(pipe, (LPVOID)buffer, length, &bytesRead, NULL) || (bytesRead != length))
     {
-        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to read client data from stdin pipe.");
         delete[] buffer;
         return false;
     }
 
     buffer[length] = '\0';
-    s = buffer;
+    str = buffer;
 
     delete[] buffer;
     return true;
@@ -48,17 +56,19 @@ void Client::ReadDataFromPipe()
     {
         HANDLE pipe = GetStdHandle(STD_INPUT_HANDLE);
 
-        if (!ReadStringFromPipe(pipe, _data._name) ||
+        if (!ReadIntFromPipe(pipe, _data._participantID) ||
+            !ReadStringFromPipe(pipe, _data._username) ||
             !ReadStringFromPipe(pipe, _data._authToken) ||
             !ReadStringFromPipe(pipe, _data._refreshToken) ||
             !ReadStringFromPipe(pipe, _data._hostName) ||
-            !ReadStringFromPipe(pipe, _data._leagueName) ||
-            !ReadStringFromPipe(pipe, _data._leagueModName))
+            !ReadStringFromPipe(pipe, _data._seasonName) ||
+            !ReadStringFromPipe(pipe, _data._seasonModName))
+        {
+            Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to read client data from stdin pipe.");
             return;
+        }
 
         CloseHandle(pipe);
-
-        _data._participantID = 30;  //TODO: Get this value from the server API
 
         UpdateLeagueInfoText();
         UpdateVersionInfoText();
@@ -95,9 +105,9 @@ void Client::UpdateLeagueInfoText()
     _leagueInfoText.clear();
 
     _leagueInfoText = L"\n";
-    _leagueInfoText += std::wstring(_data._leagueName.begin(), _data._leagueName.end());
+    _leagueInfoText += std::wstring(_data._seasonName.begin(), _data._seasonName.end());
     _leagueInfoText += L"\n";
-    _leagueInfoText += std::wstring(_data._name.begin(), _data._name.end());
+    _leagueInfoText += std::wstring(_data._username.begin(), _data._username.end());
     if ((_points > 0) && (_rank > 0))
     {
         _leagueInfoText += L" {^L}(Rank ";

@@ -2,6 +2,7 @@
 #include <windows.h>
 #include "Configuration.h"
 #include "LoginDialog.h"
+#include "UpdateDialog.h"
 #include "GameLauncher.h"
 #include "ServerAuth.h"
 
@@ -39,45 +40,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine,
         config.Save(configPath);
     }
 
-    bool autoLogin = false;
-    const Value* autoLoginValue = config.GetValue("Login", "autologin");
-    if ((autoLoginValue) && (autoLoginValue->GetType() == VALUE_TYPE_BOOL) && (autoLoginValue->ToBool()))
-    {
-        std::string hostName;
-        const Value* hostValue = config.GetValue("Login", "hostname");
-        if ((hostValue) && (hostValue->GetType() == VALUE_TYPE_STRING))
-            hostName = hostValue->ToString();
+    // Get the list of files from the server and download any files that need to be updated
+    if (!UpdateDialog::Update(&config))
+        return EXIT_FAILURE;
 
-        std::string username;
-        const  Value* usernameValue = config.GetValue("Login", "username");
-        if ((usernameValue) && (usernameValue->GetType() == VALUE_TYPE_STRING))
-            username = usernameValue->ToString();
-
-        std::string password;
-        const Value* passwordValue = config.GetValue("Login", "password");
-        if ((passwordValue) && (passwordValue->GetType() == VALUE_TYPE_STRING))
-            password = passwordValue->ToString();
-
-        if ((!hostName.empty()) && (!username.empty()) && (!password.empty()))
-        {
-            ServerAuthResult loginResult = ServerAuth::ValidateCredentials(hostName, username, password);
-            if (loginResult == SERVER_AUTH_OK)
-                autoLogin = true;
-            else if (loginResult == SERVER_AUTH_FAIL)
-                MessageBoxA(NULL, "The username and/or password was incorrect.", "Error", MB_OK | MB_ICONERROR);
-            else if (loginResult == SERVER_AUTH_TIMEOUT)
-                MessageBoxA(NULL, "Could not connect to the server.", "Error", MB_OK | MB_ICONERROR);
-        }
-    }
-
-    if (!autoLogin)
-    {
-        if (!LoginDialog::CreateLoginDialog(&config))
-        {
-            MessageBox(NULL, TEXT("Failed to start the launcher process."), NULL, MB_OK | MB_ICONERROR);
-            return EXIT_FAILURE;
-        }
-    }
+    // Display the login window or automatically login the user if autologin is enabled
+    if (!LoginDialog::Login(&config))
+        return EXIT_FAILURE;
 
     config.Save(configPath);
     
