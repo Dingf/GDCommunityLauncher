@@ -1,7 +1,7 @@
 #include "Client.h"
 #include "Log.h"
 
-Client& Client::GetInstance(const ServerData& data)
+Client& Client::GetInstance(const ClientData& data)
 {
     static Client instance(data);
     return instance;
@@ -34,6 +34,22 @@ bool WriteStringToPipe(HANDLE pipe, const std::string& str)
     return true;
 }
 
+bool WriteSeasonsToPipe(HANDLE pipe, const std::vector<SeasonInfo>& seasons)
+{
+    if (!WriteIntToPipe(pipe, seasons.size()))
+        return false;
+
+    for (size_t i = 0; i < seasons.size(); ++i)
+    {
+        if (!WriteIntToPipe(pipe, seasons[i]._seasonID) ||
+            !WriteIntToPipe(pipe, seasons[i]._seasonType) ||
+            !WriteStringToPipe(pipe, seasons[i]._modName) ||
+            !WriteStringToPipe(pipe, seasons[i]._displayName))
+            return false;
+    }
+    return true;
+}
+
 bool Client::WriteDataToPipe(HANDLE pipe) const
 {
     if (!WriteIntToPipe(pipe, _data._participantID) ||
@@ -41,8 +57,7 @@ bool Client::WriteDataToPipe(HANDLE pipe) const
         !WriteStringToPipe(pipe, _data._authToken) ||
         !WriteStringToPipe(pipe, _data._refreshToken) ||
         !WriteStringToPipe(pipe, _data._hostName) ||
-        !WriteStringToPipe(pipe, _data._seasonName) ||
-        !WriteStringToPipe(pipe, _data._seasonModName))
+        !WriteSeasonsToPipe(pipe, _data._seasons))
     {
         Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to write client data to the stdin pipe.");
         return false;

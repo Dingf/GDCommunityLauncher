@@ -39,10 +39,13 @@ void LoginValidateCallback(ServerAuthResult result)
             case SERVER_AUTH_OK:
                 SendMessage(LoginDialog::_window, WM_LOGIN_OK, NULL, NULL);
                 break;
-            case SERVER_AUTH_FAIL:
-                SendMessage(LoginDialog::_window, WM_LOGIN_FAIL, NULL, NULL);
+            case SERVER_AUTH_INVALID_LOGIN:
+                SendMessage(LoginDialog::_window, WM_LOGIN_INVALID_LOGIN, NULL, NULL);
                 break;
             case SERVER_AUTH_TIMEOUT:
+                SendMessage(LoginDialog::_window, WM_LOGIN_TIMEOUT, NULL, NULL);
+                break;
+            case SERVER_AUTH_INVALID_SEASONS:
                 SendMessage(LoginDialog::_window, WM_LOGIN_TIMEOUT, NULL, NULL);
                 break;
         }
@@ -165,7 +168,7 @@ INT_PTR CALLBACK LoginDialogHandler(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
             DestroyWindow(hwnd);
             return TRUE;
         }
-        case WM_LOGIN_FAIL:
+        case WM_LOGIN_INVALID_LOGIN:
         {
             MessageBoxA(hwnd, "The username and/or password was incorrect.", "Error", MB_OK | MB_ICONERROR);
             SetDialogState(hwnd, TRUE);
@@ -174,6 +177,12 @@ INT_PTR CALLBACK LoginDialogHandler(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
         case WM_LOGIN_TIMEOUT:
         {
             MessageBoxA(hwnd, "Could not connect to the server.", "Error", MB_OK | MB_ICONERROR);
+            SetDialogState(hwnd, TRUE);
+            return TRUE;
+        }
+        case WM_LOGIN_INVALID_SEASONS:
+        {
+            MessageBoxA(hwnd, "Could not retrieve the season list from the server.", "Error", MB_OK | MB_ICONERROR);
             SetDialogState(hwnd, TRUE);
             return TRUE;
         }
@@ -212,11 +221,23 @@ bool LoginDialog::Login(void* configPointer)
         {
             ServerAuthResult loginResult = ServerAuth::ValidateCredentials(hostName, username, password);
             if (loginResult == SERVER_AUTH_OK)
+            {
                 autoLogin = true;
-            else if (loginResult == SERVER_AUTH_FAIL)
+            }
+            else if (loginResult == SERVER_AUTH_INVALID_LOGIN)
+            {
                 MessageBoxA(NULL, "The username and/or password was incorrect.", "Error", MB_OK | MB_ICONERROR);
+            }
             else if (loginResult == SERVER_AUTH_TIMEOUT)
+            {
                 MessageBoxA(NULL, "Could not connect to the server.", "Error", MB_OK | MB_ICONERROR);
+                return false;
+            }
+            else if (loginResult == SERVER_AUTH_INVALID_SEASONS)
+            {
+                MessageBoxA(NULL, "Could not retrieve the season list from the server.", "Error", MB_OK | MB_ICONERROR);
+                return false;
+            }
         }
     }
 

@@ -12,8 +12,9 @@
 #define IDB_ICON1                       103
 
 #define WM_LOGIN_OK                     0x8001
-#define WM_LOGIN_FAIL                   0x8002
+#define WM_LOGIN_INVALID_LOGIN          0x8002
 #define WM_LOGIN_TIMEOUT                0x8003
+#define WM_LOGIN_INVALID_SEASONS        0x8004
 
 namespace LoginDialog
 {

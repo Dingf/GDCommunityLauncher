@@ -13,6 +13,7 @@ namespace EngineAPI
 #if _WIN64
 constexpr char EAPI_NAME_ENGINE[] = "?gEngine@GAME@@3PEAVEngine@1@EA";
 constexpr char EAPI_NAME_GET_GAME_INFO[] = "?GetGameInfo@Engine@GAME@@QEAAPEAVGameInfo@2@XZ";
+constexpr char EAPI_NAME_GET_HARDCORE[] = "?GetHardcore@GameInfo@GAME@@QEBA_NXZ";
 constexpr char EAPI_NAME_GET_GRAPHICS_ENGINE[] = "?GetGraphicsEngine@Engine@GAME@@QEBAPEAVGraphicsEngine@2@XZ";
 constexpr char EAPI_NAME_GET_CANVAS[] = "?GetCanvas@GraphicsEngine@GAME@@QEAAAEAVGraphicsCanvas@2@XZ";
 constexpr char EAPI_NAME_GET_MOD_NAME[] = "?GetModName@GameInfo@GAME@@QEBAAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@XZ";
@@ -27,6 +28,7 @@ constexpr char EAPI_NAME_HANDLE_KEY_EVENT[] = "?HandleKeyEvent@DisplayWidget@GAM
 #else
 constexpr char EAPI_NAME_ENGINE[] = "?gEngine@GAME@@3PAVEngine@1@A";
 constexpr char EAPI_NAME_GET_GAME_INFO[] = "?GetGameInfo@Engine@GAME@@QAEPAVGameInfo@2@XZ";
+constexpr char EAPI_NAME_GET_HARDCORE[] = "?GetHardcore@GameInfo@GAME@@QBE_NXZ";
 constexpr char EAPI_NAME_GET_GRAPHICS_ENGINE[] = "?GetGraphicsEngine@Engine@GAME@@QBEPAVGraphicsEngine@2@XZ";
 constexpr char EAPI_NAME_GET_CANVAS[] = "?GetCanvas@GraphicsEngine@GAME@@QAEAAVGraphicsCanvas@2@XZ";
 constexpr char EAPI_NAME_GET_MOD_NAME[] = "?GetModName@GameInfo@GAME@@QBEABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@XZ";
@@ -43,6 +45,8 @@ constexpr char EAPI_NAME_HANDLE_KEY_EVENT[] = "?HandleKeyEvent@DisplayWidget@GAM
 PULONG_PTR GetEngineHandle();
 
 PULONG_PTR GetGameInfo();
+
+bool GetHardcore();
 
 PULONG_PTR GetGraphicsEngine();
 

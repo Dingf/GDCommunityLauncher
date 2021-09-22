@@ -202,7 +202,8 @@ void HandleSaveNewFormatData(void* _this, void* writer)
         Client& client = Client::GetInstance();
         const char* modName = EngineAPI::GetModName();
         PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
-        if ((modName) && (mainPlayer) && (std::string(modName) == client.GetSeasonModName()))
+        const SeasonInfo* seasonInfo = client.GetActiveSeason();
+        if ((modName) && (mainPlayer) && (seasonInfo))
         {
             characterUpdateThread->Update(5000, GameAPI::GetPlayerName(mainPlayer));
         }
@@ -248,7 +249,8 @@ void HandleSaveTransferStash(void* _this)
         Client& client = Client::GetInstance();
         const char* modName = EngineAPI::GetModName();
         PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
-        if ((modName) && (mainPlayer) && (std::string(modName) == client.GetSeasonModName()))
+        const SeasonInfo* seasonInfo = client.GetActiveSeason();
+        if ((modName) && (mainPlayer) && (seasonInfo))
         {
             stashUpdateThread->Update(5000, modName, GameAPI::IsPlayerHardcore(mainPlayer));
         }
@@ -276,9 +278,44 @@ bool HandleLoadWorld(void* _this, const char* mapName, bool unk1, bool modded)
     if (callback)
     {
         bool result = callback(_this, mapName, unk1, modded);
+        if (result)
+        {
+            Client& client = Client::GetInstance();
+            const char* modName = EngineAPI::GetModName();
 
-        // Insert any code that needs to happen on map load here
+            // Check the map name to make sure that we are not in the main menu when setting the active season
+            if ((modName) && (mapName) && (std::string(mapName) != "levels/mainmenu/mainmenu.map"))
+            {
+                client.SetActiveSeason(modName, EngineAPI::GetHardcore());
 
+                // Attempt to register the user for the active season
+                const SeasonInfo* activeSeason = client.GetActiveSeason();
+                if (activeSeason)
+                {
+                    URI endpoint = URI(client.GetHostName()) / "api" / "Season" / std::to_string(activeSeason->_seasonID) / "add-participant" / client.GetUsername();
+                    web::http::client::http_client httpClient((utility::string_t)endpoint);
+                    web::http::http_request request(web::http::methods::POST);
+
+                    std::string bearerToken = "Bearer " + client.GetAuthToken();
+                    request.headers().add(U("Authorization"), bearerToken.c_str());
+
+                    try
+                    {
+                        web::http::http_response response = httpClient.request(request).get();
+                        web::http::status_code status = response.status_code();
+
+                        if ((status != web::http::status_codes::OK) && (status != web::http::status_codes::NoContent))
+                        {
+                            Logger::LogMessage(LOG_LEVEL_WARN, "Failed to register for season %: Server responded with status code %", activeSeason->_seasonID, response.status_code());
+                        }
+                    }
+                    catch (const std::exception& ex)
+                    {
+                        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to register for season %: %", activeSeason->_seasonID, ex.what());
+                    }
+                }
+            }
+        }
         return result;
     }
     return false;
@@ -291,11 +328,10 @@ bool HandleKeyEvent(void* _this, EngineAPI::KeyButtonEvent& event)
     HandleKeyEventProto callback = (HandleKeyEventProto)HookManager::GetOriginalFunction("Engine.dll", EngineAPI::EAPI_NAME_HANDLE_KEY_EVENT);
     if (callback)
     {
-        // TODO: Re-enable for S3
         // Disable the tilde key to prevent console access
-        //if (arg2._keyCode == EngineAPI::KEY_TILDE)
-        //    return true;
-        //else
+        if (event._keyCode == EngineAPI::KEY_TILDE)
+            return true;
+        else
             return callback(_this, event);
     }
     return false;
@@ -311,10 +347,11 @@ void HandleRenderStyledText2D(void* _this, const EngineAPI::Rect& rect, const wc
         Client& client = Client::GetInstance();
         const char* modName = EngineAPI::GetModName();
         PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
+        const SeasonInfo* seasonInfo = client.GetActiveSeason();
 
         // If the player is in-game on the S3 mod, append the league info to the difficulty text in the upper left corner
         // We modify the text instead of creating new text because that way it preserves the Z-order and doesn't conflict with the loading screen/pause overlay/etc.
-        if ((rect._x == 10.0f) && (rect._y == 10.0f) && (modName) && (mainPlayer) && (std::string(modName) == client.GetSeasonModName()))
+        if ((rect._x == 10.0f) && (rect._y == 10.0f) && (modName) && (mainPlayer) && (seasonInfo))
         {
             std::wstring textString(text);
             if (textString.empty())

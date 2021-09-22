@@ -15,6 +15,21 @@ Client& Client::GetInstance()
     return instance;
 }
 
+void Client::SetActiveSeason(const std::string& modName, bool hardcore)
+{
+    _activeSeason = NULL;
+    for (size_t i = 0; i < _data._seasons.size(); ++i)
+    {
+        SeasonInfo& season = _data._seasons[i];
+        if ((modName == season._modName) && ((1 + hardcore) == season._seasonType))
+        {
+            _activeSeason = &season;
+            break;
+        }
+    }
+    UpdateLeagueInfoText();
+}
+
 bool ReadIntFromPipe(HANDLE pipe, uint32_t& value)
 {
     DWORD bytesRead;
@@ -50,6 +65,27 @@ bool ReadStringFromPipe(HANDLE pipe, std::string& str)
     return true;
 }
 
+bool ReadSeasonsFromPipe(HANDLE pipe, std::vector<SeasonInfo>& seasons)
+{
+    uint32_t count;
+    if (!ReadIntFromPipe(pipe, count))
+        return false;
+
+    for (uint32_t i = 0; i < count; ++i)
+    {
+        SeasonInfo season;
+
+        if (!ReadIntFromPipe(pipe, season._seasonID) ||
+            !ReadIntFromPipe(pipe, season._seasonType) ||
+            !ReadStringFromPipe(pipe, season._modName) ||
+            !ReadStringFromPipe(pipe, season._displayName))
+            return false;
+
+        seasons.push_back(season);
+    }
+    return true;
+}
+
 void Client::ReadDataFromPipe()
 {
     if (!IsValid())
@@ -61,8 +97,7 @@ void Client::ReadDataFromPipe()
             !ReadStringFromPipe(pipe, _data._authToken) ||
             !ReadStringFromPipe(pipe, _data._refreshToken) ||
             !ReadStringFromPipe(pipe, _data._hostName) ||
-            !ReadStringFromPipe(pipe, _data._seasonName) ||
-            !ReadStringFromPipe(pipe, _data._seasonModName))
+            !ReadSeasonsFromPipe(pipe, _data._seasons))
         {
             Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to read client data from stdin pipe.");
             return;
@@ -95,7 +130,7 @@ void Client::UpdateVersionInfoText()
         _versionInfoText += ".";
         _versionInfoText += GDCL_VERSION_PATCH;
         _versionInfoText += " (";
-        _versionInfoText += GetName();
+        _versionInfoText += GetUsername();
         _versionInfoText += ")";
     }
 }
@@ -104,8 +139,11 @@ void Client::UpdateLeagueInfoText()
 {
     _leagueInfoText.clear();
 
-    _leagueInfoText = L"\n";
-    _leagueInfoText += std::wstring(_data._seasonName.begin(), _data._seasonName.end());
+    if (_activeSeason)
+    {
+        _leagueInfoText = L"\n";
+        _leagueInfoText += std::wstring(_activeSeason->_displayName.begin(), _activeSeason->_displayName.end());
+    }
     _leagueInfoText += L"\n";
     _leagueInfoText += std::wstring(_data._username.begin(), _data._username.end());
     if ((_points > 0) && (_rank > 0))

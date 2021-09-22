@@ -63,9 +63,9 @@ bool GetUpdateList(const std::string& hostName, std::vector<std::string>& update
 
                     // Trim quotes from serializing the string
                     if ((filename.front() == '"') && (filename.back() == '"'))
-                        filename = filename.substr(1, filename.size() - 2);
+                        filename = std::string(filename.begin() + 1, filename.end() - 1);
                     if ((checksum.front() == '"') && (checksum.back() == '"'))
-                        checksum = checksum.substr(1, checksum.size() - 2);
+                        checksum = std::string(checksum.begin() + 1, checksum.end() - 1);
 
                     // Capitalize the server MD5 hash for consistency
                     for (std::string::iterator it = checksum.begin(); it != checksum.end(); ++it)

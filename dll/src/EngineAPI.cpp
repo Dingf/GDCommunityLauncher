@@ -29,6 +29,23 @@ PULONG_PTR GetGameInfo()
     return callback((LPVOID)*engine);
 }
 
+bool GetHardcore()
+{
+    typedef bool(__thiscall* GetHardcoreProto)(PULONG_PTR);
+
+    HMODULE engineDLL = GetModuleHandle(TEXT("Engine.dll"));
+    if (!engineDLL)
+        return false;
+
+    GetHardcoreProto callback = (GetHardcoreProto)GetProcAddress(engineDLL, EAPI_NAME_GET_HARDCORE);
+    PULONG_PTR gameInfo = GetGameInfo();
+
+    if ((!callback) || (!gameInfo))
+        return nullptr;
+
+    return callback(gameInfo);
+}
+
 PULONG_PTR GetGraphicsEngine()
 {
     typedef PULONG_PTR(__thiscall* GetGraphicsEngineProto)(void*);

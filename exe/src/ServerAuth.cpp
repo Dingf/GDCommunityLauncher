@@ -9,6 +9,54 @@
 #include "URI.h"
 #include "Log.h"
 
+bool GetSeasonData(std::string hostName, ClientData& data)
+{
+    URI endpoint = URI(hostName) / "api" / "Season" / "latest";
+    web::http::client::http_client httpClient((utility::string_t)endpoint);
+    web::http::http_request request(web::http::methods::GET);
+
+    try
+    {
+        web::http::http_response response = httpClient.request(request).get();
+        switch (response.status_code())
+        {
+            case web::http::status_codes::OK:
+            {
+                web::json::value responseBody = response.extract_json().get();
+                web::json::array seasonsList = responseBody.as_array();
+                for (auto it = seasonsList.begin(); it != seasonsList.end(); ++it)
+                {
+                    SeasonInfo seasonInfo;
+                    seasonInfo._seasonID = it->at(U("seasonId")).as_integer();
+                    seasonInfo._seasonType = it->at(U("seasonTypeId")).as_integer();
+
+                    std::string modName = JSONString(it->at(U("modName")).serialize());
+                    std::string displayName = JSONString(it->at(U("displayName")).serialize());
+
+                    // Trim quotes from serializing the string
+                    if ((modName.front() == '"') && (modName.back() == '"'))
+                        modName = std::string(modName.begin() + 1, modName.end() - 1);
+                    if ((displayName.front() == '"') && (displayName.back() == '"'))
+                        displayName = std::string(displayName.begin() + 1, displayName.end() - 1);
+
+                    seasonInfo._modName = modName;
+                    seasonInfo._displayName = displayName;
+
+                    data._seasons.push_back(seasonInfo);
+                }
+                return true;
+            }
+            default:
+                Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve season data: Server responded with status code %", response.status_code());
+        }
+    }
+    catch (const std::exception& ex)
+    {
+        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve season data: %", ex.what());
+    }
+    return false;
+}
+
 ServerAuthResult ServerAuthFunction(std::string hostName, std::string username, std::string password, ServerAuthCallback callback)
 {
     URI endpoint = URI(hostName) / "api" / "Account" / "login";
@@ -21,13 +69,9 @@ ServerAuthResult ServerAuthFunction(std::string hostName, std::string username, 
     web::http::http_request request(web::http::methods::POST);
     request.set_body(requestBody);
 
-    Client::ServerData data;
+    ClientData data;
     data._username = username;
     data._hostName = hostName;
-
-    // TODO: Replace these with values obtained from the API endpoint
-    data._seasonName = "GrimLeague Season 3";
-    data._seasonModName = "GrimLeagueS02_HC";
 
     data._participantID = 30;  //TODO: Get this value from the server API
 
@@ -48,8 +92,8 @@ ServerAuthResult ServerAuthFunction(std::string hostName, std::string username, 
         else
         {
             if (callback)
-                callback(SERVER_AUTH_FAIL);
-            return SERVER_AUTH_FAIL;
+                callback(SERVER_AUTH_INVALID_LOGIN);
+            return SERVER_AUTH_INVALID_LOGIN;
         }
     }
     catch (const std::exception& ex)
@@ -58,6 +102,13 @@ ServerAuthResult ServerAuthFunction(std::string hostName, std::string username, 
         if (callback)
             callback(SERVER_AUTH_TIMEOUT);
         return SERVER_AUTH_TIMEOUT;
+    }
+
+    if (!GetSeasonData(hostName, data))
+    {
+        if (callback)
+            callback(SERVER_AUTH_INVALID_SEASONS);
+        return SERVER_AUTH_INVALID_SEASONS;
     }
 
     Client& client = Client::GetInstance(data);
