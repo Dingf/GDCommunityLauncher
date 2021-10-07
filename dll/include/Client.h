@@ -44,7 +44,7 @@ class Client
         bool SetupClientHooks();
         void CleanupClientHooks();
 
-        void SendRefreshToken();
+        void PostRefreshToken();
 
         bool IsValid() const { return _data.IsValid(); }
 
@@ -63,9 +63,11 @@ class Client
         const std::vector<SeasonInfo>& GetSeasons() const { return _data._seasons; }
         const SeasonInfo* GetActiveSeason() const { return _activeSeason; }
 
-        void SetActiveSeason(const std::string& modName, bool hardcore);
+        bool IsInActiveSeason() const { return _activeSeason != nullptr; }
 
-        //TODO: These functions are only for testing. Delete them later when the web API is implemented
+        void SetActiveSeason(const std::string& modName, bool hardcore);
+        void SetParticipantID(uint32_t participantID) { _data._participantID = participantID; }
+
         void SetPoints(uint32_t points)
         {
             _points = points;

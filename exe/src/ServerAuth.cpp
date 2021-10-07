@@ -47,7 +47,9 @@ bool GetSeasonData(std::string hostName, ClientData& data)
                 return true;
             }
             default:
-                Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve season data: Server responded with status code %", response.status_code());
+            {
+                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+            }
         }
     }
     catch (const std::exception& ex)
@@ -72,8 +74,6 @@ ServerAuthResult ServerAuthFunction(std::string hostName, std::string username, 
     ClientData data;
     data._username = username;
     data._hostName = hostName;
-
-    data._participantID = 30;  //TODO: Get this value from the server API
 
     try
     {

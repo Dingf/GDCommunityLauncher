@@ -52,8 +52,7 @@ bool WriteSeasonsToPipe(HANDLE pipe, const std::vector<SeasonInfo>& seasons)
 
 bool Client::WriteDataToPipe(HANDLE pipe) const
 {
-    if (!WriteIntToPipe(pipe, _data._participantID) ||
-        !WriteStringToPipe(pipe, _data._username) ||
+    if (!WriteStringToPipe(pipe, _data._username) ||
         !WriteStringToPipe(pipe, _data._authToken) ||
         !WriteStringToPipe(pipe, _data._refreshToken) ||
         !WriteStringToPipe(pipe, _data._hostName) ||

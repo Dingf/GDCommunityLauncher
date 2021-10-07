@@ -106,6 +106,23 @@ const char* GetModName()
         return (const char*)result;
 }
 
+bool IsMultiplayer()
+{
+    typedef bool(__thiscall* GetIsMultiplayerProto)(void*);
+
+    HMODULE engineDLL = GetModuleHandle(TEXT("Engine.dll"));
+    if (!engineDLL)
+        return nullptr;
+
+    GetIsMultiplayerProto callback = (GetIsMultiplayerProto)GetProcAddress(engineDLL, EAPI_NAME_GET_IS_MULTIPLAYER);
+    PULONG_PTR gameInfo = GetGameInfo();
+
+    if ((!callback) || (!gameInfo))
+        return nullptr;
+
+    return callback(gameInfo);
+}
+
 PULONG_PTR GetStyleManager()
 {
     typedef PULONG_PTR(__thiscall* GetStyleManagerProto)();

@@ -17,7 +17,7 @@ Client& Client::GetInstance()
 
 void Client::SetActiveSeason(const std::string& modName, bool hardcore)
 {
-    _activeSeason = NULL;
+    _activeSeason = nullptr;
     for (size_t i = 0; i < _data._seasons.size(); ++i)
     {
         SeasonInfo& season = _data._seasons[i];
@@ -92,8 +92,7 @@ void Client::ReadDataFromPipe()
     {
         HANDLE pipe = GetStdHandle(STD_INPUT_HANDLE);
 
-        if (!ReadIntFromPipe(pipe, _data._participantID) ||
-            !ReadStringFromPipe(pipe, _data._username) ||
+        if (!ReadStringFromPipe(pipe, _data._username) ||
             !ReadStringFromPipe(pipe, _data._authToken) ||
             !ReadStringFromPipe(pipe, _data._refreshToken) ||
             !ReadStringFromPipe(pipe, _data._hostName) ||

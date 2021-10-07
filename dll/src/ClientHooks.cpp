@@ -16,6 +16,7 @@ namespace
 
 std::shared_ptr<UpdateThread<std::wstring>> characterUpdateThread;
 std::shared_ptr<UpdateThread<std::string, bool>> stashUpdateThread;
+std::shared_ptr<UpdateThread<Client*>> clientTokenUpdateThread;
 
 }
 
@@ -32,7 +33,7 @@ const char* HandleGetVersion(void* _this)
     return client.GetVersionInfoText().c_str();
 }
 
-void Client::SendRefreshToken()
+void Client::PostRefreshToken()
 {
     URI endpoint = URI(GetHostName()) / "api" / "Account" / "refresh-token";
     web::http::client::http_client httpClient((utility::string_t)endpoint);
@@ -59,13 +60,18 @@ void Client::SendRefreshToken()
         }
         else
         {
-            Logger::LogMessage(LOG_LEVEL_WARN, "Failed to refresh token: Server responded with status code %", response.status_code());
+            throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
         }
     }
     catch (const std::exception& ex)
     {
         Logger::LogMessage(LOG_LEVEL_WARN, "Failed to refresh token: %", ex.what());
     }
+}
+
+void UpdateClientTokens(Client* client)
+{
+    client->PostRefreshToken();
 }
 
 uint32_t GetCharacterID(std::wstring playerName)
@@ -90,23 +96,60 @@ uint32_t GetCharacterID(std::wstring playerName)
                 return characterID.as_integer();
             }
             case web::http::status_codes::NoContent:
+            {
                 return 0;
+            }
             default:
-                Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve character data: Server responded with status code %", response.status_code());
+            {
+                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+            }
         }
     }
     catch (const std::exception& ex)
     {
-        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve character data: %", ex.what());
+        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve character ID: %", ex.what());
     }
     return 0;
+}
+
+void UpdateSeasonStanding()
+{
+    Client& client = Client::GetInstance();
+
+    URI endpoint = URI(client.GetHostName()) / "api" / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "standing";
+    web::http::client::http_client httpClient((utility::string_t)endpoint);
+    web::http::http_request request(web::http::methods::GET);
+
+    try
+    {
+        web::http::http_response response = httpClient.request(request).get();
+        switch (response.status_code())
+        {
+            case web::http::status_codes::OK:
+            {
+                web::json::value responseBody = response.extract_json().get();
+                web::json::value pointTotal = responseBody[U("pointTotal")];
+                web::json::value rank = responseBody[U("rank")];
+
+                client.SetRank(rank.as_integer());
+                client.SetPoints(pointTotal.as_integer());
+                break;
+            }
+            default:
+            {
+                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+            }
+        }
+    }
+    catch (const std::exception& ex)
+    {
+        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to update season standing: %", ex.what());
+    }
 }
 
 void UpdateCharacterData(std::wstring playerName)
 {
     Client& client = Client::GetInstance();
-    client.SendRefreshToken();
-
     uint32_t characterID = GetCharacterID(playerName);
 
     std::string baseFolder = GameAPI::GetBaseFolder();
@@ -136,6 +179,7 @@ void UpdateCharacterData(std::wstring playerName)
     characterInfo[U("level")] = characterJSON[U("HeaderBlock")][U("Level")];
     characterInfo[U("className")] = characterJSON[U("HeaderBlock")][U("ClassName")];
     characterInfo[U("hardcore")] = characterJSON[U("HeaderBlock")][U("Hardcore")];
+    characterInfo[U("maxDifficulty")] = characterJSON[U("InfoBlock")][U("MaxDifficulty")];
 
     web::json::value questInfo = web::json::value::object();
     for (auto it = difficultyTagLookup.begin(); it != difficultyTagLookup.end(); ++it)
@@ -179,9 +223,13 @@ void UpdateCharacterData(std::wstring playerName)
     try
     {
         web::http::http_response response = httpClient.request(request).get();
-        if (response.status_code() != web::http::status_codes::OK)
+        if (response.status_code() == web::http::status_codes::OK)
         {
-            Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload character data: Server responded with status code %", response.status_code());
+            UpdateSeasonStanding();
+        }
+        else
+        {
+            throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
         }
     }
     catch (const std::exception& ex)
@@ -202,8 +250,7 @@ void HandleSaveNewFormatData(void* _this, void* writer)
         Client& client = Client::GetInstance();
         const char* modName = EngineAPI::GetModName();
         PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
-        const SeasonInfo* seasonInfo = client.GetActiveSeason();
-        if ((modName) && (mainPlayer) && (seasonInfo))
+        if ((modName) && (mainPlayer) && (client.IsInActiveSeason()) && (!EngineAPI::IsMultiplayer()))
         {
             characterUpdateThread->Update(5000, GameAPI::GetPlayerName(mainPlayer));
         }
@@ -249,10 +296,31 @@ void HandleSaveTransferStash(void* _this)
         Client& client = Client::GetInstance();
         const char* modName = EngineAPI::GetModName();
         PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
-        const SeasonInfo* seasonInfo = client.GetActiveSeason();
-        if ((modName) && (mainPlayer) && (seasonInfo))
+        if ((modName) && (mainPlayer) && (client.IsInActiveSeason()))
         {
             stashUpdateThread->Update(5000, modName, GameAPI::IsPlayerHardcore(mainPlayer));
+        }
+    }
+}
+
+void HandleBestowToken(void* _this, void* token)
+{
+    typedef void(__thiscall* BestowTokenProto)(void*, void*);
+
+    BestowTokenProto callback = (BestowTokenProto)HookManager::GetOriginalFunction("Game.dll", GameAPI::GAPI_NAME_BESTOW_TOKEN);
+    if (callback)
+    {
+        Client& client = Client::GetInstance();
+        const char* modName = EngineAPI::GetModName();
+        PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
+        if ((modName) && (mainPlayer) && (client.IsInActiveSeason()) && (EngineAPI::IsMultiplayer()))
+        {
+            // Prevent tokens from being updated in multiplayer season games
+            return;
+        }
+        else
+        {
+            callback(_this, token);
         }
     }
 }
@@ -289,10 +357,10 @@ bool HandleLoadWorld(void* _this, const char* mapName, bool unk1, bool modded)
                 client.SetActiveSeason(modName, EngineAPI::GetHardcore());
 
                 // Attempt to register the user for the active season
-                const SeasonInfo* activeSeason = client.GetActiveSeason();
-                if (activeSeason)
+                const SeasonInfo* seasonInfo = client.GetActiveSeason();
+                if (seasonInfo)
                 {
-                    URI endpoint = URI(client.GetHostName()) / "api" / "Season" / std::to_string(activeSeason->_seasonID) / "add-participant" / client.GetUsername();
+                    URI endpoint = URI(client.GetHostName()) / "api" / "Season" / std::to_string(seasonInfo->_seasonID) / "add-participant" / client.GetUsername();
                     web::http::client::http_client httpClient((utility::string_t)endpoint);
                     web::http::http_request request(web::http::methods::POST);
 
@@ -304,14 +372,21 @@ bool HandleLoadWorld(void* _this, const char* mapName, bool unk1, bool modded)
                         web::http::http_response response = httpClient.request(request).get();
                         web::http::status_code status = response.status_code();
 
-                        if ((status != web::http::status_codes::OK) && (status != web::http::status_codes::NoContent))
+                        if (status == web::http::status_codes::OK)
                         {
-                            Logger::LogMessage(LOG_LEVEL_WARN, "Failed to register for season %: Server responded with status code %", activeSeason->_seasonID, response.status_code());
+                            web::json::value responseBody = response.extract_json().get();
+                            web::json::value participantID = responseBody[U("seasonParticipantId")];
+                            client.SetParticipantID(participantID.as_integer());
+                            UpdateSeasonStanding();
+                        }
+                        else
+                        {
+                            throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
                         }
                     }
                     catch (const std::exception& ex)
                     {
-                        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to register for season %: %", activeSeason->_seasonID, ex.what());
+                        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to register for season %: %", seasonInfo->_seasonID, ex.what());
                     }
                 }
             }
@@ -328,11 +403,19 @@ bool HandleKeyEvent(void* _this, EngineAPI::KeyButtonEvent& event)
     HandleKeyEventProto callback = (HandleKeyEventProto)HookManager::GetOriginalFunction("Engine.dll", EngineAPI::EAPI_NAME_HANDLE_KEY_EVENT);
     if (callback)
     {
-        // Disable the tilde key to prevent console access
-        if (event._keyCode == EngineAPI::KEY_TILDE)
+        Client& client = Client::GetInstance();
+        const char* modName = EngineAPI::GetModName();
+        PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
+
+        if ((modName) && (mainPlayer) && (client.IsInActiveSeason()) && (event._keyCode == EngineAPI::KEY_TILDE))
+        {
+            // Disable the tilde key to prevent console access
             return true;
+        }
         else
+        {
             return callback(_this, event);
+        }
     }
     return false;
 }
@@ -347,11 +430,10 @@ void HandleRenderStyledText2D(void* _this, const EngineAPI::Rect& rect, const wc
         Client& client = Client::GetInstance();
         const char* modName = EngineAPI::GetModName();
         PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
-        const SeasonInfo* seasonInfo = client.GetActiveSeason();
 
-        // If the player is in-game on the S3 mod, append the league info to the difficulty text in the upper left corner
+        // If the player is in-game on the season mod, append the league info to the difficulty text in the upper left corner
         // We modify the text instead of creating new text because that way it preserves the Z-order and doesn't conflict with the loading screen/pause overlay/etc.
-        if ((rect._x == 10.0f) && (rect._y == 10.0f) && (modName) && (mainPlayer) && (seasonInfo))
+        if ((rect._x == 10.0f) && (rect._y == 10.0f) && (modName) && (mainPlayer) && (client.IsInActiveSeason()))
         {
             std::wstring textString(text);
             if (textString.empty())
@@ -359,10 +441,6 @@ void HandleRenderStyledText2D(void* _this, const EngineAPI::Rect& rect, const wc
             textString += client.GetLeagueInfoText();
 
             callback(_this, rect, textString.c_str(), style, unk, xAlign, yAlign, layout);
-
-            //TODO: Delete me, this is just testing code
-            client.SetRank((client.GetRank() + 1) % 100 + 1);
-            client.SetPoints(client.GetPoints() + 1);
         }
         else
         {
@@ -380,13 +458,19 @@ bool Client::SetupClientHooks()
         !HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_HANDLE_KEY_EVENT, &HandleKeyEvent) ||
         !HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_RENDER_STYLED_TEXT_2D, &HandleRenderStyledText2D) ||
         !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_SAVE_NEW_FORMAT_DATA, &HandleSaveNewFormatData) ||
-        !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_SAVE_TRANSFER_STASH, &HandleSaveTransferStash))
+        !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_SAVE_TRANSFER_STASH, &HandleSaveTransferStash) ||
+        !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_BESTOW_TOKEN, &HandleBestowToken))
         return false;
 
     UpdateVersionInfoText();
 
-    characterUpdateThread = std::make_shared<UpdateThread<std::wstring>>(&UpdateCharacterData, 1000);
-    stashUpdateThread = std::make_shared<UpdateThread<std::string, bool>>(&UpdateStashData, 1000);
+    characterUpdateThread = std::make_shared<UpdateThread<std::wstring>>(&UpdateCharacterData);
+    stashUpdateThread = std::make_shared<UpdateThread<std::string, bool>>(&UpdateStashData);
+    clientTokenUpdateThread = std::make_shared<UpdateThread<Client*>>(&UpdateClientTokens, 1000, 1800000);
+
+    // Refresh the client tokens every 30 minutes
+    Client& client = Client::GetInstance();
+    clientTokenUpdateThread->Update(1800000, &client);
 
     return true;
 }
@@ -400,9 +484,11 @@ void Client::CleanupClientHooks()
     HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_RENDER_STYLED_TEXT_2D);
     HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_SAVE_NEW_FORMAT_DATA);
     HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_SAVE_TRANSFER_STASH);
+    HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_BESTOW_TOKEN);
 
     characterUpdateThread->Stop();
     stashUpdateThread->Stop();
+    clientTokenUpdateThread->Stop();
 
     //TODO: (In another function perhaps) scan the user save directory for all characters and upload them to the server
 }

@@ -18,6 +18,7 @@ constexpr char GAPI_NAME_IS_GAME_LOADING[] = "?IsGameLoading@GameEngine@GAME@@QE
 constexpr char GAPI_NAME_SAVE_NEW_FORMAT_DATA[] = "?SaveNewFormatData@Player@GAME@@QEBAXAEAVCheckedWriter@2@@Z";
 //constexpr char GAPI_NAME_SAVE_QUEST_STATES_TO_FILE[] = "?SaveQuestStatesToFile@Player@GAME@@QEAAXPEBD@Z";
 constexpr char GAPI_NAME_SAVE_TRANSFER_STASH[] = "?SaveTransferStash@GameEngine@GAME@@QEAAXXZ";
+constexpr char GAPI_NAME_BESTOW_TOKEN[] = "?BestowToken@Player@GAME@@QEAAXAEBUTriggerToken@2@@Z";
 #else
 constexpr char GAPI_NAME_GAME_ENGINE[] = "?gGameEngine@GAME@@3PAVGameEngine@1@A";
 constexpr char GAPI_NAME_GET_MAIN_PLAYER[] = "?GetMainPlayer@GameEngine@GAME@@QBEPAVPlayer@2@XZ";
@@ -29,6 +30,7 @@ constexpr char GAPI_NAME_IS_GAME_LOADING[] = "?IsGameLoading@GameEngine@GAME@@QB
 constexpr char GAPI_NAME_SAVE_NEW_FORMAT_DATA[] = "?SaveNewFormatData@Player@GAME@@QBEXAAVCheckedWriter@2@@Z";
 //constexpr char GAPI_NAME_SAVE_QUEST_STATES_TO_FILE[] = "?SaveQuestStatesToFile@Player@GAME@@QAEXPBD@Z";
 constexpr char GAPI_NAME_SAVE_TRANSFER_STASH[] = "?SaveTransferStash@GameEngine@GAME@@QAEXXZ";
+constexpr char GAPI_NAME_BESTOW_TOKEN[] = "?BestowToken@Player@GAME@@QAEXABUTriggerToken@2@@Z";
 #endif
 
 PULONG_PTR GetGameEngineHandle();

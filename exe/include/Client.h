@@ -28,7 +28,6 @@ struct ClientData
         return (!_username.empty() && !_authToken.empty() && !_refreshToken.empty() && !_hostName.empty());
     }
 
-    uint32_t    _participantID;
     std::string _username;
     std::string _authToken;
     std::string _refreshToken;

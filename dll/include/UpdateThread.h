@@ -12,7 +12,7 @@ class UpdateThread
     public:
         typedef void(*UpdateCallback)(Ts...);
 
-        UpdateThread(UpdateCallback func, uint64_t intervalMS) : _updateTime(0), _updateIntervalMS(intervalMS), _callbackProto(func)
+        UpdateThread(UpdateCallback func, uint64_t updateIntervalMS = 1000UL, uint64_t repeatIntervalMS = 0) : _updateTime(0), _updateIntervalMS(updateIntervalMS), _repeatIntervalMS(repeatIntervalMS), _callbackProto(func)
         {
             _thread = std::make_unique<std::thread>(&UpdateThread::Tick, this);
             _thread->detach();
@@ -44,9 +44,17 @@ class UpdateThread
                     if (_callback)
                     {
                         _callback();
-                        _callback = nullptr;
                     }
-                    _updateTime = 0;
+
+                    if (_repeatIntervalMS > 0)
+                    {
+                        _updateTime += _repeatIntervalMS;
+                    }
+                    else
+                    {
+                        _callback = nullptr;
+                        _updateTime = 0;
+                    }
                 }
 
                 std::this_thread::sleep_for(std::chrono::milliseconds(_updateIntervalMS));
@@ -55,6 +63,7 @@ class UpdateThread
 
         uint64_t _updateTime;
         uint64_t _updateIntervalMS;
+        uint64_t _repeatIntervalMS;
 
         UpdateCallback _callbackProto;
         std::function<void()> _callback;

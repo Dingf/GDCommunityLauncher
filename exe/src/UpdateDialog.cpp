@@ -1,4 +1,5 @@
 #include <string>
+#include <unordered_set>
 #include <sstream>
 #include <filesystem>
 #include <Windows.h>
@@ -37,14 +38,46 @@ std::string GenerateFileMD5(const std::filesystem::path& path)
     return result;
 }
 
-bool GetUpdateList(const std::string& hostName, std::vector<std::string>& updateList)
+std::string GetSeasonModName(std::string hostName)
+{
+    URI endpoint = URI(hostName) / "api" / "Season" / "latest";
+    web::http::client::http_client httpClient((utility::string_t)endpoint);
+    web::http::http_request request(web::http::methods::GET);
+
+    try
+    {
+        web::http::http_response response = httpClient.request(request).get();
+        switch (response.status_code())
+        {
+            case web::http::status_codes::OK:
+            {
+                web::json::value responseBody = response.extract_json().get();
+                web::json::array seasonsList = responseBody.as_array();
+                for (auto it = seasonsList.begin(); it != seasonsList.end(); ++it)
+                {
+                    // Mod name should be the same across all seasons, so return the first result
+                    std::string modName = JSONString(it->at(U("modName")).serialize());
+                    return std::string(modName.begin() + 1, modName.end() - 1);
+                }
+            }
+            default:
+            {
+                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+            }
+        }
+    }
+    catch (const std::exception& ex)
+    {
+        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve season mod name: %", ex.what());
+    }
+    return {};
+}
+
+bool GetUpdateList(const std::string& hostName, const std::string& modName, std::vector<std::string>& updateList)
 {
     URI endpoint = URI(hostName) / "api" / "File" / "filenames";
     web::http::client::http_client httpClient((utility::string_t)endpoint);
     web::http::http_request request(web::http::methods::GET);
-
-    //TODO: Replace me with the value from the API
-    std::string modName = "GrimLeagueS03";
 
     try
     {
@@ -88,7 +121,9 @@ bool GetUpdateList(const std::string& hostName, std::vector<std::string>& update
                 return true;
             }
             default:
-                Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve file list: Server responded with status code %", response.status_code());
+            {
+                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+            }
         }
     }
     catch (const std::exception& ex)
@@ -99,13 +134,10 @@ bool GetUpdateList(const std::string& hostName, std::vector<std::string>& update
     return false;
 }
 
-void DownloadFiles(const std::string& hostName, const std::vector<std::string>& updateList)
+void DownloadFiles(const std::string& hostName, const std::string& modName, const std::vector<std::string>& updateList)
 {
     std::shared_ptr<size_t> totalSize = UpdateDialog::_totalSize;
     std::shared_ptr<size_t> downloadSize = UpdateDialog::_downloadSize;
-
-    //TODO: Replace me with the value from the API
-    std::string modName = "GrimLeagueS03";
 
     std::vector<pplx::task<bool>> tasks;
     for (size_t i = 0; i < updateList.size(); ++i)
@@ -165,8 +197,7 @@ void DownloadFiles(const std::string& hostName, const std::vector<std::string>& 
                 }
                 else
                 {
-                    Logger::LogMessage(LOG_LEVEL_WARN, "Failed to download file %: Server responded with status code %", filename, response.status_code());
-                    return false;
+                    throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
                 }
             }
             catch (const std::exception& ex)
@@ -303,12 +334,16 @@ bool UpdateDialog::Update(void* configPointer)
     if ((hostValue) && (hostValue->GetType() == VALUE_TYPE_STRING))
         hostName = hostValue->ToString();
 
-    if (!GetUpdateList(hostName, updateList))
+    std::string modName = GetSeasonModName(hostName);
+    if (modName.empty())
+        return false;
+
+    if (!GetUpdateList(hostName, modName, updateList))
         return false;
 
     if (updateList.size() > 0)
     {
-        DownloadFiles(hostName, updateList);
+        DownloadFiles(hostName, modName, updateList);
 
         HINSTANCE instance = GetModuleHandle(NULL);
         _window = CreateDialogParam(instance, MAKEINTRESOURCE(IDD_DIALOG2), 0, UpdateDialogHandler, (LPARAM)_config);
