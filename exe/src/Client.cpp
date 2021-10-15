@@ -44,7 +44,8 @@ bool WriteSeasonsToPipe(HANDLE pipe, const std::vector<SeasonInfo>& seasons)
         if (!WriteIntToPipe(pipe, seasons[i]._seasonID) ||
             !WriteIntToPipe(pipe, seasons[i]._seasonType) ||
             !WriteStringToPipe(pipe, seasons[i]._modName) ||
-            !WriteStringToPipe(pipe, seasons[i]._displayName))
+            !WriteStringToPipe(pipe, seasons[i]._displayName) ||
+            !WriteStringToPipe(pipe, seasons[i]._participationToken))
             return false;
     }
     return true;

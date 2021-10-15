@@ -29,6 +29,23 @@ PULONG_PTR GetGameInfo()
     return callback((LPVOID)*engine);
 }
 
+uint32_t GetPlayerLevel()
+{
+    typedef uint32_t(__thiscall* GetPlayerLevelProto)(PULONG_PTR);
+
+    HMODULE engineDLL = GetModuleHandle(TEXT("Engine.dll"));
+    if (!engineDLL)
+        return false;
+
+    GetPlayerLevelProto callback = (GetPlayerLevelProto)GetProcAddress(engineDLL, EAPI_NAME_GET_PLAYER_LEVEL);
+    PULONG_PTR gameInfo = GetGameInfo();
+
+    if ((!callback) || (!gameInfo))
+        return 0;
+
+    return callback(gameInfo);
+}
+
 bool GetHardcore()
 {
     typedef bool(__thiscall* GetHardcoreProto)(PULONG_PTR);
@@ -100,6 +117,7 @@ const char* GetModName()
     // It seems like it depends on the length of the mod name? 
 
     // If it's a pointer, then it should be relatively close in memory so compare the first 32 bits
+    //TODO: Verify if this behavior exists/is compatible with 32 bit versions
     if (((ULONGLONG)result & 0xFFFFFFFF00000000L) == ((ULONGLONG)(*result) & 0xFFFFFFFF00000000L))
         return (const char*)(*result);
     else

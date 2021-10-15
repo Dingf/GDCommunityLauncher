@@ -250,7 +250,8 @@ void HandleSaveNewFormatData(void* _this, void* writer)
         Client& client = Client::GetInstance();
         const char* modName = EngineAPI::GetModName();
         PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
-        if ((modName) && (mainPlayer) && (client.IsInActiveSeason()) && (!EngineAPI::IsMultiplayer()))
+        const SeasonInfo* seasonInfo = client.GetActiveSeason();
+        if ((modName) && (mainPlayer) && (client.IsInActiveSeason()) && (!EngineAPI::IsMultiplayer()) && (GameAPI::HasToken(mainPlayer, seasonInfo->_participationToken)))
         {
             characterUpdateThread->Update(5000, GameAPI::GetPlayerName(mainPlayer));
         }
@@ -313,15 +314,56 @@ void HandleBestowToken(void* _this, void* token)
         Client& client = Client::GetInstance();
         const char* modName = EngineAPI::GetModName();
         PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
-        if ((modName) && (mainPlayer) && (client.IsInActiveSeason()) && (EngineAPI::IsMultiplayer()))
+        const SeasonInfo* seasonInfo = client.GetActiveSeason();
+
+        if ((modName) && (mainPlayer) && (client.IsInActiveSeason()))
         {
-            // Prevent tokens from being updated in multiplayer season games
-            return;
+            // Sometimes the token appears to be garbage memory, so check the flags to make sure it's valid
+            uint32_t tokenFlags = *((uint32_t*)token + 4);
+            if (tokenFlags <= 0xFF)
+            {
+                std::string tokenString = std::string(*((const char**)token + 1));
+                if ((EngineAPI::IsMultiplayer()) && (tokenString != "Received_Start_Items"))
+                {
+                    // Prevent tokens from being updated in multiplayer season games (except for starting item token, to avoid receiving the starting items multiple times)
+                    return;
+                }
+                else if ((tokenString.find("GDL_", 0) == 0) && (GameAPI::HasToken(mainPlayer, seasonInfo->_participationToken)))
+                {
+                    // Otherwise if it's a season token, pass it along to the server and update the points/rank
+                    URI endpoint = URI(client.GetHostName()) / "api" / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "quest-tag" / tokenString;
+                    web::http::client::http_client httpClient((utility::string_t)endpoint);
+                    web::http::http_request request(web::http::methods::POST);
+
+                    web::json::value requestBody;
+                    requestBody[U("level")] = EngineAPI::GetPlayerLevel();
+                    requestBody[U("maxDifficulty")] = GameAPI::GetPlayerMaxDifficulty(mainPlayer);
+                    request.set_body(requestBody);
+
+                    std::string bearerToken = "Bearer " + client.GetAuthToken();
+                    request.headers().add(U("Authorization"), bearerToken.c_str());
+
+                    try
+                    {
+                        web::http::http_response response = httpClient.request(request).get();
+                        if (response.status_code() == web::http::status_codes::OK)
+                        {
+                            UpdateSeasonStanding();
+                        }
+                        else
+                        {
+                            throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+                        }
+                    }
+                    catch (const std::exception& ex)
+                    {
+                        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to update quest tag: %", ex.what());
+                    }
+                }
+            }
         }
-        else
-        {
-            callback(_this, token);
-        }
+
+        callback(_this, token);
     }
 }
 
@@ -407,12 +449,12 @@ bool HandleKeyEvent(void* _this, EngineAPI::KeyButtonEvent& event)
         const char* modName = EngineAPI::GetModName();
         PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
 
-        if ((modName) && (mainPlayer) && (client.IsInActiveSeason()) && (event._keyCode == EngineAPI::KEY_TILDE))
+        //if ((modName) && (mainPlayer) && (client.IsInActiveSeason()) && (event._keyCode == EngineAPI::KEY_TILDE))
         {
             // Disable the tilde key to prevent console access
-            return true;
+            //return true;
         }
-        else
+        //else
         {
             return callback(_this, event);
         }

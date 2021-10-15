@@ -19,6 +19,7 @@ struct SeasonInfo
     uint32_t    _seasonType;
     std::string _modName;
     std::string _displayName;
+    std::string _participationToken;
 };
 
 struct ClientData

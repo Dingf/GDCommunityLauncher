@@ -44,6 +44,21 @@ const wchar_t* GetPlayerName(PULONG_PTR player)
     return (const wchar_t*)callback((LPVOID)player);
 }
 
+Difficulty GetPlayerMaxDifficulty(PULONG_PTR player)
+{
+    typedef Difficulty(__thiscall* GetPlayerMaxDifficultyProto)(LPVOID);
+
+    HMODULE gameDLL = GetModuleHandle(TEXT("Game.dll"));
+    if ((!gameDLL) || (!player))
+        return GAME_DIFFICULTY_NORMAL;
+
+    GetPlayerMaxDifficultyProto callback = (GetPlayerMaxDifficultyProto)GetProcAddress(gameDLL, GAPI_NAME_GET_PLAYER_MAX_DIFFICULTY);
+    if (!callback)
+        return GAME_DIFFICULTY_NORMAL;
+
+    return callback((LPVOID)player);
+}
+
 std::string GetBaseFolder()
 {
     typedef std::string(__thiscall* GetBaseFolderProto)(LPVOID);
@@ -76,6 +91,21 @@ Difficulty GetGameDifficulty()
         return GAME_DIFFICULTY_NORMAL;
 
     return callback((LPVOID)*gameEngine);
+}
+
+bool HasToken(PULONG_PTR player, std::string token)
+{
+    typedef bool(__thiscall* HasTokenProto)(LPVOID, std::string);
+
+    HMODULE gameDLL = GetModuleHandle(TEXT("Game.dll"));
+    if ((!gameDLL) || (!player))
+        return nullptr;
+
+    HasTokenProto callback = (HasTokenProto)GetProcAddress(gameDLL, GAPI_NAME_HAS_TOKEN);
+    if (!callback)
+        return nullptr;
+
+    return callback((LPVOID)player, token);
 }
 
 bool IsPlayerHardcore(PULONG_PTR player)

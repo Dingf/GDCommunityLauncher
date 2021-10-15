@@ -78,7 +78,8 @@ bool ReadSeasonsFromPipe(HANDLE pipe, std::vector<SeasonInfo>& seasons)
         if (!ReadIntFromPipe(pipe, season._seasonID) ||
             !ReadIntFromPipe(pipe, season._seasonType) ||
             !ReadStringFromPipe(pipe, season._modName) ||
-            !ReadStringFromPipe(pipe, season._displayName))
+            !ReadStringFromPipe(pipe, season._displayName) ||
+            !ReadStringFromPipe(pipe, season._participationToken))
             return false;
 
         seasons.push_back(season);
