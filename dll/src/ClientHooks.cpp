@@ -163,7 +163,7 @@ void UpdateCharacterData(std::wstring playerName)
     characterPath += playerName;
 
     std::filesystem::path characterSavePath = characterPath / "player.gdc";
-    std::filesystem::path characterQuestPath = characterPath / "Levels_world001.map";
+    std::filesystem::path characterQuestPath = characterPath / "maps_world001.map";
 
     Character characterData;
     if (!characterData.ReadFromFile(characterSavePath))
@@ -179,6 +179,7 @@ void UpdateCharacterData(std::wstring playerName)
     characterInfo[U("level")] = characterJSON[U("HeaderBlock")][U("Level")];
     characterInfo[U("className")] = characterJSON[U("HeaderBlock")][U("ClassName")];
     characterInfo[U("hardcore")] = characterJSON[U("HeaderBlock")][U("Hardcore")];
+    characterInfo[U("currentDifficulty")] = characterJSON[U("InfoBlock")][U("CurrentDifficulty")].as_integer() & 0x7F;
     characterInfo[U("maxDifficulty")] = characterJSON[U("InfoBlock")][U("MaxDifficulty")];
 
     web::json::value questInfo = web::json::value::object();
@@ -337,6 +338,7 @@ void HandleBestowToken(void* _this, void* token)
 
                     web::json::value requestBody;
                     requestBody[U("level")] = EngineAPI::GetPlayerLevel();
+                    requestBody[U("currentDifficulty")] = GameAPI::GetGameDifficulty();
                     requestBody[U("maxDifficulty")] = GameAPI::GetPlayerMaxDifficulty(mainPlayer);
                     request.set_body(requestBody);
 
