@@ -1,8 +1,12 @@
+#include <filesystem>
 #include <Windows.h>
 #include "HookManager.h"
 #include "Client.h"
+#include "GameAPI.h"
 #include "EngineAPI.h"
 #include "Log.h"
+#include "Character.h"
+#include "Quest.h"
 #include "Version.h"
 
 Client& Client::GetInstance()
@@ -28,6 +32,12 @@ void Client::SetActiveSeason(const std::string& modName, bool hardcore)
         }
     }
     UpdateLeagueInfoText();
+}
+
+void Client::SetActiveCharacter(const std::wstring& name, bool hasToken)
+{
+    _activeCharacter._name = name;
+    _activeCharacter._hasToken = hasToken;
 }
 
 bool ReadIntFromPipe(HANDLE pipe, uint32_t& value)

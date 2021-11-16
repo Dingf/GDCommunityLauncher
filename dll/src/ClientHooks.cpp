@@ -1,3 +1,4 @@
+#include <chrono>
 #include <filesystem>
 #include <cpprest/http_client.h>
 #include "HookManager.h"
@@ -14,8 +15,7 @@
 namespace
 {
 
-std::shared_ptr<UpdateThread<std::wstring>> characterUpdateThread;
-std::shared_ptr<UpdateThread<std::string, bool>> stashUpdateThread;
+std::shared_ptr<UpdateThread<std::wstring, bool>> characterUpdateThread;
 std::shared_ptr<UpdateThread<Client*>> clientTokenUpdateThread;
 
 }
@@ -44,29 +44,31 @@ void Client::PostRefreshToken()
     web::http::http_request request(web::http::methods::POST);
     request.set_body(requestBody);
 
-    try
+    httpClient.request(request).then([this](web::http::http_response response)
     {
-        web::http::http_response response = httpClient.request(request).get();
-        if (response.status_code() == web::http::status_codes::OK)
+        try
         {
-            web::json::value responseBody = response.extract_json().get();
-            web::json::value authTokenValue = responseBody[U("access_token")];
-            web::json::value refreshTokenValue = responseBody[U("refresh_token")];
-            if ((!authTokenValue.is_null()) && (!refreshTokenValue.is_null()))
+            if (response.status_code() == web::http::status_codes::OK)
             {
-                _data._authToken = JSONString(authTokenValue.as_string());
-                _data._refreshToken = JSONString(refreshTokenValue.as_string());
+                web::json::value responseBody = response.extract_json().get();
+                web::json::value authTokenValue = responseBody[U("access_token")];
+                web::json::value refreshTokenValue = responseBody[U("refresh_token")];
+                if ((!authTokenValue.is_null()) && (!refreshTokenValue.is_null()))
+                {
+                    _data._authToken = JSONString(authTokenValue.as_string());
+                    _data._refreshToken = JSONString(refreshTokenValue.as_string());
+                }
+            }
+            else
+            {
+                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
             }
         }
-        else
+        catch (const std::exception& ex)
         {
-            throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+            Logger::LogMessage(LOG_LEVEL_WARN, "Failed to refresh token: %", ex.what());
         }
-    }
-    catch (const std::exception& ex)
-    {
-        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to refresh token: %", ex.what());
-    }
+    });
 }
 
 void UpdateClientTokens(Client* client)
@@ -84,32 +86,36 @@ uint32_t GetCharacterID(std::wstring playerName)
     std::string bearerToken = "Bearer " + client.GetAuthToken();
     request.headers().add(U("Authorization"), bearerToken.c_str());
 
-    try
+    pplx::task<uint32_t> task = httpClient.request(request).then([&client](web::http::http_response response)
     {
-        web::http::http_response response = httpClient.request(request).get();
-        switch (response.status_code())
+        try
         {
-            case web::http::status_codes::OK:
+            switch (response.status_code())
             {
-                web::json::value responseBody = response.extract_json().get();
-                web::json::value characterID = responseBody[U("participantCharacterId")];
-                return characterID.as_integer();
-            }
-            case web::http::status_codes::NoContent:
-            {
-                return 0;
-            }
-            default:
-            {
-                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+                case web::http::status_codes::OK:
+                {
+                    web::json::value responseBody = response.extract_json().get();
+                    web::json::value characterID = responseBody[U("participantCharacterId")];
+                    return (uint32_t)characterID.as_integer();
+                }
+                case web::http::status_codes::NoContent:
+                {
+                    return (uint32_t)0;
+                }
+                default:
+                {
+                    throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+                }
             }
         }
-    }
-    catch (const std::exception& ex)
-    {
-        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve character ID: %", ex.what());
-    }
-    return 0;
+        catch (const std::exception& ex)
+        {
+            Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve character ID: %", ex.what());
+        }
+        return (uint32_t)0;
+    });
+
+    return task.get();
 }
 
 void UpdateSeasonStanding()
@@ -120,50 +126,57 @@ void UpdateSeasonStanding()
     web::http::client::http_client httpClient((utility::string_t)endpoint);
     web::http::http_request request(web::http::methods::GET);
 
-    try
+    httpClient.request(request).then([&client](web::http::http_response response)
     {
-        web::http::http_response response = httpClient.request(request).get();
-        switch (response.status_code())
+        try
         {
-            case web::http::status_codes::OK:
+            switch (response.status_code())
             {
-                web::json::value responseBody = response.extract_json().get();
-                web::json::value pointTotal = responseBody[U("pointTotal")];
-                web::json::value rank = responseBody[U("rank")];
+                case web::http::status_codes::OK:
+                {
+                    web::json::value responseBody = response.extract_json().get();
+                    web::json::value pointTotal = responseBody[U("pointTotal")];
+                    web::json::value rank = responseBody[U("rank")];
 
-                client.SetRank(rank.as_integer());
-                client.SetPoints(pointTotal.as_integer());
-                break;
-            }
-            default:
-            {
-                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+                    client.SetRank(rank.as_integer());
+                    client.SetPoints(pointTotal.as_integer());
+                    break;
+                }
+                default:
+                {
+                    throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+                }
             }
         }
-    }
-    catch (const std::exception& ex)
-    {
-        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to update season standing: %", ex.what());
-    }
+        catch (const std::exception& ex)
+        {
+            Logger::LogMessage(LOG_LEVEL_WARN, "Failed to update season standing: %", ex.what());
+        }
+    });
 }
 
-void UpdateCharacterData(std::wstring playerName)
+std::filesystem::path GetPlayerCharacterPath(std::wstring playerName)
 {
-    Client& client = Client::GetInstance();
-    uint32_t characterID = GetCharacterID(playerName);
-
     std::string baseFolder = GameAPI::GetBaseFolder();
     if (baseFolder.empty())
     {
-        Logger::LogMessage(LOG_LEVEL_ERROR, "Could not determine save location.");
-        return;
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Could not determine the base Grim Dawn save location");
+        return {};
     }
 
     std::filesystem::path characterPath = std::filesystem::path(baseFolder) / "save" / "user" / "_";
     characterPath += playerName;
 
-    std::filesystem::path characterSavePath = characterPath / "player.gdc";
-    std::filesystem::path characterQuestPath = characterPath / "maps_world001.map";
+    return characterPath;
+}
+
+void UpdateCharacterData(std::wstring playerName, bool async)
+{
+    Client& client = Client::GetInstance();
+    uint32_t characterID = GetCharacterID(playerName);
+
+    std::filesystem::path characterSavePath = GetPlayerCharacterPath(playerName) / "player.gdc";
+    std::filesystem::path characterQuestPath = GetPlayerCharacterPath(playerName) / "maps_world001.map";
 
     Character characterData;
     if (!characterData.ReadFromFile(characterSavePath))
@@ -179,8 +192,16 @@ void UpdateCharacterData(std::wstring playerName)
     characterInfo[U("level")] = characterJSON[U("HeaderBlock")][U("Level")];
     characterInfo[U("className")] = characterJSON[U("HeaderBlock")][U("ClassName")];
     characterInfo[U("hardcore")] = characterJSON[U("HeaderBlock")][U("Hardcore")];
-    characterInfo[U("currentDifficulty")] = characterJSON[U("InfoBlock")][U("CurrentDifficulty")].as_integer() & 0x7F;
     characterInfo[U("maxDifficulty")] = characterJSON[U("InfoBlock")][U("MaxDifficulty")];
+    characterInfo[U("currentDifficulty")] = characterJSON[U("InfoBlock")][U("CurrentDifficulty")].as_integer() & 0x7F;
+    characterInfo[U("deathCount")] = characterJSON[U("StatsBlock")][U("Deaths")];
+    characterInfo[U("timePlayed")] = characterJSON[U("StatsBlock")][U("PlayedTime")];
+    characterInfo[U("physique")] = characterJSON[U("AttributesBlock")][U("Physique")];
+    characterInfo[U("cunning")] = characterJSON[U("AttributesBlock")][U("Cunning")];
+    characterInfo[U("spirit")] = characterJSON[U("AttributesBlock")][U("Spirit")];
+    characterInfo[U("devotionPoints")] = characterJSON[U("AttributesBlock")][U("TotalDevotionPoints")];
+    characterInfo[U("health")] = characterJSON[U("AttributesBlock")][U("Health")];
+    characterInfo[U("energy")] = characterJSON[U("AttributesBlock")][U("Energy")];
 
     web::json::value questInfo = web::json::value::object();
     for (auto it = difficultyTagLookup.begin(); it != difficultyTagLookup.end(); ++it)
@@ -221,21 +242,45 @@ void UpdateCharacterData(std::wstring playerName)
     std::string bearerToken = "Bearer " + client.GetAuthToken();
     request.headers().add(U("Authorization"), bearerToken.c_str());
 
-    try
+    if (async)
     {
-        web::http::http_response response = httpClient.request(request).get();
-        if (response.status_code() == web::http::status_codes::OK)
+        httpClient.request(request).then([](web::http::http_response response)
         {
-            UpdateSeasonStanding();
-        }
-        else
-        {
-            throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-        }
+            try
+            {
+                if (response.status_code() == web::http::status_codes::OK)
+                {
+                    UpdateSeasonStanding();
+                }
+                else
+                {
+                    throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+                }
+            }
+            catch (const std::exception& ex)
+            {
+                Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload character data: %", ex.what());
+            }
+        });
     }
-    catch (const std::exception& ex)
+    else
     {
-        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload character data: %", ex.what());
+        try
+        {
+            web::http::http_response response = httpClient.request(request).get();
+            if (response.status_code() == web::http::status_codes::OK)
+            {
+                UpdateSeasonStanding();
+            }
+            else
+            {
+                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+            }
+        }
+        catch (const std::exception& ex)
+        {
+            Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload character data: %", ex.what());
+        }
     }
 }
 
@@ -252,38 +297,99 @@ void HandleSaveNewFormatData(void* _this, void* writer)
         const char* modName = EngineAPI::GetModName();
         PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
         const SeasonInfo* seasonInfo = client.GetActiveSeason();
-        if ((modName) && (mainPlayer) && (client.IsInActiveSeason()) && (!EngineAPI::IsMultiplayer()) && (GameAPI::HasToken(mainPlayer, seasonInfo->_participationToken)))
+        if ((modName) && (mainPlayer) && (!EngineAPI::IsMultiplayer()) && (client.IsParticipatingInSeason()))
         {
-            characterUpdateThread->Update(5000, GameAPI::GetPlayerName(mainPlayer));
+            characterUpdateThread->Update(5000, GameAPI::GetPlayerName(mainPlayer), true);
         }
     }
 }
 
-void UpdateStashData(std::string modName, bool hardcore)
+std::filesystem::path GetSharedStashPath(const char* modName, bool hardcore)
 {
     std::string baseFolder = GameAPI::GetBaseFolder();
     if (baseFolder.empty())
     {
-        Logger::LogMessage(LOG_LEVEL_ERROR, "Could not determine save location.");
-        return;
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Could not determine the base Grim Dawn save location");
+        return {};
     }
 
-    std::filesystem::path stashPath = std::filesystem::path(GameAPI::GetBaseFolder()) / "save" / modName;
+    std::filesystem::path stashPath = std::filesystem::path(baseFolder) / "save";
+    if (modName)
+        stashPath /= modName;
+
     if (hardcore)
         stashPath /= "transfer.gsh";
     else
         stashPath /= "transfer.gst";
 
-    SharedStash stashData;
-    if (!stashData.ReadFromFile(stashPath))
+    return stashPath;
+}
+
+void UpdateStashData(std::time_t prevModifiedTime, std::time_t newModifiedTime)
+{
+    Client& client = Client::GetInstance();
+    const char* modName = EngineAPI::GetModName();
+    PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
+
+    if ((modName) && (mainPlayer) && (client.IsParticipatingInSeason()))
     {
-        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to load shared stash data. Make sure that cloud saving is diabled.");
-        return;
+        std::filesystem::path stashPath = GetSharedStashPath(modName, GameAPI::IsPlayerHardcore(mainPlayer));
+
+        SharedStash stashData;
+        if (!stashData.ReadFromFile(stashPath))
+        {
+            Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to load shared stash data. Make sure that cloud saving is diabled.");
+            return;
+        }
+
+        web::json::value stashJSON = stashData.ToJSON();
+
+        web::json::value requestBody;
+        requestBody[U("lastModifiedOn")] = prevModifiedTime;
+        requestBody[U("sharedStashModifiedOn")] = newModifiedTime;
+
+        URI endpoint = URI(client.GetHostName()) / "api" / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "shared-stash";
+
+        web::http::client::http_client httpClient((utility::string_t)endpoint);
+        web::http::http_request request(web::http::methods::POST);
+        request.set_body(requestBody);
+
+        std::string bearerToken = "Bearer " + client.GetAuthToken();
+        request.headers().add(U("Authorization"), bearerToken.c_str());
+
+        httpClient.request(request).then([](web::http::http_response response)
+        {
+            try
+            {
+                if (response.status_code() != web::http::status_codes::OK)
+                {
+                    throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+                }
+            }
+            catch (const std::exception& ex)
+            {
+                Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload shared stash data: %", ex.what());
+            }
+        });
     }
 
-    web::json::value stashJSON = stashData.ToJSON();
-
     //TODO: Trim and send the shared stash JSON data to the server
+}
+
+std::time_t GetStashLastModifiedTime()
+{
+    const char* modName = EngineAPI::GetModName();
+    PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
+    if (mainPlayer)
+    {
+        std::filesystem::path stashPath = GetSharedStashPath(modName, GameAPI::IsPlayerHardcore(mainPlayer));
+        if (!stashPath.empty())
+        {
+            std::filesystem::file_time_type lastModifiedTime = std::filesystem::last_write_time(stashPath);
+            return std::chrono::system_clock::to_time_t(std::chrono::time_point_cast<std::chrono::system_clock::duration>(lastModifiedTime - decltype(lastModifiedTime)::clock::now() + std::chrono::system_clock::now()));
+        }
+    }
+    return std::time_t(-1);
 }
 
 void HandleSaveTransferStash(void* _this)
@@ -293,14 +399,57 @@ void HandleSaveTransferStash(void* _this)
     SaveTransferStashProto callback = (SaveTransferStashProto)HookManager::GetOriginalFunction("Game.dll", GameAPI::GAPI_NAME_SAVE_TRANSFER_STASH);
     if (callback)
     {
+        std::time_t prevModifiedTime = GetStashLastModifiedTime();
         callback(_this);
+        std::time_t newModifiedTime = GetStashLastModifiedTime();
 
         Client& client = Client::GetInstance();
         const char* modName = EngineAPI::GetModName();
         PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
-        if ((modName) && (mainPlayer) && (client.IsInActiveSeason()))
+        if ((modName) && (mainPlayer) && (client.IsParticipatingInSeason()))
         {
-            stashUpdateThread->Update(5000, modName, GameAPI::IsPlayerHardcore(mainPlayer));
+            UpdateStashData(prevModifiedTime, newModifiedTime);
+        }
+    }
+}
+
+void HandleSetMainPlayer(void* _this, uint32_t unk1)
+{
+    typedef void(__thiscall* SetMainPlayerProto)(void*, uint32_t);
+
+    SetMainPlayerProto callback = (SetMainPlayerProto)HookManager::GetOriginalFunction("Game.dll", GameAPI::GAPI_NAME_SET_MAIN_PLAYER);
+    if (callback)
+    {
+        callback(_this, unk1);
+
+        Client& client = Client::GetInstance();
+        PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
+        const SeasonInfo* seasonInfo = client.GetActiveSeason();
+        if ((mainPlayer) && (seasonInfo))
+        {
+            std::wstring playerName = GameAPI::GetPlayerName(mainPlayer);
+            client.SetActiveCharacter(playerName, GameAPI::HasToken(mainPlayer, seasonInfo->_participationToken));
+
+            if (GameAPI::GetGameDifficulty() != GameAPI::GAME_DIFFICULTY_NORMAL)
+            {
+                Quest questData;
+                if (questData.ReadFromFile(GetPlayerCharacterPath(playerName) / "maps_world001.map" / "Normal" / "quests.gdd"))
+                {
+                    web::json::value questJSON = questData.ToJSON();
+                    web::json::array tokensArray = questJSON[U("Tokens")][U("Tokens")].as_array();
+
+                    uint32_t index = 0;
+                    for (auto it2 = tokensArray.begin(); it2 != tokensArray.end(); ++it2)
+                    {
+                        std::string token = JSONString(it2->serialize());
+                        token = std::string(token.begin() + 1, token.end() - 1);    // Trim quotes before storing as a JSON string
+                        if (token == seasonInfo->_participationToken)
+                        {
+                            client.SetActiveCharacter(playerName, true);
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -317,7 +466,7 @@ void HandleBestowToken(void* _this, void* token)
         PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
         const SeasonInfo* seasonInfo = client.GetActiveSeason();
 
-        if ((modName) && (mainPlayer) && (client.IsInActiveSeason()))
+        if ((modName) && (mainPlayer) && (seasonInfo))
         {
             // Sometimes the token appears to be garbage memory, so check the flags to make sure it's valid
             uint32_t tokenFlags = *((uint32_t*)token + 4);
@@ -329,7 +478,11 @@ void HandleBestowToken(void* _this, void* token)
                     // Prevent tokens from being updated in multiplayer season games (except for starting item token, to avoid receiving the starting items multiple times)
                     return;
                 }
-                else if ((tokenString.find("GDL_", 0) == 0) && (GameAPI::HasToken(mainPlayer, seasonInfo->_participationToken)))
+                else if (tokenString == seasonInfo->_participationToken)
+                {
+                    client.SetActiveCharacter(GameAPI::GetPlayerName(mainPlayer), true);
+                }
+                else if ((tokenString.find("GDL_", 0) == 0) && (client.IsParticipatingInSeason()))
                 {
                     // Otherwise if it's a season token, pass it along to the server and update the points/rank
                     URI endpoint = URI(client.GetHostName()) / "api" / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "quest-tag" / tokenString;
@@ -345,22 +498,24 @@ void HandleBestowToken(void* _this, void* token)
                     std::string bearerToken = "Bearer " + client.GetAuthToken();
                     request.headers().add(U("Authorization"), bearerToken.c_str());
 
-                    try
+                    httpClient.request(request).then([](web::http::http_response response)
                     {
-                        web::http::http_response response = httpClient.request(request).get();
-                        if (response.status_code() == web::http::status_codes::OK)
+                        try
                         {
-                            UpdateSeasonStanding();
+                            if (response.status_code() == web::http::status_codes::OK)
+                            {
+                                UpdateSeasonStanding();
+                            }
+                            else
+                            {
+                                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+                            }
                         }
-                        else
+                        catch (const std::exception& ex)
                         {
-                            throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+                            Logger::LogMessage(LOG_LEVEL_WARN, "Failed to update quest tag: %", ex.what());
                         }
-                    }
-                    catch (const std::exception& ex)
-                    {
-                        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to update quest tag: %", ex.what());
-                    }
+                    });
                 }
             }
         }
@@ -378,7 +533,11 @@ void HandleRender(void* _this)
     {
         callback(_this);
 
-        // Insert any code that needs to happen every frame during rendering here. Note that this will occur after all other entities have been rendered
+        // Terminate the process immediately if GI is detected
+        if (GetModuleHandle(TEXT("GrimInternalsDll64.dll")))
+        {
+            ExitProcess(EXIT_SUCCESS);
+        }
     }
 }
 
@@ -411,33 +570,54 @@ bool HandleLoadWorld(void* _this, const char* mapName, bool unk1, bool modded)
                     std::string bearerToken = "Bearer " + client.GetAuthToken();
                     request.headers().add(U("Authorization"), bearerToken.c_str());
 
-                    try
+                    httpClient.request(request).then([&client, seasonInfo](web::http::http_response response)
                     {
-                        web::http::http_response response = httpClient.request(request).get();
-                        web::http::status_code status = response.status_code();
-
-                        if (status == web::http::status_codes::OK)
+                        try
                         {
-                            web::json::value responseBody = response.extract_json().get();
-                            web::json::value participantID = responseBody[U("seasonParticipantId")];
-                            client.SetParticipantID(participantID.as_integer());
-                            UpdateSeasonStanding();
+                            web::http::status_code status = response.status_code();
+                            if (status == web::http::status_codes::OK)
+                            {
+                                web::json::value responseBody = response.extract_json().get();
+                                web::json::value participantID = responseBody[U("seasonParticipantId")];
+                                client.SetParticipantID(participantID.as_integer());
+                                UpdateSeasonStanding();
+                            }
+                            else
+                            {
+                                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+                            }
                         }
-                        else
+                        catch (const std::exception& ex)
                         {
-                            throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+                            Logger::LogMessage(LOG_LEVEL_WARN, "Failed to register for season %: %", seasonInfo->_seasonID, ex.what());
                         }
-                    }
-                    catch (const std::exception& ex)
-                    {
-                        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to register for season %: %", seasonInfo->_seasonID, ex.what());
-                    }
+                    })
+                    .wait();
                 }
             }
         }
         return result;
     }
     return false;
+}
+
+void HandleUnloadWorld(void* _this)
+{
+    typedef void(__thiscall* UnloadWorldProto)(void*);
+
+    UnloadWorldProto callback = (UnloadWorldProto)HookManager::GetOriginalFunction("Game.dll", GameAPI::GAPI_NAME_UNLOAD_WORLD);
+    if (callback)
+    {
+        callback(_this);
+
+        Client& client = Client::GetInstance();
+        const std::wstring& characterName = client.GetActiveCharacterName();
+        if ((!EngineAPI::IsMultiplayer()) && (client.IsParticipatingInSeason()) && (!characterName.empty()))
+        {
+            UpdateCharacterData(characterName, false);
+            client.SetActiveCharacter({}, false);
+        }
+    }
 }
 
 bool HandleKeyEvent(void* _this, EngineAPI::KeyButtonEvent& event)
@@ -477,7 +657,7 @@ void HandleRenderStyledText2D(void* _this, const EngineAPI::Rect& rect, const wc
 
         // If the player is in-game on the season mod, append the league info to the difficulty text in the upper left corner
         // We modify the text instead of creating new text because that way it preserves the Z-order and doesn't conflict with the loading screen/pause overlay/etc.
-        if ((rect._x == 10.0f) && (rect._y == 10.0f) && (modName) && (mainPlayer) && (client.IsInActiveSeason()))
+        if ((rect._x >= 7.0f) && (rect._y >= 7.0f) && (rect._x <= 18.0f) && (rect._y <= 18.0f) && (rect._x == rect._y) && (modName) && (mainPlayer) && (client.IsParticipatingInSeason()))
         {
             std::wstring textString(text);
             if (textString.empty())
@@ -493,7 +673,6 @@ void HandleRenderStyledText2D(void* _this, const EngineAPI::Rect& rect, const wc
     }
 }
 
-
 bool Client::SetupClientHooks()
 {
     if (!HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_GET_VERSION, &HandleGetVersion) ||
@@ -501,20 +680,21 @@ bool Client::SetupClientHooks()
         !HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_LOAD_WORLD, &HandleLoadWorld) ||
         !HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_HANDLE_KEY_EVENT, &HandleKeyEvent) ||
         !HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_RENDER_STYLED_TEXT_2D, &HandleRenderStyledText2D) ||
+        !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_SET_MAIN_PLAYER, &HandleSetMainPlayer) ||
         !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_SAVE_NEW_FORMAT_DATA, &HandleSaveNewFormatData) ||
         !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_SAVE_TRANSFER_STASH, &HandleSaveTransferStash) ||
-        !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_BESTOW_TOKEN, &HandleBestowToken))
+        !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_BESTOW_TOKEN, &HandleBestowToken) ||
+        !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_UNLOAD_WORLD, &HandleUnloadWorld))
         return false;
 
     UpdateVersionInfoText();
 
-    characterUpdateThread = std::make_shared<UpdateThread<std::wstring>>(&UpdateCharacterData);
-    stashUpdateThread = std::make_shared<UpdateThread<std::string, bool>>(&UpdateStashData);
+    characterUpdateThread = std::make_shared<UpdateThread<std::wstring, bool>>(&UpdateCharacterData);
     clientTokenUpdateThread = std::make_shared<UpdateThread<Client*>>(&UpdateClientTokens, 1000, 1800000);
 
-    // Refresh the client tokens every 30 minutes
+    // Refresh the client tokens immediately and then every 30 minutes after
     Client& client = Client::GetInstance();
-    clientTokenUpdateThread->Update(1800000, &client);
+    clientTokenUpdateThread->Update(0, &client);
 
     return true;
 }
@@ -526,12 +706,13 @@ void Client::CleanupClientHooks()
     HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_LOAD_WORLD);
     HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_HANDLE_KEY_EVENT);
     HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_RENDER_STYLED_TEXT_2D);
+    HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_SET_MAIN_PLAYER);
     HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_SAVE_NEW_FORMAT_DATA);
     HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_SAVE_TRANSFER_STASH);
     HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_BESTOW_TOKEN);
+    HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_UNLOAD_WORLD);
 
     characterUpdateThread->Stop();
-    stashUpdateThread->Stop();
     clientTokenUpdateThread->Stop();
 
     //TODO: (In another function perhaps) scan the user save directory for all characters and upload them to the server

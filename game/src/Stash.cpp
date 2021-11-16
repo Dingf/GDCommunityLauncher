@@ -53,7 +53,7 @@ void Stash::ReadStashTab(EncodedFileReader* reader)
     }
 
     if (stashTab->GetItemCount() != numItems)
-        throw std::runtime_error(Logger::LogMessage(LOG_LEVEL_ERROR, "The number of items read from the container (%) does not match the expected number of items (%)", stashTab->GetItemCount(), numItems));
+        Logger::LogMessage(LOG_LEVEL_WARN, "The number of items read from the container (%) does not match the expected number of items (%)", stashTab->GetItemCount(), numItems);
 
     stashTabBlock->ReadBlockEnd(reader);
 

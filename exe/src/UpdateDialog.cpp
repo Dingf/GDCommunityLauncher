@@ -328,7 +328,6 @@ bool UpdateDialog::Update(void* configPointer)
     _config = (Configuration*)configPointer;
 
     std::string hostName;
-    std::vector<std::string> updateList;
 
     const Value* hostValue = _config->GetValue("Login", "hostname");
     if ((hostValue) && (hostValue->GetType() == VALUE_TYPE_STRING))
@@ -338,29 +337,38 @@ bool UpdateDialog::Update(void* configPointer)
     if (modName.empty())
         return false;
 
-    if (!GetUpdateList(hostName, modName, updateList))
-        return false;
+    HINSTANCE instance = GetModuleHandle(NULL);
+    _window = CreateDialogParam(instance, MAKEINTRESOURCE(IDD_DIALOG2), 0, UpdateDialogHandler, (LPARAM)_config);
 
-    if (updateList.size() > 0)
+    pplx::create_task(SetUpdateDialogProgress);
+    pplx::create_task([hostName, modName]()
     {
-        DownloadFiles(hostName, modName, updateList);
-
-        HINSTANCE instance = GetModuleHandle(NULL);
-        _window = CreateDialogParam(instance, MAKEINTRESOURCE(IDD_DIALOG2), 0, UpdateDialogHandler, (LPARAM)_config);
-
-        pplx::create_task(SetUpdateDialogProgress);
-
-        MSG message;
-        while (GetMessage(&message, 0, 0, 0))
+        std::vector<std::string> updateList;
+        if (!GetUpdateList(hostName, modName, updateList))
         {
-            if (!IsDialogMessage(_window, &message))
-            {
-                TranslateMessage(&message);
-                DispatchMessage(&message);
-            }
+            SendMessage(UpdateDialog::_window, WM_UPDATE_FAIL, NULL, NULL);
+            return;
         }
-        return _result;
+
+        if (updateList.size() > 0)
+        {
+            DownloadFiles(hostName, modName, updateList);
+        }
+        else
+        {
+            SendMessage(UpdateDialog::_window, WM_UPDATE_OK, NULL, NULL);
+        }
+    });
+
+    MSG message;
+    while (GetMessage(&message, 0, 0, 0))
+    {
+        if (!IsDialogMessage(_window, &message))
+        {
+            TranslateMessage(&message);
+            DispatchMessage(&message);
+        }
     }
-    else
-        return true;
+
+    return true;
 }

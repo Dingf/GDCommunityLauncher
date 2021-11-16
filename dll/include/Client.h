@@ -22,6 +22,12 @@ struct SeasonInfo
     std::string _participationToken;
 };
 
+struct CharacterInfo
+{
+    bool         _hasToken;
+    std::wstring _name;
+};
+
 struct ClientData
 {
     bool IsValid() const
@@ -64,11 +70,17 @@ class Client
         const std::vector<SeasonInfo>& GetSeasons() const { return _data._seasons; }
         const SeasonInfo* GetActiveSeason() const { return _activeSeason; }
 
-        bool IsInActiveSeason() const { return _activeSeason != nullptr; }
+        const std::wstring& GetActiveCharacterName() const { return _activeCharacter._name; }
+
+        bool IsParticipatingInSeason() const { return (_activeSeason != nullptr) && (_activeCharacter._hasToken); }
 
         void SetActiveSeason(const std::string& modName, bool hardcore);
-        void SetParticipantID(uint32_t participantID) { _data._participantID = participantID; }
+        void SetActiveCharacter(const std::wstring& name, bool hasToken);
 
+        void SetParticipantID(uint32_t participantID)
+        {
+            _data._participantID = participantID;
+        }
         void SetPoints(uint32_t points)
         {
             _points = points;
@@ -93,6 +105,7 @@ class Client
         
         ClientData _data;
         SeasonInfo* _activeSeason;
+        CharacterInfo _activeCharacter;
 
         std::string _versionInfoText;
         std::wstring _leagueInfoText;
