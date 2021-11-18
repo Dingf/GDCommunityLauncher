@@ -1,35 +1,21 @@
 #include "FileReader.h"
 
-FileReader::FileReader(std::ifstream& in) : _bufferPos(0)
+FileReader::FileReader(const std::filesystem::path& path)
 {
-    in.seekg(0, in.end);
-    _bufferSize = in.tellg();
-    in.seekg(0, in.beg);
-
-    _buffer = new uint8_t[_bufferSize];
-    in.read((char*)_buffer, _bufferSize);
-    in.close();
-}
-
-FileReader::~FileReader()
-{
-    if (_buffer != nullptr)
-    {
-        delete[] _buffer;
-        _buffer = nullptr;
-    }
     _bufferPos = 0;
     _bufferSize = 0;
-}
 
-std::shared_ptr<FileReader> FileReader::Open(const std::filesystem::path& path)
-{
     std::ifstream in(path, std::ifstream::binary | std::ifstream::in);
-    if (!in.is_open())
-        return nullptr;
+    if (in.is_open())
+    {
+        in.seekg(0, in.end);
+        _bufferSize = in.tellg();
+        in.seekg(0, in.beg);
 
-    std::shared_ptr<FileReader> reader(new FileReader(in));
-    return reader;
+        _buffer = new uint8_t[_bufferSize];
+        in.read((char*)_buffer, _bufferSize);
+        in.close();
+    }
 }
 
 float FileReader::ReadFloat()
@@ -37,7 +23,7 @@ float FileReader::ReadFloat()
     if (_bufferPos + 4 <= _bufferSize)
     {
         uint32_t val = *(uint32_t*)(&_buffer[_bufferPos]);
-        val += 4;
+        _bufferPos += 4;
         return reinterpret_cast<float&>(val);
     }
     return 0.0f;
@@ -91,12 +77,12 @@ std::string FileReader::ReadString()
     if ((length == 0) || (_bufferPos + length > _bufferSize))
         return {};
 
-    std::string str(length, '\0');
+    std::string val(length, '\0');
     for (uint32_t i = 0; i < length; ++i)
     {
-        str[i] = (char)_buffer[_bufferPos++];
+        val[i] = (char)_buffer[_bufferPos++];
     }
-    return str;
+    return val;
 }
 
 std::wstring FileReader::ReadWideString()
@@ -105,17 +91,15 @@ std::wstring FileReader::ReadWideString()
     if ((length == 0) || (_bufferPos + length * 2 > _bufferSize))
         return {};
 
-    std::wstring str(length, '\0');
+    std::wstring val(length, '\0');
     for (uint32_t i = 0; i < length; ++i)
     {
-        uint8_t c1 = _buffer[_bufferPos++];
-        uint8_t c2 = _buffer[_bufferPos++];
-        str[i] = (wchar_t)(((uint16_t)c2 << 8) | c1);
+        val[i] = (wchar_t)ReadInt16();
     }
-    return str;
+    return val;
 }
 
-EncodedFileReader::EncodedFileReader(std::ifstream& in) : FileReader(in)
+EncodedFileReader::EncodedFileReader(const std::filesystem::path& path) : FileReader(path)
 {
     if (_bufferPos + 4 <= _bufferSize)
     {
@@ -134,19 +118,9 @@ void EncodedFileReader::UpdateKey(uint32_t val)
 {
     for (uint32_t i = 0; i < 4; ++i)
     {
-        uint32_t index = (val & (0xff << (i << 3))) >> (i << 3);
+        uint32_t index = (val & (0xFF << (i << 3))) >> (i << 3);
         _key ^= _table[index];
     }
-}
-
-std::shared_ptr<EncodedFileReader> EncodedFileReader::Open(const std::filesystem::path& path)
-{
-    std::ifstream in(path, std::ifstream::binary | std::ifstream::in);
-    if (!in.is_open())
-        return nullptr;
-
-    std::shared_ptr<EncodedFileReader> reader(new EncodedFileReader(in));
-    return reader;
 }
 
 float EncodedFileReader::ReadFloat(bool update)
@@ -212,38 +186,18 @@ uint32_t EncodedFileReader::ReadInt32(bool update)
     return 0;
 }
 
-uint64_t EncodedFileReader::ReadInt64(bool update)
-{
-    // This is not confirmed to work, need to find an example of this in-game
-    if (_bufferPos + 8 <= _bufferSize)
-    {
-        uint64_t val = *(uint64_t*)(&_buffer[_bufferPos]);
-        uint64_t result = val ^ _key;
-        _bufferPos += 8;
-
-        if (update)
-            UpdateKey(val);
-
-        return result;
-    }
-    return 0;
-}
-
 std::string EncodedFileReader::ReadString()
 {
     uint32_t length = ReadInt32(true);
     if ((length == 0) || (_bufferPos + length > _bufferSize))
         return {};
 
-    std::string str(length, '\0');
+    std::string val(length, '\0');
     for (uint32_t i = 0; i < length; ++i)
     {
-        uint8_t c = _buffer[_bufferPos++];
-        uint32_t result = c ^ _key;
-        _key ^= _table[c];
-        str[i] = (char)(result & 0xFF);
+        val[i] = (char)ReadInt8();
     }
-    return str;
+    return val;
 }
 
 std::wstring EncodedFileReader::ReadWideString()
@@ -252,18 +206,10 @@ std::wstring EncodedFileReader::ReadWideString()
     if ((length == 0) || (_bufferPos + (length * 2) > _bufferSize))
         return {};
 
-    std::wstring str(length, '\0');
+    std::wstring val(length, '\0');
     for (uint32_t i = 0; i < length; ++i)
     {
-        uint8_t c1 = _buffer[_bufferPos++];
-        wchar_t result1 = (c1 ^ _key) & 0xFF;
-        _key ^= _table[c1];
-
-        uint8_t c2 = _buffer[_bufferPos++];
-        wchar_t result2 = (c2 ^ _key) & 0xFF;
-        _key ^= _table[c2];
-
-        str[i] = ((result2 << 8) | result1);
+        val[i] = (wchar_t)ReadInt16();
     }
-    return str;
+    return val;
 }

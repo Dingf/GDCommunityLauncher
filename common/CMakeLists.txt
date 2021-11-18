@@ -1,12 +1,15 @@
 add_library(common
 include/md5.hpp
+include/FileBuffer.h
 include/FileReader.h
+include/FileWriter.h
 include/Log.h
 include/Value.h
 include/Version.h
 include/JSONObject.h
 include/URI.h
 src/FileReader.cpp
+src/FileWriter.cpp
 src/Value.cpp)
 
 target_include_directories(common PRIVATE include)

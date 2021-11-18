@@ -11,7 +11,7 @@ constexpr uint32_t ARC_MAGIC = 0x00435241;
 class ARCExtractor
 {
     public:
-        static bool Extract(const std::filesystem::path& src, const std::filesystem::path& outputDir);
+        static void Extract(const std::filesystem::path& src, const std::filesystem::path& outputDir);
 
     private:
         ARCExtractor(const std::filesystem::path& filename);

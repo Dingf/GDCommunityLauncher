@@ -9,28 +9,16 @@ ARZExtractor::ARZExtractor()
     memset(&_header, 0, sizeof(ARZHeader));
 }
 
-bool ARZExtractor::Extract(const std::filesystem::path& src, const std::filesystem::path& outputDir)
+void ARZExtractor::Extract(const std::filesystem::path& src, const std::filesystem::path& outputDir)
 {
-    std::shared_ptr<FileReader> reader = FileReader::Open(src);
-    if (reader == nullptr)
-    {
-        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to open file: \"%\"", src.string().c_str());
-        return false;
-    }
+    FileReader reader(src);
+    if (!reader.HasData())
+        throw std::runtime_error(Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to open file \"%\" for reading", src.string().c_str()));
 
-    try
-    {
-        ARZExtractor extractor;
-        extractor.ReadARZHeader(reader.get());
-        extractor.ReadARZStrings(reader.get());
-        extractor.ExtractARZRecords(reader.get(), outputDir);
-    }
-    catch (std::runtime_error&)
-    {
-        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to extract ARZ file \"%\"", src.string().c_str());
-        return false;
-    }
-    return true;
+    ARZExtractor extractor;
+    extractor.ReadARZHeader(&reader);
+    extractor.ReadARZStrings(&reader);
+    extractor.ExtractARZRecords(&reader, outputDir);
 }
 
 void ARZExtractor::ReadARZHeader(FileReader* reader)

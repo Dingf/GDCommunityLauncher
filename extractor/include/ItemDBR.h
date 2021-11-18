@@ -6,9 +6,9 @@
 class ItemDBR : public DBRecord
 {
     public:
-        ItemDBR() : _width(0), _height(0) {};
+        ItemDBR(const std::filesystem::path& path);
 
-        bool Load(const std::filesystem::path& path);
+        static void BuildItemDB(const std::filesystem::path& dataPath, const std::filesystem::path& outPath);
 
         uint32_t GetWidth() const { return _width; }
         uint32_t GetHeight() const { return _height; }

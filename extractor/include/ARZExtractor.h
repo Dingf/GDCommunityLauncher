@@ -18,7 +18,7 @@ enum ARZDataType
 class ARZExtractor
 {
     public:
-        static bool Extract(const std::filesystem::path& src, const std::filesystem::path& outputDir);
+        static void Extract(const std::filesystem::path& src, const std::filesystem::path& outputDir);
 
     private:
         ARZExtractor();

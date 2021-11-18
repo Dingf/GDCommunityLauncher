@@ -13,12 +13,12 @@ DDSImage::DDSImage(const std::string& filename)
     memset(&_DDSHeader, 0, sizeof(DDSHeader));
     memset(&_DXT10Header, 0, sizeof(DXT10Header));
 
-    std::shared_ptr<FileReader> reader = FileReader::Open(filename);
-    if (reader == nullptr)
+    FileReader reader(filename);
+    if (!reader.HasData())
         throw std::runtime_error(Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to open file: \"%\"", filename));
 
-    LoadDDSHeader(reader.get());
-    LoadDDSImage(reader.get());
+    LoadDDSHeader(&reader);
+    LoadDDSImage(&reader);
 }
 
 bool DDSImage::HasPixelBitMask(uint32_t r, uint32_t g, uint32_t b, uint32_t a) const

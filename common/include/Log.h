@@ -17,19 +17,19 @@ enum LogLevel
 class Logger
 {
     public:
-        void SetMinimumLogLevel(LogLevel level)
+        static void SetMinimumLogLevel(LogLevel level)
         {
             Logger& logger = GetInstance();
             logger._minLevel = level;
         }
 
-        void SetLogFilename(const std::string& filename)
+        static void SetLogFilename(const std::string& filename)
         {
             Logger& logger = GetInstance();
             logger._filename = filename;
         }
 
-        void SetLogFormat(const std::string& format)
+        static void SetLogFormat(const std::string& format)
         {
             Logger& logger = GetInstance();
             logger._format = format;

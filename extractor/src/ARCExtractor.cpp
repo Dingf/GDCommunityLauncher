@@ -9,28 +9,16 @@ ARCExtractor::ARCExtractor(const std::filesystem::path& filename)
     _arcName = filename.stem();
 }
 
-bool ARCExtractor::Extract(const std::filesystem::path& src, const std::filesystem::path& outputDir)
+void ARCExtractor::Extract(const std::filesystem::path& src, const std::filesystem::path& outputDir)
 {
-    std::shared_ptr<FileReader> reader = FileReader::Open(src);
-    if (reader == nullptr)
-    {
-        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to open file: \"%\"", src.string().c_str());
-        return false;
-    }
+    FileReader reader(src);
+    if (!reader.HasData())
+        throw std::runtime_error(Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to open file \"%\" for reading", src.string().c_str()));
 
-    try
-    {
-        ARCExtractor extractor(src);
-        extractor.ReadARCHeader(reader.get());
-        extractor.ReadARCFileChunks(reader.get());
-        extractor.ExtractARCFiles(reader.get(), outputDir);
-    }
-    catch (std::runtime_error&)
-    {
-        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to extract ARZ file \"%\"", src.string().c_str());
-        return false;
-    }
-    return true;
+    ARCExtractor extractor(src);
+    extractor.ReadARCHeader(&reader);
+    extractor.ReadARCFileChunks(&reader);
+    extractor.ExtractARCFiles(&reader, outputDir);
 }
 
 void ARCExtractor::ReadARCHeader(FileReader* reader)

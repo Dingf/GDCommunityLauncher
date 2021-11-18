@@ -5,21 +5,22 @@ bool TEXImage::Load(const std::filesystem::path& path)
 {
     memset(&_TEXHeader, 0, sizeof(TEXHeader));
 
-    std::shared_ptr<FileReader> reader = FileReader::Open(path);
-    if (reader == nullptr)
+    FileReader reader(path);
+    if (!reader.HasData())
         throw std::runtime_error(Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to open file: \"%\"", path.string().c_str()));
 
     try
     {
-        LoadTEXHeader(reader.get());
-        LoadDDSHeader(reader.get(), false);
-        LoadDDSImage(reader.get());
+        LoadTEXHeader(&reader);
+        LoadDDSHeader(&reader, false);
+        LoadDDSImage(&reader);
     }
     catch (std::runtime_error&)
     {
         Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to load TEX image \"%\"", path.string().c_str());
         return false;
     }
+    return true;
 }
 
 void TEXImage::LoadTEXHeader(FileReader* reader)

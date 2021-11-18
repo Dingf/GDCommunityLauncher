@@ -23,24 +23,27 @@ bool DBRecord::Load(const std::filesystem::path& path)
     bool recordStart = false;
     for (auto it = path.begin(); it != path.end(); ++it)
     {
+        if ((!recordStart) && (*it == "records"))
+            recordStart = true;
+
         if (recordStart)
             _recordPath /= *it;
         else
             _rootPath /= *it;
-
-        if ((!recordStart) && (*it == "records"))
-            recordStart = true;
     }
 
     if ((_rootPath.empty()) || (_recordPath.empty()))
         return false;
 
-    std::shared_ptr<FileReader> reader = FileReader::Open(path);
-    const char* buffer = (const char*)reader->GetBuffer();
+    FileReader reader(path);
+    if (!reader.HasData())
+        return false;
+
+    const char* buffer = (const char*)reader.GetBuffer();
 
     // DBR files are plaintext so loop through each line and parse all of the record data
     int64_t bufferPos = 0;
-    int64_t bufferSize = reader->GetBufferSize();
+    int64_t bufferSize = reader.GetBufferSize();
     while (bufferPos < bufferSize)
     {
         int64_t recordStart = bufferPos;
@@ -64,7 +67,7 @@ bool DBRecord::Load(const std::filesystem::path& path)
 
         std::string key(&buffer[recordStart], dataStart - recordStart);
 
-        uint32_t dataCurrent = dataStart + 1;
+        int64_t dataCurrent = dataStart + 1;
         while (dataCurrent <= dataEnd)
         {
             char c = buffer[dataCurrent];
