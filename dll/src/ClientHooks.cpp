@@ -428,7 +428,8 @@ void HandleSetMainPlayer(void* _this, uint32_t unk1)
         if ((mainPlayer) && (seasonInfo))
         {
             std::wstring playerName = GameAPI::GetPlayerName(mainPlayer);
-            client.SetActiveCharacter(playerName, GameAPI::HasToken(mainPlayer, seasonInfo->_participationToken));
+            bool hasParticipationToken = GameAPI::HasToken(mainPlayer, seasonInfo->_participationToken);
+
 
             if (GameAPI::GetGameDifficulty() != GameAPI::GAME_DIFFICULTY_NORMAL)
             {
@@ -445,10 +446,17 @@ void HandleSetMainPlayer(void* _this, uint32_t unk1)
                         token = std::string(token.begin() + 1, token.end() - 1);    // Trim quotes before storing as a JSON string
                         if (token == seasonInfo->_participationToken)
                         {
-                            client.SetActiveCharacter(playerName, true);
+                            hasParticipationToken = true;
+                            break;
                         }
                     }
                 }
+            }
+
+            client.SetActiveCharacter(playerName, hasParticipationToken);
+            if (hasParticipationToken)
+            {
+                UpdateCharacterData(playerName, false);
             }
         }
     }
@@ -480,7 +488,9 @@ void HandleBestowToken(void* _this, void* token)
                 }
                 else if (tokenString == seasonInfo->_participationToken)
                 {
-                    client.SetActiveCharacter(GameAPI::GetPlayerName(mainPlayer), true);
+                    std::wstring playerName = GameAPI::GetPlayerName(mainPlayer);
+                    client.SetActiveCharacter(playerName, true);
+                    UpdateCharacterData(playerName, true);
                 }
                 else if ((tokenString.find("GDL_", 0) == 0) && (client.IsParticipatingInSeason()))
                 {
