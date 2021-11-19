@@ -147,7 +147,7 @@ void EncodedFileWriter::WriteInt32(uint32_t val, bool update)
 
 void EncodedFileWriter::WriteString(std::string val)
 {
-    uint32_t length = val.size();
+    uint32_t length = (uint32_t)val.size();
     WriteInt32(length);
 
     if (_bufferPos + length <= _bufferSize)

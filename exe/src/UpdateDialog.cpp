@@ -10,6 +10,7 @@
 #include "UpdateDialog.h"
 #include "JSONObject.h"
 #include "URI.h"
+#include "Version.h"
 #include "md5.hpp"
 
 namespace UpdateDialog
@@ -36,6 +37,41 @@ std::string GenerateFileMD5(const std::filesystem::path& path)
         *it = toupper(*it);
 
     return result;
+}
+
+std::string GetLauncherVersion(std::string hostName)
+{
+    URI endpoint = URI(hostName) / "api" / "File" / "launcher";
+    web::http::client::http_client httpClient((utility::string_t)endpoint);
+    web::http::http_request request(web::http::methods::GET);
+
+    try
+    {
+        web::http::http_response response = httpClient.request(request).get();
+        switch (response.status_code())
+        {
+            case web::http::status_codes::OK:
+            {
+                web::json::value responseBody = response.extract_json().get();
+                web::json::value version = responseBody[U("version")];
+
+                std::string versionString = JSONString(version.serialize());
+                if ((!versionString.empty()) && (versionString.front() == '\"') && (versionString.back() == '\"'))
+                    versionString = std::string(versionString.begin() + 1, versionString.end() - 1);
+
+                return versionString;
+            }
+            default:
+            {
+                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+            }
+        }
+    }
+    catch (const std::exception& ex)
+    {
+        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve launcher version: %", ex.what());
+    }
+    return {};
 }
 
 std::string GetSeasonModName(std::string hostName)
@@ -268,6 +304,12 @@ INT_PTR CALLBACK UpdateDialogHandler(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
             DestroyWindow(hwnd);
             return TRUE;
         }
+        case WM_UPDATE_OLD_VERSION:
+        {
+            MessageBoxA(hwnd, "The version of the launcher that you are using is out of date. Please download the latest version and try again.", "Error", MB_OK | MB_ICONERROR);
+            DestroyWindow(hwnd);
+            return TRUE;
+        }
     }
     return FALSE;
 }
@@ -343,6 +385,14 @@ bool UpdateDialog::Update(void* configPointer)
     pplx::create_task(SetUpdateDialogProgress);
     pplx::create_task([hostName, modName]()
     {
+        std::string version = GetLauncherVersion(hostName);
+        if (GetLauncherVersion(hostName) != std::string(GDCL_VERSION))
+        {
+            Logger::LogMessage(LOG_LEVEL_ERROR, "The launcher version is out of date. Server expects \"%\", but client has \"%\"", version.c_str(), GDCL_VERSION);
+            SendMessage(UpdateDialog::_window, WM_UPDATE_OLD_VERSION, NULL, NULL);
+            return;
+        }
+
         std::vector<std::string> updateList;
         if (!GetUpdateList(hostName, modName, updateList))
         {
@@ -370,5 +420,5 @@ bool UpdateDialog::Update(void* configPointer)
         }
     }
 
-    return true;
+    return UpdateDialog::_result;
 }

@@ -7,17 +7,16 @@ bool SharedStash::ReadFromFile(const std::filesystem::path& path)
 {
     if (std::filesystem::is_regular_file(path))
     {
-        std::shared_ptr<EncodedFileReader> readerPtr = EncodedFileReader::Open(path);
-        if (!readerPtr)
+        EncodedFileReader reader(path);
+        if (!reader.HasData())
         {
             Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to open file: \"%\"", path.string().c_str());
             return false;
         }
 
-        EncodedFileReader* reader = readerPtr.get();
         try
         {
-            ReadSharedStashData(reader);
+            ReadSharedStashData(&reader);
             return true;
         }
         catch (std::runtime_error&)
@@ -29,32 +28,41 @@ bool SharedStash::ReadFromFile(const std::filesystem::path& path)
     return false;
 }
 
+void SharedStash::WriteToFile(const std::filesystem::path& path)
+{
+    std::filesystem::path writePath = path;
+    if (std::filesystem::exists(path))
+    {
+        if (std::filesystem::is_regular_file(path))
+        {
+            writePath += "_tmp";
+        }
+        else
+        {
+            Logger::LogMessage(LOG_LEVEL_ERROR, "Tried to write shared stash to path \"%\" which is not a file", path.string().c_str());
+        }
+    }
+
+
+}
+
 void SharedStash::ReadSharedStashData(EncodedFileReader* reader)
 {
     uint32_t fileVersion = reader->ReadInt32();
-    uint32_t headerStart = reader->ReadInt32();
-    uint32_t headerLength = reader->ReadInt32(false);
-    uint32_t dataVersion = reader->ReadInt32();
-    if ((fileVersion != 2) || (headerStart != 18) || ((dataVersion != 3) && (dataVersion != 4) && (dataVersion != 5)))
-        throw std::runtime_error(Logger::LogMessage(LOG_LEVEL_ERROR, "The file signature or version is invalid"));
+    if (fileVersion != 2)
+        throw std::runtime_error(Logger::LogMessage(LOG_LEVEL_ERROR, "The file version is invalid or unsupported"));
 
-    uint32_t unk1 = reader->ReadInt32(false);
+    _headerBlock.ReadBlockStart(reader);
 
-    std::string modName = reader->ReadString();
-    // TODO: Disabled while testing, re-enable in the actual implementation
-    /*if ((modName.compare("GrimLeagueS02") != 0) && (modName.compare("GrimLeagueS02_HC") != 0))
-    {
-        throw std::runtime_error(Logger::LogMessage(LOG_LEVEL_ERROR, "The specified stash file is not using the GrimLeague Season 3 mod."));
-    }*/
+    _headerBlock._unk1 = reader->ReadInt32(false);
+    _headerBlock._stashModName = reader->ReadString();
 
     // Vanilla = 0x00, AoM = 0x01, FG = 0x02
     //   Since you can't install FG without AoM though, FG essentially has a value of 0x03
-    int8_t expansionStatus = 0;
-    if (dataVersion == 5)
+    _headerBlock._stashExpansions = 0;
+    if (_headerBlock.GetBlockVersion() >= 5)
     {
-        expansionStatus = reader->ReadInt8();
-        if (expansionStatus != 3)
-            throw std::runtime_error(Logger::LogMessage(LOG_LEVEL_ERROR, "The file does not have the correct expansion status (requires AoM and FG)"));
+        _headerBlock._stashExpansions = reader->ReadInt8();
     }
 
     uint32_t numTabs = reader->ReadInt32();
@@ -62,5 +70,23 @@ void SharedStash::ReadSharedStashData(EncodedFileReader* reader)
     {
         ReadStashTab(reader);
     }
+
+    _headerBlock.ReadBlockEnd(reader);
 }
 
+size_t SharedStash::CalculateBufferSize() const
+{
+    size_t size = 28;
+    size += _headerBlock._stashModName.size();
+
+    return size;
+}
+
+web::json::value SharedStash::SharedStashHeaderBlock::ToJSON()
+{
+    web::json::value obj = web::json::value::object();
+
+    //TODO: Implement me
+
+    return obj;
+}

@@ -19,7 +19,7 @@ package-lock.json
 *.ico
 
 # Generated files
-game/src/ItemDatabase.cpp
+dll/res/ItemDatabase.txt
 common/include/Version.h
 *.aps
 *.log

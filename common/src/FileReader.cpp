@@ -209,7 +209,15 @@ std::wstring EncodedFileReader::ReadWideString()
     std::wstring val(length, '\0');
     for (uint32_t i = 0; i < length; ++i)
     {
-        val[i] = (wchar_t)ReadInt16();
+        uint8_t c1 = _buffer[_bufferPos++];
+        wchar_t result1 = (c1 ^ _key) & 0xFF;
+        _key ^= _table[c1];
+
+        uint8_t c2 = _buffer[_bufferPos++];
+        wchar_t result2 = (c2 ^ _key) & 0xFF;
+        _key ^= _table[c2];
+
+        val[i] = ((result2 << 8) | result1);
     }
     return val;
 }

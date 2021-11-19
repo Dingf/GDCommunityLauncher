@@ -62,6 +62,8 @@ void ItemDBR::BuildItemDB(const std::filesystem::path& dataPath, const std::file
         uint32_t height = itemDBRs[i]->GetHeight();
         if ((width > 0) && (height > 0))
         {
+            std::string itemName = itemDBRs[i]->GetRecordPath().string();
+            std::replace(itemName.begin(), itemName.end(), '\\', '/');
             out << "\"" << itemDBRs[i]->GetRecordPath().string() << "\" " << width / 32 << " " << height / 32 << "\n";
         }
     }
@@ -69,7 +71,7 @@ void ItemDBR::BuildItemDB(const std::filesystem::path& dataPath, const std::file
     out.close();
 }
 
-ItemDBR::ItemDBR(const std::filesystem::path& path)
+ItemDBR::ItemDBR(const std::filesystem::path& path) : _width(0), _height(0)
 {
     if (!DBRecord::Load(path))
         throw std::runtime_error(Logger::LogMessage(LOG_LEVEL_ERROR, "The specified path is not a valid item DBR file"));
@@ -84,7 +86,11 @@ ItemDBR::ItemDBR(const std::filesystem::path& path)
 
     if (bitmapPath)
     {
-        std::filesystem::path texturePath = GetRootPath() / bitmapPath->ToString();
+        std::string textureString = bitmapPath->ToString();
+        if (textureString.front() == '/')
+            textureString = std::string(textureString.begin() + 1, textureString.end());
+
+        std::filesystem::path texturePath = GetRootPath() / textureString;
         if (std::filesystem::is_regular_file(texturePath))
         {
             TEXImage image(texturePath.string());
@@ -94,11 +100,7 @@ ItemDBR::ItemDBR(const std::filesystem::path& path)
         }
         else
         {
-            Logger::LogMessage(LOG_LEVEL_WARN, "Item DBR refers to bitmap \"%\" which does not exist. Width/height data will not be loaded.", texturePath);
+            Logger::LogMessage(LOG_LEVEL_WARN, "Item DBR % refers to bitmap % which does not exist. Width/height data will not be loaded.", path, texturePath);
         }
-    }
-    else
-    {
-        Logger::LogMessage(LOG_LEVEL_WARN, "Item DBR does not contain bitmap data. Width/height data will not be loaded.");
     }
 }

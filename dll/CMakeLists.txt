@@ -8,8 +8,9 @@ include/EngineAPI/GraphicsAlign.h
 include/EngineAPI/KeyButtonEvent.h
 include/GameAPI.h
 include/GameAPI/Difficulty.h
-
 include/Client.h
+include/ItemDatabaseValues.h
+res/ItemDatabaseValues.rc
 src/HookManager.cpp
 src/EngineApi.cpp
 src/EngineAPI/Color.cpp

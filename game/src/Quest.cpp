@@ -5,19 +5,18 @@ bool Quest::ReadFromFile(const std::filesystem::path& path)
 {
     if (std::filesystem::is_regular_file(path))
     {
-        std::shared_ptr<EncodedFileReader> readerPtr = EncodedFileReader::Open(path);
-        if (!readerPtr)
+        EncodedFileReader reader(path);
+        if (!reader.HasData())
         {
             Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to open file: \"%\"", path.string().c_str());
             return false;
         }
 
-        EncodedFileReader* reader = readerPtr.get();
         try
         {
-            ReadHeaderData(reader);
-            ReadTokensBlock(reader);
-            ReadDataBlock(reader);
+            ReadHeaderData(&reader);
+            ReadTokensBlock(&reader);
+            ReadDataBlock(&reader);
             return true;
         }
         catch (std::runtime_error&)

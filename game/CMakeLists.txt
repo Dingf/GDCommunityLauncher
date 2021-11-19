@@ -1,6 +1,7 @@
 add_library(game
 include/UID.h
 include/GDDataBlock.h
+include/SaveFile.h
 include/Item.h
 include/ItemContainer.h
 include/Skill.h

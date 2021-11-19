@@ -21,10 +21,12 @@ bool Configuration::Load(const std::filesystem::path& path)
 {
     if (std::filesystem::is_regular_file(path) && (path.extension() == ".ini"))
     {
-        std::shared_ptr<FileReader> reader = FileReader::Open(path);
+        FileReader reader(path);
+        if (!reader.HasData())
+            return false;
 
-        int64_t bufferSize = reader->GetBufferSize();
-        const char* buffer = (const char*)reader->GetBuffer();
+        int64_t bufferSize = reader.GetBufferSize();
+        const char* buffer = (const char*)reader.GetBuffer();
 
         std::string key;
         std::string section;

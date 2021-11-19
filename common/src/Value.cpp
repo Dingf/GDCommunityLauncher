@@ -110,18 +110,18 @@ Value::Value(const Value& val) : _type(val._type)
 {
     switch (val._type)
     {
-    case VALUE_TYPE_INT:
-        _i = val._i;
-        break;
-    case VALUE_TYPE_FLOAT:
-        _f = val._f;
-        break;
-    case VALUE_TYPE_BOOL:
-        _b = val._b;
-        break;
-    case VALUE_TYPE_STRING:
-        CopyStringData(val._s);
-        break;
+        case VALUE_TYPE_INT:
+            _i = val._i;
+            break;
+        case VALUE_TYPE_FLOAT:
+            _f = val._f;
+            break;
+        case VALUE_TYPE_BOOL:
+            _b = val._b;
+            break;
+        case VALUE_TYPE_STRING:
+            CopyStringData(val._s);
+            break;
     }
 }
 

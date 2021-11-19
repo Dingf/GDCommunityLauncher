@@ -7,6 +7,7 @@
 
 #define WM_UPDATE_OK                     0x9001
 #define WM_UPDATE_FAIL                   0x9002
+#define WM_UPDATE_OLD_VERSION            0x9003
 
 namespace UpdateDialog
 {

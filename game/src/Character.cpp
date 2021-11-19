@@ -57,31 +57,30 @@ bool Character::ReadFromFile(const std::filesystem::path& path)
 {
     if (std::filesystem::is_regular_file(path))
     {
-        std::shared_ptr<EncodedFileReader> readerPtr = EncodedFileReader::Open(path);
-        if (!readerPtr)
+        EncodedFileReader reader(path);
+        if (!reader.HasData())
         {
             Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to open file: \"%\"", path.string().c_str());
             return false;
         }
 
-        EncodedFileReader* reader = readerPtr.get();
         try
         {
-            ReadHeaderBlock(reader);
-            ReadInfoBlock(reader);
-            ReadAttributesBlock(reader);
-            ReadInventoryBlock(reader);
-            ReadStashBlock(reader);
-            ReadRespawnBlock(reader);
-            ReadWaypointBlock(reader);
-            ReadMarkerBlock(reader);
-            ReadShrineBlock(reader);
-            ReadSkillBlock(reader);
-            ReadNotesBlock(reader);
-            ReadFactionBlock(reader);
-            ReadUIBlock(reader);
-            ReadTutorialBlock(reader);
-            ReadStatsBlock(reader);
+            ReadHeaderBlock(&reader);
+            ReadInfoBlock(&reader);
+            ReadAttributesBlock(&reader);
+            ReadInventoryBlock(&reader);
+            ReadStashBlock(&reader);
+            ReadRespawnBlock(&reader);
+            ReadWaypointBlock(&reader);
+            ReadMarkerBlock(&reader);
+            ReadShrineBlock(&reader);
+            ReadSkillBlock(&reader);
+            ReadNotesBlock(&reader);
+            ReadFactionBlock(&reader);
+            ReadUIBlock(&reader);
+            ReadTutorialBlock(&reader);
+            ReadStatsBlock(&reader);
 
             return true;
         }
@@ -130,8 +129,6 @@ void Character::ReadHeaderBlock(EncodedFileReader* reader)
     if (fileVersion >= 2)
     {
         _headerBlock._charExpansions = reader->ReadInt8();
-        if (_headerBlock._charExpansions != 3)
-            throw std::runtime_error(Logger::LogMessage(LOG_LEVEL_ERROR, "The file does not have the correct expansion status (requires AoM and FG)"));
     }
 
     _headerBlock.ReadBlockStart(reader, GD_DATA_BLOCK_READ_VERSION);

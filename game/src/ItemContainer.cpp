@@ -43,13 +43,12 @@ void ItemContainer::AddItem(const std::shared_ptr<Item>& item, int32_t x, int32_
     }
     else
     {
-        const std::map<std::string, ItemDatabase::ItemDBEntry>& database = ItemDatabase::GetDatabase();
-
         uint32_t width;
         uint32_t height;
         try
         {
-            const ItemDatabase::ItemDBEntry& entry = database.at(item->_itemName);
+            ItemDatabase& database = ItemDatabase::GetInstance();
+            const ItemDatabase::ItemDBEntry& entry = database.GetEntry(item->_itemName);
             width = entry._width;
             height = entry._height;
         }

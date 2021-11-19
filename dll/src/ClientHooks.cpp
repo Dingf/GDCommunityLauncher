@@ -1,3 +1,4 @@
+#include <Windows.h>
 #include <chrono>
 #include <filesystem>
 #include <cpprest/http_client.h>
@@ -6,6 +7,8 @@
 #include "EngineAPI.h"
 #include "GameAPI.h"
 #include "Client.h"
+#include "ItemDatabaseValues.h"
+#include "ItemDatabase.h"
 #include "Character.h"
 #include "SharedStash.h"
 #include "Quest.h"
@@ -325,7 +328,7 @@ std::filesystem::path GetSharedStashPath(const char* modName, bool hardcore)
     return stashPath;
 }
 
-void UpdateStashData(std::time_t prevModifiedTime, std::time_t newModifiedTime)
+void PostTransferStashUpload()
 {
     Client& client = Client::GetInstance();
     const char* modName = EngineAPI::GetModName();
@@ -342,11 +345,85 @@ void UpdateStashData(std::time_t prevModifiedTime, std::time_t newModifiedTime)
             return;
         }
 
-        web::json::value stashJSON = stashData.ToJSON();
+        web::json::value requestBody = web::json::value::array();
 
+        web::json::value stashJSON = stashData.ToJSON();
+        web::json::array stashTabs = stashJSON[U("Tabs")].as_array();
+        if (stashTabs.size() >= 6)
+        {
+            web::json::value transferTab = stashTabs[5];
+            web::json::array transferTabItems = transferTab[U("Items")].as_array();
+
+            uint32_t index = 0;
+            for (auto it = transferTabItems.begin(); it != transferTabItems.end(); ++it)
+            {
+                requestBody[index] = *it;
+                requestBody[index].erase(U("Unknown1"));
+                requestBody[index].erase(U("Unknown2"));
+                requestBody[index].erase(U("X"));
+                requestBody[index].erase(U("Y"));
+                index++;
+            }
+        }
+
+        URI endpoint = URI(client.GetHostName()) / "api" / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "stash";
+
+        web::http::client::http_client httpClient((utility::string_t)endpoint);
+        web::http::http_request request(web::http::methods::POST);
+        request.set_body(requestBody);
+
+        std::string bearerToken = "Bearer " + client.GetAuthToken();
+        request.headers().add(U("Authorization"), bearerToken.c_str());
+
+        httpClient.request(request).then([](web::http::http_response response)
+        {
+            try
+            {
+                if (response.status_code() == web::http::status_codes::OK)
+                {
+                    //TODO: Save the stash minus the items that were transferred
+                }
+                else
+                {
+                    throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+                }
+            }
+            catch (const std::exception& ex)
+            {
+                Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload shared stash: %", ex.what());
+            }
+        })
+        .wait();
+    }
+}
+
+std::time_t GetStashLastModifiedTime()
+{
+    const char* modName = EngineAPI::GetModName();
+    PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
+    if (mainPlayer)
+    {
+        std::filesystem::path stashPath = GetSharedStashPath(modName, GameAPI::IsPlayerHardcore(mainPlayer));
+        if (!stashPath.empty())
+        {
+            std::filesystem::file_time_type lastModifiedTime = std::filesystem::last_write_time(stashPath);
+            return std::chrono::system_clock::to_time_t(std::chrono::time_point_cast<std::chrono::system_clock::duration>(lastModifiedTime - decltype(lastModifiedTime)::clock::now() + std::chrono::system_clock::now()));
+        }
+    }
+    return std::time_t(-1);
+}
+
+void PostSharedStashUpdateTimes(std::time_t prevModifiedTime)
+{
+    Client& client = Client::GetInstance();
+    const char* modName = EngineAPI::GetModName();
+    PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
+
+    if ((modName) && (mainPlayer) && (client.IsParticipatingInSeason()))
+    {
         web::json::value requestBody;
         requestBody[U("lastModifiedOn")] = prevModifiedTime;
-        requestBody[U("sharedStashModifiedOn")] = newModifiedTime;
+        requestBody[U("sharedStashModifiedOn")] = GetStashLastModifiedTime();
 
         URI endpoint = URI(client.GetHostName()) / "api" / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "shared-stash";
 
@@ -368,28 +445,10 @@ void UpdateStashData(std::time_t prevModifiedTime, std::time_t newModifiedTime)
             }
             catch (const std::exception& ex)
             {
-                Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload shared stash data: %", ex.what());
+                Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload shared stash: %", ex.what());
             }
         });
     }
-
-    //TODO: Trim and send the shared stash JSON data to the server
-}
-
-std::time_t GetStashLastModifiedTime()
-{
-    const char* modName = EngineAPI::GetModName();
-    PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
-    if (mainPlayer)
-    {
-        std::filesystem::path stashPath = GetSharedStashPath(modName, GameAPI::IsPlayerHardcore(mainPlayer));
-        if (!stashPath.empty())
-        {
-            std::filesystem::file_time_type lastModifiedTime = std::filesystem::last_write_time(stashPath);
-            return std::chrono::system_clock::to_time_t(std::chrono::time_point_cast<std::chrono::system_clock::duration>(lastModifiedTime - decltype(lastModifiedTime)::clock::now() + std::chrono::system_clock::now()));
-        }
-    }
-    return std::time_t(-1);
 }
 
 void HandleSaveTransferStash(void* _this)
@@ -401,15 +460,31 @@ void HandleSaveTransferStash(void* _this)
     {
         std::time_t prevModifiedTime = GetStashLastModifiedTime();
         callback(_this);
-        std::time_t newModifiedTime = GetStashLastModifiedTime();
 
         Client& client = Client::GetInstance();
         const char* modName = EngineAPI::GetModName();
         PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
         if ((modName) && (mainPlayer) && (client.IsParticipatingInSeason()))
         {
-            UpdateStashData(prevModifiedTime, newModifiedTime);
+            pplx::create_task([prevModifiedTime]()
+            {
+                //PostTransferStashUpload();
+                PostSharedStashUpdateTimes(prevModifiedTime);
+            });
         }
+    }
+}
+
+void HandleLoadTransferStash(void* _this)
+{
+    typedef void(__thiscall* LoadPlayerTransferProto)(void*);
+    LoadPlayerTransferProto callback = (LoadPlayerTransferProto)HookManager::GetOriginalFunction("Game.dll", GameAPI::GAPI_NAME_LOAD_TRANSFER_STASH);
+    if (callback)
+    {
+        callback(_this);
+
+        // TODO: Download the items to be transferred from the server and save the stash
+        //       This may affect the file last modified time as well, so we need to store that before making any changes
     }
 }
 
@@ -425,11 +500,11 @@ void HandleSetMainPlayer(void* _this, uint32_t unk1)
         Client& client = Client::GetInstance();
         PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
         const SeasonInfo* seasonInfo = client.GetActiveSeason();
+
         if ((mainPlayer) && (seasonInfo))
         {
             std::wstring playerName = GameAPI::GetPlayerName(mainPlayer);
             bool hasParticipationToken = GameAPI::HasToken(mainPlayer, seasonInfo->_participationToken);
-
 
             if (GameAPI::GetGameDifficulty() != GameAPI::GAME_DIFFICULTY_NORMAL)
             {
@@ -562,6 +637,7 @@ bool HandleLoadWorld(void* _this, const char* mapName, bool unk1, bool modded)
         if (result)
         {
             Client& client = Client::GetInstance();
+            ItemDatabase& database = ItemDatabase::GetInstance();
             const char* modName = EngineAPI::GetModName();
 
             // Check the map name to make sure that we are not in the main menu when setting the active season
@@ -605,6 +681,23 @@ bool HandleLoadWorld(void* _this, const char* mapName, bool unk1, bool modded)
                     .wait();
                 }
             }
+            else if (!database.IsLoaded())
+            {
+                HINSTANCE launcherDLL = GetModuleHandle(TEXT("GDCommunityLauncher.dll"));
+                HRSRC res = FindResource(launcherDLL, MAKEINTRESOURCE(IDR_ITEMDB), RT_RCDATA);
+                if (!res)
+                {
+                    Logger::LogMessage(LOG_LEVEL_WARN, "Failed to load item database from DLL. Item and stash functions will not work properly!");
+                }
+                else
+                {
+                    HGLOBAL handle = LoadResource(launcherDLL, res);
+                    DWORD size = SizeofResource(launcherDLL, res);
+                    char* data = (char*)LockResource(handle);
+                    database.Load(data, size);
+                    FreeResource(handle);
+                }
+            }
         }
         return result;
     }
@@ -641,12 +734,12 @@ bool HandleKeyEvent(void* _this, EngineAPI::KeyButtonEvent& event)
         const char* modName = EngineAPI::GetModName();
         PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
 
-        //if ((modName) && (mainPlayer) && (client.IsInActiveSeason()) && (event._keyCode == EngineAPI::KEY_TILDE))
+        if ((modName) && (mainPlayer) && (client.IsParticipatingInSeason()) && (event._keyCode == EngineAPI::KEY_TILDE))
         {
             // Disable the tilde key to prevent console access
-            //return true;
+            return true;
         }
-        //else
+        else
         {
             return callback(_this, event);
         }
@@ -693,6 +786,7 @@ bool Client::SetupClientHooks()
         !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_SET_MAIN_PLAYER, &HandleSetMainPlayer) ||
         !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_SAVE_NEW_FORMAT_DATA, &HandleSaveNewFormatData) ||
         !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_SAVE_TRANSFER_STASH, &HandleSaveTransferStash) ||
+        !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_LOAD_TRANSFER_STASH, &HandleLoadTransferStash) ||
         !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_BESTOW_TOKEN, &HandleBestowToken) ||
         !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_UNLOAD_WORLD, &HandleUnloadWorld))
         return false;
@@ -719,6 +813,7 @@ void Client::CleanupClientHooks()
     HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_SET_MAIN_PLAYER);
     HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_SAVE_NEW_FORMAT_DATA);
     HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_SAVE_TRANSFER_STASH);
+    HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_LOAD_TRANSFER_STASH);
     HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_BESTOW_TOKEN);
     HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_UNLOAD_WORLD);
 

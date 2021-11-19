@@ -36,10 +36,11 @@ bool WriteStringToPipe(HANDLE pipe, const std::string& str)
 
 bool WriteSeasonsToPipe(HANDLE pipe, const std::vector<SeasonInfo>& seasons)
 {
-    if (!WriteIntToPipe(pipe, seasons.size()))
+    uint32_t length = (uint32_t)seasons.size();
+    if (!WriteIntToPipe(pipe, length))
         return false;
 
-    for (size_t i = 0; i < seasons.size(); ++i)
+    for (size_t i = 0; i < length; ++i)
     {
         if (!WriteIntToPipe(pipe, seasons[i]._seasonID) ||
             !WriteIntToPipe(pipe, seasons[i]._seasonType) ||

@@ -1,0 +1,4 @@
+#include <windows.h>
+#include "../include/ItemDatabaseValues.h"
+
+IDR_ITEMDB RCDATA "ItemDatabase.txt"

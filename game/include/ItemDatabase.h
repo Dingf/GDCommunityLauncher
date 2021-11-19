@@ -13,10 +13,16 @@ class ItemDatabase
             uint32_t _height;
         };
 
-        static const std::map<std::string, ItemDBEntry>& GetDatabase() { return _database; }
+        static ItemDatabase& ItemDatabase::GetInstance();
+
+        bool IsLoaded() const { return !_database.empty(); }
+
+        void Load(const char* buffer, size_t size);
+
+        const ItemDBEntry& GetEntry(std::string name) { return _database.at(name); }
 
     private:
-        static const std::map<std::string, ItemDBEntry> _database;
+        std::map<std::string, ItemDBEntry> _database;
 };
 
 
