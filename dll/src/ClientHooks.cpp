@@ -325,6 +325,9 @@ std::filesystem::path GetSharedStashPath(const char* modName, bool hardcore)
     else
         stashPath /= "transfer.gst";
 
+    if (!std::filesystem::exists(stashPath))
+        return {};
+
     return stashPath;
 }
 
@@ -337,6 +340,8 @@ void PostTransferStashUpload()
     if ((modName) && (mainPlayer) && (client.IsParticipatingInSeason()))
     {
         std::filesystem::path stashPath = GetSharedStashPath(modName, GameAPI::IsPlayerHardcore(mainPlayer));
+        if (stashPath.empty())
+            return;
 
         SharedStash stashData;
         if (!stashData.ReadFromFile(stashPath))
@@ -396,6 +401,7 @@ void PostTransferStashUpload()
         .wait();
     }
 }
+
 
 std::time_t GetStashLastModifiedTime()
 {
@@ -789,7 +795,10 @@ bool Client::SetupClientHooks()
         !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_LOAD_TRANSFER_STASH, &HandleLoadTransferStash) ||
         !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_BESTOW_TOKEN, &HandleBestowToken) ||
         !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_UNLOAD_WORLD, &HandleUnloadWorld))
+    {
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to create one or more game hooks. Some launcher functionality may not be presentS!");
         return false;
+    }
 
     UpdateVersionInfoText();
 

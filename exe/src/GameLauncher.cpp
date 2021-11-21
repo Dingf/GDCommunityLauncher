@@ -135,7 +135,7 @@ LPVOID BuildEnvironmentVariables()
     
 }
 
-HANDLE GameLauncher::LaunchProcess(const std::filesystem::path& exePath, const std::filesystem::path& dllPath)
+HANDLE GameLauncher::LaunchProcess(const std::filesystem::path& exePath, const std::filesystem::path& dllPath, LPWSTR cmdArgs)
 {
     HANDLE pipeRead, pipeWrite;
 
@@ -161,7 +161,7 @@ HANDLE GameLauncher::LaunchProcess(const std::filesystem::path& exePath, const s
 
     LPVOID environment = BuildEnvironmentVariables();
 
-    if (!CreateProcessW(exePath.c_str(), NULL, NULL, NULL, TRUE, creationFlags, environment, NULL, &startupInfo, &processInfo))
+    if (!CreateProcessW(exePath.c_str(), cmdArgs, NULL, NULL, TRUE, creationFlags, environment, NULL, &startupInfo, &processInfo))
         return NULL;
 
     if (environment)

@@ -6,7 +6,7 @@
 
 namespace GameLauncher
 {
-    HANDLE LaunchProcess(const std::filesystem::path& exePath, const std::filesystem::path& dllPath);
+    HANDLE LaunchProcess(const std::filesystem::path& exePath, const std::filesystem::path& dllPath, LPWSTR cmdArgs);
 };
 
 #endif//INC_GDCL_EXE_GAME_LAUNCHER_H
