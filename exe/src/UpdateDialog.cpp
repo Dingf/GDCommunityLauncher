@@ -375,16 +375,19 @@ bool UpdateDialog::Update(void* configPointer)
     if ((hostValue) && (hostValue->GetType() == VALUE_TYPE_STRING))
         hostName = hostValue->ToString();
 
-    std::string modName = GetSeasonModName(hostName);
-    if (modName.empty())
-        return false;
-
     HINSTANCE instance = GetModuleHandle(NULL);
     _window = CreateDialogParam(instance, MAKEINTRESOURCE(IDD_DIALOG2), 0, UpdateDialogHandler, (LPARAM)_config);
 
     pplx::create_task(SetUpdateDialogProgress);
-    pplx::create_task([hostName, modName]()
+    pplx::create_task([hostName]()
     {
+        std::string modName = GetSeasonModName(hostName);
+        if (modName.empty())
+        {
+            SendMessage(UpdateDialog::_window, WM_UPDATE_FAIL, NULL, NULL);
+            return;
+        }
+
         std::string version = GetLauncherVersion(hostName);
         if (GetLauncherVersion(hostName) != std::string(GDCL_VERSION))
         {

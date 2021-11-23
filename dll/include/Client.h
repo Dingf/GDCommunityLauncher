@@ -55,6 +55,8 @@ class Client
 
         bool IsValid() const { return _data.IsValid(); }
 
+        bool IsOnline() const { return _online; }
+
         uint32_t GetPoints() const { return _points; }
         uint32_t GetRank() const { return _rank; }
         uint32_t GetParticipantID() const { return _data._participantID; }
@@ -77,6 +79,15 @@ class Client
         void SetActiveSeason(const std::string& modName, bool hardcore);
         void SetActiveCharacter(const std::wstring& name, bool hasToken);
 
+        void SetOnlineStatus(bool status)
+        {
+            if (_online != status)
+            {
+                _online = status;
+                UpdateLeagueInfoText();
+            }
+        }
+
         void SetParticipantID(uint32_t participantID)
         {
             _data._participantID = participantID;
@@ -93,12 +104,14 @@ class Client
         }
 
     private:
-        Client() { _activeSeason = nullptr; }
+        Client() : _activeSeason(nullptr), _online(false) {}
 
         void UpdateVersionInfoText();
         void UpdateLeagueInfoText();
 
         void ReadDataFromPipe();
+
+        bool _online;
 
         uint32_t _rank;
         uint32_t _points;

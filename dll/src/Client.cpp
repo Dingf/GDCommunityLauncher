@@ -151,21 +151,40 @@ void Client::UpdateLeagueInfoText()
 
     if (_activeSeason)
     {
-        _leagueInfoText = L"\n";
+        _leagueInfoText += L"\n";
         _leagueInfoText += std::wstring(_activeSeason->_displayName.begin(), _activeSeason->_displayName.end());
     }
     _leagueInfoText += L"\n";
     _leagueInfoText += std::wstring(_data._username.begin(), _data._username.end());
-    if ((_points > 0) && (_rank > 0))
+
+    if ((_online) && (_activeSeason))
     {
-        _leagueInfoText += L" {^L}(Rank ";
-        _leagueInfoText += std::to_wstring(_rank);
-        _leagueInfoText += L" ~ ";
+        if (GameAPI::IsCloudStorageEnabled())
+        {
+            _leagueInfoText += L" {^Y}(Disable Cloud Saving)";
+        }
+        else if (EngineAPI::IsMultiplayer())
+        {
+            _leagueInfoText += L" {^Y}(Multiplayer)";
+        }
+        else
+        {
+            if ((_points > 0) && (_rank > 0))
+            {
+                _leagueInfoText += L" {^L}(Rank ";
+                _leagueInfoText += std::to_wstring(_rank);
+                _leagueInfoText += L" ~ ";
+            }
+            else
+            {
+                _leagueInfoText += L" {^L}(";
+            }
+            _leagueInfoText += std::to_wstring(_points);
+            _leagueInfoText += L" points)";
+        }
     }
     else
     {
-        _leagueInfoText += L" {^L}(";
+        _leagueInfoText += L" {^R}(Offline)";
     }
-    _leagueInfoText += std::to_wstring(_points);
-    _leagueInfoText += L" points)";
 }

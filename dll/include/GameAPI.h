@@ -17,6 +17,7 @@ constexpr char GAPI_NAME_GET_GAME_DIFFICULTY[] = "?GetGameDifficulty@GameEngine@
 constexpr char GAPI_NAME_SET_MAIN_PLAYER[] = "?SetMainPlayer@PlayerManagerClient@GAME@@QEAAXI@Z";
 constexpr char GAPI_NAME_HAS_TOKEN[] = "?HasToken@Player@GAME@@QEAA_NAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z";
 constexpr char GAPI_NAME_IS_HARDCORE[] = "?IsHardcore@Player@GAME@@QEBA_NXZ";
+constexpr char GAPI_NAME_IS_CLOUD_STORAGE[] = "?GetCloudStorage@GameEngine@GAME@@QEBA_NXZ";
 constexpr char GAPI_NAME_IS_GAME_LOADING[] = "?IsGameLoading@GameEngine@GAME@@QEBA_NXZ";
 constexpr char GAPI_NAME_SAVE_NEW_FORMAT_DATA[] = "?SaveNewFormatData@Player@GAME@@QEBAXAEAVCheckedWriter@2@@Z";
 //constexpr char GAPI_NAME_SAVE_QUEST_STATES_TO_FILE[] = "?SaveQuestStatesToFile@Player@GAME@@QEAAXPEBD@Z";
@@ -34,6 +35,7 @@ constexpr char GAPI_NAME_GET_GAME_DIFFICULTY[] = "?GetGameDifficulty@GameEngine@
 constexpr char GAPI_NAME_SET_MAIN_PLAYER[] = "?SetMainPlayer@PlayerManagerClient@GAME@@QAEXI@Z";
 constexpr char GAPI_NAME_HAS_TOKEN[] = "?HasToken@Player@GAME@@QAE_NABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z";
 constexpr char GAPI_NAME_IS_HARDCORE[] = "?IsHardcore@Player@GAME@@QBE_NXZ";
+constexpr char GAPI_NAME_IS_CLOUD_STORAGE[] = "?GetCloudStorage@GameEngine@GAME@@QBE_NXZ";
 constexpr char GAPI_NAME_IS_GAME_LOADING[] = "?IsGameLoading@GameEngine@GAME@@QBE_NXZ";
 constexpr char GAPI_NAME_SAVE_NEW_FORMAT_DATA[] = "?SaveNewFormatData@Player@GAME@@QBEXAAVCheckedWriter@2@@Z";
 //constexpr char GAPI_NAME_SAVE_QUEST_STATES_TO_FILE[] = "?SaveQuestStatesToFile@Player@GAME@@QAEXPBD@Z";
@@ -58,6 +60,8 @@ Difficulty GetGameDifficulty();
 bool HasToken(PULONG_PTR player, std::string token);
 
 bool IsPlayerHardcore(PULONG_PTR player);
+
+bool IsCloudStorageEnabled();
 
 bool IsGameLoading();
 

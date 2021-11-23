@@ -123,6 +123,23 @@ bool IsPlayerHardcore(PULONG_PTR player)
     return callback((LPVOID)player);
 }
 
+bool IsCloudStorageEnabled()
+{
+    typedef bool(__thiscall* IsCloudStorageEnabledProto)(LPVOID);
+
+    HMODULE gameDLL = GetModuleHandle(TEXT("Game.dll"));
+    if (!gameDLL)
+        return nullptr;
+
+    IsCloudStorageEnabledProto callback = (IsCloudStorageEnabledProto)GetProcAddress(gameDLL, GAPI_NAME_IS_CLOUD_STORAGE);
+    PULONG_PTR gameEngine = GetGameEngineHandle();
+
+    if ((!callback) || (!gameEngine))
+        return GAME_DIFFICULTY_NORMAL;
+
+    return callback((LPVOID)*gameEngine);
+}
+
 bool IsGameLoading()
 {
     typedef bool(__thiscall* IsGameLoadingProto)(LPVOID);

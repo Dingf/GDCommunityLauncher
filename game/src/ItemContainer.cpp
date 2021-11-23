@@ -54,7 +54,8 @@ void ItemContainer::AddItem(const std::shared_ptr<Item>& item, int32_t x, int32_
         }
         catch (std::out_of_range&)
         {
-            Logger::LogMessage(LOG_LEVEL_WARN, "Tried to add item \"%\" that does not exist in item database. Item has not been added!", item->_itemName);
+            // TODO: Re-enable this error message once item DB is fully supported
+            //Logger::LogMessage(LOG_LEVEL_WARN, "Tried to add item \"%\" that does not exist in item database. Item has not been added!", item->_itemName);
             return;
         }
 

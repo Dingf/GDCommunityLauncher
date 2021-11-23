@@ -20,6 +20,7 @@ namespace
 
 std::shared_ptr<UpdateThread<std::wstring, bool>> characterUpdateThread;
 std::shared_ptr<UpdateThread<Client*>> clientTokenUpdateThread;
+std::shared_ptr<UpdateThread<>> connectionStatusThread;
 
 }
 
@@ -38,19 +39,20 @@ const char* HandleGetVersion(void* _this)
 
 void Client::PostRefreshToken()
 {
-    URI endpoint = URI(GetHostName()) / "api" / "Account" / "refresh-token";
-    web::http::client::http_client httpClient((utility::string_t)endpoint);
-
-    web::json::value requestBody;
-    requestBody[U("refreshToken")] = JSONString(GetRefreshToken());
-
-    web::http::http_request request(web::http::methods::POST);
-    request.set_body(requestBody);
-
-    httpClient.request(request).then([this](web::http::http_response response)
+    pplx::create_task([this]()
     {
         try
         {
+            URI endpoint = URI(this->GetHostName()) / "api" / "Account" / "refresh-token";
+            web::http::client::http_client httpClient((utility::string_t)endpoint);
+
+            web::json::value requestBody;
+            requestBody[U("refreshToken")] = JSONString(this->GetRefreshToken());
+
+            web::http::http_request request(web::http::methods::POST);
+            request.set_body(requestBody);
+
+            web::http::http_response response = httpClient.request(request).get();
             if (response.status_code() == web::http::status_codes::OK)
             {
                 web::json::value responseBody = response.extract_json().get();
@@ -71,6 +73,7 @@ void Client::PostRefreshToken()
         {
             Logger::LogMessage(LOG_LEVEL_WARN, "Failed to refresh token: %", ex.what());
         }
+
     });
 }
 
@@ -79,60 +82,79 @@ void UpdateClientTokens(Client* client)
     client->PostRefreshToken();
 }
 
-uint32_t GetCharacterID(std::wstring playerName)
+void UpdateConnectionStatus()
 {
-    Client& client = Client::GetInstance();
-    URI endpoint = URI(client.GetHostName()) / "api" / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "character" / playerName;
-    web::http::client::http_client httpClient((utility::string_t)endpoint);
-    web::http::http_request request(web::http::methods::GET);
-
-    std::string bearerToken = "Bearer " + client.GetAuthToken();
-    request.headers().add(U("Authorization"), bearerToken.c_str());
-
-    pplx::task<uint32_t> task = httpClient.request(request).then([&client](web::http::http_response response)
+    pplx::task<void> task = pplx::create_task([]()
     {
         try
         {
-            switch (response.status_code())
+            Client& client = Client::GetInstance();
+            URI endpoint = URI(client.GetHostName()) / "api" / "Account" / "status";
+
+            web::http::client::http_client httpClient((utility::string_t)endpoint);
+            web::http::http_request request(web::http::methods::GET);
+
+            web::http::http_response response = httpClient.request(request).get();
+            client.SetOnlineStatus(response.status_code() == web::http::status_codes::OK);
+        }
+        catch (const std::exception&)
+        {
+            Client& client = Client::GetInstance();
+            client.SetOnlineStatus(false);
+        }
+    });
+}
+
+uint32_t GetCharacterID(std::wstring playerName)
+{
+    try
+    {
+        Client& client = Client::GetInstance();
+        URI endpoint = URI(client.GetHostName()) / "api" / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "character" / playerName;
+        web::http::client::http_client httpClient((utility::string_t)endpoint);
+        web::http::http_request request(web::http::methods::GET);
+
+        std::string bearerToken = "Bearer " + client.GetAuthToken();
+        request.headers().add(U("Authorization"), bearerToken.c_str());
+
+        web::http::http_response response = httpClient.request(request).get();
+        switch (response.status_code())
+        {
+            case web::http::status_codes::OK:
             {
-                case web::http::status_codes::OK:
-                {
-                    web::json::value responseBody = response.extract_json().get();
-                    web::json::value characterID = responseBody[U("participantCharacterId")];
-                    return (uint32_t)characterID.as_integer();
-                }
-                case web::http::status_codes::NoContent:
-                {
-                    return (uint32_t)0;
-                }
-                default:
-                {
-                    throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-                }
+                web::json::value responseBody = response.extract_json().get();
+                web::json::value characterID = responseBody[U("participantCharacterId")];
+                return (uint32_t)characterID.as_integer();
+            }
+            case web::http::status_codes::NoContent:
+            {
+                return (uint32_t)0;
+            }
+            default:
+            {
+                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
             }
         }
-        catch (const std::exception& ex)
-        {
-            Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve character ID: %", ex.what());
-        }
-        return (uint32_t)0;
-    });
-
-    return task.get();
+    }
+    catch (const std::exception& ex)
+    {
+        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve character ID: %", ex.what());
+        return 0;
+    }
 }
 
 void UpdateSeasonStanding()
 {
-    Client& client = Client::GetInstance();
-
-    URI endpoint = URI(client.GetHostName()) / "api" / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "standing";
-    web::http::client::http_client httpClient((utility::string_t)endpoint);
-    web::http::http_request request(web::http::methods::GET);
-
-    httpClient.request(request).then([&client](web::http::http_response response)
+    pplx::create_task([]()
     {
         try
         {
+            Client& client = Client::GetInstance();
+            URI endpoint = URI(client.GetHostName()) / "api" / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "standing";
+            web::http::client::http_client httpClient((utility::string_t)endpoint);
+            web::http::http_request request(web::http::methods::GET);
+
+            web::http::http_response response = httpClient.request(request).get();
             switch (response.status_code())
             {
                 case web::http::status_codes::OK:
@@ -236,40 +258,20 @@ void UpdateCharacterData(std::wstring playerName, bool async)
     requestBody[U("seasonParticipantId")] = client.GetParticipantID();
     requestBody[U("participantCharacterId")] = characterID;
 
-    URI endpoint = URI(client.GetHostName()) / "api" / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "character";
-
-    web::http::client::http_client httpClient((utility::string_t)endpoint);
-    web::http::http_request request(web::http::methods::POST);
-    request.set_body(requestBody);
-
-    std::string bearerToken = "Bearer " + client.GetAuthToken();
-    request.headers().add(U("Authorization"), bearerToken.c_str());
-
-    if (async)
-    {
-        httpClient.request(request).then([](web::http::http_response response)
-        {
-            try
-            {
-                if (response.status_code() == web::http::status_codes::OK)
-                {
-                    UpdateSeasonStanding();
-                }
-                else
-                {
-                    throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-                }
-            }
-            catch (const std::exception& ex)
-            {
-                Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload character data: %", ex.what());
-            }
-        });
-    }
-    else
+    pplx::task<void> task = pplx::create_task([requestBody]()
     {
         try
         {
+            Client& client = Client::GetInstance();
+            URI endpoint = URI(client.GetHostName()) / "api" / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "character";
+
+            web::http::client::http_client httpClient((utility::string_t)endpoint);
+            web::http::http_request request(web::http::methods::POST);
+            request.set_body(requestBody);
+
+            std::string bearerToken = "Bearer " + client.GetAuthToken();
+            request.headers().add(U("Authorization"), bearerToken.c_str());
+
             web::http::http_response response = httpClient.request(request).get();
             if (response.status_code() == web::http::status_codes::OK)
             {
@@ -284,7 +286,10 @@ void UpdateCharacterData(std::wstring playerName, bool async)
         {
             Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload character data: %", ex.what());
         }
-    }
+    });
+
+    if (!async)
+        task.wait();
 }
 
 void HandleSaveNewFormatData(void* _this, void* writer)
@@ -371,34 +376,32 @@ void PostTransferStashUpload()
             }
         }
 
-        URI endpoint = URI(client.GetHostName()) / "api" / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "stash";
-
-        web::http::client::http_client httpClient((utility::string_t)endpoint);
-        web::http::http_request request(web::http::methods::POST);
-        request.set_body(requestBody);
-
-        std::string bearerToken = "Bearer " + client.GetAuthToken();
-        request.headers().add(U("Authorization"), bearerToken.c_str());
-
-        httpClient.request(request).then([](web::http::http_response response)
+        try
         {
-            try
+            Client& client = Client::GetInstance();
+            URI endpoint = URI(client.GetHostName()) / "api" / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "stash";
+
+            web::http::client::http_client httpClient((utility::string_t)endpoint);
+            web::http::http_request request(web::http::methods::POST);
+            request.set_body(requestBody);
+
+            std::string bearerToken = "Bearer " + client.GetAuthToken();
+            request.headers().add(U("Authorization"), bearerToken.c_str());
+
+            web::http::http_response response = httpClient.request(request).get();
+            if (response.status_code() == web::http::status_codes::OK)
             {
-                if (response.status_code() == web::http::status_codes::OK)
-                {
-                    //TODO: Save the stash minus the items that were transferred
-                }
-                else
-                {
-                    throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-                }
+                //TODO: Save the stash minus the items that were transferred
             }
-            catch (const std::exception& ex)
+            else
             {
-                Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload shared stash: %", ex.what());
+                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
             }
-        })
-        .wait();
+        }
+        catch (const std::exception& ex)
+        {
+            Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload shared stash items: %", ex.what());
+        }
     }
 }
 
@@ -431,19 +434,21 @@ void PostSharedStashUpdateTimes(std::time_t prevModifiedTime)
         requestBody[U("lastModifiedOn")] = prevModifiedTime;
         requestBody[U("sharedStashModifiedOn")] = GetStashLastModifiedTime();
 
-        URI endpoint = URI(client.GetHostName()) / "api" / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "shared-stash";
-
-        web::http::client::http_client httpClient((utility::string_t)endpoint);
-        web::http::http_request request(web::http::methods::POST);
-        request.set_body(requestBody);
-
-        std::string bearerToken = "Bearer " + client.GetAuthToken();
-        request.headers().add(U("Authorization"), bearerToken.c_str());
-
-        httpClient.request(request).then([](web::http::http_response response)
+        pplx::create_task([requestBody]()
         {
             try
             {
+                Client& client = Client::GetInstance();
+                URI endpoint = URI(client.GetHostName()) / "api" / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "shared-stash";
+
+                web::http::client::http_client httpClient((utility::string_t)endpoint);
+                web::http::http_request request(web::http::methods::POST);
+                request.set_body(requestBody);
+
+                std::string bearerToken = "Bearer " + client.GetAuthToken();
+                request.headers().add(U("Authorization"), bearerToken.c_str());
+
+                web::http::http_response response = httpClient.request(request).get();
                 if (response.status_code() != web::http::status_codes::OK)
                 {
                     throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
@@ -451,7 +456,7 @@ void PostSharedStashUpdateTimes(std::time_t prevModifiedTime)
             }
             catch (const std::exception& ex)
             {
-                Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload shared stash: %", ex.what());
+                Logger::LogMessage(LOG_LEVEL_WARN, "Failed to update shared stash times: %", ex.what());
             }
         });
     }
@@ -575,24 +580,28 @@ void HandleBestowToken(void* _this, void* token)
                 }
                 else if ((tokenString.find("GDL_", 0) == 0) && (client.IsParticipatingInSeason()))
                 {
-                    // Otherwise if it's a season token, pass it along to the server and update the points/rank
-                    URI endpoint = URI(client.GetHostName()) / "api" / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "quest-tag" / tokenString;
-                    web::http::client::http_client httpClient((utility::string_t)endpoint);
-                    web::http::http_request request(web::http::methods::POST);
-
-                    web::json::value requestBody;
-                    requestBody[U("level")] = EngineAPI::GetPlayerLevel();
-                    requestBody[U("currentDifficulty")] = GameAPI::GetGameDifficulty();
-                    requestBody[U("maxDifficulty")] = GameAPI::GetPlayerMaxDifficulty(mainPlayer);
-                    request.set_body(requestBody);
-
-                    std::string bearerToken = "Bearer " + client.GetAuthToken();
-                    request.headers().add(U("Authorization"), bearerToken.c_str());
-
-                    httpClient.request(request).then([](web::http::http_response response)
+                    pplx::create_task([tokenString]()
                     {
                         try
                         {
+                            Client& client = Client::GetInstance();
+                            PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
+
+                            // Otherwise if it's a season token, pass it along to the server and update the points/rank
+                            URI endpoint = URI(client.GetHostName()) / "api" / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "quest-tag" / tokenString;
+                            web::http::client::http_client httpClient((utility::string_t)endpoint);
+                            web::http::http_request request(web::http::methods::POST);
+
+                            web::json::value requestBody;
+                            requestBody[U("level")] = EngineAPI::GetPlayerLevel();
+                            requestBody[U("currentDifficulty")] = GameAPI::GetGameDifficulty();
+                            requestBody[U("maxDifficulty")] = GameAPI::GetPlayerMaxDifficulty(mainPlayer);
+                            request.set_body(requestBody);
+
+                            std::string bearerToken = "Bearer " + client.GetAuthToken();
+                            request.headers().add(U("Authorization"), bearerToken.c_str());
+
+                            web::http::http_response response = httpClient.request(request).get();
                             if (response.status_code() == web::http::status_codes::OK)
                             {
                                 UpdateSeasonStanding();
@@ -646,45 +655,41 @@ bool HandleLoadWorld(void* _this, const char* mapName, bool unk1, bool modded)
             ItemDatabase& database = ItemDatabase::GetInstance();
             const char* modName = EngineAPI::GetModName();
 
+            client.SetActiveSeason(modName, EngineAPI::GetHardcore());
+
             // Check the map name to make sure that we are not in the main menu when setting the active season
             if ((modName) && (mapName) && (std::string(mapName) != "levels/mainmenu/mainmenu.map"))
             {
-                client.SetActiveSeason(modName, EngineAPI::GetHardcore());
-
                 // Attempt to register the user for the active season
                 const SeasonInfo* seasonInfo = client.GetActiveSeason();
                 if (seasonInfo)
                 {
-                    URI endpoint = URI(client.GetHostName()) / "api" / "Season" / std::to_string(seasonInfo->_seasonID) / "add-participant" / client.GetUsername();
-                    web::http::client::http_client httpClient((utility::string_t)endpoint);
-                    web::http::http_request request(web::http::methods::POST);
-
-                    std::string bearerToken = "Bearer " + client.GetAuthToken();
-                    request.headers().add(U("Authorization"), bearerToken.c_str());
-
-                    httpClient.request(request).then([&client, seasonInfo](web::http::http_response response)
+                    try
                     {
-                        try
+                        URI endpoint = URI(client.GetHostName()) / "api" / "Season" / std::to_string(seasonInfo->_seasonID) / "add-participant" / client.GetUsername();
+                        web::http::client::http_client httpClient((utility::string_t)endpoint);
+                        web::http::http_request request(web::http::methods::POST);
+
+                        std::string bearerToken = "Bearer " + client.GetAuthToken();
+                        request.headers().add(U("Authorization"), bearerToken.c_str());
+
+                        web::http::http_response response = httpClient.request(request).get();
+                        if (response.status_code() == web::http::status_codes::OK)
                         {
-                            web::http::status_code status = response.status_code();
-                            if (status == web::http::status_codes::OK)
-                            {
-                                web::json::value responseBody = response.extract_json().get();
-                                web::json::value participantID = responseBody[U("seasonParticipantId")];
-                                client.SetParticipantID(participantID.as_integer());
-                                UpdateSeasonStanding();
-                            }
-                            else
-                            {
-                                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-                            }
+                            web::json::value responseBody = response.extract_json().get();
+                            web::json::value participantID = responseBody[U("seasonParticipantId")];
+                            client.SetParticipantID(participantID.as_integer());
+                            UpdateSeasonStanding();
                         }
-                        catch (const std::exception& ex)
+                        else
                         {
-                            Logger::LogMessage(LOG_LEVEL_WARN, "Failed to register for season %: %", seasonInfo->_seasonID, ex.what());
+                            throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
                         }
-                    })
-                    .wait();
+                    }
+                    catch (const std::exception& ex)
+                    {
+                        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to register for season %: %", seasonInfo->_seasonID, ex.what());
+                    }
                 }
             }
             else if (!database.IsLoaded())
@@ -804,10 +809,12 @@ bool Client::SetupClientHooks()
 
     characterUpdateThread = std::make_shared<UpdateThread<std::wstring, bool>>(&UpdateCharacterData);
     clientTokenUpdateThread = std::make_shared<UpdateThread<Client*>>(&UpdateClientTokens, 1000, 1800000);
+    connectionStatusThread = std::make_shared<UpdateThread<>>(&UpdateConnectionStatus, 1000, 10000);
 
     // Refresh the client tokens immediately and then every 30 minutes after
     Client& client = Client::GetInstance();
     clientTokenUpdateThread->Update(0, &client);
+    connectionStatusThread->Update(0);
 
     return true;
 }
