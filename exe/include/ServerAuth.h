@@ -15,6 +15,8 @@ typedef void(*ServerAuthCallback)(ServerAuthResult);
 
 namespace ServerAuth
 {
+    std::string GetLauncherVersion(std::string hostName);
+
     void ValidateCredentials(const std::string& hostName, const std::string& username, const std::string& password, ServerAuthCallback callback);
 
     ServerAuthResult ValidateCredentials(const std::string& hostName, const std::string& username, const std::string& password);

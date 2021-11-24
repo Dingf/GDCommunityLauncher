@@ -17,6 +17,7 @@ src/main.cpp)
 
 target_include_directories(exe PRIVATE include)
 target_link_libraries(exe PRIVATE ${cpprestsdk_LIBRARY})
+target_link_libraries(exe PRIVATE minizip::minizip)
 target_link_libraries(exe PRIVATE common)
 
 set_target_properties(exe PROPERTIES OUTPUT_NAME "GDCommunityLauncher")

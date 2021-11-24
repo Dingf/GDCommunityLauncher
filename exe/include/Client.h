@@ -29,6 +29,7 @@ struct ClientData
         return (!_username.empty() && !_authToken.empty() && !_refreshToken.empty() && !_hostName.empty());
     }
 
+    std::string _updatePath;
     std::string _username;
     std::string _authToken;
     std::string _refreshToken;
@@ -53,6 +54,7 @@ class Client
     private:
         Client(const ClientData& data)
         {
+            _data._updatePath = data._updatePath;
             _data._username = data._username;
             _data._authToken = data._authToken;
             _data._refreshToken = data._refreshToken;

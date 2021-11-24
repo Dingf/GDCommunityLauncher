@@ -1,5 +1,6 @@
 #include <filesystem>
 #include <Windows.h>
+#include <minizip/unzip.h>
 #include "HookManager.h"
 #include "Client.h"
 #include "GameAPI.h"
@@ -97,16 +98,66 @@ bool ReadSeasonsFromPipe(HANDLE pipe, std::vector<SeasonInfo>& seasons)
     return true;
 }
 
+bool ExtractZIPUpdate(const std::filesystem::path& path)
+{
+    const char* pathString = path.u8string().c_str();
+    unzFile zipFile = unzOpen(pathString);
+    if ((zipFile) && (unzLocateFile(zipFile, "GDCommunityLauncher.exe", 0) != UNZ_END_OF_LIST_OF_FILE))
+    {
+        std::filesystem::path filenamePath = std::filesystem::current_path() / "GDCommunityLauncher.exe";
+        std::filesystem::path tempPath = filenamePath;
+        tempPath += ".tmp";
+
+        std::ofstream out(tempPath, std::ifstream::binary | std::ifstream::out);
+
+        if ((!out.is_open()) || (unzOpenCurrentFile(zipFile) != UNZ_OK))
+        {
+            Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to extract files from \"%\"", pathString);
+            return false;
+        }
+
+        int bytesRead = 0;
+        char buffer[1024];
+        do
+        {
+            bytesRead = unzReadCurrentFile(zipFile, buffer, 1024);
+            if (bytesRead > 0)
+            {
+                out.write(buffer, bytesRead);
+            }
+        }
+        while (bytesRead > 0);
+
+        out.close();
+        unzCloseCurrentFile(zipFile);
+        unzClose(zipFile);
+
+        if (std::filesystem::is_regular_file(filenamePath))
+            std::filesystem::remove(filenamePath);
+
+        std::filesystem::rename(tempPath, filenamePath);
+
+        return true;
+    }
+    else
+    {
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Could not open \"%\" for updating", pathString);
+        return false;
+    }
+}
+
 void Client::ReadDataFromPipe()
 {
     if (!IsValid())
     {
         HANDLE pipe = GetStdHandle(STD_INPUT_HANDLE);
 
+        std::string updatePath;
         if (!ReadStringFromPipe(pipe, _data._username) ||
             !ReadStringFromPipe(pipe, _data._authToken) ||
             !ReadStringFromPipe(pipe, _data._refreshToken) ||
             !ReadStringFromPipe(pipe, _data._hostName) ||
+            !ReadStringFromPipe(pipe, updatePath) ||
             !ReadSeasonsFromPipe(pipe, _data._seasons))
         {
             Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to read client data from stdin pipe.");
@@ -114,6 +165,12 @@ void Client::ReadDataFromPipe()
         }
 
         CloseHandle(pipe);
+
+        if ((!updatePath.empty()) && (!ExtractZIPUpdate(updatePath)))
+        {
+            Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to update GDCommunityLauncher.exe");
+            return;
+        }
 
         UpdateLeagueInfoText();
         UpdateVersionInfoText();

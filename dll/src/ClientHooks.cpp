@@ -540,7 +540,7 @@ void HandleSetMainPlayer(void* _this, uint32_t unk1)
             }
 
             client.SetActiveCharacter(playerName, hasParticipationToken);
-            if (hasParticipationToken)
+            if ((hasParticipationToken) && (client.IsOnline()))
             {
                 UpdateCharacterData(playerName, false);
             }
@@ -726,7 +726,7 @@ void HandleUnloadWorld(void* _this)
 
         Client& client = Client::GetInstance();
         const std::wstring& characterName = client.GetActiveCharacterName();
-        if ((!EngineAPI::IsMultiplayer()) && (client.IsParticipatingInSeason()) && (!characterName.empty()))
+        if ((!EngineAPI::IsMultiplayer()) && (client.IsParticipatingInSeason()) && (!characterName.empty()) && (client.IsOnline()))
         {
             UpdateCharacterData(characterName, false);
             client.SetActiveCharacter({}, false);

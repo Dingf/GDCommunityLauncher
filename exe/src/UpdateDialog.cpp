@@ -6,8 +6,10 @@
 #include <CommCtrl.h>
 #include <cpprest/http_client.h>
 #include <cpprest/filestream.h>
+#include <minizip/unzip.h>
 #include "Configuration.h"
 #include "UpdateDialog.h"
+#include "ServerAuth.h"
 #include "JSONObject.h"
 #include "URI.h"
 #include "Version.h"
@@ -37,41 +39,6 @@ std::string GenerateFileMD5(const std::filesystem::path& path)
         *it = toupper(*it);
 
     return result;
-}
-
-std::string GetLauncherVersion(std::string hostName)
-{
-    URI endpoint = URI(hostName) / "api" / "File" / "launcher";
-    web::http::client::http_client httpClient((utility::string_t)endpoint);
-    web::http::http_request request(web::http::methods::GET);
-
-    try
-    {
-        web::http::http_response response = httpClient.request(request).get();
-        switch (response.status_code())
-        {
-            case web::http::status_codes::OK:
-            {
-                web::json::value responseBody = response.extract_json().get();
-                web::json::value version = responseBody[U("version")];
-
-                std::string versionString = JSONString(version.serialize());
-                if ((!versionString.empty()) && (versionString.front() == '\"') && (versionString.back() == '\"'))
-                    versionString = std::string(versionString.begin() + 1, versionString.end() - 1);
-
-                return versionString;
-            }
-            default:
-            {
-                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-            }
-        }
-    }
-    catch (const std::exception& ex)
-    {
-        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve launcher version: %", ex.what());
-    }
-    return {};
 }
 
 std::string GetSeasonModName(std::string hostName)
@@ -111,6 +78,10 @@ std::string GetSeasonModName(std::string hostName)
 
 bool GetUpdateList(const std::string& hostName, const std::string& modName, std::vector<std::string>& updateList)
 {
+    std::string version = ServerAuth::GetLauncherVersion(hostName);
+    if (version != std::string(GDCL_VERSION))
+        updateList.push_back("GDCommunityLauncher.zip");
+
     URI endpoint = URI(hostName) / "api" / "File" / "filenames";
     web::http::client::http_client httpClient((utility::string_t)endpoint);
     web::http::http_request request(web::http::methods::GET);
@@ -168,6 +139,54 @@ bool GetUpdateList(const std::string& hostName, const std::string& modName, std:
     }
 
     return false;
+}
+
+bool ExtractZIPUpdate(const std::filesystem::path& path)
+{
+    const char* pathString = path.u8string().c_str();
+    unzFile zipFile = unzOpen(pathString);
+    if ((zipFile) && (unzLocateFile(zipFile, "GDCommunityLauncher.dll", 0) != UNZ_END_OF_LIST_OF_FILE))
+    {
+        std::filesystem::path filenamePath = std::filesystem::current_path() / "GDCommunityLauncher.dll";
+        std::filesystem::path tempPath = filenamePath;
+        tempPath += ".tmp";
+
+        std::ofstream out(tempPath, std::ifstream::binary | std::ifstream::out);
+
+        if ((!out.is_open()) || (unzOpenCurrentFile(zipFile) != UNZ_OK))
+        {
+            Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to extract files from \"%\"", pathString);
+            return false;
+        }
+
+        int bytesRead = 0;
+        char buffer[1024];
+        do
+        {
+            bytesRead = unzReadCurrentFile(zipFile, buffer, 1024);
+            if (bytesRead > 0)
+            {
+                out.write(buffer, bytesRead);
+            }
+        }
+        while (bytesRead > 0);
+
+        out.close();
+        unzCloseCurrentFile(zipFile);
+        unzClose(zipFile);
+
+        if (std::filesystem::is_regular_file(filenamePath))
+            std::filesystem::remove(filenamePath);
+
+        std::filesystem::rename(tempPath, filenamePath);
+
+        return true;
+    }
+    else
+    {
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Could not open \"%\" for updating", pathString);
+        return false;
+    }
 }
 
 void DownloadFiles(const std::string& hostName, const std::string& modName, const std::vector<std::string>& updateList)
@@ -228,6 +247,10 @@ void DownloadFiles(const std::string& hostName, const std::string& modName, cons
                         std::filesystem::remove(filenamePath);
 
                     std::filesystem::rename(tempPath, filenamePath);
+
+                    // Extract the newly downloaded .zip file and update the .dll (the .exe will be updated later in the .dll itself)
+                    if ((filename == "GDCommunityLauncher.zip") && (!ExtractZIPUpdate(filenamePath)))
+                        return false;
 
                     return true;
                 }
@@ -385,14 +408,6 @@ bool UpdateDialog::Update(void* configPointer)
         if (modName.empty())
         {
             SendMessage(UpdateDialog::_window, WM_UPDATE_FAIL, NULL, NULL);
-            return;
-        }
-
-        std::string version = GetLauncherVersion(hostName);
-        if (GetLauncherVersion(hostName) != std::string(GDCL_VERSION))
-        {
-            Logger::LogMessage(LOG_LEVEL_ERROR, "The launcher version is out of date. Server expects \"%\", but client has \"%\"", version.c_str(), GDCL_VERSION);
-            SendMessage(UpdateDialog::_window, WM_UPDATE_OLD_VERSION, NULL, NULL);
             return;
         }
 
