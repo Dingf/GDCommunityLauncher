@@ -10,14 +10,15 @@ class HookManager
     public:
         static LPVOID GetOriginalFunction(LPCSTR moduleName, LPCSTR functionName);
 
-        static LPVOID CreateHook(LPCSTR moduleName, LPCSTR functionName, PVOID function);
+        static LPVOID CreateHook(LPCSTR moduleName, LPCSTR functionName, LPVOID function);
 
         static BOOL DeleteHook(LPCSTR moduleName, LPCSTR functionName);
 
     private:
         typedef std::pair<std::string, std::string> ExportKey;
 
-        HookManager() {}
+        HookManager();
+        ~HookManager();
 
         static HookManager& GetInstance();
 

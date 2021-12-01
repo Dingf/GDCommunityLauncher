@@ -13,6 +13,12 @@ if (minizip_FOUND)
     include_directories(${minizip_INCLUDE_DIR})
 endif()
 
+find_package(minhook CONFIG REQUIRED)
+if (minhook_FOuND)
+    find_path(minhook_INCLUDE_DIR MinHook.h)
+    include_directories(${minhook_INCLUDE_DIR})
+endif()
+
 find_package(cpprestsdk REQUIRED)
 if (cpprestsdk_FOUND)
     find_path(cpprestsdk_INCLUDE_DIR cpprest/json.h)

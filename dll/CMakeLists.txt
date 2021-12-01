@@ -21,6 +21,7 @@ src/main.cpp)
 
 target_include_directories(dll PRIVATE include)
 target_link_libraries(dll PRIVATE minizip::minizip)
+target_link_libraries(dll PRIVATE minhook::minhook)
 target_link_libraries(dll PRIVATE game)
 
 set_target_properties(dll PROPERTIES OUTPUT_NAME "GDCommunityLauncher")

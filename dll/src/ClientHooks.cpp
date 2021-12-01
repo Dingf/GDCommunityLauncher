@@ -405,7 +405,6 @@ void PostTransferStashUpload()
     }
 }
 
-
 std::time_t GetStashLastModifiedTime()
 {
     const char* modName = EngineAPI::GetModName();
@@ -742,10 +741,7 @@ bool HandleKeyEvent(void* _this, EngineAPI::KeyButtonEvent& event)
     if (callback)
     {
         Client& client = Client::GetInstance();
-        const char* modName = EngineAPI::GetModName();
-        PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
-
-        if ((modName) && (mainPlayer) && (client.IsParticipatingInSeason()) && (event._keyCode == EngineAPI::KEY_TILDE))
+        if ((client.IsParticipatingInSeason()) && (event._keyCode == EngineAPI::KEY_TILDE))
         {
             // Disable the tilde key to prevent console access
             return true;
@@ -766,12 +762,10 @@ void HandleRenderStyledText2D(void* _this, const EngineAPI::Rect& rect, const wc
     if (callback)
     {
         Client& client = Client::GetInstance();
-        const char* modName = EngineAPI::GetModName();
-        PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
 
         // If the player is in-game on the season mod, append the league info to the difficulty text in the upper left corner
         // We modify the text instead of creating new text because that way it preserves the Z-order and doesn't conflict with the loading screen/pause overlay/etc.
-        if ((rect._x >= 7.0f) && (rect._y >= 7.0f) && (rect._x <= 18.0f) && (rect._y <= 18.0f) && (rect._x == rect._y) && (modName) && (mainPlayer) && (client.IsParticipatingInSeason()))
+        if ((rect._x >= 7.0f) && (rect._y >= 7.0f) && (rect._x <= 18.0f) && (rect._y <= 18.0f) && (rect._x == rect._y) && (client.IsParticipatingInSeason()))
         {
             std::wstring textString(text);
             if (textString.empty())
@@ -801,7 +795,7 @@ bool Client::SetupClientHooks()
         !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_BESTOW_TOKEN, &HandleBestowToken) ||
         !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_UNLOAD_WORLD, &HandleUnloadWorld))
     {
-        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to create one or more game hooks. Some launcher functionality may not be presentS!");
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to create one or more game hooks.");
         return false;
     }
 

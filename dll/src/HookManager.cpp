@@ -1,11 +1,22 @@
 #include <string>
 #include <Windows.h>
+#include <MinHook.h>
 #include "HookManager.h"
 
 HookManager& HookManager::GetInstance()
 {
     static HookManager instance;
     return instance;
+}
+
+HookManager::HookManager()
+{
+    MH_Initialize();
+}
+
+HookManager::~HookManager()
+{
+    MH_Uninitialize();
 }
 
 LPVOID HookManager::GetOriginalFunction(LPCSTR moduleName, LPCSTR functionName)
@@ -69,12 +80,26 @@ LPVOID HookManager::CreateHook(LPCSTR moduleName, LPCSTR functionName, PVOID fun
         }
     }
 
-    return NULL;
+    LPVOID moduleFunction = GetProcAddress(GetModuleHandle(TEXT(moduleName)), functionName);
+    LPVOID trampoline = NULL;
+
+    if (moduleFunction == NULL)
+        return NULL;
+
+    if (MH_CreateHook(moduleFunction, function, &trampoline) != MH_OK)
+        return NULL;
+
+    if (MH_EnableHook(moduleFunction) != MH_OK)
+        return NULL;
+
+    instance._originalFunctions[key] = trampoline;
+    return trampoline;
 }
 
 BOOL HookManager::DeleteHook(LPCSTR moduleName, LPCSTR functionName)
 {
     HookManager& instance = GetInstance();
+    ExportKey key(moduleName, functionName);
     LPVOID originalFunction = instance.GetOriginalFunction(moduleName, functionName);
     if (originalFunction == NULL)
         return FALSE;
@@ -111,12 +136,23 @@ BOOL HookManager::DeleteHook(LPCSTR moduleName, LPCSTR functionName)
                 return FALSE;
 
             thunk->u1.Function = (DWORD_PTR)originalFunction;
-            instance._originalFunctions.erase({ moduleName, functionName });
+            instance._originalFunctions.erase(key);
 
             if (VirtualProtect(&thunk->u1.Function, sizeof(DWORD_PTR), originalProtect, &originalProtect))
                 return TRUE;
         }
     }
 
-    return FALSE;
+    LPVOID moduleFunction = GetProcAddress(GetModuleHandle(TEXT(moduleName)), functionName);
+    if (moduleFunction == NULL)
+        return FALSE;
+
+    if (MH_DisableHook(moduleFunction) != MH_OK)
+        return FALSE;
+
+    if (MH_RemoveHook(moduleFunction) != MH_OK)
+        return FALSE;
+
+    instance._originalFunctions.erase(key);
+    return TRUE;
 }
