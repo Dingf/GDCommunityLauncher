@@ -3,6 +3,7 @@ include/md5.hpp
 include/FileBuffer.h
 include/FileReader.h
 include/FileWriter.h
+include/FileData.h
 include/Log.h
 include/Value.h
 include/Version.h

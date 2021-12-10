@@ -3,7 +3,7 @@
 
 void GDDataBlock::ReadBlockStart(EncodedFileReader* reader, uint32_t flags)
 {
-    if (flags & GD_DATA_BLOCK_READ_ID)
+    if (flags & GD_DATA_BLOCK_FLAG_ID)
     {
         int32_t blockID = reader->ReadInt32();
         if (blockID != _blockID)
@@ -13,7 +13,7 @@ void GDDataBlock::ReadBlockStart(EncodedFileReader* reader, uint32_t flags)
     _blockLength = reader->ReadInt32(false);
     _blockStart = reader->GetPosition();
 
-    if (flags & GD_DATA_BLOCK_READ_VERSION)
+    if (flags & GD_DATA_BLOCK_FLAG_VERSION)
     {
         _blockVersion = reader->ReadInt32();
         if ((_blockVersionMask & (1 << (_blockVersion - 1))) == 0)
@@ -35,4 +35,20 @@ web::json::value GDDataBlock::ToJSON()
     obj[U("BlockVersion")] = GetBlockVersion();
 
     return obj;
+}
+
+void GDDataBlock::WriteBlockStart(EncodedFileWriter* writer, uint32_t flags)
+{
+    if (flags & GD_DATA_BLOCK_FLAG_ID)
+        writer->BufferInt32(_blockID);
+
+    writer->BufferInt32(_blockLength, false);
+
+    if (flags & GD_DATA_BLOCK_FLAG_VERSION)
+        writer->BufferInt32(_blockVersion);
+}
+
+void GDDataBlock::WriteBlockEnd(EncodedFileWriter* writer)
+{
+    writer->BufferInt32(0, false);
 }

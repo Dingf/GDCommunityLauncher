@@ -242,7 +242,6 @@ void UpdateCharacterData(std::wstring playerName, bool async)
             for (auto it2 = tokensArray.begin(); it2 != tokensArray.end(); ++it2)
             {
                 std::string token = JSONString(it2->serialize());
-                token = std::string(token.begin() + 1, token.end() - 1);    // Trim quotes before storing as a JSON string
                 if (token.find("GDL_", 0) == 0)
                 {
                     questInfo[it->second][index++] = JSONString(token);
@@ -336,6 +335,100 @@ std::filesystem::path GetSharedStashPath(const char* modName, bool hardcore)
     return stashPath;
 }
 
+void PostTransferItem(uint32_t itemID)
+{
+    pplx::create_task([itemID]()
+    {
+        Client& client = Client::GetInstance();
+        URI endpoint = URI(client.GetHostName()) / "api" / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "transfer-item" / std::to_string(itemID);
+
+        web::http::client::http_client httpClient((utility::string_t)endpoint);
+        web::http::http_request request(web::http::methods::POST);
+
+        std::string bearerToken = "Bearer " + client.GetAuthToken();
+        request.headers().add(U("Authorization"), bearerToken.c_str());
+
+        try
+        {
+            web::http::http_response response = httpClient.request(request).get();
+            if (response.status_code() != web::http::status_codes::OK)
+            {
+                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+            }
+        }
+        catch (const std::exception& ex)
+        {
+            Logger::LogMessage(LOG_LEVEL_WARN, "Failed to post transfer item: %", ex.what());
+        }
+    });
+}
+
+void PullFromTransferQueue()
+{
+    pplx::create_task([]()
+    {
+        try
+        {
+            Client& client = Client::GetInstance();
+            const char* modName = EngineAPI::GetModName();
+            PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
+
+            if ((modName) && (mainPlayer) && (client.IsParticipatingInSeason()))
+            {
+                URI endpoint = URI(client.GetHostName()) / "api" / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "transfer-queue";
+                web::http::client::http_client httpClient((utility::string_t)endpoint);
+                web::http::http_request request(web::http::methods::GET);
+
+                std::string bearerToken = "Bearer " + client.GetAuthToken();
+                request.headers().add(U("Authorization"), bearerToken.c_str());
+
+                web::http::http_response response = httpClient.request(request).get();
+                if (response.status_code() == web::http::status_codes::OK)
+                {
+                    std::vector<Item> itemList;
+                    web::json::array itemsArray = response.extract_json().get().as_array();
+                    for (auto it = itemsArray.begin(); it != itemsArray.end(); ++it)
+                    {
+                        itemList.emplace_back(*it);
+                        Logger::LogMessage(LOG_LEVEL_DEBUG, "Transfer queue: %", (std::string)JSONString(it->serialize()));
+                    }
+
+                    std::filesystem::path stashPath = GetSharedStashPath(modName, GameAPI::IsPlayerHardcore(mainPlayer));
+                    if (stashPath.empty())
+                    {
+                        Logger::LogMessage(LOG_LEVEL_ERROR, "Could not determine shared stash path for mod \"%\"", modName);
+                        return;
+                    }
+
+                    SharedStash stashData;
+                    if (!stashData.ReadFromFile(stashPath))
+                    {
+                        Logger::LogMessage(LOG_LEVEL_ERROR, "Could not load shared stash data from file");
+                        return;
+                    }
+
+                    if (stashData.GetTabCount() >= 6)
+                    {
+                        Stash::StashTab* transferTab = stashData.GetStashTab(4);
+                        if (transferTab)
+                        {
+                            transferTab->AddItemList(itemList);
+                        }
+                    }
+                }
+                else
+                {
+                    throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+                }
+            }
+        }
+        catch (const std::exception& ex)
+        {
+            Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve transfer queue items: %", ex.what());
+        }
+    });
+}
+
 void PostTransferStashUpload()
 {
     Client& client = Client::GetInstance();
@@ -346,61 +439,78 @@ void PostTransferStashUpload()
     {
         std::filesystem::path stashPath = GetSharedStashPath(modName, GameAPI::IsPlayerHardcore(mainPlayer));
         if (stashPath.empty())
+        {
+            Logger::LogMessage(LOG_LEVEL_ERROR, "Could not determine shared stash path for mod \"%\"", modName);
             return;
+        }
 
         SharedStash stashData;
         if (!stashData.ReadFromFile(stashPath))
         {
-            Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to load shared stash data. Make sure that cloud saving is diabled.");
+            Logger::LogMessage(LOG_LEVEL_ERROR, "Could not load shared stash data from file");
             return;
         }
-
-        web::json::value requestBody = web::json::value::array();
 
         web::json::value stashJSON = stashData.ToJSON();
         web::json::array stashTabs = stashJSON[U("Tabs")].as_array();
         if (stashTabs.size() >= 6)
         {
-            web::json::value transferTab = stashTabs[5];
-            web::json::array transferTabItems = transferTab[U("Items")].as_array();
-
-            uint32_t index = 0;
-            for (auto it = transferTabItems.begin(); it != transferTabItems.end(); ++it)
+            web::json::array transferItems = stashTabs[5][U("Items")].as_array();
+            if (transferItems.size() > 0)
             {
-                requestBody[index] = *it;
-                requestBody[index].erase(U("Unknown1"));
-                requestBody[index].erase(U("Unknown2"));
-                requestBody[index].erase(U("X"));
-                requestBody[index].erase(U("Y"));
-                index++;
+                client.SetTransferPending(true);
+
+                uint32_t index = 0;
+                web::json::value requestBody = web::json::value::array();
+                for (auto it = transferItems.begin(); it != transferItems.end(); ++it)
+                {
+                    requestBody[index] = *it;
+                    requestBody[index].erase(U("Unknown1"));
+                    requestBody[index].erase(U("Unknown2"));
+                    requestBody[index].erase(U("X"));
+                    requestBody[index].erase(U("Y"));
+                    index++;
+                }
+
+                try
+                {
+                    URI endpoint = URI(client.GetHostName()) / "api" / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "stash";
+
+                    web::http::client::http_client httpClient((utility::string_t)endpoint);
+                    web::http::http_request request(web::http::methods::POST);
+                    request.set_body(requestBody);
+
+                    std::string bearerToken = "Bearer " + client.GetAuthToken();
+                    request.headers().add(U("Authorization"), bearerToken.c_str());
+
+                    web::http::http_response response = httpClient.request(request).get();
+                    if (response.status_code() == web::http::status_codes::OK)
+                    {
+                        Stash::StashTab* stashTab = stashData.GetStashTab(5);
+                        if (stashTab)
+                        {
+                            stashTab->GetItemList().clear();
+                            stashData.WriteToFile(stashPath);
+                            GameAPI::DisplayUINotification("tagGDLeagueStorageSuccess");
+                        }
+                        else
+                        {
+                            throw std::runtime_error("Could not retrieve stash tab data from save file");
+                        }
+                    }
+                    else
+                    {
+                        throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+                    }
+                }
+                catch (const std::exception& ex)
+                {
+                    GameAPI::DisplayUINotification("tagGDLeagueStorageFailure");
+                    Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload shared stash items: %", ex.what());
+                }
+
+                client.SetTransferPending(false);
             }
-        }
-
-        try
-        {
-            Client& client = Client::GetInstance();
-            URI endpoint = URI(client.GetHostName()) / "api" / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "stash";
-
-            web::http::client::http_client httpClient((utility::string_t)endpoint);
-            web::http::http_request request(web::http::methods::POST);
-            request.set_body(requestBody);
-
-            std::string bearerToken = "Bearer " + client.GetAuthToken();
-            request.headers().add(U("Authorization"), bearerToken.c_str());
-
-            web::http::http_response response = httpClient.request(request).get();
-            if (response.status_code() == web::http::status_codes::OK)
-            {
-                //TODO: Save the stash minus the items that were transferred
-            }
-            else
-            {
-                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-            }
-        }
-        catch (const std::exception& ex)
-        {
-            Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload shared stash items: %", ex.what());
         }
     }
 }
@@ -478,7 +588,7 @@ void HandleSaveTransferStash(void* _this)
         {
             pplx::create_task([prevModifiedTime]()
             {
-                //PostTransferStashUpload();
+                PostTransferStashUpload();
                 PostSharedStashUpdateTimes(prevModifiedTime);
             });
         }
@@ -528,7 +638,6 @@ void HandleSetMainPlayer(void* _this, uint32_t unk1)
                     for (auto it2 = tokensArray.begin(); it2 != tokensArray.end(); ++it2)
                     {
                         std::string token = JSONString(it2->serialize());
-                        token = std::string(token.begin() + 1, token.end() - 1);    // Trim quotes before storing as a JSON string
                         if (token == seasonInfo->_participationToken)
                         {
                             hasParticipationToken = true;
@@ -544,6 +653,18 @@ void HandleSetMainPlayer(void* _this, uint32_t unk1)
                 UpdateCharacterData(playerName, false);
             }
         }
+    }
+}
+
+void HandleSetTransferOpen(void* _this, uint32_t unk1, bool unk2, bool unk3)
+{
+    typedef void(__thiscall* SetTransferOpenProto)(void*, uint32_t, bool, bool);
+
+    Client& client = Client::GetInstance();
+    SetTransferOpenProto callback = (SetTransferOpenProto)HookManager::GetOriginalFunction("Game.dll", GameAPI::GAPI_NAME_ON_CARAVAN_INTERACT);
+    if ((callback) && (!client.IsTransferPending()))
+    {
+        callback(_this, unk1, unk2, unk3);
     }
 }
 
@@ -733,6 +854,49 @@ void HandleUnloadWorld(void* _this)
     }
 }
 
+void DEBUGTestFunc()
+{
+    pplx::create_task([]()
+    {
+        try
+        {
+            Client& client = Client::GetInstance();
+            URI endpoint = URI(client.GetHostName()) / "api" / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "stash";
+            web::http::client::http_client httpClient((utility::string_t)endpoint);
+            web::http::http_request request(web::http::methods::GET);
+
+            std::string bearerToken = "Bearer " + client.GetAuthToken();
+            request.headers().add(U("Authorization"), bearerToken.c_str());
+
+            web::http::http_response response = httpClient.request(request).get();
+            if (response.status_code() == web::http::status_codes::OK)
+            {
+                web::json::array itemsArray = response.extract_json().get().as_array();
+                for (auto it = itemsArray.begin(); it != itemsArray.end(); ++it)
+                {
+                    Logger::LogMessage(LOG_LEVEL_DEBUG, "Stash item: %", (std::string)JSONString(it->serialize()));
+
+                    bool isTransferring = (*it)[U("transferToStash")].as_bool();
+                    if (!isTransferring)
+                    {
+                        uint32_t itemID = (*it)[U("participantItemId")].as_integer();
+                        PostTransferItem(itemID);
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+            }
+        }
+        catch (const std::exception& ex)
+        {
+            Logger::LogMessage(LOG_LEVEL_WARN, "Failed to update shared stash times: %", ex.what());
+        }
+    });
+}
+
 bool HandleKeyEvent(void* _this, EngineAPI::KeyButtonEvent& event)
 {
     typedef bool(__thiscall* HandleKeyEventProto)(void*, EngineAPI::KeyButtonEvent&);
@@ -741,6 +905,21 @@ bool HandleKeyEvent(void* _this, EngineAPI::KeyButtonEvent& event)
     if (callback)
     {
         Client& client = Client::GetInstance();
+
+        if ((client.IsParticipatingInSeason()) && (event._keyCode == EngineAPI::KEY_1) && (event._keyState == EngineAPI::KEY_STATE_DOWN))
+        {
+            DEBUGTestFunc();
+        }
+        else if ((client.IsParticipatingInSeason()) && (event._keyCode == EngineAPI::KEY_2) && (event._keyState == EngineAPI::KEY_STATE_DOWN))
+        {
+            PullFromTransferQueue();
+        }
+        else if ((client.IsParticipatingInSeason()) && (event._keyCode == EngineAPI::KEY_3) && (event._keyState == EngineAPI::KEY_STATE_DOWN))
+        {
+
+        }
+
+
         if ((client.IsParticipatingInSeason()) && (event._keyCode == EngineAPI::KEY_TILDE))
         {
             // Disable the tilde key to prevent console access
@@ -789,6 +968,7 @@ bool Client::SetupClientHooks()
         !HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_HANDLE_KEY_EVENT, &HandleKeyEvent) ||
         !HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_RENDER_STYLED_TEXT_2D, &HandleRenderStyledText2D) ||
         !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_SET_MAIN_PLAYER, &HandleSetMainPlayer) ||
+        !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_ON_CARAVAN_INTERACT, &HandleSetTransferOpen) ||
         !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_SAVE_NEW_FORMAT_DATA, &HandleSaveNewFormatData) ||
         !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_SAVE_TRANSFER_STASH, &HandleSaveTransferStash) ||
         !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_LOAD_TRANSFER_STASH, &HandleLoadTransferStash) ||

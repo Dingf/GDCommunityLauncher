@@ -21,8 +21,8 @@ const std::vector<std::string> searchPaths =
     "records/storyelements",      // For some reason Lokarr's set is stored here instead of in records/items
     "records/endlessdungeon/items",
     "records/endlessdungeon/scriptentities",
+    "records/creatures/npcs/npcgear",
 };
-
 
 void ItemDBR::BuildItemDB(const std::filesystem::path& dataPath, const std::filesystem::path& outPath)
 {

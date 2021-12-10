@@ -12,7 +12,7 @@ enum ItemContainerType
     ITEM_CONTAINER_SHARED_STASH,
     ITEM_CONTAINER_CRAFTING_STASH,  // Unused
     ITEM_CONTAINER_CHAR_STASH,
-    ITEM_CONTAINER_CHAR_INVENTORY,  // Unused
+    ITEM_CONTAINER_CHAR_INVENTORY,
     ITEM_CONTAINER_CHAR_BAG,
     ITEM_CONTAINER_CHAR_EQUIP
 };
@@ -30,8 +30,11 @@ class ItemContainer
 
         virtual ItemContainerType GetContainerType() const = 0;
 
-        void AddItem(const std::shared_ptr<Item>& item, int32_t x, int32_t y);
+        void AddItem(const Item& item);
+        void AddItem(const Item& item, int32_t x, int32_t y);
+        void AddItemList(const std::vector<Item>& items);
 
+              std::map<Item*, uint64_t>& GetItemList()       { return _itemList; }
         const std::map<Item*, uint64_t>& GetItemList() const { return _itemList; }
 
     protected:

@@ -21,7 +21,12 @@ class JSONString
             return web::json::value::string(utility::conversions::to_utf16string(_s));
         }
 
-        operator std::string() const { return _s; }
+        operator std::string() const
+        {
+            if ((_s.front() == '\"') && (_s.back() == '\"'))
+                return std::string(_s.begin()+1, _s.end()-1);
+            return _s;
+        }
 
     private:
         const std::string& _s;

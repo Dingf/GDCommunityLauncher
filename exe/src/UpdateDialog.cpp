@@ -60,7 +60,7 @@ std::string GetSeasonModName(std::string hostName)
                 {
                     // Mod name should be the same across all seasons, so return the first result
                     std::string modName = JSONString(it->at(U("modName")).serialize());
-                    return std::string(modName.begin() + 1, modName.end() - 1);
+                    return modName;
                 }
             }
             default:
@@ -100,12 +100,6 @@ bool GetUpdateList(const std::string& hostName, const std::string& modName, std:
                 {
                     std::string filename = JSONString(it->at(U("fileName")).serialize());
                     std::string checksum = JSONString(it->at(U("checksum")).serialize());
-
-                    // Trim quotes from serializing the string
-                    if ((filename.front() == '"') && (filename.back() == '"'))
-                        filename = std::string(filename.begin() + 1, filename.end() - 1);
-                    if ((checksum.front() == '"') && (checksum.back() == '"'))
-                        checksum = std::string(checksum.begin() + 1, checksum.end() - 1);
 
                     // Capitalize the server MD5 hash for consistency
                     for (std::string::iterator it = checksum.begin(); it != checksum.end(); ++it)
@@ -175,9 +169,6 @@ bool ExtractZIPUpdate(const std::filesystem::path& path)
         unzCloseCurrentFile(zipFile);
         unzClose(zipFile);
 
-        if (std::filesystem::is_regular_file(filenamePath))
-            std::filesystem::remove(filenamePath);
-
         std::filesystem::rename(tempPath, filenamePath);
 
         return true;
@@ -242,9 +233,6 @@ void DownloadFiles(const std::string& hostName, const std::string& modName, cons
                     while (bytesRead > 0);
 
                     fileStream.close().wait();
-
-                    if (std::filesystem::is_regular_file(filenamePath))
-                        std::filesystem::remove(filenamePath);
 
                     std::filesystem::rename(tempPath, filenamePath);
 

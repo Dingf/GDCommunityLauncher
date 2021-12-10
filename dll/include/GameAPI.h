@@ -15,6 +15,7 @@ constexpr char GAPI_NAME_GET_PLAYER_MAX_DIFFICULTY[] = "?GetGreatestDifficultyCo
 constexpr char GAPI_NAME_GET_BASE_FOLDER[] = "?GetBaseFolder@GameEngine@GAME@@SA?AV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@XZ";
 constexpr char GAPI_NAME_GET_GAME_DIFFICULTY[] = "?GetGameDifficulty@GameEngine@GAME@@QEBA?AW4GameDifficulty@2@XZ";
 constexpr char GAPI_NAME_SET_MAIN_PLAYER[] = "?SetMainPlayer@PlayerManagerClient@GAME@@QEAAXI@Z";
+constexpr char GAPI_NAME_ON_CARAVAN_INTERACT[] = "?OnPlayerInteract@NpcCaravan@GAME@@UEAAXI_N0@Z";
 constexpr char GAPI_NAME_HAS_TOKEN[] = "?HasToken@Player@GAME@@QEAA_NAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z";
 constexpr char GAPI_NAME_IS_HARDCORE[] = "?IsHardcore@Player@GAME@@QEBA_NXZ";
 constexpr char GAPI_NAME_IS_CLOUD_STORAGE[] = "?GetCloudStorage@GameEngine@GAME@@QEBA_NXZ";
@@ -25,6 +26,7 @@ constexpr char GAPI_NAME_SAVE_TRANSFER_STASH[] = "?SaveTransferStash@GameEngine@
 constexpr char GAPI_NAME_LOAD_TRANSFER_STASH[] = "?LoadPlayerTransfer@GameEngine@GAME@@QEAAXXZ";
 constexpr char GAPI_NAME_BESTOW_TOKEN[] = "?BestowToken@Player@GAME@@QEAAXAEBUTriggerToken@2@@Z";
 constexpr char GAPI_NAME_UNLOAD_WORLD[] = "?UnloadWorld@GameEngine@GAME@@QEAAXXZ";
+constexpr char GAPI_NAME_UI_NOTIFY[] = "?QuestCommandUiNotify@GameEngine@GAME@@QEAAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z";
 #else
 constexpr char GAPI_NAME_GAME_ENGINE[] = "?gGameEngine@GAME@@3PAVGameEngine@1@A";
 constexpr char GAPI_NAME_GET_MAIN_PLAYER[] = "?GetMainPlayer@GameEngine@GAME@@QBEPAVPlayer@2@XZ";
@@ -33,6 +35,7 @@ constexpr char GAPI_NAME_GET_PLAYER_MAX_DIFFICULTY[] = "?GetGreatestDifficultyCo
 constexpr char GAPI_NAME_GET_BASE_FOLDER[] = "?GetBaseFolder@GameEngine@GAME@@SA?AV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@XZ";
 constexpr char GAPI_NAME_GET_GAME_DIFFICULTY[] = "?GetGameDifficulty@GameEngine@GAME@@QBE?AW4GameDifficulty@2@XZ";
 constexpr char GAPI_NAME_SET_MAIN_PLAYER[] = "?SetMainPlayer@PlayerManagerClient@GAME@@QAEXI@Z";
+constexpr char GAPI_NAME_ON_CARAVAN_INTERACT[] = "?OnPlayerInteract@NpcCaravan@GAME@@UAEXI_N0@Z";
 constexpr char GAPI_NAME_HAS_TOKEN[] = "?HasToken@Player@GAME@@QAE_NABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z";
 constexpr char GAPI_NAME_IS_HARDCORE[] = "?IsHardcore@Player@GAME@@QBE_NXZ";
 constexpr char GAPI_NAME_IS_CLOUD_STORAGE[] = "?GetCloudStorage@GameEngine@GAME@@QBE_NXZ";
@@ -43,6 +46,7 @@ constexpr char GAPI_NAME_SAVE_TRANSFER_STASH[] = "?SaveTransferStash@GameEngine@
 constexpr char GAPI_NAME_LOAD_TRANSFER_STASH[] = "?LoadPlayerTransfer@GameEngine@GAME@@QAEXXZ";
 constexpr char GAPI_NAME_BESTOW_TOKEN[] = "?BestowToken@Player@GAME@@QAEXABUTriggerToken@2@@Z";
 constexpr char GAPI_NAME_UNLOAD_WORLD[] = "?UnloadWorld@GameEngine@GAME@@QAEXXZ";
+constexpr char GAPI_NAME_UI_NOTIFY[] = "?QuestCommandUiNotify@GameEngine@GAME@@QAEXABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z";
 #endif
 
 PULONG_PTR GetGameEngineHandle();
@@ -64,6 +68,8 @@ bool IsPlayerHardcore(PULONG_PTR player);
 bool IsCloudStorageEnabled();
 
 bool IsGameLoading();
+
+void DisplayUINotification(const std::string& tag);
 
 }
 

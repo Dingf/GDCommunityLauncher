@@ -1,22 +1,32 @@
 #include "Log.h"
 #include "FileReader.h"
+#include "FileWriter.h"
 #include "GDDataBlock.h"
 #include "SharedStash.h"
+
+size_t SharedStash::GetBufferSize() const
+{
+    size_t size = 28 + _headerBlock._stashModName.size();
+
+    if (_headerBlock.GetBlockVersion() >= 5)
+        size++;
+
+    size += Stash::GetBufferSize();
+
+    return size;
+}
 
 bool SharedStash::ReadFromFile(const std::filesystem::path& path)
 {
     if (std::filesystem::is_regular_file(path))
     {
-        EncodedFileReader reader(path);
-        if (!reader.HasData())
-        {
-            Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to open file: \"%\"", path.string().c_str());
-            return false;
-        }
-
         try
         {
-            ReadSharedStashData(&reader);
+            EncodedFileReader reader(path);
+            if (!reader.HasData())
+                throw std::runtime_error(std::string("Could not open file: \"") + path.string().c_str() + "\" for reading");
+
+            Read(&reader);
             return true;
         }
         catch (std::runtime_error&)
@@ -28,27 +38,44 @@ bool SharedStash::ReadFromFile(const std::filesystem::path& path)
     return false;
 }
 
-void SharedStash::WriteToFile(const std::filesystem::path& path)
+bool SharedStash::WriteToFile(const std::filesystem::path& path)
 {
-    std::filesystem::path writePath = path;
     if (std::filesystem::exists(path))
     {
+        std::filesystem::path tempPath = path;
         if (std::filesystem::is_regular_file(path))
         {
-            writePath += "_tmp";
+            tempPath += "_tmp";
         }
         else
         {
             Logger::LogMessage(LOG_LEVEL_ERROR, "Tried to write shared stash to path \"%\" which is not a file", path.string().c_str());
+            return false;
         }
+
+        try
+        {
+            EncodedFileWriter writer(GetBufferSize());
+            Write(&writer);
+
+            writer.WriteToFile(tempPath);
+
+            std::filesystem::rename(tempPath, path);
+        }
+        catch (std::runtime_error&)
+        {
+            Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to write to shared stash file \"%\"", path.string().c_str());
+            return false;
+        }
+
+        return true;
     }
-
-
+    return false;
 }
 
-void SharedStash::ReadSharedStashData(EncodedFileReader* reader)
+void SharedStash::Read(EncodedFileReader* reader)
 {
-    uint32_t fileVersion = reader->ReadInt32();
+    uint32_t fileVersion = reader->ReadInt32(true);
     if (fileVersion != 2)
         throw std::runtime_error(Logger::LogMessage(LOG_LEVEL_ERROR, "The file version is invalid or unsupported"));
 
@@ -66,27 +93,40 @@ void SharedStash::ReadSharedStashData(EncodedFileReader* reader)
     }
 
     uint32_t numTabs = reader->ReadInt32();
-    for (uint32_t i = 0; i < numTabs; ++i)
-    {
-        ReadStashTab(reader);
-    }
+    ReadStashTabs(reader, numTabs);
 
     _headerBlock.ReadBlockEnd(reader);
 }
 
-size_t SharedStash::CalculateBufferSize() const
+void SharedStash::Write(EncodedFileWriter* writer)
 {
-    size_t size = 28;
-    size += _headerBlock._stashModName.size();
+    writer->BufferInt32(2);
 
-    return size;
+    _headerBlock.WriteBlockStart(writer);
+
+    writer->BufferInt32(_headerBlock._unk1, false);
+    writer->BufferString(_headerBlock._stashModName);
+
+    if (_headerBlock.GetBlockVersion() >= 5)
+    {
+        writer->BufferInt8(_headerBlock._stashExpansions);
+    }
+
+    writer->BufferInt32((uint32_t)_stashTabs.size());
+    WriteStashTabs(writer);
+
+    _headerBlock.WriteBlockEnd(writer);
 }
 
 web::json::value SharedStash::SharedStashHeaderBlock::ToJSON()
 {
     web::json::value obj = web::json::value::object();
 
-    //TODO: Implement me
+    obj[U("BlockID")] = GetBlockID();
+    obj[U("BlockVersion")] = GetBlockVersion();
+    obj[U("ModName")] = JSONString(_stashModName);
+    obj[U("Expansion")] = _stashExpansions;
+    obj[U("Unknown1")] = _unk1;
 
     return obj;
 }

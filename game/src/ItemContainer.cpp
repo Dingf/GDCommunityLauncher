@@ -19,8 +19,11 @@ ItemContainer::~ItemContainer()
     _itemList.clear();
 }
 
-void ItemContainer::AddItem(const std::shared_ptr<Item>& item, int32_t x, int32_t y)
+void ItemContainer::AddItem(const Item& item, int32_t x, int32_t y)
 {
+    //TODO: 
+
+    /*
     if ((x >= _width) || (y >= _height) || (x < 0) || (y < 0))
     {
         Logger::LogMessage(LOG_LEVEL_WARN, "Tried to add item \"%\" at coordinates (%, %), which is outside the bounds of the container. Item has not been added!", item->_itemName, x, y);
@@ -55,7 +58,7 @@ void ItemContainer::AddItem(const std::shared_ptr<Item>& item, int32_t x, int32_
         catch (std::out_of_range&)
         {
             // TODO: Re-enable this error message once item DB is fully supported
-            //Logger::LogMessage(LOG_LEVEL_WARN, "Tried to add item \"%\" that does not exist in item database. Item has not been added!", item->_itemName);
+            Logger::LogMessage(LOG_LEVEL_WARN, "Tried to add item \"%\" that does not exist in item database. Item has not been added!", item->_itemName);
             return;
         }
 
@@ -101,5 +104,10 @@ void ItemContainer::AddItem(const std::shared_ptr<Item>& item, int32_t x, int32_
         {
             Logger::LogMessage(LOG_LEVEL_WARN, "Tried to add item \"%\" at coordinates (%, %), which overlaps with an existing item. Item has not been added!", item->_itemName, x, y);
         }
-    }
+    }*/
+}
+
+void AddItemList(const std::vector<std::shared_ptr<Item>>& items)
+{
+    //TODO: Implement me
 }

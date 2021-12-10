@@ -3,25 +3,14 @@
 
 #include <memory>
 #include <vector>
+#include "FileData.h"
 #include "JSONObject.h"
 #include "GDDataBlock.h"
 #include "ItemContainer.h"
 
-class Stash : public JSONObject
+class Stash : public FileData, public JSONObject
 {
     public:
-        virtual ~Stash() = 0;
-
-        virtual web::json::value ToJSON();
-
-        virtual ItemContainerType GetContainerType() const = 0;
-
-        bool IsHardcore() const { return _isHardcore; }
-        void SetHardcore(bool hardcore) { _isHardcore = hardcore; }
-
-        void ReadStashTab(EncodedFileReader* reader);
-
-    protected:
         class StashTab : public ItemContainer
         {
             friend class Stash;
@@ -35,6 +24,25 @@ class Stash : public JSONObject
                 const Stash& _parent;
         };
 
+        virtual ~Stash() = 0;
+
+        virtual size_t GetBufferSize() const;
+
+        virtual web::json::value ToJSON();
+
+        virtual ItemContainerType GetContainerType() const = 0;
+
+        bool IsHardcore() const { return _isHardcore; }
+        void SetHardcore(bool hardcore) { _isHardcore = hardcore; }
+
+        void ReadStashTabs(EncodedFileReader* reader, uint32_t count);
+        void WriteStashTabs(EncodedFileWriter* writer);
+
+        uint32_t GetTabCount() const { return _stashTabs.size(); }
+
+        StashTab* GetStashTab(uint32_t index);
+
+    protected:
         struct StashTabBlock : public GDDataBlock
         {
             StashTabBlock() : GDDataBlock(0x00, 0x00) {}

@@ -1,13 +1,16 @@
 #include "FileWriter.h"
 
+#include "Log.h"
+
 FileWriter::FileWriter(size_t size)
 {
     _bufferPos = 0;
+    _bufferSize = size;
     _buffer = new uint8_t[size];
     memset(_buffer, 0, size * sizeof(uint8_t));
 }
 
-void FileWriter::WriteFloat(float val)
+void FileWriter::BufferFloat(float val)
 {
     if (_bufferPos + 4 <= _bufferSize)
     {
@@ -16,7 +19,7 @@ void FileWriter::WriteFloat(float val)
     }
 }
 
-void FileWriter::WriteInt8(uint8_t val)
+void FileWriter::BufferInt8(uint8_t val)
 {
     if (_bufferPos + 1 <= _bufferSize)
     {
@@ -24,7 +27,7 @@ void FileWriter::WriteInt8(uint8_t val)
     }
 }
 
-void FileWriter::WriteInt16(uint16_t val)
+void FileWriter::BufferInt16(uint16_t val)
 {
     if (_bufferPos + 2 <= _bufferSize)
     {
@@ -33,7 +36,7 @@ void FileWriter::WriteInt16(uint16_t val)
     }
 }
 
-void FileWriter::WriteInt32(uint32_t val)
+void FileWriter::BufferInt32(uint32_t val)
 {
     if (_bufferPos + 4 <= _bufferSize)
     {
@@ -42,7 +45,7 @@ void FileWriter::WriteInt32(uint32_t val)
     }
 }
 
-void FileWriter::WriteInt64(uint64_t val)
+void FileWriter::BufferInt64(uint64_t val)
 {
     if (_bufferPos + 8 <= _bufferSize)
     {
@@ -51,10 +54,10 @@ void FileWriter::WriteInt64(uint64_t val)
     }
 }
 
-void FileWriter::WriteString(const std::string& val)
+void FileWriter::BufferString(const std::string& val)
 {
     uint32_t length = (uint32_t)val.size();
-    WriteInt32(length);
+    BufferInt32(length);
 
     if (_bufferPos + length <= _bufferSize)
     {
@@ -65,10 +68,10 @@ void FileWriter::WriteString(const std::string& val)
     }
 }
 
-void FileWriter::WriteWideString(const std::wstring& val)
+void FileWriter::BufferWideString(const std::wstring& val)
 {
     uint32_t length = (uint32_t)(val.size() * 2);
-    WriteInt32(length);
+    BufferInt32(length);
 
     if (_bufferPos + length <= _bufferSize)
     {
@@ -82,10 +85,29 @@ void FileWriter::WriteWideString(const std::wstring& val)
     }
 }
 
+void FileWriter::WriteToFile(const std::filesystem::path& filename)
+{
+    std::ofstream out(filename, std::ofstream::binary | std::ofstream::out);
+    if (out.is_open())
+    {
+        out.write((const char*)_buffer, _bufferSize);
+        out.close();
+    }
+}
 
+EncodedFileWriter::EncodedFileWriter(size_t size) : FileWriter(size + 4)
+{
+    uint32_t val = 0x55555555;
+    *(uint32_t*)(&_buffer[_bufferPos]) = val;
+    _bufferPos += 4;
 
-
-
+    _key = (val ^= 0x55555555);
+    for (uint32_t i = 0; i < 256; ++i)
+    {
+        val = ((val >> 1) | (val << 31)) * 39916801;
+        _table[i] = val;
+    }
+}
 
 void EncodedFileWriter::UpdateKey(uint32_t val)
 {
@@ -96,70 +118,73 @@ void EncodedFileWriter::UpdateKey(uint32_t val)
     }
 }
 
-void EncodedFileWriter::WriteFloat(float val, bool update)
+void EncodedFileWriter::BufferFloat(float val, bool update)
 {
     if (_bufferPos + 4 <= _bufferSize)
     {
-        uint32_t intVal = reinterpret_cast<uint32_t&>(val);
+        uint32_t intVal = reinterpret_cast<uint32_t&>(val) ^ _key;
+        *(uint32_t*)(&_buffer[_bufferPos]) = intVal;
+        _bufferPos += 4;
 
         if (update)
             UpdateKey(intVal);
-
-        *(uint32_t*)(&_buffer[_bufferPos]) = intVal ^ _key;
-        _bufferPos += 4;
     }
 }
 
-void EncodedFileWriter::WriteInt8(uint8_t val, bool update)
+void EncodedFileWriter::BufferInt8(uint8_t val, bool update)
 {
     if (_bufferPos + 1 <= _bufferSize)
     {
+        val = (val ^ _key) & 0xFF;
+        _buffer[_bufferPos++] = val;
+
         if (update)
             _key ^= _table[val];
-
-        _buffer[_bufferPos++] = (val ^ _key) & 0xFF;
     }
 }
 
-void EncodedFileWriter::WriteInt16(uint16_t val, bool update)
+void EncodedFileWriter::BufferInt16(uint16_t val, bool update)
 {
     if (_bufferPos + 2 <= _bufferSize)
     {
+        val = (val ^ _key) & 0xFFFF;
+        *(uint16_t*)(&_buffer[_bufferPos]) = val;
+        _bufferPos += 2;
+
         if (update)
             UpdateKey(val);
-
-        *(uint16_t*)(&_buffer[_bufferPos]) = (val ^ _key) & 0xFFFF;
-        _bufferPos += 2;
     }
 }
 
-void EncodedFileWriter::WriteInt32(uint32_t val, bool update)
+void EncodedFileWriter::BufferInt32(uint32_t val, bool update)
 {
     if (_bufferPos + 4 <= _bufferSize)
     {
+        val = val ^ _key;
+        *(uint32_t*)(&_buffer[_bufferPos]) = val;
+        _bufferPos += 4;
+
         if (update)
             UpdateKey(val);
-
-        *(uint32_t*)(&_buffer[_bufferPos]) = val ^ _key;
-        _bufferPos += 4;
     }
 }
 
-void EncodedFileWriter::WriteString(std::string val)
+void EncodedFileWriter::BufferString(std::string val)
 {
     uint32_t length = (uint32_t)val.size();
-    WriteInt32(length);
+    BufferInt32(length);
 
     if (_bufferPos + length <= _bufferSize)
     {
         for (uint32_t i = 0; i < length; ++i)
         {
-            WriteInt8(val[i]);
+            BufferInt8(val[i]);
         }
     }
 }
 
-void EncodedFileWriter::WriteWideString(std::wstring val)
+void EncodedFileWriter::BufferWideString(std::wstring val)
 {
+    Logger::LogMessage(LOG_LEVEL_ERROR, "EncodedFileWriter::BufferWideString() is not implemented yet");
     //TODO: implement me
 }

@@ -186,6 +186,11 @@ class Character : public JSONObject
                 public:
                     ItemContainerType GetContainerType() const { return ITEM_CONTAINER_CHAR_BAG; }
 
+                    size_t GetBufferSize() const;
+
+                    void Read(EncodedFileReader* reader);
+                    void Write(EncodedFileWriter* writer);
+
                     uint32_t GetFocusedTab() const { return _focusedTab; }
                     uint32_t GetSelectedTab() const { return _selectedTab; }
 
@@ -201,7 +206,12 @@ class Character : public JSONObject
             class CharacterEquipped : public ItemContainer
             {
                 public:
-                    CharacterEquipped() : ItemContainer(MAX_CHAR_INV_SLOT, 1, true) {}
+                    CharacterEquipped() : ItemContainer(1, MAX_CHAR_INV_SLOT, true) {}
+
+                    size_t GetBufferSize() const;
+
+                    void Read(EncodedFileReader* reader);
+                    void Write(EncodedFileWriter* writer);
 
                     ItemContainerType GetContainerType() const { return ITEM_CONTAINER_CHAR_INVENTORY; }
 
@@ -214,6 +224,8 @@ class Character : public JSONObject
                 private:
                     bool _activeWeaponSet;
                     bool _attached[MAX_CHAR_INV_SLOT];
+                    int8_t _weaponSet1;
+                    int8_t _weaponSet2;
             }
             _charEquipped;
 
@@ -231,6 +243,9 @@ class Character : public JSONObject
             {
                 public:
                     ItemContainerType GetContainerType() const { return ITEM_CONTAINER_CHAR_STASH; }
+
+                    void Read(EncodedFileReader* reader);
+                    void Write(EncodedFileWriter* writer);
             }
             _charStash;
         }

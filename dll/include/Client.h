@@ -56,6 +56,7 @@ class Client
         bool IsValid() const { return _data.IsValid(); }
 
         bool IsOnline() const { return _online; }
+        bool IsTransferPending() const { return _transferPending; }
 
         uint32_t GetPoints() const { return _points; }
         uint32_t GetRank() const { return _rank; }
@@ -88,15 +89,15 @@ class Client
             }
         }
 
-        void SetParticipantID(uint32_t participantID)
-        {
-            _data._participantID = participantID;
-        }
+        void SetTransferPending(bool status) { _transferPending = status; }
+        void SetParticipantID(uint32_t participantID) { _data._participantID = participantID; }
+
         void SetPoints(uint32_t points)
         {
             _points = points;
             UpdateLeagueInfoText();
         }
+
         void SetRank(uint32_t rank)
         {
             _rank = rank;
@@ -104,7 +105,7 @@ class Client
         }
 
     private:
-        Client() : _activeSeason(nullptr), _online(false) {}
+        Client() : _activeSeason(nullptr), _online(false), _transferPending(false) {}
 
         void UpdateVersionInfoText();
         void UpdateLeagueInfoText();
@@ -112,6 +113,7 @@ class Client
         void ReadDataFromPipe();
 
         bool _online;
+        bool _transferPending;
 
         uint32_t _rank;
         uint32_t _points;

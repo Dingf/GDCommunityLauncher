@@ -13,34 +13,38 @@ class FileWriter : public FileBuffer
     public:
         FileWriter(size_t size);
 
-        virtual void WriteFloat(float val);
-        virtual void WriteInt8(uint8_t val);
-        virtual void WriteInt16(uint16_t val);
-        virtual void WriteInt32(uint32_t val);
-                void WriteInt64(uint64_t val);
-        virtual void WriteString(const std::string& val);
-        virtual void WriteWideString(const std::wstring& val);
+        virtual void BufferFloat(float val);
+        virtual void BufferInt8(uint8_t val);
+        virtual void BufferInt16(uint16_t val);
+        virtual void BufferInt32(uint32_t val);
+                void BufferInt64(uint64_t val);
+        virtual void BufferString(const std::string& val);
+        virtual void BufferWideString(const std::wstring& val);
+
+        void WriteToFile(const std::filesystem::path& filename);
 };
 
 class EncodedFileWriter : public FileWriter
 {
     public:
-        EncodedFileWriter(const std::filesystem::path& filename);
+        EncodedFileWriter(size_t size);
 
-        void WriteFloat(float val, bool update);
-        void WriteFloat(float val) { WriteFloat(val, true); }
+        void BufferFloat(float val, bool update);
+        void BufferFloat(float val) { BufferFloat(val, true); }
 
-        void WriteInt8(uint8_t val, bool update);
-        void WriteInt8(uint8_t val) { WriteInt8(val, true); }
+        void BufferInt8(uint8_t val, bool update);
+        void BufferInt8(uint8_t val) { BufferInt8(val, true); }
 
-        void WriteInt16(uint16_t val, bool update);
-        void WriteInt16(uint16_t val) { WriteInt16(val, true); }
+        void BufferInt16(uint16_t val, bool update);
+        void BufferInt16(uint16_t val) { BufferInt16(val, true); }
 
-        void WriteInt32(uint32_t val, bool update);
-        void WriteInt32(uint32_t val) { WriteInt32(val, true); }
+        void BufferInt32(uint32_t val, bool update);
+        void BufferInt32(uint32_t val) { BufferInt32(val, true); }
 
-        void WriteString(std::string val);
-        void WriteWideString(std::wstring val);
+        void BufferInt64(uint64_t val) = delete;
+
+        void BufferString(std::string val);
+        void BufferWideString(std::wstring val);
 
     private:
         void UpdateKey(uint32_t val);

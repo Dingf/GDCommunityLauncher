@@ -3,11 +3,12 @@
 
 #include "JSONObject.h"
 #include "FileReader.h"
+#include "FileWriter.h"
 
-enum GDDataBlockReadFlags
+enum GDDataBlockFlags
 {
-    GD_DATA_BLOCK_READ_ID = 0x01,
-    GD_DATA_BLOCK_READ_VERSION = 0x02
+    GD_DATA_BLOCK_FLAG_ID = 0x01,
+    GD_DATA_BLOCK_FLAG_VERSION = 0x02
 };
 
 class GDDataBlock : public JSONObject
@@ -22,8 +23,11 @@ class GDDataBlock : public JSONObject
         uint32_t GetBlockVersionMask() const { return _blockVersionMask; }
         uint32_t GetBlockLength()      const { return _blockLength; }
 
-        void ReadBlockStart(EncodedFileReader* reader, uint32_t flags = (GD_DATA_BLOCK_READ_ID | GD_DATA_BLOCK_READ_VERSION));
+        void ReadBlockStart(EncodedFileReader* reader, uint32_t flags = (GD_DATA_BLOCK_FLAG_ID | GD_DATA_BLOCK_FLAG_VERSION));
         void ReadBlockEnd(EncodedFileReader* reader);
+
+        void WriteBlockStart(EncodedFileWriter* writer, uint32_t flags = (GD_DATA_BLOCK_FLAG_ID | GD_DATA_BLOCK_FLAG_VERSION));
+        void WriteBlockEnd(EncodedFileWriter* writer);
 
     private:
         const uint32_t _blockID;

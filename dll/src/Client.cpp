@@ -132,9 +132,6 @@ bool ExtractZIPUpdate(const std::filesystem::path& path)
         unzCloseCurrentFile(zipFile);
         unzClose(zipFile);
 
-        if (std::filesystem::is_regular_file(filenamePath))
-            std::filesystem::remove(filenamePath);
-
         std::filesystem::rename(tempPath, filenamePath);
 
         return true;

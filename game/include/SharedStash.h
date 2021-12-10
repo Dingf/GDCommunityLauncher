@@ -2,26 +2,27 @@
 #define INC_GDCL_GAME_SHARED_STASH_H
 
 #include <filesystem>
-#include "SaveFile.h"
+#include "FileData.h"
 #include "GDDataBlock.h"
 #include "ItemContainer.h"
 #include "Stash.h"
 
-class SharedStash : public SaveFile, public Stash
+class SharedStash : public Stash
 {
     public:
         SharedStash() {}
         SharedStash(const std::filesystem::path& path) { ReadFromFile(path); };
 
+        size_t GetBufferSize() const;
+
         bool ReadFromFile(const std::filesystem::path& path);
-        void WriteToFile(const std::filesystem::path& path);
+        bool WriteToFile(const std::filesystem::path& path);
 
         ItemContainerType GetContainerType() const { return ITEM_CONTAINER_SHARED_STASH; }
 
     private:
-        size_t CalculateBufferSize() const;
-
-        void ReadSharedStashData(EncodedFileReader* reader);
+        void Read(EncodedFileReader* reader);
+        void Write(EncodedFileWriter* writer);
 
         // Header block, ID = 18, Version = 3,4,5
         struct SharedStashHeaderBlock : public GDDataBlock

@@ -1,11 +1,13 @@
 #include "FileReader.h"
 
-FileReader::FileReader(const std::filesystem::path& path)
+#include "Log.h"
+
+FileReader::FileReader(const std::filesystem::path& filename)
 {
     _bufferPos = 0;
     _bufferSize = 0;
 
-    std::ifstream in(path, std::ifstream::binary | std::ifstream::in);
+    std::ifstream in(filename, std::ifstream::binary | std::ifstream::in);
     if (in.is_open())
     {
         in.seekg(0, in.end);
@@ -104,6 +106,7 @@ EncodedFileReader::EncodedFileReader(const std::filesystem::path& path) : FileRe
     if (_bufferPos + 4 <= _bufferSize)
     {
         uint32_t val = (uint32_t)_buffer[_bufferPos] | ((uint32_t)_buffer[_bufferPos + 1] << 8) | ((uint32_t)_buffer[_bufferPos + 2] << 16) | ((uint32_t)_buffer[_bufferPos + 3] << 24);
+
         _bufferPos += 4;
         _key = (val ^= 0x55555555);
         for (uint32_t i = 0; i < 256; ++i)

@@ -28,9 +28,6 @@ std::string ServerAuth::GetLauncherVersion(std::string hostName)
                 web::json::value version = responseBody[U("version")];
 
                 std::string versionString = JSONString(version.serialize());
-                if ((!versionString.empty()) && (versionString.front() == '\"') && (versionString.back() == '\"'))
-                    versionString = std::string(versionString.begin() + 1, versionString.end() - 1);
-
                 return versionString;
             }
             default:
@@ -70,14 +67,6 @@ bool GetSeasonData(std::string hostName, ClientData& data)
                     std::string modName = JSONString(it->at(U("modName")).serialize());
                     std::string displayName = JSONString(it->at(U("displayName")).serialize());
                     std::string participationToken = JSONString(it->at(U("participationTag")).serialize());
-
-                    // Trim quotes from serializing the string
-                    if ((modName.front() == '"') && (modName.back() == '"'))
-                        modName = std::string(modName.begin() + 1, modName.end() - 1);
-                    if ((displayName.front() == '"') && (displayName.back() == '"'))
-                        displayName = std::string(displayName.begin() + 1, displayName.end() - 1);
-                    if ((participationToken.front() == '"') && (participationToken.back() == '"'))
-                        participationToken = std::string(participationToken.begin() + 1, participationToken.end() - 1);
 
                     seasonInfo._modName = modName;
                     seasonInfo._displayName = displayName;

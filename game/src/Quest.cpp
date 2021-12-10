@@ -75,7 +75,7 @@ void Quest::QuestTask::Read(EncodedFileReader* reader)
     _id2 = UID16(reader);
 
     GDDataBlock questTaskBlock(0x00, 0x00);
-    questTaskBlock.ReadBlockStart(reader, GD_DATA_BLOCK_READ_ID);
+    questTaskBlock.ReadBlockStart(reader, GD_DATA_BLOCK_FLAG_ID);
 
     _state = reader->ReadInt32();
     _isInProgress = reader->ReadInt8();
@@ -97,7 +97,7 @@ void Quest::QuestData::Read(EncodedFileReader* reader)
     _id2 = UID16(reader);
 
     GDDataBlock questDataBlock(0x00, 0x00);
-    questDataBlock.ReadBlockStart(reader, GD_DATA_BLOCK_READ_ID);
+    questDataBlock.ReadBlockStart(reader, GD_DATA_BLOCK_FLAG_ID);
 
     _tasks.clear();
 

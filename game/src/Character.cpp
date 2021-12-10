@@ -131,7 +131,7 @@ void Character::ReadHeaderBlock(EncodedFileReader* reader)
         _headerBlock._charExpansions = reader->ReadInt8();
     }
 
-    _headerBlock.ReadBlockStart(reader, GD_DATA_BLOCK_READ_VERSION);
+    _headerBlock.ReadBlockStart(reader, GD_DATA_BLOCK_FLAG_VERSION);
     _headerBlock._charUID = UID16(reader);
 }
 
@@ -209,50 +209,104 @@ void Character::ReadAttributesBlock(EncodedFileReader* reader)
     _attributesBlock.ReadBlockEnd(reader);
 }
 
+size_t Character::CharacterInventoryBlock::CharacterInventory::GetBufferSize() const
+{
+    return 8 + Stash::GetBufferSize();
+}
+
+void Character::CharacterInventoryBlock::CharacterInventory::Read(EncodedFileReader* reader)
+{
+    uint32_t numTabs = reader->ReadInt32();
+    SetFocusedTab(reader->ReadInt32());
+    SetSelectedTab(reader->ReadInt32());
+    ReadStashTabs(reader, numTabs);
+}
+
+void Character::CharacterInventoryBlock::CharacterInventory::Write(EncodedFileWriter* writer)
+{
+    writer->BufferInt32((uint32_t)_stashTabs.size());
+    writer->BufferInt32(_focusedTab);
+    writer->BufferInt32(_selectedTab);
+    WriteStashTabs(writer);
+}
+
+size_t Character::CharacterInventoryBlock::CharacterEquipped::GetBufferSize() const
+{
+    size_t size = 1;
+    for (const std::pair<Item*, uint64_t> pair : GetItemList())
+    {
+        uint32_t index = (pair.second & 0xFFFFFFFF);
+        if ((index == CHAR_INV_SLOT_MAIN_1) || (index == CHAR_INV_SLOT_MAIN_2))
+            size++;
+
+        size += pair.first->GetBufferSize();
+        size++;
+    }
+    return size;
+}
+
+void Character::CharacterInventoryBlock::CharacterEquipped::Read(EncodedFileReader* reader)
+{
+    SetActiveWeaponSet(reader->ReadInt8());
+    for (uint32_t i = 0; i < MAX_CHAR_INV_SLOT; ++i)
+    {
+        if (i == CHAR_INV_SLOT_MAIN_1)
+            _weaponSet1 = reader->ReadInt8();
+        else if (i == CHAR_INV_SLOT_MAIN_2)
+            _weaponSet2 = reader->ReadInt8();
+
+        Item item(reader);
+        AddItem(item, 0, i);
+        SetAttachState(i, reader->ReadInt8());
+    }
+}
+
+void Character::CharacterInventoryBlock::CharacterEquipped::Write(EncodedFileWriter* writer)
+{
+    writer->BufferInt8(_activeWeaponSet);
+    for (std::pair<Item*, uint64_t> pair : GetItemList())
+    {
+        uint32_t index = (pair.second & 0xFFFFFFFF);
+        if (index == CHAR_INV_SLOT_MAIN_1)
+            writer->BufferInt8(_weaponSet1);
+        else if (index == CHAR_INV_SLOT_MAIN_2)
+            writer->BufferInt8(_weaponSet2);
+
+        pair.first->Write(writer);
+        writer->BufferInt8(GetAttachState(index));
+    }
+}
+
 void Character::ReadInventoryBlock(EncodedFileReader* reader)
 {
     _inventoryBlock.ReadBlockStart(reader);
 
     if (reader->ReadInt8() != 0)
     {
-        // Character inventory
-        uint32_t numTabs = reader->ReadInt32();
-        _inventoryBlock._charInventory.SetFocusedTab(reader->ReadInt32());
-        _inventoryBlock._charInventory.SetSelectedTab(reader->ReadInt32());
-        for (uint32_t i = 0; i < numTabs; ++i)
-        {
-            _inventoryBlock._charInventory.ReadStashTab(reader);
-        }
-
-        // Character equipped items
-        _inventoryBlock._charEquipped.SetActiveWeaponSet(reader->ReadInt8());
-        for (uint32_t i = 0; i < MAX_CHAR_INV_SLOT; ++i)
-        {
-            // This seems kind of redundant since we already read the active weapon set earlier
-            if ((i == CHAR_INV_SLOT_MAIN_1) || (i == CHAR_INV_SLOT_MAIN_2))
-            {
-                bool isWeaponSetActive = (reader->ReadInt8() != 0);
-            }
-
-            std::shared_ptr<Item> item = std::make_shared<Item>(reader);
-            _inventoryBlock._charEquipped.AddItem(item, i, 0);
-            _inventoryBlock._charEquipped.SetAttachState(i, reader->ReadInt8());
-        }
+        _inventoryBlock._charInventory.Read(reader);
+        _inventoryBlock._charEquipped.Read(reader);
     }
 
     _inventoryBlock.ReadBlockEnd(reader);
+}
+
+void Character::CharacterStashBlock::CharacterStash::Read(EncodedFileReader* reader)
+{
+    uint32_t numTabs = reader->ReadInt32();
+    ReadStashTabs(reader, numTabs);
+}
+
+void Character::CharacterStashBlock::CharacterStash::Write(EncodedFileWriter* writer)
+{
+    writer->BufferInt32((uint32_t)_stashTabs.size());
+    WriteStashTabs(writer);
 }
 
 void Character::ReadStashBlock(EncodedFileReader* reader)
 {
     _stashBlock.ReadBlockStart(reader);
 
-    uint32_t numTabs = reader->ReadInt32();
-    for (uint32_t i = 0; i < numTabs; ++i)
-    {
-        _stashBlock._charStash.ReadStashTab(reader);
-    }
-
+    _stashBlock._charStash.Read(reader);
     _stashBlock._charStash.SetHardcore(_headerBlock._charIsHardcore);
 
     _stashBlock.ReadBlockEnd(reader);
@@ -687,7 +741,7 @@ web::json::value Character::CharacterInventoryBlock::ToJSON()
     web::json::value equippedItems = web::json::value::array();
     for (std::pair<Item*, uint64_t> pair : _charEquipped.GetItemList())
     {
-        uint32_t index = ((pair.second >> 32) & 0xFFFFFFFF);
+        uint32_t index = (pair.second & 0xFFFFFFFF);
         web::json::value item = pair.first->ToJSON();
         item[U("Slot")] = index;
         item[U("Attached")] = _charEquipped.GetAttachState(index);

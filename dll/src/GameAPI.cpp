@@ -146,15 +146,32 @@ bool IsGameLoading()
 
     HMODULE gameDLL = GetModuleHandle(TEXT("Game.dll"));
     if (!gameDLL)
-        return nullptr;
+        return false;
 
     IsGameLoadingProto callback = (IsGameLoadingProto)GetProcAddress(gameDLL, GAPI_NAME_IS_GAME_LOADING);
     PULONG_PTR gameEngine = GetGameEngineHandle();
 
     if ((!callback) || (!gameEngine))
-        return nullptr;
+        return false;
 
     return callback((LPVOID)*gameEngine);
+}
+
+void DisplayUINotification(const std::string& tag)
+{
+    typedef void(__thiscall* DisplayUINotificationProto)(LPVOID, const std::string&);
+
+    HMODULE gameDLL = GetModuleHandle(TEXT("Game.dll"));
+    if (!gameDLL)
+        return;
+
+    DisplayUINotificationProto callback = (DisplayUINotificationProto)GetProcAddress(gameDLL, GameAPI::GAPI_NAME_UI_NOTIFY);
+    PULONG_PTR gameEngine = GetGameEngineHandle();
+
+    if ((!callback) || (!gameEngine))
+        return;
+
+    return callback((LPVOID)*gameEngine, tag);
 }
 
 }

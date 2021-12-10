@@ -3,18 +3,22 @@
 
 #include <memory>
 #include <string>
-#include "FileReader.h"
+#include "FileData.h"
 #include "JSONObject.h"
 
-struct Item : public JSONObject
+struct Item : public FileData, public JSONObject
 {
     public:
         Item() {}
         Item(EncodedFileReader* reader) { Read(reader); }
+        Item(const web::json::value& val);
 
         web::json::value ToJSON();
 
         void Read(EncodedFileReader* reader);
+        void Write(EncodedFileWriter* writer);
+
+        size_t GetBufferSize() const;
 
         std::string _itemName;
         std::string _itemPrefix;
@@ -25,6 +29,7 @@ struct Item : public JSONObject
         std::string _itemCompletion;
         std::string _itemAugment;
 
+        uint32_t _itemID;
         uint32_t _itemSeed;
         uint32_t _itemComponentSeed;
         uint32_t _itemUnk1;
