@@ -311,7 +311,7 @@ void HandleSaveNewFormatData(void* _this, void* writer)
     }
 }
 
-std::filesystem::path GetSharedStashPath(const char* modName, bool hardcore)
+std::filesystem::path GetSharedStashPath(const char* modName, bool hardcore, bool backup)
 {
     std::string baseFolder = GameAPI::GetBaseFolder();
     if (baseFolder.empty())
@@ -324,10 +324,20 @@ std::filesystem::path GetSharedStashPath(const char* modName, bool hardcore)
     if (modName)
         stashPath /= modName;
 
-    if (hardcore)
-        stashPath /= "transfer.gsh";
+    if (backup)
+    {
+        if (hardcore)
+            stashPath /= "transfer.h00";
+        else
+            stashPath /= "transfer.t00";
+    }
     else
-        stashPath /= "transfer.gst";
+    {
+        if (hardcore)
+            stashPath /= "transfer.gsh";
+        else
+            stashPath /= "transfer.gst";
+    }
 
     if (!std::filesystem::exists(stashPath))
         return {};
@@ -437,7 +447,7 @@ void PostTransferStashUpload()
 
     if ((modName) && (mainPlayer) && (client.IsParticipatingInSeason()))
     {
-        std::filesystem::path stashPath = GetSharedStashPath(modName, GameAPI::IsPlayerHardcore(mainPlayer));
+        std::filesystem::path stashPath = GetSharedStashPath(modName, GameAPI::IsPlayerHardcore(mainPlayer), false);
         if (stashPath.empty())
         {
             Logger::LogMessage(LOG_LEVEL_ERROR, "Could not determine shared stash path for mod \"%\"", modName);
@@ -521,7 +531,7 @@ std::time_t GetStashLastModifiedTime()
     PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
     if (mainPlayer)
     {
-        std::filesystem::path stashPath = GetSharedStashPath(modName, GameAPI::IsPlayerHardcore(mainPlayer));
+        std::filesystem::path stashPath = GetSharedStashPath(modName, GameAPI::IsPlayerHardcore(mainPlayer), false);
         if (!stashPath.empty())
         {
             std::filesystem::file_time_type lastModifiedTime = std::filesystem::last_write_time(stashPath);
@@ -539,9 +549,12 @@ void PostSharedStashUpdateTimes(std::time_t prevModifiedTime)
 
     if ((modName) && (mainPlayer) && (client.IsParticipatingInSeason()))
     {
+        std::filesystem::path backupPath = GetSharedStashPath(modName, GameAPI::IsPlayerHardcore(mainPlayer), true);
+
         web::json::value requestBody;
         requestBody[U("lastModifiedOn")] = prevModifiedTime;
         requestBody[U("sharedStashModifiedOn")] = GetStashLastModifiedTime();
+        requestBody[U("externalToolUsed")] = std::filesystem::is_regular_file(backupPath);
 
         pplx::create_task([requestBody]()
         {
