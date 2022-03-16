@@ -10,10 +10,13 @@
 #include "Configuration.h"
 #include "UpdateDialog.h"
 #include "ServerAuth.h"
+#include "Date.h"
 #include "JSONObject.h"
 #include "URI.h"
 #include "Version.h"
 #include "md5.hpp"
+
+#include "Log.h"
 
 namespace UpdateDialog
 {
@@ -24,7 +27,8 @@ namespace UpdateDialog
     std::shared_ptr<size_t> _downloadSize = std::make_shared<size_t>(0);
 }
 
-std::string GenerateFileMD5(const std::filesystem::path& path)
+// DEPRECATED - File check now uses file size instead
+/*std::string GenerateFileMD5(const std::filesystem::path& path)
 {
     std::stringstream buffer;
     std::ifstream in(path, std::ifstream::binary | std::ifstream::in);
@@ -39,7 +43,7 @@ std::string GenerateFileMD5(const std::filesystem::path& path)
         *it = toupper(*it);
 
     return result;
-}
+}*/
 
 std::string GetSeasonModName(std::string hostName)
 {
@@ -58,10 +62,22 @@ std::string GetSeasonModName(std::string hostName)
                 web::json::array seasonsList = responseBody.as_array();
                 for (auto it = seasonsList.begin(); it != seasonsList.end(); ++it)
                 {
-                    // Mod name should be the same across all seasons, so return the first result
-                    std::string modName = JSONString(it->at(U("modName")).serialize());
-                    return modName;
+                    std::string startDate = JSONString(it->at(U("startDate")).serialize());
+                    std::string endDate = JSONString(it->at(U("endDate")).serialize());
+
+                    std::time_t startDateTime = Date(startDate);
+                    std::time_t endDateTime = Date(endDate);
+                    std::time_t currentDateTime = Date();
+
+                    //TODO: Re-enable me when you're done with testing
+                    //if ((currentDateTime >= startDateTime) && (currentDateTime <= endDateTime))
+                    {
+                        // Mod name should be the same across all seasons, so return the first result that is currently active
+                        std::string modName = JSONString(it->at(U("modName")).serialize());
+                        return modName;
+                    }
                 }
+                return {};
             }
             default:
             {
@@ -99,11 +115,7 @@ bool GetUpdateList(const std::string& hostName, const std::string& modName, std:
                 for (auto it = fileList.begin(); it != fileList.end(); ++it)
                 {
                     std::string filename = JSONString(it->at(U("fileName")).serialize());
-                    std::string checksum = JSONString(it->at(U("checksum")).serialize());
-
-                    // Capitalize the server MD5 hash for consistency
-                    for (std::string::iterator it = checksum.begin(); it != checksum.end(); ++it)
-                        *it = toupper(*it);
+                    uintmax_t fileSize = std::stoull(JSONString(it->at(U("fileSize")).serialize()));
 
                     // Generate the filename path based on the file extension and mod name
                     std::filesystem::path filenamePath(filename);
@@ -114,8 +126,8 @@ bool GetUpdateList(const std::string& hostName, const std::string& modName, std:
                     else
                         filenamePath = std::filesystem::current_path() / filenamePath;
 
-                    // If the file doesn't exist or the checksums don't match, add it to the list of files to download
-                    if ((!std::filesystem::is_regular_file(filenamePath)) || (GenerateFileMD5(filenamePath) != checksum))
+                    // If the file doesn't exist or the file sizes don't match, add it to the list of files to download
+                    if ((!std::filesystem::is_regular_file(filenamePath)) || (std::filesystem::file_size(filenamePath) != fileSize))
                         updateList.push_back(filename);
                 }
 
@@ -321,6 +333,12 @@ INT_PTR CALLBACK UpdateDialogHandler(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
             DestroyWindow(hwnd);
             return TRUE;
         }
+        case WM_UPDATE_NO_SEASON:
+        {
+            MessageBoxA(hwnd, "The Grim Dawn Community League is not currently active. Please visit https://www.grimleague.com for news about the upcoming season.", "", MB_OK | MB_ICONINFORMATION);
+            DestroyWindow(hwnd);
+            return TRUE;
+        }
     }
     return FALSE;
 }
@@ -395,7 +413,7 @@ bool UpdateDialog::Update(void* configPointer)
         std::string modName = GetSeasonModName(hostName);
         if (modName.empty())
         {
-            SendMessage(UpdateDialog::_window, WM_UPDATE_FAIL, NULL, NULL);
+            SendMessage(UpdateDialog::_window, WM_UPDATE_NO_SEASON, NULL, NULL);
             return;
         }
 
