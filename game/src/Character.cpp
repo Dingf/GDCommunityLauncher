@@ -233,7 +233,7 @@ void Character::CharacterInventoryBlock::CharacterInventory::Write(EncodedFileWr
 size_t Character::CharacterInventoryBlock::CharacterEquipped::GetBufferSize() const
 {
     size_t size = 1;
-    for (const std::pair<Item*, uint64_t> pair : GetItemList())
+    for (auto pair : GetItemList())
     {
         uint32_t index = (pair.second & 0xFFFFFFFF);
         if ((index == CHAR_INV_SLOT_MAIN_1) || (index == CHAR_INV_SLOT_MAIN_2))
@@ -264,7 +264,7 @@ void Character::CharacterInventoryBlock::CharacterEquipped::Read(EncodedFileRead
 void Character::CharacterInventoryBlock::CharacterEquipped::Write(EncodedFileWriter* writer)
 {
     writer->BufferInt8(_activeWeaponSet);
-    for (std::pair<Item*, uint64_t> pair : GetItemList())
+    for (auto pair : GetItemList())
     {
         uint32_t index = (pair.second & 0xFFFFFFFF);
         if (index == CHAR_INV_SLOT_MAIN_1)
@@ -739,7 +739,7 @@ web::json::value Character::CharacterInventoryBlock::ToJSON()
     uint32_t i = 0;
     web::json::value equipped = web::json::value::object();
     web::json::value equippedItems = web::json::value::array();
-    for (std::pair<Item*, uint64_t> pair : _charEquipped.GetItemList())
+    for (auto pair : _charEquipped.GetItemList())
     {
         uint32_t index = (pair.second & 0xFFFFFFFF);
         web::json::value item = pair.first->ToJSON();

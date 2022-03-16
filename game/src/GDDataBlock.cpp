@@ -43,6 +43,7 @@ void GDDataBlock::WriteBlockStart(EncodedFileWriter* writer, uint32_t flags)
         writer->BufferInt32(_blockID);
 
     writer->BufferInt32(_blockLength, false);
+    _blockStart = writer->GetPosition();
 
     if (flags & GD_DATA_BLOCK_FLAG_VERSION)
         writer->BufferInt32(_blockVersion);
@@ -51,4 +52,9 @@ void GDDataBlock::WriteBlockStart(EncodedFileWriter* writer, uint32_t flags)
 void GDDataBlock::WriteBlockEnd(EncodedFileWriter* writer)
 {
     writer->BufferInt32(0, false);
+    int64_t current = writer->GetPosition();
+
+    writer->SetPosition(_blockStart - 4);
+    writer->BufferInt32(current - _blockStart - 4);
+    writer->SetPosition(current);
 }

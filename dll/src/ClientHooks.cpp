@@ -1,5 +1,6 @@
 #include <Windows.h>
 #include <chrono>
+#include <set>
 #include <filesystem>
 #include <cpprest/http_client.h>
 #include "HookManager.h"
@@ -373,72 +374,6 @@ void PostTransferItem(uint32_t itemID)
     });
 }
 
-void PullFromTransferQueue()
-{
-    pplx::create_task([]()
-    {
-        try
-        {
-            Client& client = Client::GetInstance();
-            const char* modName = EngineAPI::GetModName();
-            PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
-
-            if ((modName) && (mainPlayer) && (client.IsParticipatingInSeason()))
-            {
-                URI endpoint = URI(client.GetHostName()) / "api" / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "transfer-queue";
-                web::http::client::http_client httpClient((utility::string_t)endpoint);
-                web::http::http_request request(web::http::methods::GET);
-
-                std::string bearerToken = "Bearer " + client.GetAuthToken();
-                request.headers().add(U("Authorization"), bearerToken.c_str());
-
-                web::http::http_response response = httpClient.request(request).get();
-                if (response.status_code() == web::http::status_codes::OK)
-                {
-                    std::vector<Item> itemList;
-                    web::json::array itemsArray = response.extract_json().get().as_array();
-                    for (auto it = itemsArray.begin(); it != itemsArray.end(); ++it)
-                    {
-                        itemList.emplace_back(*it);
-                        Logger::LogMessage(LOG_LEVEL_DEBUG, "Transfer queue: %", (std::string)JSONString(it->serialize()));
-                    }
-
-                    std::filesystem::path stashPath = GetSharedStashPath(modName, GameAPI::IsPlayerHardcore(mainPlayer));
-                    if (stashPath.empty())
-                    {
-                        Logger::LogMessage(LOG_LEVEL_ERROR, "Could not determine shared stash path for mod \"%\"", modName);
-                        return;
-                    }
-
-                    SharedStash stashData;
-                    if (!stashData.ReadFromFile(stashPath))
-                    {
-                        Logger::LogMessage(LOG_LEVEL_ERROR, "Could not load shared stash data from file");
-                        return;
-                    }
-
-                    if (stashData.GetTabCount() >= 6)
-                    {
-                        Stash::StashTab* transferTab = stashData.GetStashTab(4);
-                        if (transferTab)
-                        {
-                            transferTab->AddItemList(itemList);
-                        }
-                    }
-                }
-                else
-                {
-                    throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-                }
-            }
-        }
-        catch (const std::exception& ex)
-        {
-            Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve transfer queue items: %", ex.what());
-        }
-    });
-}
-
 void PostTransferStashUpload()
 {
     Client& client = Client::GetInstance();
@@ -468,7 +403,7 @@ void PostTransferStashUpload()
             web::json::array transferItems = stashTabs[5][U("Items")].as_array();
             if (transferItems.size() > 0)
             {
-                client.SetTransferPending(true);
+                std::scoped_lock lock(client.GetTransferMutex());
 
                 uint32_t index = 0;
                 web::json::value requestBody = web::json::value::array();
@@ -518,8 +453,6 @@ void PostTransferStashUpload()
                     GameAPI::DisplayUINotification("tagGDLeagueStorageFailure");
                     Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload shared stash items: %", ex.what());
                 }
-
-                client.SetTransferPending(false);
             }
         }
     }
@@ -608,16 +541,117 @@ void HandleSaveTransferStash(void* _this)
     }
 }
 
+void PostPullTransferItems(const std::vector<Item*>& items)
+{
+    Client& client = Client::GetInstance();
+    const char* modName = EngineAPI::GetModName();
+    PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
+
+    if ((modName) && (mainPlayer) && (client.IsParticipatingInSeason()))
+    {
+        web::json::value requestBody = web::json::value::array();
+        for (uint32_t i = 0; i < items.size(); ++i)
+        {
+            requestBody[i] = items[i]->_itemID;
+        }
+
+        pplx::create_task([requestBody]()
+        {
+            try
+            {
+                Client& client = Client::GetInstance();
+                URI endpoint = URI(client.GetHostName()) / "api" / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "pull-items";
+
+                web::http::client::http_client httpClient((utility::string_t)endpoint);
+                web::http::http_request request(web::http::methods::POST);
+                request.set_body(requestBody);
+
+                std::string bearerToken = "Bearer " + client.GetAuthToken();
+                request.headers().add(U("Authorization"), bearerToken.c_str());
+
+                web::http::http_response response = httpClient.request(request).get();
+                if (response.status_code() != web::http::status_codes::OK)
+                {
+                    throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+                }
+            }
+            catch (const std::exception& ex)
+            {
+                Logger::LogMessage(LOG_LEVEL_WARN, "Failed to pull items from transfer queue: %", ex.what());
+            }
+        });
+    }
+}
+
 void HandleLoadTransferStash(void* _this)
 {
     typedef void(__thiscall* LoadPlayerTransferProto)(void*);
     LoadPlayerTransferProto callback = (LoadPlayerTransferProto)HookManager::GetOriginalFunction("Game.dll", GameAPI::GAPI_NAME_LOAD_TRANSFER_STASH);
+
     if (callback)
     {
-        callback(_this);
+        Client& client = Client::GetInstance();
+        const char* modName = EngineAPI::GetModName();
+        PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
 
-        // TODO: Download the items to be transferred from the server and save the stash
-        //       This may affect the file last modified time as well, so we need to store that before making any changes
+        if ((modName) && (mainPlayer) && (client.IsParticipatingInSeason()) && (client.GetTransferMutex().try_lock()))
+        {
+            try
+            {
+                URI endpoint = URI(client.GetHostName()) / "api" / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "transfer-queue";
+                web::http::client::http_client httpClient((utility::string_t)endpoint);
+                web::http::http_request request(web::http::methods::GET);
+
+                std::string bearerToken = "Bearer " + client.GetAuthToken();
+                request.headers().add(U("Authorization"), bearerToken.c_str());
+
+                web::http::http_response response = httpClient.request(request).get();
+                if (response.status_code() == web::http::status_codes::OK)
+                {
+                    std::vector<Item> itemList;
+                    web::json::array itemsArray = response.extract_json().get().as_array();
+                    for (auto it = itemsArray.begin(); it != itemsArray.end(); ++it)
+                    {
+                        itemList.emplace_back(*it);
+                    }
+
+                    std::filesystem::path stashPath = GetSharedStashPath(modName, GameAPI::IsPlayerHardcore(mainPlayer), false);
+                    if (stashPath.empty())
+                        throw std::runtime_error("Could not determine shared stash path for mod \"" + std::string(modName) + "\"");
+
+                    SharedStash stashData;
+                    if (!stashData.ReadFromFile(stashPath))
+                        throw std::runtime_error("Could not load shared stash data from file");
+
+                    if (stashData.GetTabCount() >= 6)
+                    {
+                        Stash::StashTab* transferTab = stashData.GetStashTab(4);
+                        if (transferTab)
+                        {
+                            std::vector<Item*> pullItemList = transferTab->AddItemList(itemList);
+                            stashData.WriteToFile(stashPath);
+                            PostPullTransferItems(pullItemList);
+                        }
+                        else
+                        {
+                            throw std::runtime_error("Could not load transfer tab from shared stash file");
+                        }
+                    }
+                }
+                else
+                {
+                    throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+                }
+            }
+            catch (const std::exception& ex)
+            {
+                Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve transfer queue items: %", ex.what());
+            }
+
+            client.GetTransferMutex().unlock();
+        }
+        
+        callback(_this);
     }
 }
 
@@ -671,12 +705,14 @@ void HandleSetMainPlayer(void* _this, uint32_t unk1)
 
 void HandleSetTransferOpen(void* _this, uint32_t unk1, bool unk2, bool unk3)
 {
+    Client& client = Client::GetInstance();
+
     typedef void(__thiscall* SetTransferOpenProto)(void*, uint32_t, bool, bool);
 
-    Client& client = Client::GetInstance();
     SetTransferOpenProto callback = (SetTransferOpenProto)HookManager::GetOriginalFunction("Game.dll", GameAPI::GAPI_NAME_ON_CARAVAN_INTERACT);
-    if ((callback) && (!client.IsTransferPending()))
+    if ((callback) && (client.GetTransferMutex().try_lock()))
     {
+        client.GetTransferMutex().unlock();
         callback(_this, unk1, unk2, unk3);
     }
 }
@@ -867,9 +903,9 @@ void HandleUnloadWorld(void* _this)
     }
 }
 
-void DEBUGTestFunc()
+void DEBUG_GetTransferItem(bool single)
 {
-    pplx::create_task([]()
+    pplx::create_task([single]()
     {
         try
         {
@@ -887,14 +923,13 @@ void DEBUGTestFunc()
                 web::json::array itemsArray = response.extract_json().get().as_array();
                 for (auto it = itemsArray.begin(); it != itemsArray.end(); ++it)
                 {
-                    Logger::LogMessage(LOG_LEVEL_DEBUG, "Stash item: %", (std::string)JSONString(it->serialize()));
-
                     bool isTransferring = (*it)[U("transferToStash")].as_bool();
                     if (!isTransferring)
                     {
                         uint32_t itemID = (*it)[U("participantItemId")].as_integer();
                         PostTransferItem(itemID);
-                        break;
+                        if (single)
+                            break;
                     }
                 }
             }
@@ -921,11 +956,11 @@ bool HandleKeyEvent(void* _this, EngineAPI::KeyButtonEvent& event)
 
         if ((client.IsParticipatingInSeason()) && (event._keyCode == EngineAPI::KEY_1) && (event._keyState == EngineAPI::KEY_STATE_DOWN))
         {
-            DEBUGTestFunc();
+            DEBUG_GetTransferItem(true);
         }
         else if ((client.IsParticipatingInSeason()) && (event._keyCode == EngineAPI::KEY_2) && (event._keyState == EngineAPI::KEY_STATE_DOWN))
         {
-            PullFromTransferQueue();
+            DEBUG_GetTransferItem(false);
         }
         else if ((client.IsParticipatingInSeason()) && (event._keyCode == EngineAPI::KEY_3) && (event._keyState == EngineAPI::KEY_STATE_DOWN))
         {
@@ -933,12 +968,12 @@ bool HandleKeyEvent(void* _this, EngineAPI::KeyButtonEvent& event)
         }
 
 
-        if ((client.IsParticipatingInSeason()) && (event._keyCode == EngineAPI::KEY_TILDE))
+        //if ((client.IsParticipatingInSeason()) && (event._keyCode == EngineAPI::KEY_TILDE))
         {
             // Disable the tilde key to prevent console access
-            return true;
+            //return true;
         }
-        else
+        //else
         {
             return callback(_this, event);
         }
@@ -957,7 +992,7 @@ void HandleRenderStyledText2D(void* _this, const EngineAPI::Rect& rect, const wc
 
         // If the player is in-game on the season mod, append the league info to the difficulty text in the upper left corner
         // We modify the text instead of creating new text because that way it preserves the Z-order and doesn't conflict with the loading screen/pause overlay/etc.
-        if ((rect._x >= 7.0f) && (rect._y >= 7.0f) && (rect._x <= 18.0f) && (rect._y <= 18.0f) && (rect._x == rect._y) && (client.IsParticipatingInSeason()))
+        if ((rect._x >= 0.0f) && (rect._y >= 0.0f) && (rect._x <= 24.0f) && (rect._y <= 24.0f) && (rect._x == rect._y) && (client.IsParticipatingInSeason()))
         {
             std::wstring textString(text);
             if (textString.empty())
@@ -1022,6 +1057,4 @@ void Client::CleanupClientHooks()
 
     characterUpdateThread->Stop();
     clientTokenUpdateThread->Stop();
-
-    //TODO: (In another function perhaps) scan the user save directory for all characters and upload them to the server
 }

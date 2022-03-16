@@ -12,6 +12,9 @@ struct Item : public FileData, public JSONObject
         Item() {}
         Item(EncodedFileReader* reader) { Read(reader); }
         Item(const web::json::value& val);
+        Item(const Item& item) { *this = item; }
+
+        Item& operator=(const Item& item);
 
         web::json::value ToJSON();
 
@@ -36,6 +39,9 @@ struct Item : public FileData, public JSONObject
         uint32_t _itemAugmentSeed;
         uint32_t _itemUnk2;
         uint32_t _itemStackCount;
+
+        uint32_t _itemWidth;
+        uint32_t _itemHeight;
 };
 
 #endif//INC_GDCL_GAME_ITEM_H

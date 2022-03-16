@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <string>
 #include <vector>
+#include <mutex>
 
 enum SeasonType
 {
@@ -56,7 +57,6 @@ class Client
         bool IsValid() const { return _data.IsValid(); }
 
         bool IsOnline() const { return _online; }
-        bool IsTransferPending() const { return _transferPending; }
 
         uint32_t GetPoints() const { return _points; }
         uint32_t GetRank() const { return _rank; }
@@ -75,6 +75,8 @@ class Client
 
         const std::wstring& GetActiveCharacterName() const { return _activeCharacter._name; }
 
+        std::mutex& GetTransferMutex() { return _transferMutex; }
+
         bool IsParticipatingInSeason() const { return (_activeSeason != nullptr) && (_activeCharacter._hasToken); }
 
         void SetActiveSeason(const std::string& modName, bool hardcore);
@@ -89,7 +91,6 @@ class Client
             }
         }
 
-        void SetTransferPending(bool status) { _transferPending = status; }
         void SetParticipantID(uint32_t participantID) { _data._participantID = participantID; }
 
         void SetPoints(uint32_t points)
@@ -105,7 +106,7 @@ class Client
         }
 
     private:
-        Client() : _activeSeason(nullptr), _online(false), _transferPending(false) {}
+        Client() : _activeSeason(nullptr), _online(false) {}
 
         void UpdateVersionInfoText();
         void UpdateLeagueInfoText();
@@ -113,7 +114,6 @@ class Client
         void ReadDataFromPipe();
 
         bool _online;
-        bool _transferPending;
 
         uint32_t _rank;
         uint32_t _points;
@@ -124,6 +124,7 @@ class Client
 
         std::string _versionInfoText;
         std::wstring _leagueInfoText;
+        std::mutex _transferMutex;
 };
 
 #endif//INC_GDCL_DLL_CLIENT_H

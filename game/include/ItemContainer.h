@@ -4,6 +4,7 @@
 #include <memory>
 #include <map>
 #include <vector>
+#include <list>
 #include "Item.h"
 
 enum ItemContainerType
@@ -20,6 +21,8 @@ enum ItemContainerType
 class ItemContainer
 {
     public:
+        typedef std::map<std::shared_ptr<Item>, uint64_t> ItemList;
+
         ItemContainer(uint32_t width, uint32_t height, bool ignoreItemSize = false);
         virtual ~ItemContainer() = 0;
 
@@ -30,14 +33,16 @@ class ItemContainer
 
         virtual ItemContainerType GetContainerType() const = 0;
 
-        void AddItem(const Item& item);
-        void AddItem(const Item& item, int32_t x, int32_t y);
-        void AddItemList(const std::vector<Item>& items);
+        bool AddItem(const Item& item);
+        bool AddItem(const Item& item, uint32_t x, uint32_t y);
+        std::vector<Item*> AddItemList(const std::vector<Item>& items);
 
-              std::map<Item*, uint64_t>& GetItemList()       { return _itemList; }
-        const std::map<Item*, uint64_t>& GetItemList() const { return _itemList; }
+              ItemList& GetItemList()       { return _itemList; }
+        const ItemList& GetItemList() const { return _itemList; }
 
     protected:
+        bool CanPlaceItem(const Item& item, uint32_t x, uint32_t y) const;
+
         const bool _ignoreItemSize;         // If specified, ignore item size when adding items
 
         const uint32_t _width;
@@ -48,15 +53,15 @@ class ItemContainer
             GridData() : _item(nullptr), _right(0), _down(0), _real(false) {}
             GridData(int32_t right, int32_t down) : _item(nullptr), _right(right), _down(down), _real(false) {}
 
-            std::shared_ptr<Item> _item;    // The pointer to the item, or nullptr if empty
-            int32_t _right;                 // The farthest continuous empty index to the right
-            int32_t _down;                  // The farthest continuous empty index to the bottom
-            bool _real;                     // Whether or not the grid data contains the actual location of the item
+            Item* _item;        // The pointer to the item, or nullptr if empty
+            int32_t _right;     // The farthest continuous empty index to the right
+            int32_t _down;      // The farthest continuous empty index to the bottom
+            bool _real;         // Whether or not the grid data contains the actual location of the item
         };
 
-        std::vector<std::vector<GridData>> _grid;
-        std::map<Item*, uint64_t> _itemList;
-
+        std::vector<GridData> _grid;    // The array of width * height GridData structures, used to store the state of the container
+        std::list<uint32_t> _next;      // A sorted list of next indices to try when placing an item
+        ItemList _itemList;             // A mapping of each item to a fixed index (not the same as the width/height index used by _grid and _next)
 };
 
 #endif//INC_GDCL_GAME_ITEM_CONTAINER_H

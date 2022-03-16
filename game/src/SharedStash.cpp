@@ -40,18 +40,10 @@ bool SharedStash::ReadFromFile(const std::filesystem::path& path)
 
 bool SharedStash::WriteToFile(const std::filesystem::path& path)
 {
-    if (std::filesystem::exists(path))
+    if (std::filesystem::is_regular_file(path))
     {
         std::filesystem::path tempPath = path;
-        if (std::filesystem::is_regular_file(path))
-        {
-            tempPath += "_tmp";
-        }
-        else
-        {
-            Logger::LogMessage(LOG_LEVEL_ERROR, "Tried to write shared stash to path \"%\" which is not a file", path.string().c_str());
-            return false;
-        }
+        tempPath += "_tmp";
 
         try
         {
@@ -69,6 +61,10 @@ bool SharedStash::WriteToFile(const std::filesystem::path& path)
         }
 
         return true;
+    }
+    else
+    {
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Tried to write shared stash to path \"%\" which is not a file", path.string().c_str());
     }
     return false;
 }

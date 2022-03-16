@@ -1,4 +1,6 @@
 #include "Item.h"
+#include "ItemDatabase.h"
+#include "Log.h"
 
 Item::Item(const web::json::value& obj)
 {
@@ -19,6 +21,48 @@ Item::Item(const web::json::value& obj)
     _itemAugmentSeed = obj.at(U("augmentSeed")).as_integer();
     _itemUnk2 = 0;
     _itemStackCount = obj.at(U("stackCount")).as_integer();
+
+    _itemWidth = 1;
+    _itemHeight = 1;
+    if (!_itemName.empty())
+    {
+        try
+        {
+            ItemDatabase& database = ItemDatabase::GetInstance();
+            const ItemDatabase::ItemDBEntry& entry = database.GetEntry(_itemName);
+            _itemWidth = entry._width;
+            _itemHeight = entry._height;
+        }
+        catch (std::out_of_range&)
+        {
+            Logger::LogMessage(LOG_LEVEL_WARN, "Item \"%\" does not exist in item database. Using default width/height of 1.", _itemName);
+        }
+    }
+}
+
+Item& Item::operator=(const Item& item)
+{
+    _itemName = item._itemName;
+    _itemPrefix = item._itemPrefix;
+    _itemSuffix = item._itemSuffix;
+    _itemModifier = item._itemModifier;
+    _itemIllusion = item._itemIllusion;
+    _itemComponent = item._itemComponent;
+    _itemCompletion = item._itemCompletion;
+    _itemAugment = item._itemAugment;
+
+    _itemID = item._itemID;
+    _itemSeed = item._itemSeed;
+    _itemComponentSeed = item._itemComponentSeed;
+    _itemUnk1 = item._itemUnk1;
+    _itemAugmentSeed = item._itemAugmentSeed;
+    _itemUnk2 = item._itemUnk2;
+    _itemStackCount = item._itemStackCount;
+
+    _itemWidth = item._itemWidth;
+    _itemHeight = item._itemHeight;
+
+    return *this;
 }
 
 void Item::Read(EncodedFileReader* reader)
@@ -38,6 +82,23 @@ void Item::Read(EncodedFileReader* reader)
     _itemAugmentSeed = reader->ReadInt32();
     _itemUnk2 = reader->ReadInt32();
     _itemStackCount = reader->ReadInt32();
+
+    _itemWidth = 1;
+    _itemHeight = 1;
+    if (!_itemName.empty())
+    {
+        try
+        {
+            ItemDatabase& database = ItemDatabase::GetInstance();
+            const ItemDatabase::ItemDBEntry& entry = database.GetEntry(_itemName);
+            _itemWidth = entry._width;
+            _itemHeight = entry._height;
+        }
+        catch (std::out_of_range&)
+        {
+            Logger::LogMessage(LOG_LEVEL_WARN, "Item \"%\" does not exist in item database. Using default width/height of 1.", _itemName);
+        }
+    }
 }
 
 void Item::Write(EncodedFileWriter* writer)

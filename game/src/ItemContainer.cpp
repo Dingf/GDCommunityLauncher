@@ -1,113 +1,155 @@
 #include "ItemContainer.h"
-#include "ItemDatabase.h"
-#include "Log.h"
 
 ItemContainer::ItemContainer(uint32_t width, uint32_t height, bool ignoreItemSize) : _width(width), _height(height), _ignoreItemSize(ignoreItemSize)
 {
-    for (uint32_t i = 0; i < height; ++i)
+    for (uint32_t i = 0; i < width * height; ++i)
     {
-        _grid.emplace_back();
-        for (uint32_t j = 0; j < width; ++j)
-        {
-            _grid[i].emplace_back(width, height);
-        }
+        _grid.emplace_back(width, height);
+        _next.emplace_back(i);
     }
 }
 
 ItemContainer::~ItemContainer()
 {
     _itemList.clear();
+    _next.clear();
 }
 
-void ItemContainer::AddItem(const Item& item, int32_t x, int32_t y)
+bool ItemContainer::AddItem(const Item& item)
 {
-    //TODO: 
-
-    /*
-    if ((x >= _width) || (y >= _height) || (x < 0) || (y < 0))
+    for (auto it = _next.begin(); it != _next.end();)
     {
-        Logger::LogMessage(LOG_LEVEL_WARN, "Tried to add item \"%\" at coordinates (%, %), which is outside the bounds of the container. Item has not been added!", item->_itemName, x, y);
-        return;
+        uint32_t index = *it;
+        uint32_t x = index % _width;
+        uint32_t y = index / _width;
+
+        if (_grid[index]._item != nullptr)
+        {
+            it = _next.erase(it);
+        }
+        else if (AddItem(item, x, y))
+        {
+            _next.erase(it);
+            return true;
+        }
+        else
+        {
+            it++;
+        }
     }
 
-    GridData& gridData = _grid[y][x];
+    return false;
+}
+
+bool ItemContainer::AddItem(const Item& item, uint32_t x, uint32_t y)
+{
+    if ((x >= _width) || (y >= _height))
+        return false;
+
     if (_ignoreItemSize)
     {
-        if (gridData._item == nullptr)
+        uint32_t index = (y  * _width) + x;
+        if (_grid[index]._item == nullptr)
         {
-            gridData._item = item;
-            gridData._real = true;
-            _itemList[item.get()] = ((uint64_t)x << 32) | y;
-        }
-        else
-        {
-            Logger::LogMessage(LOG_LEVEL_WARN, "Tried to add item \"%\" at coordinates (%, %), which overlaps with an existing item. Item has not been added!", item->_itemName, x, y);
+            std::shared_ptr<Item> itemCopy = std::make_shared<Item>(item);
+            _itemList[itemCopy] = ((uint64_t)x << 32) | y;
+            _grid[index]._item = itemCopy.get();
+            _grid[index]._real = true;
+            return true;
         }
     }
-    else
+    else if (CanPlaceItem(item, x, y))
     {
-        uint32_t width;
-        uint32_t height;
-        try
-        {
-            ItemDatabase& database = ItemDatabase::GetInstance();
-            const ItemDatabase::ItemDBEntry& entry = database.GetEntry(item->_itemName);
-            width = entry._width;
-            height = entry._height;
-        }
-        catch (std::out_of_range&)
-        {
-            // TODO: Re-enable this error message once item DB is fully supported
-            Logger::LogMessage(LOG_LEVEL_WARN, "Tried to add item \"%\" that does not exist in item database. Item has not been added!", item->_itemName);
-            return;
-        }
+        uint32_t itemWidth = item._itemWidth;
+        uint32_t itemHeight = item._itemHeight;
 
-        if ((gridData._item == nullptr) && (gridData._down - y + 1 >= height) && (gridData._right - x + 1 >= width))
+        std::shared_ptr<Item> itemCopy = std::make_shared<Item>(item);
+        _itemList[itemCopy] = ((uint64_t)x << 32) | y;
+
+        for (uint32_t i = 0; i < itemHeight; i++)
         {
-            for (uint32_t i = 0; i < height; ++i)
+            for (uint32_t j = 0; j < itemWidth; j++)
             {
-                for (uint32_t j = 0; j < width; ++j)
-                {
-                    _grid[y + i][x + j]._item = item;
-                    _grid[y + i][x + j]._down = 0;
-                    _grid[y + i][x + j]._right = 0;
-                    _grid[y + i][x + j]._real = (i == 0) && (j == 0);
-                }
-            }
-            _itemList[item.get()] = ((uint64_t)x << 32) | y;
-
-            if (x > 0)
-            {
-                for (uint32_t i = 0; i < height; ++i)
-                {
-                    int32_t j = x - 1;
-                    while ((j >= 0) && (_grid[y+i][j]._item == nullptr))
-                    {
-                        _grid[y+i][j--]._right = x - 1;
-                    }
-                }
-            }
-
-            if (y > 0)
-            {
-                for (uint32_t j = 0; j < width; ++j)
-                {
-                    int32_t i = y - 1;
-                    while ((i >= 0) && (_grid[i][x+j]._item == nullptr))
-                    {
-                        _grid[i--][x+j]._down = y - 1;
-                    }
-                }
+                uint32_t index = ((y + i) * _width) + (x + j);
+                _grid[index]._item  = itemCopy.get();
+                _grid[index]._down  = -1;
+                _grid[index]._right = -1;
+                _grid[index]._real  = ((i == 0) && (j == 0));
             }
         }
-        else
+
+        for (uint32_t i = 0; i < itemHeight; ++i)
         {
-            Logger::LogMessage(LOG_LEVEL_WARN, "Tried to add item \"%\" at coordinates (%, %), which overlaps with an existing item. Item has not been added!", item->_itemName, x, y);
+            for (int32_t j = x - 1; j >= 0; j--)
+            {
+                uint32_t index = ((y + i) * _width) + j;
+                if (_grid[index]._item == nullptr)
+                    _grid[index]._right = x;
+                else
+                    break;
+            }
         }
-    }*/
+
+        for (uint32_t i = 0; i < itemWidth; ++i)
+        {
+            for (int32_t j = y - 1; j >= 0; j--)
+            {
+                uint32_t index = (j * _width) + (x + i);
+                if (_grid[index]._item == nullptr)
+                    _grid[index]._down = y;
+                else
+                    break;
+            }
+        }
+        return true;
+    }
+    return false;
 }
 
-void AddItemList(const std::vector<std::shared_ptr<Item>>& items)
+std::vector<Item*> ItemContainer::AddItemList(const std::vector<Item>& items)
 {
-    //TODO: Implement me
+    std::vector<Item*> result;
+    for (int32_t i = items.size() - 1; i >= 0; i--)
+    {
+        const Item& item = items[i];
+        for (auto it = _next.begin(); it != _next.end();)
+        {
+            uint32_t index = *it;
+            uint32_t x = index % _width;
+            uint32_t y = index / _width;
+
+            if (_grid[index]._item != nullptr)
+            {
+                it = _next.erase(it);
+            }
+            else if (AddItem(item, x, y))
+            {
+                result.emplace_back(_grid[index]._item);
+                _next.erase(it);
+                break;
+            }
+            else
+            {
+                it++;
+            }
+        }
+    }
+    return result;
+}
+
+bool ItemContainer::CanPlaceItem(const Item& item, uint32_t x, uint32_t y) const
+{
+    uint32_t itemWidth = item._itemWidth;
+    uint32_t itemHeight = item._itemHeight;
+
+    if ((x + itemWidth > _width) || (y + itemHeight > _height))
+        return false;
+
+    for (uint32_t i = 0; i < itemWidth && i < itemHeight; i++)
+    {
+        uint32_t index = ((y + i) * _width) + (x + i);
+        if ((_grid[index]._item != nullptr) || (_grid[index]._right <= 0) || (_grid[index]._down <= 0) || (_grid[index]._right < (x + itemWidth)) || (_grid[index]._down < (y + itemHeight)))
+            return false;
+    }
+    return true;
 }

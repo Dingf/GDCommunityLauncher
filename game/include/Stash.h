@@ -35,12 +35,12 @@ class Stash : public FileData, public JSONObject
         bool IsHardcore() const { return _isHardcore; }
         void SetHardcore(bool hardcore) { _isHardcore = hardcore; }
 
-        void ReadStashTabs(EncodedFileReader* reader, uint32_t count);
+        void ReadStashTabs(EncodedFileReader* reader, size_t count);
         void WriteStashTabs(EncodedFileWriter* writer);
 
-        uint32_t GetTabCount() const { return _stashTabs.size(); }
+        size_t GetTabCount() const { return _stashTabs.size(); }
 
-        StashTab* GetStashTab(uint32_t index);
+        StashTab* GetStashTab(size_t index);
 
     protected:
         struct StashTabBlock : public GDDataBlock

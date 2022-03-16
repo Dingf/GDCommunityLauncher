@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 cmake_policy(SET CMP0048 NEW)
-project (GDCommunityLauncher VERSION 1.0.3)
+project (GDCommunityLauncher VERSION 1.0.4)
 
 set(CMAKE_GENERATOR_PLATFORM x64)
 set(CMAKE_CXX_STANDARD 17)
@@ -14,7 +14,7 @@ if (minizip_FOUND)
 endif()
 
 find_package(minhook CONFIG REQUIRED)
-if (minhook_FOuND)
+if (minhook_FOUND)
     find_path(minhook_INCLUDE_DIR MinHook.h)
     include_directories(${minhook_INCLUDE_DIR})
 endif()

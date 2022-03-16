@@ -27,7 +27,7 @@ size_t Stash::GetBufferSize() const
         }
 
         size += 4;
-        const std::map<Item*, uint64_t>& itemList = _stashTabs[i]->_stashTab->GetItemList();
+        const ItemContainer::ItemList& itemList = _stashTabs[i]->_stashTab->GetItemList();
         for (auto it = itemList.begin(); it != itemList.end(); ++it)
         {
             size += it->first->GetBufferSize();
@@ -39,9 +39,9 @@ size_t Stash::GetBufferSize() const
     return size;
 }
 
-void Stash::ReadStashTabs(EncodedFileReader* reader, uint32_t count)
+void Stash::ReadStashTabs(EncodedFileReader* reader, size_t count)
 {
-    for (uint32_t i = 0; i < count; ++i)
+    for (size_t i = 0; i < count; ++i)
     {
         std::unique_ptr<StashTabBlock> stashTabBlock = std::make_unique<StashTabBlock>();
 
@@ -84,7 +84,9 @@ void Stash::ReadStashTabs(EncodedFileReader* reader, uint32_t count)
                 itemX = (uint16_t)reader->ReadFloat();
                 itemY = (uint16_t)reader->ReadFloat();
             }
-            stashTab->AddItem(item, itemX, itemY);
+
+            if (!stashTab->AddItem(item, itemX, itemY))
+                Logger::LogMessage(LOG_LEVEL_WARN, "Could not add item \"%\" at coordinates (%, %).", item._itemName, itemX, itemY);
         }
 
         if (stashTab->GetItemCount() != numItems)
@@ -118,9 +120,9 @@ void Stash::WriteStashTabs(EncodedFileWriter* writer)
                 throw std::runtime_error(Logger::LogMessage(LOG_LEVEL_ERROR, "Invalid or unsupported item container type \"%\"", containerType));
         }
 
-        const std::map<Item*, uint64_t>& itemList = _stashTabs[i]->_stashTab->GetItemList();
+        const ItemContainer::ItemList& itemList = _stashTabs[i]->_stashTab->GetItemList();
         writer->BufferInt32((uint32_t)itemList.size());
-        for (std::pair<Item*, uint64_t> pair : itemList)
+        for (auto pair : itemList)
         {
             uint32_t itemX = (pair.second >> 32) & 0xFFFFFFFF;
             uint32_t itemY = (pair.second & 0xFFFFFFFF);
@@ -142,7 +144,7 @@ void Stash::WriteStashTabs(EncodedFileWriter* writer)
     }
 }
 
-Stash::StashTab* Stash::GetStashTab(uint32_t index)
+Stash::StashTab* Stash::GetStashTab(size_t index)
 {
     if (index < _stashTabs.size())
         return _stashTabs[index]->_stashTab.get();
@@ -176,7 +178,7 @@ web::json::value Stash::StashTabBlock::ToJSON()
     {
         uint32_t i = 0;
         web::json::value items = web::json::value::array();
-        for (std::pair<Item*, uint64_t> pair : _stashTab->GetItemList())
+        for (auto pair : _stashTab->GetItemList())
         {
             web::json::value item = pair.first->ToJSON();
             item[U("X")] = ((pair.second >> 32) & 0xFFFFFFFF);
