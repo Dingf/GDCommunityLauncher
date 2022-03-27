@@ -28,7 +28,7 @@ class Stash : public FileData, public JSONObject
 
         virtual size_t GetBufferSize() const;
 
-        virtual web::json::value ToJSON();
+        virtual web::json::value ToJSON() const;
 
         virtual ItemContainerType GetContainerType() const = 0;
 
@@ -48,7 +48,7 @@ class Stash : public FileData, public JSONObject
             StashTabBlock() : GDDataBlock(0x00, 0x00) {}
             ~StashTabBlock() {}
 
-            web::json::value ToJSON();
+            web::json::value ToJSON() const;
 
             std::unique_ptr<StashTab> _stashTab;
         };

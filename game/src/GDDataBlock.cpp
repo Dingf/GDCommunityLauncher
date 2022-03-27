@@ -27,7 +27,7 @@ void GDDataBlock::ReadBlockEnd(EncodedFileReader* reader)
         throw std::runtime_error(Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to read block end for block %", _blockID));
 }
 
-web::json::value GDDataBlock::ToJSON()
+web::json::value GDDataBlock::ToJSON() const
 {
     web::json::value obj = web::json::value::object();
 

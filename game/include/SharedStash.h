@@ -29,7 +29,7 @@ class SharedStash : public Stash
         {
             SharedStashHeaderBlock() : GDDataBlock(0x12, 0x1C) {}
 
-            web::json::value ToJSON();
+            web::json::value ToJSON() const;
 
             uint32_t    _unk1;
             std::string _stashModName;

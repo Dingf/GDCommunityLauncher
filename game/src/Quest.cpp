@@ -110,7 +110,7 @@ void Quest::QuestData::Read(EncodedFileReader* reader)
     questDataBlock.ReadBlockEnd(reader);
 }
 
-web::json::value Quest::QuestTask::ToJSON()
+web::json::value Quest::QuestTask::ToJSON() const
 {
     web::json::value obj = web::json::value::object();
 
@@ -129,7 +129,7 @@ web::json::value Quest::QuestTask::ToJSON()
     return obj;
 }
 
-web::json::value Quest::QuestData::ToJSON()
+web::json::value Quest::QuestData::ToJSON() const
 {
     web::json::value obj = web::json::value::object();
 
@@ -146,7 +146,7 @@ web::json::value Quest::QuestData::ToJSON()
     return obj;
 }
 
-web::json::value Quest::ToJSON()
+web::json::value Quest::ToJSON() const
 {
     web::json::value obj = web::json::value::object();
 
@@ -158,7 +158,7 @@ web::json::value Quest::ToJSON()
     return obj;
 }
 
-web::json::value Quest::QuestTokensBlock::ToJSON()
+web::json::value Quest::QuestTokensBlock::ToJSON() const
 {
     web::json::value obj = web::json::value::object();
 
@@ -175,7 +175,7 @@ web::json::value Quest::QuestTokensBlock::ToJSON()
     return obj;
 }
 
-web::json::value Quest::QuestDataBlock::ToJSON()
+web::json::value Quest::QuestDataBlock::ToJSON() const
 {
     web::json::value obj = web::json::value::object();
 

@@ -74,32 +74,32 @@ class Logger
                     {
                         switch (*(++it))
                         {
-                        case 'Y':
-                            output += year;
-                            break;
-                        case 'M':
-                            output += month;
-                            break;
-                        case 'D':
-                            output += day;
-                            break;
-                        case 'h':
-                            output += hour;
-                            break;
-                        case 'm':
-                            output += minutes;
-                            break;
-                        case 's':
-                            output += seconds;
-                            break;
-                        case 'L':
-                            output += levelString;
-                            break;
-                        case 'A':
-                            output += formattedMessage;
-                            break;
-                        default:
-                            break;
+                            case 'Y':
+                                output += year;
+                                break;
+                            case 'M':
+                                output += month;
+                                break;
+                            case 'D':
+                                output += day;
+                                break;
+                            case 'h':
+                                output += hour;
+                                break;
+                            case 'm':
+                                output += minutes;
+                                break;
+                            case 's':
+                                output += seconds;
+                                break;
+                            case 'L':
+                                output += levelString;
+                                break;
+                            case 'A':
+                                output += formattedMessage;
+                                break;
+                            default:
+                                break;
                         }
                     }
                     else

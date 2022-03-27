@@ -114,7 +114,7 @@ void SharedStash::Write(EncodedFileWriter* writer)
     _headerBlock.WriteBlockEnd(writer);
 }
 
-web::json::value SharedStash::SharedStashHeaderBlock::ToJSON()
+web::json::value SharedStash::SharedStashHeaderBlock::ToJSON() const
 {
     web::json::value obj = web::json::value::object();
 

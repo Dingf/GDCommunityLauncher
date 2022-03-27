@@ -7,19 +7,18 @@
 class JSONObject
 {
     public:
-        virtual web::json::value ToJSON() = 0;
+        virtual web::json::value ToJSON() const = 0;
 };
 
-class JSONString
+class JSONString : public JSONObject
 {
     public:
         JSONString(const std::string& s) : _s(s) {}
         JSONString(const utility::string_t& s) : _s(utility::conversions::to_utf8string(s)) {}
 
-        operator web::json::value() const
-        {
-            return web::json::value::string(utility::conversions::to_utf16string(_s));
-        }
+        web::json::value ToJSON() const { return web::json::value::string(utility::conversions::to_utf16string(_s)); }
+
+        operator web::json::value() const { return ToJSON(); }
 
         operator std::string() const
         {

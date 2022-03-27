@@ -34,7 +34,7 @@ void Faction::Read(EncodedFileReader* reader)
     _factionNegativeBoost = reader->ReadFloat();
 }
 
-web::json::value Faction::ToJSON()
+web::json::value Faction::ToJSON() const
 {
     std::string factionName = (factionNameLookup.count(_factionID) > 0) ? factionNameLookup.at(_factionID) : "";
 

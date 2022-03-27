@@ -93,7 +93,7 @@ class Character : public JSONObject
 
         bool ReadFromFile(const std::filesystem::path& path);
 
-        web::json::value ToJSON();
+        web::json::value ToJSON() const;
 
     private:
         void ReadHeaderBlock(EncodedFileReader* reader);
@@ -117,7 +117,7 @@ class Character : public JSONObject
         {
             CharacterHeaderBlock() : GDDataBlock(0x00, 0xE0) {}
 
-            web::json::value ToJSON();
+            web::json::value ToJSON() const;
 
             std::wstring   _charName;
             uint8_t        _charSex;
@@ -134,7 +134,7 @@ class Character : public JSONObject
         {
             CharacterInfoBlock() : GDDataBlock(0x01, 0x1C) {}
 
-            web::json::value ToJSON();
+            web::json::value ToJSON() const;
 
             uint8_t        _charIsModded;
             uint8_t        _charIsInGame;
@@ -158,7 +158,7 @@ class Character : public JSONObject
         {
             CharacterAttributeBlock() : GDDataBlock(0x02, 0x80) {}
 
-            web::json::value ToJSON();
+            web::json::value ToJSON() const;
 
             uint32_t       _charLevel;
             uint32_t       _charExperience;
@@ -179,7 +179,7 @@ class Character : public JSONObject
         {
             CharacterInventoryBlock() : GDDataBlock(0x03, 0x08) {}
 
-            web::json::value ToJSON();
+            web::json::value ToJSON() const;
 
             class CharacterInventory : public Stash
             {
@@ -237,7 +237,7 @@ class Character : public JSONObject
         {
             CharacterStashBlock() : GDDataBlock(0x04, 0x30) {}
 
-            web::json::value ToJSON();
+            web::json::value ToJSON() const;
 
             class CharacterStash : public Stash
             {
@@ -256,7 +256,7 @@ class Character : public JSONObject
         {
             CharacterRespawnBlock() : GDDataBlock(0x05, 0x01) {}
 
-            web::json::value ToJSON();
+            web::json::value ToJSON() const;
 
             std::vector<UID16> _charRespawnsNormal;
             std::vector<UID16> _charRespawnsElite;
@@ -272,7 +272,7 @@ class Character : public JSONObject
         {
             CharacterWaypointBlock() : GDDataBlock(0x06, 0x01) {}
 
-            web::json::value ToJSON();
+            web::json::value ToJSON() const;
 
             std::vector<UID16> _charWaypointsNormal;
             std::vector<UID16> _charWaypointsElite;
@@ -285,7 +285,7 @@ class Character : public JSONObject
         {
             CharacterMarkerBlock() : GDDataBlock(0x07, 0x01) {}
 
-            web::json::value ToJSON();
+            web::json::value ToJSON() const;
 
             std::vector<UID16> _charMarkersNormal;
             std::vector<UID16> _charMarkersElite;
@@ -298,7 +298,7 @@ class Character : public JSONObject
         {
             CharacterShrineBlock() : GDDataBlock(0x11, 0x02) {}
 
-            web::json::value ToJSON();
+            web::json::value ToJSON() const;
 
             // Two lists per difficulty; first is for restored, second is for discovered
             std::vector<UID16> _charShrines[6];
@@ -310,7 +310,7 @@ class Character : public JSONObject
         {
             CharacterSkillBlock() : GDDataBlock(0x08, 0x10) {}
 
-            web::json::value ToJSON();
+            web::json::value ToJSON() const;
 
             uint32_t           _charMasteriesAllowed;    // Always 2?
             uint32_t           _charSkillReclaimed;
@@ -325,7 +325,7 @@ class Character : public JSONObject
         {
             CharacterNotesBlock() : GDDataBlock(0x0C, 0x01) {}
 
-            web::json::value ToJSON();
+            web::json::value ToJSON() const;
 
             std::vector<std::string> _charNotes;
         }
@@ -336,7 +336,7 @@ class Character : public JSONObject
         {
             CharacterFactionBlock() : GDDataBlock(0x0D, 0x10) {}
 
-            web::json::value ToJSON();
+            web::json::value ToJSON() const;
 
             uint32_t             _unk1;             // GDStash has this listed as "faction", not sure what that means... value appears to always be 0
             std::vector<Faction> _charFactions;
@@ -348,11 +348,11 @@ class Character : public JSONObject
         {
             CharacterUIBlock() : GDDataBlock(0x0E, 0x18) {}
 
-            web::json::value ToJSON();
+            web::json::value ToJSON() const;
 
             struct CharacterUIUnkData : public JSONObject
             {
-                web::json::value ToJSON();
+                web::json::value ToJSON() const;
 
                 std::string    _unk1;
                 std::string    _unk2;
@@ -361,7 +361,7 @@ class Character : public JSONObject
 
             struct CharacterUISlot : public JSONObject
             {
-                web::json::value ToJSON();
+                web::json::value ToJSON() const;
 
                 int32_t        _slotType;           // 0 = item/class skill, 4 = item
                 std::string    _slotSkillName;
@@ -387,7 +387,7 @@ class Character : public JSONObject
         {
             CharacterTutorialBlock() : GDDataBlock(0x0F, 0x01) {}
 
-            web::json::value ToJSON();
+            web::json::value ToJSON() const;
 
             std::vector<uint32_t> _charTutorials;
         }
@@ -398,11 +398,11 @@ class Character : public JSONObject
         {
             CharacterStatsBlock() : GDDataBlock(0x10, 0x540) {}
 
-            web::json::value ToJSON();
+            web::json::value ToJSON() const;
 
             struct CharacterPerDifficultyStats : public JSONObject
             {
-                web::json::value ToJSON();
+                web::json::value ToJSON() const;
 
                 uint32_t    _difficulty;
                 std::string _greatestEnemyKilled;

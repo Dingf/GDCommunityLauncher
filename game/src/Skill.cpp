@@ -16,7 +16,7 @@ void ClassSkill::Read(EncodedFileReader* reader)
     _skillDevotionTrigger = reader->ReadString();
 }
 
-web::json::value ClassSkill::ToJSON()
+web::json::value ClassSkill::ToJSON() const
 {
     web::json::value obj = web::json::value::object();
 
@@ -43,7 +43,7 @@ void ItemSkill::Read(EncodedFileReader* reader)
     _skillItemID = reader->ReadString();
 }
 
-web::json::value ItemSkill::ToJSON()
+web::json::value ItemSkill::ToJSON() const
 {
     web::json::value obj = web::json::value::object();
 

@@ -133,7 +133,7 @@ size_t Item::GetBufferSize() const
     return size;
 }
 
-web::json::value Item::ToJSON()
+web::json::value Item::ToJSON() const
 {
     web::json::value obj = web::json::value::object();
 

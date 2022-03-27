@@ -151,7 +151,7 @@ Stash::StashTab* Stash::GetStashTab(size_t index)
     return nullptr;
 }
 
-web::json::value Stash::ToJSON()
+web::json::value Stash::ToJSON() const
 {
     web::json::value obj = web::json::value::object();
 
@@ -170,7 +170,7 @@ web::json::value Stash::ToJSON()
     return obj;
 }
 
-web::json::value Stash::StashTabBlock::ToJSON()
+web::json::value Stash::StashTabBlock::ToJSON() const
 {
     web::json::value obj = web::json::value::object();
 

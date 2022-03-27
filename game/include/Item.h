@@ -16,7 +16,7 @@ struct Item : public FileData, public JSONObject
 
         Item& operator=(const Item& item);
 
-        web::json::value ToJSON();
+        web::json::value ToJSON() const;
 
         void Read(EncodedFileReader* reader);
         void Write(EncodedFileWriter* writer);

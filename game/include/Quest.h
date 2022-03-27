@@ -16,7 +16,7 @@ class Quest : public JSONObject
             QuestTask() {}
             QuestTask(EncodedFileReader* reader) { Read(reader); }
 
-            web::json::value ToJSON();
+            web::json::value ToJSON() const;
 
             void Read(EncodedFileReader* reader);
 
@@ -32,7 +32,7 @@ class Quest : public JSONObject
             QuestData() {}
             QuestData(EncodedFileReader* reader) { Read(reader); }
 
-            web::json::value ToJSON();
+            web::json::value ToJSON() const;
 
             void Read(EncodedFileReader* reader);
 
@@ -44,7 +44,7 @@ class Quest : public JSONObject
         Quest() {}
         Quest(const std::filesystem::path& path) { ReadFromFile(path); }
 
-        web::json::value ToJSON();
+        web::json::value ToJSON() const;
 
         bool ReadFromFile(const std::filesystem::path& path);
 
@@ -60,7 +60,7 @@ class Quest : public JSONObject
         {
             QuestTokensBlock() : GDDataBlock(0x0A, 0x02) {}
 
-            web::json::value ToJSON();
+            web::json::value ToJSON() const;
 
             std::vector<std::string> _questTokens;
         }
@@ -71,7 +71,7 @@ class Quest : public JSONObject
         {
             QuestDataBlock() : GDDataBlock(0x0B, 0x04) {}
 
-            web::json::value ToJSON();
+            web::json::value ToJSON() const;
 
             std::vector<QuestData> _questData;
         }

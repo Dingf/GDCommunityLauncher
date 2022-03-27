@@ -630,7 +630,7 @@ void Character::ReadStatsBlock(EncodedFileReader* reader)
     _statsBlock.ReadBlockEnd(reader);
 }
 
-web::json::value Character::ToJSON()
+web::json::value Character::ToJSON() const
 {
     web::json::value obj = web::json::value::object();
 
@@ -653,7 +653,7 @@ web::json::value Character::ToJSON()
     return obj;
 }
 
-web::json::value Character::CharacterHeaderBlock::ToJSON()
+web::json::value Character::CharacterHeaderBlock::ToJSON() const
 {
     std::string className = (classNameLookup.count(_charClass) > 0) ? classNameLookup.at(_charClass) : "";
 
@@ -673,7 +673,7 @@ web::json::value Character::CharacterHeaderBlock::ToJSON()
     return obj;
 }
 
-web::json::value Character::CharacterInfoBlock::ToJSON()
+web::json::value Character::CharacterInfoBlock::ToJSON() const
 {
     web::json::value obj = web::json::value::object();
 
@@ -703,7 +703,7 @@ web::json::value Character::CharacterInfoBlock::ToJSON()
     return obj;
 }
 
-web::json::value Character::CharacterAttributeBlock::ToJSON()
+web::json::value Character::CharacterAttributeBlock::ToJSON() const
 {
     web::json::value obj = web::json::value::object();
 
@@ -724,7 +724,7 @@ web::json::value Character::CharacterAttributeBlock::ToJSON()
     return obj;
 }
 
-web::json::value Character::CharacterInventoryBlock::ToJSON()
+web::json::value Character::CharacterInventoryBlock::ToJSON() const
 {
     web::json::value obj = web::json::value::object();
 
@@ -754,7 +754,7 @@ web::json::value Character::CharacterInventoryBlock::ToJSON()
     return obj;
 }
 
-web::json::value Character::CharacterStashBlock::ToJSON()
+web::json::value Character::CharacterStashBlock::ToJSON() const
 {
     web::json::value obj = web::json::value::object();
 
@@ -765,7 +765,7 @@ web::json::value Character::CharacterStashBlock::ToJSON()
     return obj;
 }
 
-web::json::value Character::CharacterRespawnBlock::ToJSON()
+web::json::value Character::CharacterRespawnBlock::ToJSON() const
 {
     web::json::value obj = web::json::value::object();
 
@@ -800,7 +800,7 @@ web::json::value Character::CharacterRespawnBlock::ToJSON()
     return obj;
 }
 
-web::json::value Character::CharacterWaypointBlock::ToJSON()
+web::json::value Character::CharacterWaypointBlock::ToJSON() const
 {
     web::json::value obj = web::json::value::object();
 
@@ -831,7 +831,7 @@ web::json::value Character::CharacterWaypointBlock::ToJSON()
     return obj;
 }
 
-web::json::value Character::CharacterMarkerBlock::ToJSON()
+web::json::value Character::CharacterMarkerBlock::ToJSON() const
 {
     web::json::value obj = web::json::value::object();
 
@@ -862,7 +862,7 @@ web::json::value Character::CharacterMarkerBlock::ToJSON()
     return obj;
 }
 
-web::json::value Character::CharacterShrineBlock::ToJSON()
+web::json::value Character::CharacterShrineBlock::ToJSON() const
 {
     web::json::value obj = web::json::value::object();
 
@@ -914,7 +914,7 @@ web::json::value Character::CharacterShrineBlock::ToJSON()
     return obj;
 }
 
-web::json::value Character::CharacterSkillBlock::ToJSON()
+web::json::value Character::CharacterSkillBlock::ToJSON() const
 {
     web::json::value obj = web::json::value::object();
 
@@ -941,7 +941,7 @@ web::json::value Character::CharacterSkillBlock::ToJSON()
     return obj;
 }
 
-web::json::value Character::CharacterNotesBlock::ToJSON()
+web::json::value Character::CharacterNotesBlock::ToJSON() const
 {
     web::json::value obj = web::json::value::object();
 
@@ -958,7 +958,7 @@ web::json::value Character::CharacterNotesBlock::ToJSON()
     return obj;
 }
 
-web::json::value Character::CharacterFactionBlock::ToJSON()
+web::json::value Character::CharacterFactionBlock::ToJSON() const
 {
     web::json::value obj = web::json::value::object();
 
@@ -976,7 +976,7 @@ web::json::value Character::CharacterFactionBlock::ToJSON()
     return obj;
 }
 
-web::json::value Character::CharacterUIBlock::CharacterUIUnkData::ToJSON()
+web::json::value Character::CharacterUIBlock::CharacterUIUnkData::ToJSON() const
 {
     web::json::value obj = web::json::value::object();
 
@@ -987,7 +987,7 @@ web::json::value Character::CharacterUIBlock::CharacterUIUnkData::ToJSON()
     return obj;
 }
 
-web::json::value Character::CharacterUIBlock::CharacterUISlot::ToJSON()
+web::json::value Character::CharacterUIBlock::CharacterUISlot::ToJSON() const
 {
     web::json::value obj = web::json::value::object();
 
@@ -1003,7 +1003,7 @@ web::json::value Character::CharacterUIBlock::CharacterUISlot::ToJSON()
     return obj;
 }
 
-web::json::value Character::CharacterUIBlock::ToJSON()
+web::json::value Character::CharacterUIBlock::ToJSON() const
 {
     web::json::value obj = web::json::value::object();
 
@@ -1031,7 +1031,7 @@ web::json::value Character::CharacterUIBlock::ToJSON()
     return obj;
 }
 
-web::json::value Character::CharacterTutorialBlock::ToJSON()
+web::json::value Character::CharacterTutorialBlock::ToJSON() const
 {
     web::json::value obj = web::json::value::object();
 
@@ -1048,7 +1048,7 @@ web::json::value Character::CharacterTutorialBlock::ToJSON()
     return obj;
 }
 
-web::json::value Character::CharacterStatsBlock::CharacterPerDifficultyStats::ToJSON()
+web::json::value Character::CharacterStatsBlock::CharacterPerDifficultyStats::ToJSON() const
 {
     web::json::value obj = web::json::value::object();
 
@@ -1063,7 +1063,7 @@ web::json::value Character::CharacterStatsBlock::CharacterPerDifficultyStats::To
     return obj;
 }
 
-web::json::value Character::CharacterStatsBlock::ToJSON()
+web::json::value Character::CharacterStatsBlock::ToJSON() const
 {
     web::json::value obj = web::json::value::object();
 

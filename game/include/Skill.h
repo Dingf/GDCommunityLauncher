@@ -22,7 +22,7 @@ struct ClassSkill : public Skill
         ClassSkill() {}
         ClassSkill(EncodedFileReader* reader) { Read(reader); }
 
-        web::json::value ToJSON();
+        web::json::value ToJSON() const;
 
         void Read(EncodedFileReader* reader);
 
@@ -41,7 +41,7 @@ struct ItemSkill : public Skill
         ItemSkill() {}
         ItemSkill(EncodedFileReader* reader) { Read(reader); }
 
-        web::json::value ToJSON();
+        web::json::value ToJSON() const;
 
         void Read(EncodedFileReader* reader);
 

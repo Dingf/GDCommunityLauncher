@@ -39,7 +39,7 @@ struct Faction : public JSONObject
         Faction() {}
         Faction(EncodedFileReader* reader) { Read(reader); }
 
-        web::json::value ToJSON();
+        web::json::value ToJSON() const;
 
         void Read(EncodedFileReader* reader);
 

@@ -16,7 +16,7 @@ class GDDataBlock : public JSONObject
     public:
         GDDataBlock(uint32_t ID, uint32_t versionMask) : _blockID(ID), _blockVersionMask(versionMask) {}
 
-        virtual web::json::value ToJSON();
+        virtual web::json::value ToJSON() const;
 
         uint32_t GetBlockID()          const { return _blockID; }
         uint32_t GetBlockVersion()     const { return _blockVersion; }
