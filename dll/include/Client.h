@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <mutex>
+#include "UpdateThread.h"
 
 enum SeasonType
 {
@@ -52,8 +53,6 @@ class Client
         bool SetupClientHooks();
         void CleanupClientHooks();
 
-        void PostRefreshToken();
-
         bool IsValid() const { return _data.IsValid(); }
 
         bool IsOnline() const { return _online; }
@@ -80,36 +79,21 @@ class Client
         bool IsParticipatingInSeason() const { return (_activeSeason != nullptr) && (_activeCharacter._hasToken); }
 
         void SetActiveSeason(const std::string& modName, bool hardcore);
-        void SetActiveCharacter(const std::wstring& name, bool hasToken);
-
-        void SetOnlineStatus(bool status)
-        {
-            if (_online != status)
-            {
-                _online = status;
-                UpdateLeagueInfoText();
-            }
-        }
+        void SetActiveCharacter(const std::wstring& name, bool hasToken, bool async = false);
 
         void SetParticipantID(uint32_t participantID) { _data._participantID = participantID; }
 
-        void SetPoints(uint32_t points)
-        {
-            _points = points;
-            UpdateLeagueInfoText();
-        }
-
-        void SetRank(uint32_t rank)
-        {
-            _rank = rank;
-            UpdateLeagueInfoText();
-        }
+        void UpdateCharacterData(uint32_t delay, bool async);
+        void UpdateSeasonStanding();
 
     private:
         Client() : _activeSeason(nullptr), _online(false) {}
 
         void UpdateVersionInfoText();
         void UpdateLeagueInfoText();
+
+        friend void UpdateRefreshToken();
+        friend void UpdateConnectionStatus();
 
         void ReadDataFromPipe();
 
@@ -125,6 +109,10 @@ class Client
         std::string _versionInfoText;
         std::wstring _leagueInfoText;
         std::mutex _transferMutex;
+
+        std::shared_ptr<UpdateThread<std::wstring, bool>> _postCharacterThread;
+        std::shared_ptr<UpdateThread<>> _refreshServerTokenThread;
+        std::shared_ptr<UpdateThread<>> _connectionStatusThread;
 };
 
 #endif//INC_GDCL_DLL_CLIENT_H

@@ -9,6 +9,7 @@ include/EngineAPI/KeyButtonEvent.h
 include/GameAPI.h
 include/GameAPI/Difficulty.h
 include/Client.h
+include/ClientHandlers.h
 include/ItemDatabaseValues.h
 res/ItemDatabaseValues.rc
 src/HookManager.cpp
@@ -16,7 +17,16 @@ src/EngineApi.cpp
 src/EngineAPI/Color.cpp
 src/GameAPI.cpp
 src/Client.cpp
-src/ClientHooks.cpp
+src/ClientHandlers/HandleGetVersion.cpp
+src/ClientHandlers/HandleRender.cpp
+src/ClientHandlers/HandleWorld.cpp
+src/ClientHandlers/HandleKeyEvent.cpp
+src/ClientHandlers/HandleLua.cpp
+src/ClientHandlers/HandleSetMainPlayer.cpp
+src/ClientHandlers/HandleSaveNewFormatData.cpp
+src/ClientHandlers/HandleTransferStash.cpp
+src/ClientHandlers/HandleBestowToken.cpp
+src/ClientHandlers/HandleSendChatMessage.cpp
 src/main.cpp)
 
 target_include_directories(dll PRIVATE include)

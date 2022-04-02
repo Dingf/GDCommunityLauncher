@@ -1,3 +1,4 @@
+#include <vector>
 #include "GameAPI.h"
 
 namespace GameAPI
@@ -42,6 +43,21 @@ const wchar_t* GetPlayerName(PULONG_PTR player)
         return nullptr;
 
     return (const wchar_t*)callback((LPVOID)player);
+}
+
+int32_t GetPlayerPartyID(PULONG_PTR player)
+{
+    typedef int32_t(__thiscall* GetPlayerPartyIDProto)(LPVOID);
+
+    HMODULE gameDLL = GetModuleHandle(TEXT("Game.dll"));
+    if ((!gameDLL) || (!player))
+        return 0;
+
+    GetPlayerPartyIDProto callback = (GetPlayerPartyIDProto)GetProcAddress(gameDLL, GAPI_NAME_GET_PLAYER_NAME);
+    if (!callback)
+        return 0;
+
+    return callback((LPVOID)player);
 }
 
 Difficulty GetPlayerMaxDifficulty(PULONG_PTR player)
@@ -172,6 +188,26 @@ void DisplayUINotification(const std::string& tag)
         return;
 
     return callback((LPVOID)*gameEngine, tag);
+}
+
+void SendChatMessage(const std::wstring& name, const std::wstring& message, uint8_t channel)
+{
+    typedef void(__thiscall* SendChatMessageProto)(void*, const std::wstring&, const std::wstring&, uint8_t, std::vector<uint32_t>, uint32_t);
+
+    PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
+    HMODULE gameDLL = GetModuleHandle(TEXT("Game.dll"));
+    if ((!gameDLL) || (!mainPlayer))
+        return;
+
+    uint32_t playerID = GetPlayerPartyID(mainPlayer);
+
+    SendChatMessageProto callback = (SendChatMessageProto)GetProcAddress(gameDLL, GameAPI::GAPI_NAME_SEND_CHAT_MESSAGE);
+    PULONG_PTR gameEngine = GetGameEngineHandle();
+
+    if ((!callback) || (!gameEngine))
+        return;
+
+    callback((LPVOID)*gameEngine, name, message, channel, { playerID }, 0);
 }
 
 }

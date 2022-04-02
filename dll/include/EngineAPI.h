@@ -27,6 +27,8 @@ constexpr char EAPI_NAME_RENDER[] = "?Render@Engine@GAME@@QEAAXXZ";
 constexpr char EAPI_NAME_RENDER_TEXT_2D[] = "?RenderText2d@GraphicsCanvas@GAME@@QEAAXHHAEBVColor@2@PEBGPEBVGraphicsFont2@2@HW4GraphicsXAlign@2@W4GraphicsYAlign@2@W4FontStyleFlag@2@W4FontLayout@2@@Z";
 constexpr char EAPI_NAME_RENDER_STYLED_TEXT_2D[] = "?RenderText2d@GraphicsCanvas@GAME@@QEAAXVRect@2@PEBGAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@MW4GraphicsXAlign@2@W4GraphicsYAlign@2@W4FontLayout@2@@Z";
 constexpr char EAPI_NAME_HANDLE_KEY_EVENT[] = "?HandleKeyEvent@DisplayWidget@GAME@@UEAA_NAEBVButtonEvent@InputDevice@2@@Z";
+constexpr char EAPI_NAME_LUA_INITIALIZE[] = "?Initialize@LuaManager@GAME@@QEAA_N_N0@Z";
+constexpr char EAPI_NAME_LUA_RUN_CODE[] = "?RunCode@LuaManager@GAME@@QEAA_NPEBD@Z";
 #else
 constexpr char EAPI_NAME_ENGINE[] = "?gEngine@GAME@@3PAVEngine@1@A";
 constexpr char EAPI_NAME_GET_GAME_INFO[] = "?GetGameInfo@Engine@GAME@@QAEPAVGameInfo@2@XZ";
@@ -44,6 +46,8 @@ constexpr char EAPI_NAME_RENDER[] = "?Render@Engine@GAME@@QAEXXZ";
 constexpr char EAPI_NAME_RENDER_TEXT_2D[] = "?RenderText2d@GraphicsCanvas@GAME@@QAEXHHABVColor@2@PBGPBVGraphicsFont2@2@HW4GraphicsXAlign@2@W4GraphicsYAlign@2@W4FontStyleFlag@2@W4FontLayout@2@@Z";
 constexpr char EAPI_NAME_RENDER_STYLED_TEXT_2D[] = "?RenderText2d@GraphicsCanvas@GAME@@QAEXVRect@2@PBGABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@MW4GraphicsXAlign@2@W4GraphicsYAlign@2@W4FontLayout@2@@Z";
 constexpr char EAPI_NAME_HANDLE_KEY_EVENT[] = "?HandleKeyEvent@DisplayWidget@GAME@@UAE_NABVButtonEvent@InputDevice@2@@Z";
+constexpr char EAPI_NAME_LUA_INITIALIZE[] = "?Initialize@LuaManager@GAME@@QAE_N_N0@Z";
+constexpr char EAPI_NAME_LUA_RUN_CODE[] = "?RunCode@LuaManager@GAME@@QAE_NPBD@Z";
 #endif
 
 PULONG_PTR GetEngineHandle();
