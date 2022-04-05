@@ -242,7 +242,7 @@ void Client::UpdateLeagueInfoText()
 
 void Client::SetActiveCharacter(const std::wstring& name, bool hasToken, bool async)
 {
-    if ((name.empty() || !hasToken) && (!_activeCharacter._name.empty() && _activeCharacter._hasToken))
+    if ((name != _activeCharacter._name) && (!_activeCharacter._name.empty() && _activeCharacter._hasToken))
         UpdateCharacterData(0, async);
 
     _activeCharacter._name = name;

@@ -46,6 +46,8 @@ void HandleSetMainPlayer(void* _this, uint32_t unk1)
 
             client.SetActiveCharacter(playerName, hasParticipationToken);
 
+            pplx::create_task([]() { EngineAPI::UI::ChatWindow::GetInstance(true); });
+
             GameAPI::SendChatMessage(L"Server", L"Welcome to the Grim Dawn Community League!", 2);
             //GameAPI::SendChatMessage(L"Server", L"To send a message to other players in the league, type /global before your message.", 2);
         }

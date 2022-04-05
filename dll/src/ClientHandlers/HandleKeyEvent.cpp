@@ -9,10 +9,19 @@ bool HandleKeyEvent(void* _this, EngineAPI::KeyButtonEvent& event)
     if (callback)
     {
         Client& client = Client::GetInstance();
-        if ((client.IsParticipatingInSeason()) && (event._keyCode == EngineAPI::KEY_1))
+
+        // There are multiple DisplayWidgets that are registered to HandleKeyEvent; to prevent duplication, choose only one of them to handle custom key events
+        uint32_t unk1 = *((uint32_t*)(_this)+2);
+        if (unk1 == 0x02)
         {
-            // TODO: Ideally figure out a better solution for opening the chat window than this...
-            GameAPI::SendChatMessage(L"Server", L"Click on me to open the chat window", 2);
+            // Enable the chat window while playing the league mod in single player
+            if ((client.IsParticipatingInSeason()) && (event._keyCode == EngineAPI::KEY_ENTER) && (!EngineAPI::IsMultiplayer()) && (event._keyState == EngineAPI::KEY_STATE_DOWN))
+            {
+                EngineAPI::UI::ChatWindow& chatWindow = EngineAPI::UI::ChatWindow::GetInstance();
+
+                if (!chatWindow.GetState())
+                    chatWindow.ToggleDisplay();
+            }
         }
 
         //if ((client.IsParticipatingInSeason()) && (event._keyCode == EngineAPI::KEY_TILDE))

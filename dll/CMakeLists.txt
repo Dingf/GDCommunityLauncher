@@ -6,6 +6,7 @@ include/EngineAPI/Color.h
 include/EngineAPI/Rect.h
 include/EngineAPI/GraphicsAlign.h
 include/EngineAPI/KeyButtonEvent.h
+include/EngineAPI/UI/ChatWindow.h
 include/GameAPI.h
 include/GameAPI/Difficulty.h
 include/Client.h
@@ -13,8 +14,9 @@ include/ClientHandlers.h
 include/ItemDatabaseValues.h
 res/ItemDatabaseValues.rc
 src/HookManager.cpp
-src/EngineApi.cpp
+src/EngineAPI.cpp
 src/EngineAPI/Color.cpp
+src/EngineAPI/UI/ChatWindow.cpp
 src/GameAPI.cpp
 src/Client.cpp
 src/ClientHandlers/HandleGetVersion.cpp

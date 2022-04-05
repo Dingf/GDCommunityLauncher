@@ -190,7 +190,7 @@ void DisplayUINotification(const std::string& tag)
     return callback((LPVOID)*gameEngine, tag);
 }
 
-void SendChatMessage(const std::wstring& name, const std::wstring& message, uint8_t channel)
+void SendChatMessage(const std::wstring& name, const std::wstring& message, uint8_t type)
 {
     typedef void(__thiscall* SendChatMessageProto)(void*, const std::wstring&, const std::wstring&, uint8_t, std::vector<uint32_t>, uint32_t);
 
@@ -207,7 +207,7 @@ void SendChatMessage(const std::wstring& name, const std::wstring& message, uint
     if ((!callback) || (!gameEngine))
         return;
 
-    callback((LPVOID)*gameEngine, name, message, channel, { playerID }, 0);
+    callback((LPVOID)*gameEngine, name, message, type, { playerID }, 0);
 }
 
 }

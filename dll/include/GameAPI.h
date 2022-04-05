@@ -75,7 +75,7 @@ bool IsGameLoading();
 
 void DisplayUINotification(const std::string& tag);
 
-void SendChatMessage(const std::wstring& name, const std::wstring& message, uint8_t channel);
+void SendChatMessage(const std::wstring& name, const std::wstring& message, uint8_t type);
 
 }
 
