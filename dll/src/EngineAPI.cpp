@@ -190,24 +190,4 @@ void RenderText2D(int x, int y, const Color& color, const wchar_t* text, PULONG_
     callback(canvas, x, y, color, text, font, size, xAlign, yAlign, style, layout);
 }
 
-bool IsUsingSteam()
-{
-    HMODULE engineDLL = GetModuleHandle(TEXT("Engine.dll"));
-    if (!engineDLL)
-        return false;
-
-    LPVOID callback = GetProcAddress(engineDLL, EAPI_NAME_GET_STEAMWORKS);
-    return (callback != nullptr);
-}
-
-bool IsUsingGOG()
-{
-    HMODULE engineDLL = GetModuleHandle(TEXT("Engine.dll"));
-    if (!engineDLL)
-        return false;
-
-    LPVOID callback = GetProcAddress(engineDLL, EAPI_NAME_GET_GOG);
-    return (callback != nullptr);
-}
-
 }

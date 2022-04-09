@@ -26,7 +26,7 @@ class ChatWindow
     private:
         ChatWindow() : _visible(nullptr) {}
 
-        void FindMagicBit();
+        void FindVisibleBit();
 
         uint8_t* _visible;  // Bit used to toggle the chat window visibility
 

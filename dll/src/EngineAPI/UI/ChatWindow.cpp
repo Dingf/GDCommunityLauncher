@@ -2,7 +2,6 @@
 #include <Windows.h>
 #include "EngineAPI.h"
 #include "EngineAPI/UI/ChatWindow.h"
-#include "Log.h"
 
 namespace EngineAPI::UI
 {
@@ -13,7 +12,7 @@ ChatWindow& ChatWindow::GetInstance(bool init)
     if (init)
     {
         instance._visible = nullptr;
-        instance.FindMagicBit();
+        instance.FindVisibleBit();
     }
     return instance;
 }
@@ -35,7 +34,7 @@ bool ChatWindow::GetState()
     return false;
 }
 
-void ChatWindow::FindMagicBit()
+void ChatWindow::FindVisibleBit()
 {
     typedef void* (*GetObjectManagerProto)();
     typedef void(__thiscall* GetObjectListProto)(void*, std::vector<void*>&);
@@ -53,19 +52,21 @@ void ChatWindow::FindMagicBit()
     GetObjectList(GetObjectManager(), objects);
 
     uint64_t magic = 0;
-    if (EngineAPI::IsUsingSteam())
-        //magic = 0x7ff6bdda87a8;
-        magic = 0x7ff7ec1f87a8;
-    else if (EngineAPI::IsUsingGOG())
-        magic = 0x7ff68fa330e8;
-
-    Logger::LogMessage(LOG_LEVEL_DEBUG, "DEBUG % %", EngineAPI::IsUsingGOG(), EngineAPI::IsUsingSteam());
+    switch (EngineAPI::GetPlatform())
+    {
+        case EngineAPI::PLATFORM_STEAM:
+            magic = 0x7ff7ec1f87a8;
+            break;
+        case EngineAPI::PLATFORM_GOG:
+            magic = 0x7ff68fa330e8;
+            break;
+    }
 
     if ((objects.size() > 0) && (magic > 0))
     {
         void* min = objects[0];
         void* max = objects[0];
-        for (size_t i = 0; i < objects.size(); ++i)
+        for (size_t i = 1; i < objects.size(); ++i)
         {
             if (objects[i] < min)
                 min = objects[i];

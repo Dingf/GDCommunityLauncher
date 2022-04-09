@@ -2,6 +2,7 @@ add_library(dll SHARED
 include/HookManager.h
 include/UpdateThread.h
 include/EngineAPI.h
+include/EngineAPI/Platform.h
 include/EngineAPI/Color.h
 include/EngineAPI/Rect.h
 include/EngineAPI/GraphicsAlign.h
@@ -15,6 +16,7 @@ include/ItemDatabaseValues.h
 res/ItemDatabaseValues.rc
 src/HookManager.cpp
 src/EngineAPI.cpp
+src/EngineAPI/Platform.cpp
 src/EngineAPI/Color.cpp
 src/EngineAPI/UI/ChatWindow.cpp
 src/GameAPI.cpp
