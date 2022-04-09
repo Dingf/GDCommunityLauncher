@@ -1,5 +1,4 @@
 #include "ClientHandlers.h"
-#include "Log.h"
 
 bool HandleKeyEvent(void* _this, EngineAPI::KeyButtonEvent& event)
 {
@@ -18,7 +17,6 @@ bool HandleKeyEvent(void* _this, EngineAPI::KeyButtonEvent& event)
             if ((client.IsParticipatingInSeason()) && (event._keyCode == EngineAPI::KEY_ENTER) && (!EngineAPI::IsMultiplayer()) && (event._keyState == EngineAPI::KEY_STATE_DOWN))
             {
                 EngineAPI::UI::ChatWindow& chatWindow = EngineAPI::UI::ChatWindow::GetInstance();
-
                 if (!chatWindow.GetState())
                     chatWindow.ToggleDisplay();
             }

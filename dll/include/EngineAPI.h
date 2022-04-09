@@ -21,6 +21,8 @@ constexpr char EAPI_NAME_GET_CANVAS[] = "?GetCanvas@GraphicsEngine@GAME@@QEAAAEA
 constexpr char EAPI_NAME_GET_MOD_NAME[] = "?GetModName@GameInfo@GAME@@QEBAAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@XZ";
 constexpr char EAPI_NAME_GET_IS_MULTIPLAYER[] = "?GetIsMultiPlayer@GameInfo@GAME@@QEBA_NXZ";
 constexpr char EAPI_NAME_GET_VERSION[] = "?GetVersion@Engine@GAME@@SAPEBDXZ";
+constexpr char EAPI_NAME_GET_STEAMWORKS[] = "?Get@Steamworks@GAME@@SAPEAV12@XZ";
+constexpr char EAPI_NAME_GET_GOG[] = "?Get@Gog@GAME@@SAPEAV12@XZ";
 constexpr char EAPI_NAME_GET_STYLE_MANAGER[] = "?Get@?$Singleton@VStyleManager@GAME@@@GAME@@SAPEAVStyleManager@2@XZ";
 constexpr char EAPI_NAME_GET_OBJECT_MANAGER[] = "?Get@?$Singleton@VObjectManager@GAME@@@GAME@@SAPEAVObjectManager@2@XZ";
 constexpr char EAPI_NAME_GET_OBJECT_LIST[] = "?GetObjectList@ObjectManager@GAME@@QEBAXAEAV?$vector@PEBVObject@GAME@@@mem@@@Z";
@@ -42,6 +44,8 @@ constexpr char EAPI_NAME_GET_CANVAS[] = "?GetCanvas@GraphicsEngine@GAME@@QAEAAVG
 constexpr char EAPI_NAME_GET_MOD_NAME[] = "?GetModName@GameInfo@GAME@@QBEABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@XZ";
 constexpr char EAPI_NAME_GET_IS_MULTIPLAYER[] = "?GetIsMultiPlayer@GameInfo@GAME@@QBE_NXZ";
 constexpr char EAPI_NAME_GET_VERSION[] = "?GetVersion@Engine@GAME@@SAPBDXZ";
+constexpr char EAPI_NAME_GET_STEAMWORKS[] = "?Get@Steamworks@GAME@@SAPAV12@XZ";
+constexpr char EAPI_NAME_GET_GOG[] = "?Get@Gog@GAME@@SAPAV12@XZ";
 constexpr char EAPI_NAME_GET_STYLE_MANAGER[] = "?Get@?$Singleton@VStyleManager@GAME@@@GAME@@SAPAVStyleManager@2@XZ";
 constexpr char EAPI_NAME_GET_OBJECT_MANAGER[] = "?Get@?$Singleton@VObjectManager@GAME@@@GAME@@SAPAVObjectManager@2@XZ";
 constexpr char EAPI_NAME_GET_OBJECT_LIST[] = "?GetObjectList@ObjectManager@GAME@@QBEXAAV?$vector@PBVObject@GAME@@@mem@@@Z";
@@ -76,6 +80,10 @@ PULONG_PTR GetStyleManager();
 PULONG_PTR LoadFontDirect(const std::string& fontName);
 
 void RenderText2D(int x, int y, const Color& color, const wchar_t* text, PULONG_PTR font, int size, GraphicsXAlign xAlign, GraphicsYAlign yAlign, int style, int layout);
+
+bool IsUsingSteam();
+
+bool IsUsingGOG();
 
 }
 

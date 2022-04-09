@@ -3,12 +3,10 @@
 #include <cwctype>
 #include "ClientHandlers.h"
 
-const uint32_t CHAT_CHANNEL_MAX = 15;
-
 bool HandleChatHelpCommand(std::wstring& name, std::wstring& message, uint32_t& channel, uint8_t& type)
 {
-    GameAPI::SendChatMessage(L"/g, /global [ON/OFF]", L"Enables or disables the global chat channel, or sends a message to the global chat channel.", 0);
-    GameAPI::SendChatMessage(L"/tr, /trade [ON/OFF]", L"Enables or disables the trade chat channel, or sends a message to the trade chat channel.", 0);
+    GameAPI::SendChatMessage(L"/g, /global[CHANNEL] [ON/OFF]", L"Enables or disables the global chat channel, or sends a message to the global chat channel.", 0);
+    GameAPI::SendChatMessage(L"/tr, /trade[CHANNEL] [ON/OFF]", L"Enables or disables the trade chat channel, or sends a message to the trade chat channel.", 0);
     GameAPI::SendChatMessage(L"/h, /help", L"Displays this help message.", 0);
     return false;
 }
@@ -16,105 +14,146 @@ bool HandleChatHelpCommand(std::wstring& name, std::wstring& message, uint32_t& 
 //TODO: Send the global/trade chat messages to the server and also add listeners on the client for incoming messages
 bool HandleChatGlobalCommand(std::wstring& name, std::wstring& message, uint32_t& channel, uint8_t& type)
 {
+    Client& client = Client::GetInstance();
+    type = EngineAPI::UI::CHAT_TYPE_GLOBAL;
+
     std::wstring arg = message;
     std::transform(arg.begin(), arg.end(), arg.begin(), std::towlower);
     if (arg == L"on")
     {
         if (channel == 0)
+        {
             channel = 1;
+            client.SetCurrentChatChannel(EngineAPI::UI::CHAT_TYPE_GLOBAL, 1);
+        }
 
         name = L"Server";
-        message = L"Global chat is now ON. Joining global channel " + std::to_wstring(channel) + L".";
-        type = 2;
+        message = L"Global chat is now ON. Joined global channel " + std::to_wstring(channel) + L".";
+        return true;
     }
     else if (arg == L"off")
     {
+        client.SetCurrentChatChannel(EngineAPI::UI::CHAT_TYPE_GLOBAL, 0);
         name = L"Server";
         message = L"Global chat is now OFF.";
-        type = 2;
+        return true;
     }
     else if (channel != 0)
     {
-        if (channel > CHAT_CHANNEL_MAX)
+        if (channel > EngineAPI::UI::CHAT_CHANNEL_MAX)
         {
             name = L"Server";
-            message = L"Invalid channel. The maximum number of channels is " + std::to_wstring(CHAT_CHANNEL_MAX) + L".";
-            type = 2;
+            message = L"Invalid channel. The maximum number of channels is " + std::to_wstring(EngineAPI::UI::CHAT_CHANNEL_MAX) + L".";
+            return true;
         }
         else
         {
-            std::wstring joinMessage = L"Joining global channel " + std::to_wstring(channel) + L".";
+            client.SetCurrentChatChannel(EngineAPI::UI::CHAT_TYPE_GLOBAL, channel);
+            std::wstring joinMessage = L"Joined global channel " + std::to_wstring(channel) + L".";
             if (message.empty())
             {
                 name = L"Server";
                 message = joinMessage;
-                type = 2;
                 return true;
             }
             else
             {
-                GameAPI::SendChatMessage(L"Server", joinMessage, 2);
+                GameAPI::SendChatMessage(L"Server", joinMessage, EngineAPI::UI::CHAT_TYPE_GLOBAL);
             }
         }
     }
 
-    Client& client = Client::GetInstance();
-    name = std::wstring(client.GetUsername().begin(), client.GetUsername().end());
-    type = 2;
+    uint8_t currentChannel = client.GetCurrentChatChannel(EngineAPI::UI::CHAT_TYPE_GLOBAL);
+    if (currentChannel > 0)
+    {
+        if (message.empty())
+        {
+            name = L"Server";
+            message = L"You are currently in global channel " + std::to_wstring(currentChannel) + L".";
+        }
+        else
+        {
+            name = std::wstring(client.GetUsername().begin(), client.GetUsername().end());
+        }
+    }
+    else
+    {
+        name = L"Server";
+        message = L"Global chat is currently disabled. You can enable it by typing /global ON.";
+    }
     return true;
 }
 
 // TODO: Add a joined message if trade chat was off and the user types a message or switches channels
 bool HandleChatTradeCommand(std::wstring& name, std::wstring& message, uint32_t& channel, uint8_t& type)
 {
+    Client& client = Client::GetInstance();
+    type = EngineAPI::UI::CHAT_TYPE_TRADE;
+
     std::wstring arg = message;
     std::transform(arg.begin(), arg.end(), arg.begin(), std::towlower);
     if (arg == L"on")
     {
         if (channel == 0)
+        {
             channel = 1;
+            client.SetCurrentChatChannel(EngineAPI::UI::CHAT_TYPE_TRADE, 1);
+        }
 
         name = L"Server";
-        message = L"Trade chat is now ON. Joining trade channel " + std::to_wstring(channel) + L".";
-        type = 1;
+        message = L"Trade chat is now ON. Joined trade channel " + std::to_wstring(channel) + L".";
         return true;
     }
     else if (arg == L"off")
     {
+        client.SetCurrentChatChannel(EngineAPI::UI::CHAT_TYPE_TRADE, 0);
         name = L"Server";
         message = L"Trade chat is now OFF.";
-        type = 1;
         return true;
     }
     else if (channel != 0)
     {
-        if (channel > CHAT_CHANNEL_MAX)
+        if (channel > EngineAPI::UI::CHAT_CHANNEL_MAX)
         {
             name = L"Server";
-            message = L"Invalid channel. The maximum number of channels is " + std::to_wstring(CHAT_CHANNEL_MAX) + L".";
-            type = 1;
+            message = L"Invalid channel. The maximum number of channels is " + std::to_wstring(EngineAPI::UI::CHAT_CHANNEL_MAX) + L".";
             return true;
         }
         else
         {
-            std::wstring joinMessage = L"Joining trade channel " + std::to_wstring(channel) + L".";
+            client.SetCurrentChatChannel(EngineAPI::UI::CHAT_TYPE_TRADE, channel);
+            std::wstring joinMessage = L"Joined trade channel " + std::to_wstring(channel) + L".";
             if (message.empty())
             {
                 name = L"Server";
                 message = joinMessage;
-                type = 1;
                 return true;
             }
             else
             {
-                GameAPI::SendChatMessage(L"Server", joinMessage, 1);
+                GameAPI::SendChatMessage(L"Server", joinMessage, EngineAPI::UI::CHAT_TYPE_TRADE);
             }
         }
     }
 
-    Client& client = Client::GetInstance();
-    name = std::wstring(client.GetUsername().begin(), client.GetUsername().end());
-    type = 1;
+    uint8_t currentChannel = client.GetCurrentChatChannel(EngineAPI::UI::CHAT_TYPE_TRADE);
+    if (currentChannel > 0)
+    {
+        if (message.empty())
+        {
+            name = L"Server";
+            message = L"You are currently in trade channel " + std::to_wstring(currentChannel) + L".";
+        }
+        else
+        {
+            name = std::wstring(client.GetUsername().begin(), client.GetUsername().end());
+        }
+    }
+    else
+    {
+        name = L"Server";
+        message = L"Trade chat is currently disabled. You can enable it by typing /trade ON.";
+    }
     return true;
 }
 

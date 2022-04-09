@@ -2,6 +2,7 @@
 #include <Windows.h>
 #include "EngineAPI.h"
 #include "EngineAPI/UI/ChatWindow.h"
+#include "Log.h"
 
 namespace EngineAPI::UI
 {
@@ -11,7 +12,7 @@ ChatWindow& ChatWindow::GetInstance(bool init)
     static ChatWindow instance;
     if (init)
     {
-        instance._magic = nullptr;
+        instance._visible = nullptr;
         instance.FindMagicBit();
     }
     return instance;
@@ -19,17 +20,17 @@ ChatWindow& ChatWindow::GetInstance(bool init)
 
 void ChatWindow::ToggleDisplay()
 {
-    if (_magic != nullptr)
+    if (_visible != nullptr)
     {
-        *_magic ^= 1;
+        *_visible ^= 1;
     }
 }
 
 bool ChatWindow::GetState()
 {
-    if (_magic != nullptr)
+    if (_visible != nullptr)
     {
-        return (*_magic != 0);
+        return (*_visible != 0);
     }
     return false;
 }
@@ -51,7 +52,16 @@ void ChatWindow::FindMagicBit()
     std::vector<void*> objects;
     GetObjectList(GetObjectManager(), objects);
 
-    if (objects.size() > 0)
+    uint64_t magic = 0;
+    if (EngineAPI::IsUsingSteam())
+        //magic = 0x7ff6bdda87a8;
+        magic = 0x7ff7ec1f87a8;
+    else if (EngineAPI::IsUsingGOG())
+        magic = 0x7ff68fa330e8;
+
+    Logger::LogMessage(LOG_LEVEL_DEBUG, "DEBUG % %", EngineAPI::IsUsingGOG(), EngineAPI::IsUsingSteam());
+
+    if ((objects.size() > 0) && (magic > 0))
     {
         void* min = objects[0];
         void* max = objects[0];
@@ -65,9 +75,9 @@ void ChatWindow::FindMagicBit()
 
         for (LPVOID* current = (LPVOID*)min; current < max; ++current)
         {
-            if (!IsBadReadPtr(current, 8) && (*current == (LPVOID)0x7ff6bdda87a8))
+            if (!IsBadReadPtr(current, 8) && (*current == (LPVOID)magic))
             {
-                _magic = (uint8_t*)current - 0x28;
+                _visible = (uint8_t*)current - 0x28;
                 return;
             }
         }

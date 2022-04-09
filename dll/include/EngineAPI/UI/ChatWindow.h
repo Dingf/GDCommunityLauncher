@@ -6,6 +6,15 @@
 namespace EngineAPI::UI
 {
 
+enum ChatType
+{
+    CHAT_TYPE_NORMAL = 0,
+    CHAT_TYPE_TRADE = 1,
+    CHAT_TYPE_GLOBAL = 2,
+};
+
+static const uint32_t CHAT_CHANNEL_MAX = 15;
+
 class ChatWindow
 {
     public:
@@ -15,11 +24,12 @@ class ChatWindow
         bool GetState();
 
     private:
-        ChatWindow() : _magic(nullptr) {}
+        ChatWindow() : _visible(nullptr) {}
 
         void FindMagicBit();
 
-        uint8_t* _magic;    // Magic bit used to toggle the chat window visibility
+        uint8_t* _visible;  // Bit used to toggle the chat window visibility
+
 };
 
 }

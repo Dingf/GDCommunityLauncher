@@ -27,21 +27,6 @@ Client& Client::GetInstance()
     return instance;
 }
 
-void Client::SetActiveSeason(const std::string& modName, bool hardcore)
-{
-    _activeSeason = nullptr;
-    for (size_t i = 0; i < _data._seasons.size(); ++i)
-    {
-        SeasonInfo& season = _data._seasons[i];
-        if ((modName == season._modName) && ((1 + hardcore) == season._seasonType))
-        {
-            _activeSeason = &season;
-            break;
-        }
-    }
-    UpdateLeagueInfoText();
-}
-
 bool ReadIntFromPipe(HANDLE pipe, uint32_t& value)
 {
     DWORD bytesRead;
@@ -240,6 +225,31 @@ void Client::UpdateLeagueInfoText()
     }
 }
 
+uint8_t Client::GetCurrentChatChannel(EngineAPI::UI::ChatType type) const
+{
+    if (type == EngineAPI::UI::CHAT_TYPE_GLOBAL)
+        return (_chatChannels & 0xF0) >> 4;
+    else if (type == EngineAPI::UI::CHAT_TYPE_TRADE)
+        return (_chatChannels & 0x0F);
+    else
+        return 0;
+}
+
+void Client::SetActiveSeason(const std::string& modName, bool hardcore)
+{
+    _activeSeason = nullptr;
+    for (size_t i = 0; i < _data._seasons.size(); ++i)
+    {
+        SeasonInfo& season = _data._seasons[i];
+        if ((modName == season._modName) && ((1 + hardcore) == season._seasonType))
+        {
+            _activeSeason = &season;
+            break;
+        }
+    }
+    UpdateLeagueInfoText();
+}
+
 void Client::SetActiveCharacter(const std::wstring& name, bool hasToken, bool async)
 {
     if ((name != _activeCharacter._name) && (!_activeCharacter._name.empty() && _activeCharacter._hasToken))
@@ -250,6 +260,17 @@ void Client::SetActiveCharacter(const std::wstring& name, bool hasToken, bool as
 
     if (!name.empty() && hasToken)
         UpdateCharacterData(0, async);
+}
+
+void Client::SetCurrentChatChannel(EngineAPI::UI::ChatType type, uint32_t channel)
+{
+    if (channel <= EngineAPI::UI::CHAT_CHANNEL_MAX)
+    {
+        if (type == EngineAPI::UI::CHAT_TYPE_GLOBAL)
+            _chatChannels = (_chatChannels & 0x0F) | ((channel & 0x0F) << 4);
+        else if (type == EngineAPI::UI::CHAT_TYPE_TRADE)
+            _chatChannels = (_chatChannels & 0xF0) | (channel & 0x0F);
+    }
 }
 
 void Client::UpdateSeasonStanding()

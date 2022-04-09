@@ -6,6 +6,7 @@
 #include <vector>
 #include <mutex>
 #include "UpdateThread.h"
+#include "EngineAPI/UI/ChatWindow.h"
 
 enum SeasonType
 {
@@ -61,6 +62,8 @@ class Client
         uint32_t GetRank() const { return _rank; }
         uint32_t GetParticipantID() const { return _data._participantID; }
 
+        uint8_t GetCurrentChatChannel(EngineAPI::UI::ChatType type) const;
+
         const std::string&  GetVersionInfoText() const { return _versionInfoText; }
         const std::wstring& GetLeagueInfoText()  const { return _leagueInfoText; }
 
@@ -81,7 +84,10 @@ class Client
         void SetActiveSeason(const std::string& modName, bool hardcore);
         void SetActiveCharacter(const std::wstring& name, bool hasToken, bool async = false);
 
+        void SetCurrentChatChannel(EngineAPI::UI::ChatType type, uint32_t channel);
+
         void SetParticipantID(uint32_t participantID) { _data._participantID = participantID; }
+
 
         void UpdateCharacterData(uint32_t delay, bool async);
         void UpdateSeasonStanding();
@@ -98,6 +104,8 @@ class Client
         void ReadDataFromPipe();
 
         bool _online;
+
+        uint8_t _chatChannels;
 
         uint32_t _rank;
         uint32_t _points;
