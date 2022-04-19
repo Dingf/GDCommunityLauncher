@@ -20,6 +20,8 @@ class ChatWindow
     public:
         static ChatWindow& GetInstance(bool init = false);
 
+        void SetChatPrefix(const std::wstring& prefix) { _prefix = prefix; }
+
         void ToggleDisplay();
         bool GetState();
 
@@ -28,7 +30,8 @@ class ChatWindow
 
         void FindVisibleBit();
 
-        uint8_t* _visible;  // Bit used to toggle the chat window visibility
+        uint8_t* _visible;      // Bit used to toggle the chat window visibility
+        std::wstring _prefix;   // Last used chat prefix
 
 };
 

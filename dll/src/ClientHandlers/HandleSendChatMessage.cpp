@@ -5,9 +5,9 @@
 
 bool HandleChatHelpCommand(std::wstring& name, std::wstring& message, uint32_t& channel, uint8_t& type)
 {
-    GameAPI::SendChatMessage(L"/g, /global[CHANNEL] [ON/OFF]", L"Enables or disables the global chat channel, or sends a message to the global chat channel.", 0);
-    GameAPI::SendChatMessage(L"/tr, /trade[CHANNEL] [ON/OFF]", L"Enables or disables the trade chat channel, or sends a message to the trade chat channel.", 0);
-    GameAPI::SendChatMessage(L"/h, /help", L"Displays this help message.", 0);
+    GameAPI::SendChatMessage(L"/g, /global[CHANNEL] [ON/OFF]", L"Sends a message to the current global chat channel.\n    [CHANNEL] - Switches the current global chat channel.\n    [ON/OFF] - Enables or disables global chat.\n ", 0);
+    GameAPI::SendChatMessage(L"/tr, /trade[CHANNEL] [ON/OFF]", L"Sends a message to the current trade chat channel.\n    [CHANNEL] - Switches the current trade chat channel.\n    [ON/OFF] - Enables or disables trade chat.\n ", 0);
+    GameAPI::SendChatMessage(L"/h, /help", L"Displays this help message.\n ", 0);
     return false;
 }
 
@@ -15,6 +15,9 @@ bool HandleChatHelpCommand(std::wstring& name, std::wstring& message, uint32_t& 
 bool HandleChatGlobalCommand(std::wstring& name, std::wstring& message, uint32_t& channel, uint8_t& type)
 {
     Client& client = Client::GetInstance();
+    EngineAPI::UI::ChatWindow& chatWindow = EngineAPI::UI::ChatWindow::GetInstance();
+    chatWindow.SetChatPrefix(L"/g ");
+
     type = EngineAPI::UI::CHAT_TYPE_GLOBAL;
 
     std::wstring arg = message;
@@ -74,6 +77,7 @@ bool HandleChatGlobalCommand(std::wstring& name, std::wstring& message, uint32_t
         else
         {
             name = std::wstring(client.GetUsername().begin(), client.GetUsername().end());
+            // TODO: Send the message to the server here
         }
     }
     else
@@ -88,6 +92,9 @@ bool HandleChatGlobalCommand(std::wstring& name, std::wstring& message, uint32_t
 bool HandleChatTradeCommand(std::wstring& name, std::wstring& message, uint32_t& channel, uint8_t& type)
 {
     Client& client = Client::GetInstance();
+    EngineAPI::UI::ChatWindow& chatWindow = EngineAPI::UI::ChatWindow::GetInstance();
+    chatWindow.SetChatPrefix(L"/tr ");
+
     type = EngineAPI::UI::CHAT_TYPE_TRADE;
 
     std::wstring arg = message;
@@ -147,6 +154,7 @@ bool HandleChatTradeCommand(std::wstring& name, std::wstring& message, uint32_t&
         else
         {
             name = std::wstring(client.GetUsername().begin(), client.GetUsername().end());
+            // TODO: Send the message to the server here
         }
     }
     else
@@ -175,6 +183,9 @@ void HandleSendChatMessage(void* _this, const std::wstring& name, const std::wst
     HandleSendChatMessageProto callback = (HandleSendChatMessageProto)HookManager::GetOriginalFunction("Game.dll", GameAPI::GAPI_NAME_SEND_CHAT_MESSAGE);
     if (callback)
     {
+        EngineAPI::UI::ChatWindow& chatWindow = EngineAPI::UI::ChatWindow::GetInstance();
+        chatWindow.SetChatPrefix({});
+
         std::wstring realName = name;
         std::wstring realMessage = message;
 

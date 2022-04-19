@@ -31,7 +31,7 @@ void HandleBestowToken(void* _this, void* token)
                 else if (tokenString == seasonInfo->_participationToken)
                 {
                     std::wstring playerName = GameAPI::GetPlayerName(mainPlayer);
-                    client.SetActiveCharacter(playerName, true, true);
+                    client.SetActiveCharacter(playerName, true);
                 }
                 else if ((tokenString.find("GDL_", 0) == 0) && (client.IsParticipatingInSeason()))
                 {

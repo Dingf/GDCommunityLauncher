@@ -26,18 +26,16 @@ class UpdateThread
 
         void Update(uint64_t delay, Ts... args)
         {
-            if (delay == 0)
-            {
-                _callbackProto(args...);
-            }
-            else
-            {
-                std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
-                _updateTime = ms.count() + delay;
+            std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
+            _updateTime = ms.count() + delay;
 
-                auto f = std::bind(std::forward<UpdateCallback>(_callbackProto), std::forward<Ts>(args)...);
-                _callback = [f] { f(); };
-            }
+            auto f = std::bind(std::forward<UpdateCallback>(_callbackProto), std::forward<Ts>(args)...);
+            _callback = [f] { f(); };
+        }
+
+        void Call(Ts... args)
+        {
+            _callbackProto(args...);
         }
 
     private:

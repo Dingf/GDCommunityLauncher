@@ -20,5 +20,6 @@ void HandleLoadTransferStash(void* _this);
 void HandleBestowToken(void* _this, void* token);
 void HandleUnloadWorld(void* _this);
 void HandleSendChatMessage(void* _this, const std::wstring& name, const std::wstring& message, uint8_t type, std::vector<uint32_t> targets, uint32_t unk1);
+void HandleSyncDungeonProgress(void* _this, int unk1);
 
 #endif//INC_GDCL_DLL_CLIENT_HANDLERS_H

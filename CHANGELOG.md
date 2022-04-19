@@ -31,7 +31,8 @@
 - Implemented cloud stash feature for league characters. The cloud stash can be accessed from your profile on the GrimLeague website.
     - To upload items to the cloud stash, place items in the sixth slot of your shared stash. These items will be uploaded to the cloud stash automatically.
 	- To retrieve items from the cloud stash, use the GrimLeague website to add items to the transfer queue. These items will be automatically placed in the fifth slot of your shared stash when you next access it.
-- Implemented global chat and server announcement features for league characters.
+- Implemented chat and server announcement features for league characters. Type /help in the in-game chat window for a listing of chat commands.
+- The launcher now awards points for Shattered Realm upon completing a shard. Previously, points were awarded upon entering the treasure room at the end of the run.
 - The launcher now properly checks the start and end dates of available seasons to determine which ones are currently active.
 - The launcher now uses file sizes rather than MD5 checksums when checking local files for updates.
 - Added basic Lua support for the launcher.

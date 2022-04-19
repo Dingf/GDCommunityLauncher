@@ -1,4 +1,5 @@
 #include <vector>
+#include <algorithm>
 #include <Windows.h>
 #include "EngineAPI.h"
 #include "EngineAPI/UI/ChatWindow.h"
@@ -11,7 +12,6 @@ ChatWindow& ChatWindow::GetInstance(bool init)
     static ChatWindow instance;
     if (init)
     {
-        instance._visible = nullptr;
         instance.FindVisibleBit();
     }
     return instance;
@@ -21,6 +21,21 @@ void ChatWindow::ToggleDisplay()
 {
     if (_visible != nullptr)
     {
+        if (*_visible == 0)
+        {
+            if (!_prefix.empty())
+            {
+                wchar_t buffer[7] = { 0 };
+                size_t length = min(_prefix.size(), 7);
+
+                memcpy(buffer, _prefix.c_str(), sizeof(wchar_t) * length);
+                memcpy(_visible + 0xB0, buffer, sizeof(wchar_t) * 7);
+                *(_visible + 0xC0)  = length;  // String length
+                *(_visible + 0xC8)  = 0x07;    // Some sort of buffer size value? <= 0x07 indicates in-place memory, >= 0x0F indicates a pointer that grows by 8 each time
+                *(_visible + 0x160) = length;  // Text caret position
+            }
+        }
+
         *_visible ^= 1;
     }
 }
@@ -39,6 +54,8 @@ void ChatWindow::FindVisibleBit()
     typedef void* (*GetObjectManagerProto)();
     typedef void(__thiscall* GetObjectListProto)(void*, std::vector<void*>&);
 
+    _visible = nullptr;
+
     HMODULE engineDLL = GetModuleHandle(TEXT("Engine.dll"));
     if (!engineDLL)
         return;
@@ -51,36 +68,38 @@ void ChatWindow::FindVisibleBit()
     std::vector<void*> objects;
     GetObjectList(GetObjectManager(), objects);
 
-    uint64_t magic = 0;
-    switch (EngineAPI::GetPlatform())
+    if (objects.size() > 0)
     {
-        case EngineAPI::PLATFORM_STEAM:
-            magic = 0x7ff7ec1f87a8;
-            break;
-        case EngineAPI::PLATFORM_GOG:
-            magic = 0x7ff68fa330e8;
-            break;
-    }
+        void* min = *std::min_element(objects.begin(), objects.end());
+        void* max = *std::max_element(objects.begin(), objects.end());
 
-    if ((objects.size() > 0) && (magic > 0))
-    {
-        void* min = objects[0];
-        void* max = objects[0];
-        for (size_t i = 1; i < objects.size(); ++i)
-        {
-            if (objects[i] < min)
-                min = objects[i];
-            if (objects[i] > max)
-                max = objects[i];
-        }
+        uint8_t* start = (uint8_t*)min;
+        uint64_t magic = 0x41c0000044008000;
+        HANDLE process = GetCurrentProcess();
+        MEMORY_BASIC_INFORMATION info;
 
-        for (LPVOID* current = (LPVOID*)min; current < max; ++current)
+        while ((_visible == nullptr) && (start < max))
         {
-            if (!IsBadReadPtr(current, 8) && (*current == (LPVOID)magic))
+            if (VirtualQueryEx(process, start, &info, sizeof(info)) != sizeof(info))
+                break;
+
+            if ((info.RegionSize <= 0x400000) && (info.AllocationProtect & PAGE_READWRITE))
             {
-                _visible = (uint8_t*)current - 0x28;
-                return;
+                uint8_t* buffer = new uint8_t[info.RegionSize];
+                ReadProcessMemory(process, info.BaseAddress, buffer, info.RegionSize, NULL);
+
+                for (uint64_t offset = 0; (offset + sizeof(uint64_t)) <= info.RegionSize; offset += sizeof(uint64_t))
+                {
+                    if (*(uint64_t*)(buffer + offset) == magic)
+                    {
+                        _visible = (uint8_t*)info.BaseAddress + offset - 0xA0;
+                        break;
+                    }
+                }
+
+                delete[] buffer;
             }
+            start += info.RegionSize;
         }
     }
 }

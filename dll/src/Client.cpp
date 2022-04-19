@@ -449,7 +449,14 @@ void PostCharacterData(std::wstring playerName, bool async)
 
 void Client::UpdateCharacterData(uint32_t delay, bool async)
 {
-    _postCharacterThread->Update(delay, _activeCharacter._name, true);
+    if (delay == 0)
+    {
+        _postCharacterThread->Call(_activeCharacter._name, async);
+    }
+    else
+    {
+        _postCharacterThread->Update(delay, _activeCharacter._name, async);
+    }
 }
 
 void UpdateRefreshToken()
@@ -535,7 +542,8 @@ bool Client::SetupClientHooks()
         !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_LOAD_TRANSFER_STASH, &HandleLoadTransferStash) ||
         !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_BESTOW_TOKEN, &HandleBestowToken) ||
         !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_UNLOAD_WORLD, &HandleUnloadWorld) ||
-        !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_SEND_CHAT_MESSAGE, &HandleSendChatMessage))
+        !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_SEND_CHAT_MESSAGE, &HandleSendChatMessage) ||
+        !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_SYNC_DUNGEON_PROGRESS, &HandleSyncDungeonProgress))
     {
         Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to create one or more game hooks.");
         return false;
@@ -547,7 +555,6 @@ bool Client::SetupClientHooks()
     _refreshServerTokenThread = std::make_shared<UpdateThread<>>(&UpdateRefreshToken, 1000, 1800000);
     _connectionStatusThread = std::make_shared<UpdateThread<>>(&UpdateConnectionStatus, 1000, 10000);
 
-    // Refresh the client tokens immediately and then every 30 minutes after
     _refreshServerTokenThread->Update(0);
     _connectionStatusThread->Update(0);
 

@@ -156,6 +156,36 @@ PULONG_PTR GetStyleManager()
     return callback();
 }
 
+PULONG_PTR GetEntityRegion(LPVOID entity)
+{
+    typedef PULONG_PTR(__thiscall* GetEntityRegionProto)(void*);
+
+    HMODULE engineDLL = GetModuleHandle(TEXT("Engine.dll"));
+    if (!engineDLL)
+        return nullptr;
+
+    GetEntityRegionProto callback = (GetEntityRegionProto)GetProcAddress(engineDLL, EAPI_NAME_GET_ENTITY_REGION);
+    if (!callback)
+        return nullptr;
+
+    return callback(entity);
+}
+
+PULONG_PTR GetRegionID(LPVOID region)
+{
+    typedef PULONG_PTR(__thiscall* GetRegionIDProto)(void*);
+
+    HMODULE engineDLL = GetModuleHandle(TEXT("Engine.dll"));
+    if (!engineDLL)
+        return nullptr;
+
+    GetRegionIDProto callback = (GetRegionIDProto)GetProcAddress(engineDLL, EAPI_NAME_GET_REGION_ID);
+    if (!callback)
+        return nullptr;
+
+    return callback(region);
+}
+
 PULONG_PTR LoadFontDirect(const std::string& fontName)
 {
     typedef PULONG_PTR(__thiscall* LoadFontDirectProto)(void*, const std::string&);

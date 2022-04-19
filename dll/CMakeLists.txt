@@ -31,6 +31,7 @@ src/ClientHandlers/HandleSaveNewFormatData.cpp
 src/ClientHandlers/HandleTransferStash.cpp
 src/ClientHandlers/HandleBestowToken.cpp
 src/ClientHandlers/HandleSendChatMessage.cpp
+src/ClientHandlers/HandleEndlessDungeon.cpp
 src/main.cpp)
 
 target_include_directories(dll PRIVATE include)
