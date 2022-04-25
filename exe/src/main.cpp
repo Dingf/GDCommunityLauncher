@@ -42,12 +42,12 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
         config.Save(configPath);
     }
 
-    // Get the list of files from the server and download any files that need to be updated
-    if (!UpdateDialog::Update(&config))
-        return EXIT_FAILURE;
-
     // Display the login window or automatically login the user if autologin is enabled
     if (!LoginDialog::Login(&config))
+        return EXIT_FAILURE;
+
+    // Get the list of files from the server and download any files that need to be updated
+    if (!UpdateDialog::Update(&config))
         return EXIT_FAILURE;
 
     config.Save(configPath);

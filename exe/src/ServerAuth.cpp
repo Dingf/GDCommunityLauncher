@@ -6,6 +6,7 @@
 #include <cpprest/http_client.h>
 #include "Client.h"
 #include "ServerAuth.h"
+#include "Date.h"
 #include "JSONObject.h"
 #include "URI.h"
 #include "Version.h"
@@ -63,29 +64,39 @@ bool GetSeasonData(std::string hostName, ClientData& data)
                 web::json::array seasonsList = responseBody.as_array();
                 for (auto it = seasonsList.begin(); it != seasonsList.end(); ++it)
                 {
-                    SeasonInfo seasonInfo;
-                    seasonInfo._seasonID = it->at(U("seasonId")).as_integer();
-                    seasonInfo._seasonType = it->at(U("seasonTypeId")).as_integer();
+                    std::string startDate = JSONString(it->at(U("startDate")).serialize());
+                    std::string endDate = JSONString(it->at(U("endDate")).serialize());
 
-                    std::string modName = JSONString(it->at(U("modName")).serialize());
-                    std::string displayName = JSONString(it->at(U("displayName")).serialize());
-                    std::string participationToken = JSONString(it->at(U("participationTag")).serialize());
+                    std::time_t startDateTime = Date(std::string(startDate.begin() + 1, startDate.end() - 1));
+                    std::time_t endDateTime = Date(std::string(endDate.begin() + 1, endDate.end() - 1));
+                    std::time_t currentDateTime = Date();
 
-                    // Trim quotes from serializing the string
-                    if ((modName.front() == '"') && (modName.back() == '"'))
-                        modName = std::string(modName.begin() + 1, modName.end() - 1);
-                    if ((displayName.front() == '"') && (displayName.back() == '"'))
-                        displayName = std::string(displayName.begin() + 1, displayName.end() - 1);
-                    if ((participationToken.front() == '"') && (participationToken.back() == '"'))
-                        participationToken = std::string(participationToken.begin() + 1, participationToken.end() - 1);
+                    if ((data._role == "admin") || (data._role == "tester") || ((currentDateTime >= startDateTime) && (currentDateTime <= endDateTime)))
+                    {
+                        SeasonInfo seasonInfo;
+                        seasonInfo._seasonID = it->at(U("seasonId")).as_integer();
+                        seasonInfo._seasonType = it->at(U("seasonTypeId")).as_integer();
 
-                    seasonInfo._modName = modName;
-                    seasonInfo._displayName = displayName;
-                    seasonInfo._participationToken = participationToken;
+                        std::string modName = JSONString(it->at(U("modName")).serialize());
+                        std::string displayName = JSONString(it->at(U("displayName")).serialize());
+                        std::string participationToken = JSONString(it->at(U("participationTag")).serialize());
 
-                    data._seasons.push_back(seasonInfo);
+                        // Trim quotes from serializing the string
+                        if ((modName.front() == '"') && (modName.back() == '"'))
+                            modName = std::string(modName.begin() + 1, modName.end() - 1);
+                        if ((displayName.front() == '"') && (displayName.back() == '"'))
+                            displayName = std::string(displayName.begin() + 1, displayName.end() - 1);
+                        if ((participationToken.front() == '"') && (participationToken.back() == '"'))
+                            participationToken = std::string(participationToken.begin() + 1, participationToken.end() - 1);
+
+                        seasonInfo._modName = modName;
+                        seasonInfo._displayName = displayName;
+                        seasonInfo._participationToken = participationToken;
+
+                        data._seasons.push_back(seasonInfo);
+                    }
                 }
-                return true;
+                return (data._seasons.size() > 0);
             }
             default:
             {
@@ -124,10 +135,15 @@ ServerAuthResult ServerAuthFunction(std::string hostName, std::string username, 
             web::json::value responseBody = response.extract_json().get();
             web::json::value authTokenValue = responseBody[U("access_token")];
             web::json::value refreshTokenValue = responseBody[U("refresh_token")];
+            web::json::value roleValue = responseBody[U("role")];
             if ((!authTokenValue.is_null()) && (!refreshTokenValue.is_null()))
             {
                 data._authToken = JSONString(authTokenValue.as_string());
                 data._refreshToken = JSONString(refreshTokenValue.as_string());
+            }
+            if (!roleValue.is_null())
+            {
+                data._role = JSONString(roleValue.as_string());
             }
         }
         else

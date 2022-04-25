@@ -1,5 +1,6 @@
 add_library(common
 include/md5.hpp
+include/Date.h
 include/FileBuffer.h
 include/FileReader.h
 include/FileWriter.h
