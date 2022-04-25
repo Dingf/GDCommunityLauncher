@@ -357,7 +357,13 @@ void PostCharacterData(std::wstring playerName, bool async)
     characterPath += playerName;
 
     std::filesystem::path characterSavePath = characterPath / "player.gdc";
-    std::filesystem::path characterQuestPath = characterPath / "maps_world001.map";
+
+    std::vector<std::filesystem::path> characterQuestPaths;
+    for (const auto& entry : std::filesystem::directory_iterator(characterPath))
+    {
+        if (entry.is_directory())
+            characterQuestPaths.push_back(entry.path());
+    }
 
     Character characterData;
     if (!characterData.ReadFromFile(characterSavePath))
@@ -385,22 +391,26 @@ void PostCharacterData(std::wstring playerName, bool async)
     characterInfo[U("energy")] = characterJSON[U("AttributesBlock")][U("Energy")];
 
     web::json::value questInfo = web::json::value::object();
-    for (auto it = difficultyTagLookup.begin(); it != difficultyTagLookup.end(); ++it)
-    {
-        Quest questData;
-        questInfo[it->second] = web::json::value::array();
-        if (questData.ReadFromFile(characterQuestPath / it->first / "quests.gdd"))
-        {
-            web::json::value questJSON = questData.ToJSON();
-            web::json::array tokensArray = questJSON[U("Tokens")][U("Tokens")].as_array();
 
-            uint32_t index = 0;
-            for (auto it2 = tokensArray.begin(); it2 != tokensArray.end(); ++it2)
+    for (size_t i = 0; i < characterQuestPaths.size(); ++i)
+    {
+        for (auto it = difficultyTagLookup.begin(); it != difficultyTagLookup.end(); ++it)
+        {
+            Quest questData;
+            questInfo[it->second] = web::json::value::array();
+            if (questData.ReadFromFile(characterQuestPaths[i] / it->first / "quests.gdd"))
             {
-                std::string token = JSONString(it2->serialize());
-                if (token.find("GDL_", 0) == 0)
+                web::json::value questJSON = questData.ToJSON();
+                web::json::array tokensArray = questJSON[U("Tokens")][U("Tokens")].as_array();
+
+                uint32_t index = 0;
+                for (auto it2 = tokensArray.begin(); it2 != tokensArray.end(); ++it2)
                 {
-                    questInfo[it->second][index++] = JSONString(token);
+                    std::string token = JSONString(it2->serialize());
+                    if (token.find("GDL_", 0) == 0)
+                    {
+                        questInfo[it->second][index++] = JSONString(token);
+                    }
                 }
             }
         }
@@ -577,6 +587,7 @@ void Client::CleanupClientHooks()
     HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_BESTOW_TOKEN);
     HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_UNLOAD_WORLD);
     HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_SEND_CHAT_MESSAGE);
+    HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_SYNC_DUNGEON_PROGRESS);
 
     _refreshServerTokenThread->Stop();
     _connectionStatusThread->Stop();

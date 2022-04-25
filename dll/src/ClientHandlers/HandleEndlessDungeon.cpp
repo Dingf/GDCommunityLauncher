@@ -59,7 +59,7 @@ int32_t GetCurrentChunk()
 
 uint32_t GetCurrentShard()
 {
-    float result;
+    float result = 0.0f;
     typedef bool(__thiscall* ResolveEquationVarProto)(void*, const char*, float*);
 
     HMODULE gameDLL = GetModuleHandle(TEXT("Game.dll"));
