@@ -34,6 +34,7 @@ struct ClientData
     std::string _authToken;
     std::string _refreshToken;
     std::string _hostName;
+    std::string _role;
     std::vector<SeasonInfo> _seasons;
 };
 
@@ -50,6 +51,7 @@ class Client
         const std::string& GetRefreshToken() const { return _data._refreshToken; }
         const std::string& GetAuthToken() const { return _data._authToken; }
         const std::string& GetHostName() const { return _data._hostName; }
+        const std::string& GetRole() const { return _data._role; }
 
     private:
         Client(const ClientData& data)

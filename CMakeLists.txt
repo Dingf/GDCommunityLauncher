@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 cmake_policy(SET CMP0048 NEW)
-project (GDCommunityLauncher VERSION 1.0.4)
+project (GDCommunityLauncher VERSION 1.0.5)
 
 set(CMAKE_GENERATOR_PLATFORM x64)
 set(CMAKE_CXX_STANDARD 17)
