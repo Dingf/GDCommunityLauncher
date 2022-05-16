@@ -10,6 +10,7 @@ const char* HandleGetVersion(void* _this);
 void HandleRender(void* _this);
 bool HandleKeyEvent(void* _this, EngineAPI::KeyButtonEvent& event);
 bool HandleLoadWorld(void* _this, const char* mapName, bool unk1, bool modded);
+void HandleSetRegionOfNote(void* _this, void* region);
 void HandleRenderStyledText2D(void* _this, const EngineAPI::Rect& rect, const wchar_t* text, const std::string& style, float unk1, EngineAPI::GraphicsXAlign xAlign, EngineAPI::GraphicsYAlign yAlign, int layout);
 void HandleLuaInitialize(void* _this, bool unk1, bool unk2);
 void HandleSetMainPlayer(void* _this, uint32_t unk1);

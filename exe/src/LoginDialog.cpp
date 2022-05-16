@@ -46,7 +46,7 @@ void LoginValidateCallback(ServerAuthResult result)
                 SendMessage(LoginDialog::_window, WM_LOGIN_TIMEOUT, NULL, NULL);
                 break;
             case SERVER_AUTH_INVALID_SEASONS:
-                SendMessage(LoginDialog::_window, WM_LOGIN_TIMEOUT, NULL, NULL);
+                SendMessage(LoginDialog::_window, WM_LOGIN_INVALID_SEASONS, NULL, NULL);
                 break;
         }
     }
@@ -71,6 +71,24 @@ void SetConfigurationData(HWND hwnd, Configuration* config)
             config->SetValue("Login", "username", "");
             config->SetValue("Login", "password", "");
         }
+    }
+}
+
+void DisplayLoginErrorMessageBox(HWND hwnd, ServerAuthResult result)
+{
+    switch (result)
+    {
+        case SERVER_AUTH_INVALID_LOGIN:
+            MessageBoxA(hwnd, "The username and/or password was incorrect.", "Error", MB_OK | MB_ICONERROR);
+            break;
+
+        case SERVER_AUTH_TIMEOUT:
+            MessageBoxA(hwnd, "Could not connect to the server.", "Error", MB_OK | MB_ICONERROR);
+            break;
+
+        case SERVER_AUTH_INVALID_SEASONS:
+            MessageBoxA(hwnd, "The Grim Dawn Community League is not currently active. Please visit https://www.grimleague.com for news about the upcoming season.", "", MB_OK | MB_ICONINFORMATION);
+            break;
     }
 }
 
@@ -170,19 +188,19 @@ INT_PTR CALLBACK LoginDialogHandler(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
         }
         case WM_LOGIN_INVALID_LOGIN:
         {
-            MessageBoxA(hwnd, "The username and/or password was incorrect.", "Error", MB_OK | MB_ICONERROR);
+            DisplayLoginErrorMessageBox(hwnd, SERVER_AUTH_INVALID_LOGIN);
             SetDialogState(hwnd, TRUE);
             return TRUE;
         }
         case WM_LOGIN_TIMEOUT:
         {
-            MessageBoxA(hwnd, "Could not connect to the server.", "Error", MB_OK | MB_ICONERROR);
+            DisplayLoginErrorMessageBox(hwnd, SERVER_AUTH_TIMEOUT);
             SetDialogState(hwnd, TRUE);
             return TRUE;
         }
         case WM_LOGIN_INVALID_SEASONS:
         {
-            MessageBoxA(hwnd, "Could not retrieve the season list from the server.", "Error", MB_OK | MB_ICONERROR);
+            DisplayLoginErrorMessageBox(hwnd, SERVER_AUTH_INVALID_SEASONS);
             SetDialogState(hwnd, TRUE);
             return TRUE;
         }
@@ -224,19 +242,11 @@ bool LoginDialog::Login(void* configPointer)
             {
                 autoLogin = true;
             }
-            else if (loginResult == SERVER_AUTH_INVALID_LOGIN)
+            else
             {
-                MessageBoxA(NULL, "The username and/or password was incorrect.", "Error", MB_OK | MB_ICONERROR);
-            }
-            else if (loginResult == SERVER_AUTH_TIMEOUT)
-            {
-                MessageBoxA(NULL, "Could not connect to the server.", "Error", MB_OK | MB_ICONERROR);
-                return false;
-            }
-            else if (loginResult == SERVER_AUTH_INVALID_SEASONS)
-            {
-                MessageBoxA(NULL, "Could not retrieve the season list from the server.", "Error", MB_OK | MB_ICONERROR);
-                return false;
+                DisplayLoginErrorMessageBox(NULL, loginResult);
+                if (loginResult != SERVER_AUTH_INVALID_LOGIN)
+                    return false;
             }
         }
     }

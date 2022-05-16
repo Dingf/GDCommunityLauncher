@@ -7,8 +7,6 @@
 #include "URI.h"
 #include "Log.h"
 
-
-
 void HandleSaveNewFormatData(void* _this, void* writer)
 {
     typedef void(__thiscall* SaveNewFormatDataProto)(void*, void*);

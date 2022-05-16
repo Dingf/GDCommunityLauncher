@@ -35,4 +35,5 @@
 - The launcher now awards points for Shattered Realm upon completing a shard. Previously, points were awarded upon entering the treasure room at the end of the run.
 - The launcher now properly checks the start and end dates of available seasons to determine which ones are currently active.
 - The launcher now uses file sizes rather than MD5 checksums when checking local files for updates.
-- Added basic Lua support for the launcher.
+- Added Lua support for the launcher.
+- Added scaling dungeon integration.

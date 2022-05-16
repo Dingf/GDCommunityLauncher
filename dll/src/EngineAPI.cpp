@@ -63,6 +63,25 @@ bool GetHardcore()
     return callback(gameInfo);
 }
 
+std::wstring GetLevelName()
+{
+    typedef void(__thiscall* GetLevelNameProto)(PULONG_PTR, std::wstring&);
+
+    HMODULE engineDLL = GetModuleHandle(TEXT("Engine.dll"));
+    if (!engineDLL)
+        return {};
+
+    GetLevelNameProto callback = (GetLevelNameProto)GetProcAddress(engineDLL, EAPI_NAME_GET_LEVEL_NAME);
+    PULONG_PTR gameInfo = GetGameInfo();
+
+    if ((!callback) || (!gameInfo))
+        return {};
+
+    std::wstring result;
+    callback(gameInfo, result);
+    return result;
+}
+
 PULONG_PTR GetGraphicsEngine()
 {
     typedef PULONG_PTR(__thiscall* GetGraphicsEngineProto)(void*);
@@ -112,12 +131,27 @@ const char* GetModName()
         return nullptr;
 
     PULONG_PTR result = callback(gameInfo);
+    if (((ULONGLONG)result & 0xFFFFFFFF00000000L) == ((ULONGLONG)(*result) & 0xFFFFFFFF00000000L))
+        return (const char*)(*result);
+    else
+        return (const char*)result;
+}
 
-    // For some reason Steam sometimes stores a pointer and sometimes just stores the string itself
-    // It seems like it depends on the length of the mod name? 
+const char* GetAreaNameTag()
+{
+    typedef PULONG_PTR(__thiscall* GetModNameProto)(void*);
 
-    // If it's a pointer, then it should be relatively close in memory so compare the first 32 bits
-    //TODO: Verify if this behavior exists/is compatible with 32 bit versions
+    HMODULE engineDLL = GetModuleHandle(TEXT("Engine.dll"));
+    if (!engineDLL)
+        return nullptr;
+
+    GetModNameProto callback = (GetModNameProto)GetProcAddress(engineDLL, EAPI_NAME_GET_AREA_NAME_TAG);
+    PULONG_PTR engine = GetEngineHandle();
+
+    if ((!callback) || (!engine))
+        return nullptr;
+
+    PULONG_PTR result = callback((LPVOID)*engine);
     if (((ULONGLONG)result & 0xFFFFFFFF00000000L) == ((ULONGLONG)(*result) & 0xFFFFFFFF00000000L))
         return (const char*)(*result);
     else
@@ -156,6 +190,36 @@ PULONG_PTR GetStyleManager()
     return callback();
 }
 
+PULONG_PTR GetObjectManager()
+{
+    typedef PULONG_PTR(__thiscall* GetObjectManagerProto)();
+
+    HMODULE engineDLL = GetModuleHandle(TEXT("Engine.dll"));
+    if (!engineDLL)
+        return nullptr;
+
+    GetObjectManagerProto callback = (GetObjectManagerProto)GetProcAddress(engineDLL, EAPI_NAME_GET_OBJECT_MANAGER);
+    if (!callback)
+        return nullptr;
+
+    return callback();
+}
+
+PULONG_PTR GetLocalizationManager()
+{
+    typedef PULONG_PTR(__thiscall* GetLocalizationManagerProto)();
+
+    HMODULE engineDLL = GetModuleHandle(TEXT("Engine.dll"));
+    if (!engineDLL)
+        return nullptr;
+
+    GetLocalizationManagerProto callback = (GetLocalizationManagerProto)GetProcAddress(engineDLL, EAPI_NAME_GET_LOCALIZATION_MANAGER);
+    if (!callback)
+        return nullptr;
+
+    return callback();
+}
+
 PULONG_PTR GetEntityRegion(LPVOID entity)
 {
     typedef PULONG_PTR(__thiscall* GetEntityRegionProto)(void*);
@@ -184,6 +248,25 @@ PULONG_PTR GetRegionID(LPVOID region)
         return nullptr;
 
     return callback(region);
+}
+
+const char* GetRegionName(LPVOID region)
+{
+    typedef PULONG_PTR(__thiscall* GetRegionNameProto)(void*);
+
+    HMODULE engineDLL = GetModuleHandle(TEXT("Engine.dll"));
+    if (!engineDLL)
+        return nullptr;
+
+    GetRegionNameProto callback = (GetRegionNameProto)GetProcAddress(engineDLL, EAPI_NAME_GET_REGION_NAME);
+    if (!callback)
+        return nullptr;
+
+    PULONG_PTR result = callback(region);
+    if (((ULONGLONG)result & 0xFFFFFFFF00000000L) == ((ULONGLONG)(*result) & 0xFFFFFFFF00000000L))
+        return (const char*)(*result);
+    else
+        return (const char*)result;
 }
 
 PULONG_PTR LoadFontDirect(const std::string& fontName)

@@ -6,6 +6,8 @@
 #include "URI.h"
 #include "Log.h"
 
+void* prevRegion = nullptr;
+
 bool HandleLoadWorld(void* _this, const char* mapName, bool unk1, bool modded)
 {
     typedef bool(__thiscall* LoadWorldProto)(void*, const char*, bool, bool);
@@ -78,6 +80,24 @@ bool HandleLoadWorld(void* _this, const char* mapName, bool unk1, bool modded)
         return result;
     }
     return false;
+}
+
+void HandleSetRegionOfNote(void* _this, void* region)
+{
+    typedef void(__thiscall* SetRegionOfNoteProto)(void*, void*);
+
+    SetRegionOfNoteProto callback = (SetRegionOfNoteProto)HookManager::GetOriginalFunction("Engine.dll", EngineAPI::EAPI_NAME_SET_REGION_OF_NOTE);
+    if (callback)
+    {
+        Client& client = Client::GetInstance();
+        if ((client.IsParticipatingInSeason()) && (prevRegion != region))
+        {
+            client.UpdateDungeonData();
+            prevRegion = region;
+        }
+
+        callback(_this, region);
+    }
 }
 
 void HandleUnloadWorld(void* _this)

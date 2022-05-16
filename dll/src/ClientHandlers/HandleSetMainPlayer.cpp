@@ -26,19 +26,26 @@ void HandleSetMainPlayer(void* _this, uint32_t unk1)
                 std::filesystem::path characterPath = std::filesystem::path(GameAPI::GetBaseFolder()) / "save" / "user" / "_";
                 characterPath += playerName;
 
-                if (questData.ReadFromFile(characterPath / "maps_world001.map" / "Normal" / "quests.gdd"))
+                for (const auto& it : std::filesystem::recursive_directory_iterator(characterPath))
                 {
-                    web::json::value questJSON = questData.ToJSON();
-                    web::json::array tokensArray = questJSON[U("Tokens")][U("Tokens")].as_array();
-
-                    uint32_t index = 0;
-                    for (auto it2 = tokensArray.begin(); it2 != tokensArray.end(); ++it2)
+                    const std::filesystem::path& filePath = it.path();
+                    if ((filePath.filename() == "quests.gdd") && (questData.ReadFromFile(filePath)))
                     {
-                        std::string token = JSONString(it2->serialize());
-                        if (token == seasonInfo->_participationToken)
+                        web::json::value questJSON = questData.ToJSON();
+                        web::json::array tokensArray = questJSON[U("Tokens")][U("Tokens")].as_array();
+
+                        uint32_t index = 0;
+                        for (auto it2 = tokensArray.begin(); it2 != tokensArray.end(); ++it2)
                         {
-                            hasParticipationToken = true;
-                            break;
+                            std::string token = JSONString(it2->serialize());
+                            for (char& c : token)
+                                c = std::tolower(c);
+
+                            if (token == seasonInfo->_participationToken)
+                            {
+                                hasParticipationToken = true;
+                                break;
+                            }
                         }
                     }
                 }

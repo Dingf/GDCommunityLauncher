@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <string>
 #include <vector>
+#include <unordered_map>
 #include <mutex>
 #include "UpdateThread.h"
 #include "EngineAPI/UI/ChatWindow.h"
@@ -46,13 +47,19 @@ struct ClientData
     std::vector<SeasonInfo> _seasons;
 };
 
+struct DungeonData
+{
+    bool     _active;
+    uint32_t _level;
+};
+
 class Client
 {
     public:
         static Client& GetInstance();
 
-        bool SetupClientHooks();
-        void CleanupClientHooks();
+        bool Initialize();
+        void Cleanup();
 
         bool IsValid() const { return _data.IsValid(); }
 
@@ -76,6 +83,8 @@ class Client
         const SeasonInfo* GetActiveSeason() const { return _activeSeason; }
 
         const std::wstring& GetActiveCharacterName() const { return _activeCharacter._name; }
+        
+        const std::unordered_map<std::string, DungeonData>& GetDungeonData() const { return _dungeonData; }
 
         std::mutex& GetTransferMutex() { return _transferMutex; }
 
@@ -88,9 +97,10 @@ class Client
 
         void SetParticipantID(uint32_t participantID) { _data._participantID = participantID; }
 
-
         void UpdateCharacterData(uint32_t delay, bool async);
         void UpdateSeasonStanding();
+
+        void UpdateDungeonData();
 
     private:
         Client() : _activeSeason(nullptr), _online(false) {}
@@ -113,6 +123,7 @@ class Client
         ClientData _data;
         SeasonInfo* _activeSeason;
         CharacterInfo _activeCharacter;
+        std::unordered_map<std::string, DungeonData> _dungeonData;
 
         std::string _versionInfoText;
         std::wstring _leagueInfoText;

@@ -7,10 +7,10 @@ BOOL APIENTRY DllMain(HINSTANCE hInstDLL, DWORD fdwReason, LPVOID lpReserved)
     switch (fdwReason)
     {
         case DLL_PROCESS_ATTACH:
-            client.SetupClientHooks();
+            client.Initialize();
             break;
         case DLL_PROCESS_DETACH:
-            client.CleanupClientHooks();
+            client.Cleanup();
             break;
         case DLL_THREAD_ATTACH:
             break;

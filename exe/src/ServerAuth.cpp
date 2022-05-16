@@ -64,8 +64,8 @@ bool GetSeasonData(std::string hostName, ClientData& data)
                     std::string startDate = JSONString(it->at(U("startDate")).serialize());
                     std::string endDate = JSONString(it->at(U("endDate")).serialize());
 
-                    std::time_t startDateTime = Date(std::string(startDate.begin() + 1, startDate.end() - 1));
-                    std::time_t endDateTime = Date(std::string(endDate.begin() + 1, endDate.end() - 1));
+                    std::time_t startDateTime = Date(startDate);
+                    std::time_t endDateTime = Date(endDate);
                     std::time_t currentDateTime = Date();
 
                     if ((data._role == "admin") || (data._role == "tester") || ((currentDateTime >= startDateTime) && (currentDateTime <= endDateTime)))
@@ -85,6 +85,9 @@ bool GetSeasonData(std::string hostName, ClientData& data)
                             displayName = std::string(displayName.begin() + 1, displayName.end() - 1);
                         if ((participationToken.front() == '"') && (participationToken.back() == '"'))
                             participationToken = std::string(participationToken.begin() + 1, participationToken.end() - 1);
+
+                        for (char& c : participationToken)
+                            c = std::tolower(c);
 
                         seasonInfo._modName = modName;
                         seasonInfo._displayName = displayName;

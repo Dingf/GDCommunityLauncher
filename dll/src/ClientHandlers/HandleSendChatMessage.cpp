@@ -7,7 +7,7 @@ bool HandleChatHelpCommand(std::wstring& name, std::wstring& message, uint32_t& 
 {
     GameAPI::SendChatMessage(L"/g, /global[CHANNEL] [ON/OFF]", L"Sends a message to the current global chat channel.\n    [CHANNEL] - Switches the current global chat channel.\n    [ON/OFF] - Enables or disables global chat.\n ", 0);
     GameAPI::SendChatMessage(L"/tr, /trade[CHANNEL] [ON/OFF]", L"Sends a message to the current trade chat channel.\n    [CHANNEL] - Switches the current trade chat channel.\n    [ON/OFF] - Enables or disables trade chat.\n ", 0);
-    GameAPI::SendChatMessage(L"/h, /help", L"Displays this help message.\n ", 0);
+    GameAPI::SendChatMessage(L"/h, /help", L"Displays this help message. ", 0);
     return false;
 }
 

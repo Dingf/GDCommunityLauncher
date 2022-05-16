@@ -4,6 +4,7 @@
 #include <minizip/unzip.h>
 #include "Client.h"
 #include "ClientHandlers.h"
+#include "LuaAPI.h"
 #include "Character.h"
 #include "Quest.h"
 #include "Version.h"
@@ -457,6 +458,41 @@ void PostCharacterData(std::wstring playerName, bool async)
         task.wait();
 }
 
+void Client::UpdateDungeonData()
+{
+    void* state = LuaAPI::GetState();
+    if ((IsParticipatingInSeason()) && (state))
+    {
+        LuaAPI::lua_getglobal(state, "gd");
+        LuaAPI::lua_pushstring(state, "GDLeague");
+        LuaAPI::lua_gettable(state, -2);
+        LuaAPI::lua_pushstring(state, "InfinityKeyDungeon");
+        LuaAPI::lua_gettable(state, -2);
+        LuaAPI::lua_pushstring(state, "infinity_dungeons");
+        LuaAPI::lua_gettable(state, -2);
+
+        LuaAPI::lua_pushnil(state);
+        while (LuaAPI::lua_next(state, -2) != 0)
+        {
+            const char* key = LuaAPI::lua_tostring(state, -2);
+            if (key)
+            {
+                LuaAPI::lua_pushstring(state, "active");
+                LuaAPI::lua_gettable(state, -2);
+                _dungeonData[key]._active = LuaAPI::lua_toboolean(state, -1);
+                LuaAPI::lua_pop(state, 1);
+
+                LuaAPI::lua_pushstring(state, "current_level");
+                LuaAPI::lua_gettable(state, -2);
+                _dungeonData[key]._level = (uint32_t)LuaAPI::lua_tointeger(state, -1);
+                LuaAPI::lua_pop(state, 1);
+            }
+            LuaAPI::lua_pop(state, 1);
+        }
+        LuaAPI::lua_pop(state, 4);
+    }
+}
+
 void Client::UpdateCharacterData(uint32_t delay, bool async)
 {
     if (delay == 0)
@@ -537,11 +573,14 @@ void UpdateConnectionStatus()
     });
 }
 
-bool Client::SetupClientHooks()
+bool Client::Initialize()
 {
+    LuaAPI::Initialize();
+
     if (!HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_GET_VERSION, &HandleGetVersion) ||
         !HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_RENDER, &HandleRender) ||
         !HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_LOAD_WORLD, &HandleLoadWorld) ||
+        !HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_SET_REGION_OF_NOTE, &HandleSetRegionOfNote) ||
         !HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_HANDLE_KEY_EVENT, &HandleKeyEvent) ||
         !HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_RENDER_STYLED_TEXT_2D, &HandleRenderStyledText2D) ||
         !HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_LUA_INITIALIZE, &HandleLuaInitialize) ||
@@ -571,11 +610,14 @@ bool Client::SetupClientHooks()
     return true;
 }
 
-void Client::CleanupClientHooks()
+void Client::Cleanup()
 {
+    LuaAPI::Cleanup();
+
     HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_GET_VERSION);
     HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_RENDER);
     HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_LOAD_WORLD);
+    HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_SET_REGION_OF_NOTE);
     HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_HANDLE_KEY_EVENT);
     HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_RENDER_STYLED_TEXT_2D);
     HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_LUA_INITIALIZE);
