@@ -19,7 +19,7 @@ void HandleSetMainPlayer(void* _this, uint32_t unk1)
             std::wstring playerName = GameAPI::GetPlayerName(mainPlayer);
             bool hasParticipationToken = GameAPI::HasToken(mainPlayer, seasonInfo->_participationToken);
 
-            if (GameAPI::GetGameDifficulty() != GameAPI::GAME_DIFFICULTY_NORMAL)
+            if (!hasParticipationToken)
             {
                 Quest questData;
 
@@ -29,7 +29,7 @@ void HandleSetMainPlayer(void* _this, uint32_t unk1)
                 for (const auto& it : std::filesystem::recursive_directory_iterator(characterPath))
                 {
                     const std::filesystem::path& filePath = it.path();
-                    if ((filePath.filename() == "quests.gdd") && (questData.ReadFromFile(filePath)))
+                    if ((!hasParticipationToken) && (filePath.filename() == "quests.gdd") && (questData.ReadFromFile(filePath)))
                     {
                         web::json::value questJSON = questData.ToJSON();
                         web::json::array tokensArray = questJSON[U("Tokens")][U("Tokens")].as_array();
@@ -52,13 +52,16 @@ void HandleSetMainPlayer(void* _this, uint32_t unk1)
             }
 
             client.SetActiveCharacter(playerName, hasParticipationToken);
-
-            pplx::create_task([]()
+            if (client.IsParticipatingInSeason())
             {
-                EngineAPI::UI::ChatWindow::GetInstance(true);
-                GameAPI::SendChatMessage(L"Server", L"Welcome to the Grim Dawn Community League Season 4!", 2);
-                GameAPI::SendChatMessage(L"Server", L"Type /help for a listing of chat commands.", 2);
-            });
+                // TODO: Replace this with a welcome message from the server
+                pplx::create_task([]()
+                {
+                    EngineAPI::UI::ChatWindow::GetInstance(true);
+                    GameAPI::SendChatMessage(L"Server", L"Welcome to the Grim Dawn Community League Season 4!", 2);
+                    GameAPI::SendChatMessage(L"Server", L"Type /help for a listing of chat commands.", 2);
+                });
+            }
         }
     }
 }

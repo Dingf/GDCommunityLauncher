@@ -1,5 +1,5 @@
 #include <string>
-#include <unordered_set>
+#include <unordered_map>
 #include <sstream>
 #include <filesystem>
 #include <Windows.h>
@@ -8,6 +8,7 @@
 #include <cpprest/filestream.h>
 #include <minizip/unzip.h>
 #include "Configuration.h"
+#include "Client.h"
 #include "UpdateDialog.h"
 #include "ServerAuth.h"
 #include "Date.h"
@@ -15,8 +16,6 @@
 #include "URI.h"
 #include "Version.h"
 #include "md5.hpp"
-
-#include "Log.h"
 
 namespace UpdateDialog
 {
@@ -92,15 +91,66 @@ std::string GetSeasonModName(std::string hostName)
     return {};
 }
 
-bool GetUpdateList(const std::string& hostName, const std::string& modName, std::vector<std::string>& updateList)
+bool GetLauncherUpdates(const std::string& hostName, std::unordered_map<std::string, std::string>& updateList)
 {
+    Client& client = Client::GetInstance();
+
     std::string version = ServerAuth::GetLauncherVersion(hostName);
     if (version != std::string(GDCL_VERSION))
-        updateList.push_back("GDCommunityLauncher.zip");
+    {
+        URI endpoint = URI(hostName) / "api" / "File" / "launcher";
+        endpoint.Append(std::string("?v="), false);
+        endpoint += GDCL_VERSION;
+
+        web::http::client::http_client httpClient((utility::string_t)endpoint);
+        web::http::http_request request(web::http::methods::GET);
+
+        std::string bearerToken = "Bearer " + client.GetAuthToken();
+        request.headers().add(U("Authorization"), bearerToken.c_str());
+
+        try
+        {
+            web::http::http_response response = httpClient.request(request).get();
+            switch (response.status_code())
+            {
+                case web::http::status_codes::OK:
+                {
+                    web::json::value responseBody = response.extract_json().get();
+                    std::string filename = JSONString(responseBody[U("fileName")].serialize());
+                    std::string downloadURL = JSONString(responseBody[U("downloadUrl")].serialize());
+                    updateList[filename] = downloadURL;
+                    return true;
+                }
+                default:
+                {
+                    throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+                }
+            }
+        }
+        catch (const std::exception& ex)
+        {
+            Logger::LogMessage(LOG_LEVEL_WARN, "Failed to download launcher: %", ex.what());
+            return false;
+        }
+    }
+    return true;
+}
+
+bool GetUpdateList(const std::string& hostName, const std::string& modName, std::unordered_map<std::string, std::string>& updateList)
+{
+    Client& client = Client::GetInstance();
+
+    GetLauncherUpdates(hostName, updateList);
 
     URI endpoint = URI(hostName) / "api" / "File" / "filenames";
+    endpoint.Append(std::string("?v="), false);
+    endpoint += GDCL_VERSION;
+
     web::http::client::http_client httpClient((utility::string_t)endpoint);
     web::http::http_request request(web::http::methods::GET);
+
+    std::string bearerToken = "Bearer " + client.GetAuthToken();
+    request.headers().add(U("Authorization"), bearerToken.c_str());
 
     try
     {
@@ -115,6 +165,7 @@ bool GetUpdateList(const std::string& hostName, const std::string& modName, std:
                 for (auto it = fileList.begin(); it != fileList.end(); ++it)
                 {
                     std::string filename = JSONString(it->at(U("fileName")).serialize());
+                    std::string downloadURL = JSONString(it->at(U("downloadUrl")).serialize());
                     uintmax_t fileSize = std::stoull(JSONString(it->at(U("fileSize")).serialize()));
 
                     // Generate the filename path based on the file extension and mod name
@@ -128,7 +179,7 @@ bool GetUpdateList(const std::string& hostName, const std::string& modName, std:
 
                     // If the file doesn't exist or the file sizes don't match, add it to the list of files to download
                     if ((!std::filesystem::is_regular_file(filenamePath)) || (std::filesystem::file_size(filenamePath) != fileSize))
-                        updateList.push_back(filename);
+                        updateList[filename] = downloadURL;
                 }
 
                 return true;
@@ -192,18 +243,21 @@ bool ExtractZIPUpdate(const std::filesystem::path& path)
     }
 }
 
-void DownloadFiles(const std::string& hostName, const std::string& modName, const std::vector<std::string>& updateList)
+void DownloadFiles(const std::string& modName, const std::unordered_map<std::string, std::string>& updateList)
 {
     std::shared_ptr<size_t> totalSize = UpdateDialog::_totalSize;
     std::shared_ptr<size_t> downloadSize = UpdateDialog::_downloadSize;
 
     std::vector<pplx::task<bool>> tasks;
-    for (size_t i = 0; i < updateList.size(); ++i)
+    for (const auto& it : updateList)
     {
-        const std::string& filename = updateList[i];
-        tasks.push_back(pplx::create_task([totalSize, downloadSize, hostName, modName, filename]
+        const std::string& filename = it.first;
+        const std::string& downloadURL = it.second;
+
+        tasks.push_back(pplx::create_task([totalSize, downloadSize, downloadURL, modName, filename]
         {
-            URI endpoint = URI(hostName) / "api" / "File" / filename;
+            URI endpoint = URI(downloadURL);
+
             web::http::client::http_client httpClient((utility::string_t)endpoint);
             web::http::http_request request(web::http::methods::GET);
 
@@ -417,7 +471,7 @@ bool UpdateDialog::Update(void* configPointer)
             return;
         }
 
-        std::vector<std::string> updateList;
+        std::unordered_map<std::string, std::string> updateList;
         if (!GetUpdateList(hostName, modName, updateList))
         {
             SendMessage(UpdateDialog::_window, WM_UPDATE_FAIL, NULL, NULL);
@@ -426,7 +480,7 @@ bool UpdateDialog::Update(void* configPointer)
 
         if (updateList.size() > 0)
         {
-            DownloadFiles(hostName, modName, updateList);
+            DownloadFiles(modName, updateList);
         }
         else
         {

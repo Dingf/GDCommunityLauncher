@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 cmake_policy(SET CMP0048 NEW)
-project (GDCommunityLauncher VERSION 1.0.5)
+project (GDCommunityLauncher VERSION 1.0.6)
 
 set(CMAKE_GENERATOR_PLATFORM x64)
 set(CMAKE_CXX_STANDARD 17)
@@ -19,14 +19,10 @@ if (minhook_FOUND)
     include_directories(${minhook_INCLUDE_DIR})
 endif()
 
-find_package(cpprestsdk REQUIRED)
+find_package(cpprestsdk CONFIG REQUIRED)
 if (cpprestsdk_FOUND)
     find_path(cpprestsdk_INCLUDE_DIR cpprest/json.h)
-    find_library(cpprestsdk_LIBRARY cpprest_2_10.lib)
     include_directories(${cpprestsdk_INCLUDE_DIR})
-    if (WIN32)
-        string(APPEND cpprestsdk_LIBRARY ";crypt32.lib;winhttp.lib;bcrypt.lib")
-    endif()
 endif()
 
 include_directories(common/include)

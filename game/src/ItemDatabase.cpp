@@ -8,11 +8,11 @@ ItemDatabase& ItemDatabase::GetInstance()
     return instance;
 }
 
-void ItemDatabase::Load(const char* data, size_t size)
+void ItemDatabase::Load(const char* buffer, size_t size)
 {
     if (_database.empty())
     {
-        std::string buffer(data, size);
+        std::string buffer(buffer, size);
         std::stringstream ss(buffer);
 
         std::string name;

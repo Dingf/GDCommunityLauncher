@@ -10,6 +10,7 @@ include/Stash.h
 include/SharedStash.h
 include/Character.h
 include/ItemDatabase.h
+include/DungeonDatabase.h
 src/UID.cpp
 src/GDDataBlock.cpp
 src/Item.cpp
@@ -20,7 +21,8 @@ src/Quest.cpp
 src/Stash.cpp
 src/SharedStash.cpp
 src/Character.cpp
-src/ItemDatabase.cpp)
+src/ItemDatabase.cpp
+src/DungeonDatabase.cpp)
 
 target_include_directories(game PUBLIC include)
 target_link_libraries(game PRIVATE ${cpprestsdk_LIBRARY})

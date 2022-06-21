@@ -20,6 +20,7 @@ package-lock.json
 
 # Generated files
 dll/res/ItemDatabase.txt
+dll/res/DungeonDatabase.txt
 common/include/Version.h
 *.aps
 *.log

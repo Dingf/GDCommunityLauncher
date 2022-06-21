@@ -11,6 +11,7 @@ class URI
         URI() {}
         URI(std::string str) { *this = str; }
         URI(std::wstring str) { *this = str; }
+        URI(const char* str) { *this = str; }
 
         URI& operator=(const URI& uri)
         {
@@ -26,10 +27,26 @@ class URI
             return *this;
         }
 
-        URI& operator/=(const URI& str)
+        URI& operator=(const char* str)
         {
+            _data = str;
+            return *this;
+        }
+
+        template <class T>
+        URI& operator/=(T&& right)
+        {
+            const URI& str(right);
             if (_data.back() != '/')
                 _data.push_back('/');
+            Append(str._data);
+            return *this;
+        }
+
+        template <class T>
+        URI& operator+=(T&& right)
+        {
+            const URI& str(right);
             Append(str._data);
             return *this;
         }
@@ -38,6 +55,12 @@ class URI
         friend URI operator/(const URI& left, T&& right)
         {
             return URI(left) /= URI(right);
+        }
+
+        template <class T>
+        friend URI operator+(const URI& left, T&& right)
+        {
+            return URI(left) += URI(right);
         }
 
         operator utility::string_t() const
@@ -50,7 +73,6 @@ class URI
             return _data;
         }
 
-    private:
         template <class T>
         void Append(const std::basic_string<T>& str, bool encode = true)
         {
@@ -79,6 +101,7 @@ class URI
             }
         }
 
+    private:
         std::string _data;
 };
 

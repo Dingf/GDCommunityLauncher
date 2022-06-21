@@ -2,7 +2,6 @@
 #include <cpprest/http_client.h>
 #include "ClientHandlers.h"
 #include "URI.h"
-#include "Log.h"
 
 void HandleBestowToken(void* _this, void* token)
 {
@@ -18,12 +17,20 @@ void HandleBestowToken(void* _this, void* token)
 
         if ((modName) && (mainPlayer) && (seasonInfo))
         {
-            // Sometimes the token appears to be garbage memory, so check the flags to make sure it's valid
-            uint32_t tokenFlags = *((uint32_t*)token + 4);
-            if (tokenFlags <= 0xFF)
+            uint32_t tokenLength = *((uint32_t*)((uint8_t*)token + 24));
+            uint32_t bufferLength = *((uint32_t*)((uint8_t*)token + 32));
+            if (tokenLength > 0)
             {
-                std::string tokenString = std::string(*((const char**)token + 1));
-                if ((EngineAPI::IsMultiplayer()) && (tokenString != "Received_Start_Items"))
+                std::string tokenString;
+                if (bufferLength <= 0x0F)
+                    tokenString = std::string((const char*)((PULONG_PTR)token + 1));
+                else
+                    tokenString = std::string(*((const char**)token + 1));
+
+                for (char& c : tokenString)
+                    c = std::tolower(c);
+
+                if ((EngineAPI::IsMultiplayer()) && (tokenString != "received_start_items"))
                 {
                     // Prevent tokens from being updated in multiplayer season games (except for starting item token, to avoid receiving the starting items multiple times)
                     return;
@@ -33,7 +40,7 @@ void HandleBestowToken(void* _this, void* token)
                     std::wstring playerName = GameAPI::GetPlayerName(mainPlayer);
                     client.SetActiveCharacter(playerName, true);
                 }
-                else if ((tokenString.find("GDL_", 0) == 0) && (client.IsParticipatingInSeason()))
+                else if ((tokenString.find("gdl_", 0) == 0) && (client.IsParticipatingInSeason()))
                 {
                     pplx::create_task([tokenString]()
                     {

@@ -1,31 +1,6 @@
 #include <unordered_map>
 #include "ClientHandlers.h"
-
-std::unordered_map<std::string, std::string> dungeonAreaLookup =
-{
-    { "tagUGBrokenHills02C", "steps_of_torment" },
-    { "tagUGBrokenHills02D", "steps_of_torment" },
-    { "tagUGBrokenHills02E", "steps_of_torment" },
-    { "tagUGBrokenHills02F", "steps_of_torment" },
-    { "tagMapPortValburyDistrict01", "port_valbury" },
-    { "tagMapPortValburyDistrict02", "port_valbury" },
-    { "tagMapPortValburyCellar", "port_valbury" },
-    { "tagMapPortValburyManor", "port_valbury" },
-    { "tagMapPortValburyGauntlet", "port_valbury" },
-    { "tagMapPortValburyAldritchCellar", "port_valbury" },
-    { "tagUGVoidlands01A", "bastion_of_chaos" },
-    { "tagUGVoidlands01B", "bastion_of_chaos" },
-    { "tagUGVoidlands01C", "bastion_of_chaos" },
-    { "tagUGVoidlands01D", "bastion_of_chaos" },
-    { "tagGDX1UGAncientGrove01A", "ancient_grove" },
-    { "tagGDX1UGAncientGrove01B", "ancient_grove" },
-    { "tagGDX1UGAncientGrove01C", "ancient_grove" },
-    { "tagGDX1UGAncientGrove01D", "ancient_grove" },
-    { "tagGDX2Roguelike_01A", "tomb_of_the_heretic" },
-    { "tagGDX2Roguelike_01B", "tomb_of_the_heretic" },
-    { "tagGDX2Roguelike_01C", "tomb_of_the_heretic" },
-    { "tagGDX2Roguelike_01D", "tomb_of_the_heretic" },
-};
+#include "DungeonDatabase.h"
 
 void HandleRender(void* _this)
 {
@@ -70,16 +45,14 @@ void HandleRenderStyledText2D(void* _this, const EngineAPI::Rect& rect, const wc
         // Display the current level of scaling dungeons
         else if (textString == areaName)
         {
-            if (dungeonAreaLookup.count(areaTag) > 0)
+            DungeonDatabase& database = DungeonDatabase::GetInstance();
+            if (database.IsDungeonZone(areaTag))
             {
-                const auto& dungeonData = client.GetDungeonData();
-                std::string key = dungeonAreaLookup[areaTag];
-
-                if ((dungeonData.count(key) > 0) && (dungeonData.at(key)._active))
+                const auto& entry = database.GetEntryByZone(areaTag);
+                if (entry._active)
                 {
-                    uint32_t level = dungeonData.at(key)._level;
                     textString += L" (Lv";
-                    textString += std::to_wstring(level);
+                    textString += std::to_wstring(entry._level);
                     textString += L")";
                 }
             }

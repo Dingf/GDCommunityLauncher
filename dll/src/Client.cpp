@@ -3,8 +3,8 @@
 #include <Windows.h>
 #include <minizip/unzip.h>
 #include "Client.h"
-#include "ClientHandlers.h"
 #include "LuaAPI.h"
+#include "ClientHandlers.h"
 #include "Character.h"
 #include "Quest.h"
 #include "Version.h"
@@ -456,41 +456,6 @@ void PostCharacterData(std::wstring playerName, bool async)
 
     if (!async)
         task.wait();
-}
-
-void Client::UpdateDungeonData()
-{
-    void* state = LuaAPI::GetState();
-    if ((IsParticipatingInSeason()) && (state))
-    {
-        LuaAPI::lua_getglobal(state, "gd");
-        LuaAPI::lua_pushstring(state, "GDLeague");
-        LuaAPI::lua_gettable(state, -2);
-        LuaAPI::lua_pushstring(state, "InfinityKeyDungeon");
-        LuaAPI::lua_gettable(state, -2);
-        LuaAPI::lua_pushstring(state, "infinity_dungeons");
-        LuaAPI::lua_gettable(state, -2);
-
-        LuaAPI::lua_pushnil(state);
-        while (LuaAPI::lua_next(state, -2) != 0)
-        {
-            const char* key = LuaAPI::lua_tostring(state, -2);
-            if (key)
-            {
-                LuaAPI::lua_pushstring(state, "active");
-                LuaAPI::lua_gettable(state, -2);
-                _dungeonData[key]._active = LuaAPI::lua_toboolean(state, -1);
-                LuaAPI::lua_pop(state, 1);
-
-                LuaAPI::lua_pushstring(state, "current_level");
-                LuaAPI::lua_gettable(state, -2);
-                _dungeonData[key]._level = (uint32_t)LuaAPI::lua_tointeger(state, -1);
-                LuaAPI::lua_pop(state, 1);
-            }
-            LuaAPI::lua_pop(state, 1);
-        }
-        LuaAPI::lua_pop(state, 4);
-    }
 }
 
 void Client::UpdateCharacterData(uint32_t delay, bool async)

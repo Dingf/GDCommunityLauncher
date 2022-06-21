@@ -29,7 +29,7 @@ Item::Item(const web::json::value& obj)
         try
         {
             ItemDatabase& database = ItemDatabase::GetInstance();
-            const ItemDatabase::ItemDBEntry& entry = database.GetEntry(_itemName);
+            const ItemDatabase::ItemDBEntry& entry = database.GetEntryByName(_itemName);
             _itemWidth = entry._width;
             _itemHeight = entry._height;
         }
@@ -90,7 +90,7 @@ void Item::Read(EncodedFileReader* reader)
         try
         {
             ItemDatabase& database = ItemDatabase::GetInstance();
-            const ItemDatabase::ItemDBEntry& entry = database.GetEntry(_itemName);
+            const ItemDatabase::ItemDBEntry& entry = database.GetEntryByName(_itemName);
             _itemWidth = entry._width;
             _itemHeight = entry._height;
         }

@@ -1,4 +1,4 @@
 #include <windows.h>
 #include "../include/DatabaseValues.h"
 
-IDR_ITEMDB RCDATA "ItemDatabase.txt"
+IDR_DUNGEONDB RCDATA "DungeonDatabase.txt"

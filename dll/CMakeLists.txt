@@ -13,8 +13,9 @@ include/GameAPI/Difficulty.h
 include/LuaAPI.h
 include/Client.h
 include/ClientHandlers.h
-include/ItemDatabaseValues.h
+include/DatabaseValues.h
 res/ItemDatabaseValues.rc
+res/DungeonDatabaseValues.rc
 src/HookManager.cpp
 src/EngineAPI.cpp
 src/EngineAPI/Platform.cpp
@@ -37,6 +38,7 @@ src/ClientHandlers/HandleEndlessDungeon.cpp
 src/main.cpp)
 
 target_include_directories(dll PRIVATE include)
+target_link_libraries(dll PRIVATE cpprestsdk::cpprest cpprestsdk::cpprestsdk_zlib_internal cpprestsdk::cpprestsdk_brotli_internal)
 target_link_libraries(dll PRIVATE minizip::minizip)
 target_link_libraries(dll PRIVATE minhook::minhook)
 target_link_libraries(dll PRIVATE ${LUA_LIBRARY})

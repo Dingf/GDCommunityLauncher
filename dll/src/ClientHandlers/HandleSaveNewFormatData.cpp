@@ -1,11 +1,6 @@
 #include <filesystem>
 #include <cpprest/http_client.h>
 #include "ClientHandlers.h"
-#include "UpdateThread.h"
-#include "Character.h"
-#include "Quest.h"
-#include "URI.h"
-#include "Log.h"
 
 void HandleSaveNewFormatData(void* _this, void* writer)
 {

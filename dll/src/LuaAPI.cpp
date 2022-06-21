@@ -1,8 +1,6 @@
 #include "LuaAPI.h"
 #include "HookManager.h"
 
-#include "Log.h"
-
 namespace LuaAPI
 {
 
