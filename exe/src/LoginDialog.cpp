@@ -1,14 +1,17 @@
 #include <string>
+#include <future>
 #include <Windows.h>
 #include "Client.h"
 #include "Configuration.h"
 #include "LoginDialog.h"
-#include "ServerAuth.h"
+#include "Version.h"
+#include "dll/include/Exports/ServerAuthExport.h"
 
 namespace LoginDialog
 {
     Configuration* _config = NULL;
     HWND _window = NULL;
+    std::string _aboutMessage;
 }
 
 std::string GetFieldText(HWND hwnd, int id)
@@ -30,15 +33,18 @@ void SetDialogState(HWND hwnd, BOOL state)
     EnableWindow(GetDlgItem(hwnd, IDHELP), state);
 }
 
-void LoginValidateCallback(ServerAuthResult result)
+void LoginValidateCallback(ServerAuthResult result, const ClientData& data)
 {
     if (LoginDialog::_window)
     {
         switch (result)
         {
             case SERVER_AUTH_OK:
+            {
+                Client& client = Client::GetInstance(data);
                 SendMessage(LoginDialog::_window, WM_LOGIN_OK, NULL, NULL);
                 break;
+            }
             case SERVER_AUTH_INVALID_LOGIN:
                 SendMessage(LoginDialog::_window, WM_LOGIN_INVALID_LOGIN, NULL, NULL);
                 break;
@@ -89,6 +95,10 @@ void DisplayLoginErrorMessageBox(HWND hwnd, ServerAuthResult result)
         case SERVER_AUTH_INVALID_SEASONS:
             MessageBoxA(hwnd, "The Grim Dawn Community League is not currently active. Please visit https://www.grimleague.com for news about the upcoming season.", "", MB_OK | MB_ICONINFORMATION);
             break;
+
+        case SERVER_AUTH_UNKNOWN_ERR:
+            MessageBoxA(hwnd, "Could not initialize the Grim Dawn Community Launcher.", "Error", MB_OK | MB_ICONERROR);
+            break;
     }
 }
 
@@ -108,7 +118,14 @@ INT_PTR CALLBACK LoginDialogHandler(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
                     const Value* hostValue = LoginDialog::_config->GetValue("Login", "hostname");
                     if ((hostValue) && (hostValue->GetType() == VALUE_TYPE_STRING))
                     {
-                        ServerAuth::ValidateCredentials(hostValue->ToString(), username, password, LoginValidateCallback);
+                        ClientData data;
+                        
+                        data._username = username;
+                        data._hostName = hostValue->ToString();
+
+                        std::thread t(&ServerAuthenticate, data, password, LoginValidateCallback);
+                        t.detach();
+
                         SetDialogState(hwnd, FALSE);
                     }
                     else
@@ -119,7 +136,18 @@ INT_PTR CALLBACK LoginDialogHandler(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
                 }
                 case IDHELP:
                 {
-                    // TODO: Implement the About button here
+                    HINSTANCE launcherEXE = GetModuleHandle(NULL);
+                    HRSRC res = FindResource(launcherEXE, MAKEINTRESOURCE(IDR_ABOUT_MSG), RT_RCDATA);
+                    if (res)
+                    {
+                        HGLOBAL handle = LoadResource(launcherEXE, res);
+                        DWORD size = SizeofResource(launcherEXE, res);
+                        char* data = (char*)LockResource(handle);
+
+                        std::string title = std::string("Grim Dawn Community League v") + GDCL_VERSION;
+                        MessageBoxA(hwnd, data, title.c_str(), MB_OK);
+                        FreeResource(handle);
+                    }
                     return TRUE;
                 }
             }
@@ -133,11 +161,12 @@ INT_PTR CALLBACK LoginDialogHandler(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
             if (!image || !usernameField || !passwordField)
                 return FALSE;
 
-            HICON icon = LoadIcon(GetModuleHandle(NULL), MAKEINTRESOURCE(IDB_ICON1));
+            HINSTANCE launcherEXE = GetModuleHandle(NULL);
+            HICON icon = LoadIcon(launcherEXE, MAKEINTRESOURCE(IDB_ICON1));
             if (!icon)
                 return FALSE;
 
-            HANDLE logo = LoadImage(GetModuleHandle(NULL), MAKEINTRESOURCE(IDB_BITMAP1), IMAGE_BITMAP, 0, 0, NULL);
+            HANDLE logo = LoadImage(launcherEXE, MAKEINTRESOURCE(IDB_BITMAP1), IMAGE_BITMAP, 0, 0, NULL);
             if (!logo)
                 return FALSE;
 
@@ -237,9 +266,15 @@ bool LoginDialog::Login(void* configPointer)
 
         if ((!hostName.empty()) && (!username.empty()) && (!password.empty()))
         {
-            ServerAuthResult loginResult = ServerAuth::ValidateCredentials(hostName, username, password);
+            ClientData data;
+            data._username = username;
+            data._hostName = hostName;
+
+            std::future<ServerAuthResult> future = std::async(&ServerAuthenticate, std::ref(data), password, nullptr);
+            ServerAuthResult loginResult = future.get();
             if (loginResult == SERVER_AUTH_OK)
             {
+                Client& client = Client::GetInstance(data);
                 autoLogin = true;
             }
             else

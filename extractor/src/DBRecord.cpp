@@ -23,7 +23,7 @@ bool DBRecord::Load(const std::filesystem::path& path)
     bool recordStart = false;
     for (auto it = path.begin(); it != path.end(); ++it)
     {
-        if ((!recordStart) && (*it == "records"))
+        if ((!recordStart) && ((*it == "records") || (*it == "grimleague")))
             recordStart = true;
 
         if (recordStart)
@@ -31,7 +31,6 @@ bool DBRecord::Load(const std::filesystem::path& path)
         else
             _rootPath /= *it;
     }
-
     if ((_rootPath.empty()) || (_recordPath.empty()))
         return false;
 

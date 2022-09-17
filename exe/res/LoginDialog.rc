@@ -16,5 +16,7 @@ BEGIN
     PUSHBUTTON      "About",IDHELP,268,21,50,14
 END
 
+IDR_ABOUT_MSG RCDATA "About.txt"
+
 IDB_BITMAP1 BITMAP "logo.bmp"
 IDB_ICON1   ICON   "icon.ico"

@@ -4,7 +4,6 @@
 #include "LoginDialog.h"
 #include "UpdateDialog.h"
 #include "GameLauncher.h"
-#include "ServerAuth.h"
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmdShow)
 {
@@ -22,6 +21,13 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
     if (!std::filesystem::is_regular_file(grimDawnPath) || !std::filesystem::is_regular_file(libraryPath))
     {
         MessageBox(NULL, TEXT("Both GDCommunityLauncher.exe and GDCommunityLauncher.dll must be located in the base Grim Dawn install directory."), NULL, MB_OK | MB_ICONERROR);
+        return EXIT_FAILURE;
+    }
+
+    // Load the DLL which contains the functions used to communicate with the server
+    if (!LoadLibrary(TEXT("GDCommunityLauncher.dll")))
+    {
+        MessageBox(NULL, TEXT("Failed to load GDCommunityLauncher.dll."), NULL, MB_OK | MB_ICONERROR);
         return EXIT_FAILURE;
     }
 
@@ -47,7 +53,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
         return EXIT_FAILURE;
 
     // Get the list of files from the server and download any files that need to be updated
-    if (!UpdateDialog::Update(&config))
+    if (!UpdateDialog::Update())
         return EXIT_FAILURE;
 
     config.Save(configPath);

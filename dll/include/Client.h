@@ -7,45 +7,7 @@
 #include <unordered_map>
 #include <mutex>
 #include "UpdateThread.h"
-#include "EngineAPI/UI/ChatWindow.h"
-
-enum SeasonType
-{
-    SEASON_TYPE_NONE = 0,
-    SEASON_TYPE_SC_TRADE = 1,
-    SEASON_TYPE_HC_SSF = 2,
-    NUM_SEASON_TYPE = 3,
-};
-
-struct SeasonInfo
-{
-    uint32_t    _seasonID;
-    uint32_t    _seasonType;
-    std::string _modName;
-    std::string _displayName;
-    std::string _participationToken;
-};
-
-struct CharacterInfo
-{
-    bool         _hasToken;
-    std::wstring _name;
-};
-
-struct ClientData
-{
-    bool IsValid() const
-    {
-        return (!_username.empty() && !_authToken.empty() && !_refreshToken.empty() && !_hostName.empty());
-    }
-
-    uint32_t    _participantID;
-    std::string _username;
-    std::string _authToken;
-    std::string _refreshToken;
-    std::string _hostName;
-    std::vector<SeasonInfo> _seasons;
-};
+#include "ClientBase.h"
 
 class Client
 {
@@ -63,8 +25,6 @@ class Client
         uint32_t GetRank() const { return _rank; }
         uint32_t GetParticipantID() const { return _data._participantID; }
 
-        uint8_t GetCurrentChatChannel(EngineAPI::UI::ChatType type) const;
-
         const std::string&  GetVersionInfoText() const { return _versionInfoText; }
         const std::wstring& GetLeagueInfoText()  const { return _leagueInfoText; }
 
@@ -76,36 +36,30 @@ class Client
         const std::vector<SeasonInfo>& GetSeasons() const { return _data._seasons; }
         const SeasonInfo* GetActiveSeason() const { return _activeSeason; }
 
-        const std::wstring& GetActiveCharacterName() const { return _activeCharacter._name; }
-
         std::mutex& GetTransferMutex() { return _transferMutex; }
+
+        const std::wstring& GetActiveCharacterName() const { return _activeCharacter._name; }
 
         bool IsParticipatingInSeason() const { return (_activeSeason != nullptr) && (_activeCharacter._hasToken); }
 
         void SetActiveSeason(const std::string& modName, bool hardcore);
-        void SetActiveCharacter(const std::wstring& name, bool hasToken, bool async = false);
-
-        void SetCurrentChatChannel(EngineAPI::UI::ChatType type, uint32_t channel);
+        void SetActiveCharacter(const std::wstring& name, bool hasToken);
 
         void SetParticipantID(uint32_t participantID) { _data._participantID = participantID; }
 
-        void UpdateCharacterData(uint32_t delay, bool async);
         void UpdateSeasonStanding();
 
     private:
         Client() : _activeSeason(nullptr), _online(false) {}
 
+        static void UpdateRefreshToken();
+        static void UpdateConnectionStatus();
         void UpdateVersionInfoText();
         void UpdateLeagueInfoText();
-
-        friend void UpdateRefreshToken();
-        friend void UpdateConnectionStatus();
 
         void ReadDataFromPipe();
 
         bool _online;
-
-        uint8_t _chatChannels;
 
         uint32_t _rank;
         uint32_t _points;
@@ -117,10 +71,6 @@ class Client
         std::string _versionInfoText;
         std::wstring _leagueInfoText;
         std::mutex _transferMutex;
-
-        std::shared_ptr<UpdateThread<std::wstring, bool>> _postCharacterThread;
-        std::shared_ptr<UpdateThread<>> _refreshServerTokenThread;
-        std::shared_ptr<UpdateThread<>> _connectionStatusThread;
 };
 
 #endif//INC_GDCL_DLL_CLIENT_H

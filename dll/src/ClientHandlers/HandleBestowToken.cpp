@@ -1,7 +1,9 @@
 #include <filesystem>
 #include <cpprest/http_client.h>
+#include "ChatClient.h"
 #include "ClientHandlers.h"
 #include "URI.h"
+#include "Log.h"
 
 void HandleBestowToken(void* _this, void* token)
 {
@@ -30,15 +32,24 @@ void HandleBestowToken(void* _this, void* token)
                 for (char& c : tokenString)
                     c = std::tolower(c);
 
-                if ((EngineAPI::IsMultiplayer()) && (tokenString != "received_start_items"))
+                // If this is a new character, set the character as the active character so that they can participate in the season
+                if (tokenString == seasonInfo->_participationToken)
+                {
+                    if (!EngineAPI::IsMultiplayer())
+                    {
+                        std::wstring playerName = GameAPI::GetPlayerName(mainPlayer);
+                        client.SetActiveCharacter(playerName, true);
+
+                        pplx::create_task([]()
+                        {
+                            ChatClient::GetInstance().DisplayWelcomeMessage();
+                        });
+                    }
+                }
+                else if ((EngineAPI::IsMultiplayer()) && (tokenString != "received_start_items"))
                 {
                     // Prevent tokens from being updated in multiplayer season games (except for starting item token, to avoid receiving the starting items multiple times)
                     return;
-                }
-                else if (tokenString == seasonInfo->_participationToken)
-                {
-                    std::wstring playerName = GameAPI::GetPlayerName(mainPlayer);
-                    client.SetActiveCharacter(playerName, true);
                 }
                 else if ((tokenString.find("gdl_", 0) == 0) && (client.IsParticipatingInSeason()))
                 {

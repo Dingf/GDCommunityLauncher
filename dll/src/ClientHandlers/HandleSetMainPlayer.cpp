@@ -1,3 +1,4 @@
+#include "ChatClient.h"
 #include "ClientHandlers.h"
 #include "Quest.h"
 
@@ -52,16 +53,14 @@ void HandleSetMainPlayer(void* _this, uint32_t unk1)
             }
 
             client.SetActiveCharacter(playerName, hasParticipationToken);
-            if (client.IsParticipatingInSeason())
+            pplx::create_task([&client]()
             {
-                // TODO: Replace this with a welcome message from the server
-                pplx::create_task([]()
-                {
-                    EngineAPI::UI::ChatWindow::GetInstance(true);
-                    GameAPI::SendChatMessage(L"Server", L"Welcome to the Grim Dawn Community League Season 4!", 2);
-                    GameAPI::SendChatMessage(L"Server", L"Type /help for a listing of chat commands.", 2);
-                });
-            }
+                // Initialize the chat window
+                EngineAPI::UI::ChatWindow::GetInstance(true);
+
+                if (client.IsParticipatingInSeason())
+                    ChatClient::GetInstance().DisplayWelcomeMessage();
+            });
         }
     }
 }

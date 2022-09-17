@@ -1,19 +1,14 @@
 #include <string>
+#include <fstream>
 #include <filesystem>
 #include <windows.h>
+#include <delayimp.h>
+#include <minizip/unzip.h>
 #include "GameLauncher.h"
 #include "Client.h"
+#include "Log.h"
 
 typedef std::basic_string<TCHAR, std::char_traits<TCHAR>, std::allocator<TCHAR>> TSTRING;
-
-/*TSTRING operator+(const TCHAR* arg1, const std::filesystem::path& arg2)
-{
-#ifdef UNICODE
-    return std::wstring(arg1) + arg2.wstring();
-#else
-    return std::string(arg1) + arg2.string();
-#endif
-}*/
 
 bool InjectDLL(HANDLE process, const std::filesystem::path& dllPath)
 {
@@ -132,11 +127,70 @@ LPVOID BuildEnvironmentVariables()
     {
         return NULL;
     }
-    
+}
+
+bool ExtractZIPUpdate(const std::filesystem::path& path)
+{
+    const char* pathString = path.u8string().c_str();
+    unzFile zipFile = unzOpen(pathString);
+    if ((zipFile) && (unzLocateFile(zipFile, "GDCommunityLauncher.dll", 0) != UNZ_END_OF_LIST_OF_FILE))
+    {
+        std::filesystem::path filenamePath = std::filesystem::current_path() / "GDCommunityLauncher.dll";
+        std::filesystem::path tempPath = filenamePath;
+        tempPath += ".tmp";
+
+        std::ofstream out(tempPath, std::ifstream::binary | std::ifstream::out);
+
+        if ((!out.is_open()) || (unzOpenCurrentFile(zipFile) != UNZ_OK))
+        {
+            Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to extract files from \"%\"", pathString);
+            return false;
+        }
+
+        int bytesRead = 0;
+        char buffer[1024];
+        do
+        {
+            bytesRead = unzReadCurrentFile(zipFile, buffer, 1024);
+            if (bytesRead > 0)
+            {
+                out.write(buffer, bytesRead);
+            }
+        } while (bytesRead > 0);
+
+        out.close();
+        unzCloseCurrentFile(zipFile);
+        unzClose(zipFile);
+
+        std::filesystem::rename(tempPath, filenamePath);
+
+        return true;
+    }
+    else
+    {
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Could not open \"%\" for updating", pathString);
+        return false;
+    }
 }
 
 HANDLE GameLauncher::LaunchProcess(const std::filesystem::path& exePath, const std::filesystem::path& dllPath, LPWSTR cmdArgs)
 {
+    Client& client = Client::GetInstance();
+
+    // If we need to update the launcher, unload the DLL and then overwrite it with the copy from the .zip file
+    if (!client.GetUpdatePath().empty())
+    {
+        if (__FUnloadDelayLoadedDLL2("GDCommunityLauncher.dll"))
+        {
+            HMODULE launcherDLL = GetModuleHandle(TEXT("GDCommunityLauncher.dll"));
+            if (launcherDLL)
+            {
+                FreeLibrary(launcherDLL);
+                ExtractZIPUpdate(client.GetUpdatePath());
+            }
+        }
+    }
+
     HANDLE pipeRead, pipeWrite;
 
     SECURITY_ATTRIBUTES securityAttributes;
@@ -169,7 +223,6 @@ HANDLE GameLauncher::LaunchProcess(const std::filesystem::path& exePath, const s
 
     CloseHandle(pipeRead);
 
-    Client& client = Client::GetInstance();
     if (!client.WriteDataToPipe(pipeWrite) || !InjectDLL(processInfo.hProcess, dllPath))
     {
         TerminateProcess(processInfo.hProcess, ERROR_ACCESS_DENIED);

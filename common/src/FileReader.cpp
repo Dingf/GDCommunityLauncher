@@ -1,7 +1,5 @@
 #include "FileReader.h"
 
-#include "Log.h"
-
 FileReader::FileReader(const std::filesystem::path& filename)
 {
     _bufferPos = 0;

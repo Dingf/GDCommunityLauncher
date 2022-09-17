@@ -3,7 +3,6 @@
 
 #include <string>
 #include <cpprest/uri.h>
-#include "Log.h"
 
 class URI
 {

@@ -12,7 +12,7 @@
 
 namespace UpdateDialog
 {
-    bool Update(void* configPointer);
+    bool Update();
 };
 
 #endif//INC_GDCL_EXE_UPDATE_DIALOG_H

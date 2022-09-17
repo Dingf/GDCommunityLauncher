@@ -2,8 +2,8 @@
 #include <cpprest/http_client.h>
 #include "ClientHandlers.h"
 #include "SharedStash.h"
-#include "Log.h"
 #include "URI.h"
+#include "Log.h"
 #include "md5.hpp"
 
 std::filesystem::path GetTransferStashPath(const char* modName, bool hardcore, bool backup)
@@ -40,31 +40,14 @@ std::filesystem::path GetTransferStashPath(const char* modName, bool hardcore, b
     return stashPath;
 }
 
-std::string GenerateStashMD5(const std::filesystem::path& path)
-{
-    std::stringstream buffer;
-    std::ifstream in(path, std::ifstream::binary | std::ifstream::in);
-    if (!in.is_open())
-        return {};
-
-    buffer << in.rdbuf();
-
-    // Capitalize the MD5 hash to match the server output
-    std::string result = websocketpp::md5::md5_hash_hex(buffer.str());
-    for (std::string::iterator it = result.begin(); it != result.end(); ++it)
-        *it = toupper(*it);
-
-    return result;
-}
-
 void PostTransferStashUpload()
 {
     Client& client = Client::GetInstance();
-    const char* modName = EngineAPI::GetModName();
-    PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
-
-    if ((modName) && (mainPlayer) && (client.IsParticipatingInSeason()))
+    if (client.IsParticipatingInSeason())
     {
+        const char* modName = EngineAPI::GetModName();
+        PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
+
         std::filesystem::path stashPath = GetTransferStashPath(modName, GameAPI::IsPlayerHardcore(mainPlayer), false);
         if (stashPath.empty())
         {
@@ -127,6 +110,10 @@ void PostTransferStashUpload()
                             throw std::runtime_error("Could not retrieve stash tab data from save file");
                         }
                     }
+                    else if (response.status_code() == web::http::status_codes::BadRequest)
+                    {
+                        GameAPI::DisplayUINotification("tagGDLeagueStorageFull");
+                    }
                     else
                     {
                         throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
@@ -145,17 +132,17 @@ void PostTransferStashUpload()
 void PostTransferStashChecksums(const std::string& prevChecksum)
 {
     Client& client = Client::GetInstance();
-    const char* modName = EngineAPI::GetModName();
-    PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
-
-    if ((modName) && (mainPlayer) && (client.IsParticipatingInSeason()))
+    if (client.IsParticipatingInSeason())
     {
+        const char* modName = EngineAPI::GetModName();
+        PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
+
         std::filesystem::path stashPath = GetTransferStashPath(modName, GameAPI::IsPlayerHardcore(mainPlayer), false);
         std::filesystem::path backupPath = GetTransferStashPath(modName, GameAPI::IsPlayerHardcore(mainPlayer), true);
 
         web::json::value requestBody;
         requestBody[U("lastChecksum")] = JSONString(prevChecksum);
-        requestBody[U("sharedStashChecksum")] = JSONString(GenerateStashMD5(stashPath));
+        requestBody[U("sharedStashChecksum")] = JSONString(GenerateFileMD5(stashPath));
         requestBody[U("externalToolUsed")] = std::filesystem::is_regular_file(backupPath);
 
         pplx::create_task([requestBody]()
@@ -193,15 +180,20 @@ void HandleSaveTransferStash(void* _this)
     SaveTransferStashProto callback = (SaveTransferStashProto)HookManager::GetOriginalFunction("Game.dll", GameAPI::GAPI_NAME_SAVE_TRANSFER_STASH);
     if (callback)
     {
+        std::string prevChecksum;
+
         Client& client = Client::GetInstance();
-        const char* modName = EngineAPI::GetModName();
-        PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
-        std::filesystem::path stashPath = GetTransferStashPath(modName, GameAPI::IsPlayerHardcore(mainPlayer), false);
-        std::string prevChecksum = GenerateStashMD5(stashPath);
+        if (client.IsParticipatingInSeason())
+        {
+            const char* modName = EngineAPI::GetModName();
+            PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
+            std::filesystem::path stashPath = GetTransferStashPath(modName, GameAPI::IsPlayerHardcore(mainPlayer), false);
+            prevChecksum = GenerateFileMD5(stashPath);
+        }
 
         callback(_this);
 
-        if ((modName) && (mainPlayer) && (client.IsParticipatingInSeason()))
+        if (client.IsParticipatingInSeason())
         {
             pplx::create_task([prevChecksum]()
             {
@@ -215,10 +207,7 @@ void HandleSaveTransferStash(void* _this)
 void PostPullTransferItems(const std::vector<Item*>& items)
 {
     Client& client = Client::GetInstance();
-    const char* modName = EngineAPI::GetModName();
-    PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
-
-    if ((modName) && (mainPlayer) && (client.IsParticipatingInSeason()))
+    if (client.IsParticipatingInSeason())
     {
         web::json::value requestBody = web::json::value::array();
         for (uint32_t i = 0; i < items.size(); ++i)
@@ -227,30 +216,30 @@ void PostPullTransferItems(const std::vector<Item*>& items)
         }
 
         pplx::create_task([requestBody]()
+        {
+            try
             {
-                try
+                Client& client = Client::GetInstance();
+                URI endpoint = URI(client.GetHostName()) / "api" / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "pull-items";
+
+                web::http::client::http_client httpClient((utility::string_t)endpoint);
+                web::http::http_request request(web::http::methods::POST);
+                request.set_body(requestBody);
+
+                std::string bearerToken = "Bearer " + client.GetAuthToken();
+                request.headers().add(U("Authorization"), bearerToken.c_str());
+
+                web::http::http_response response = httpClient.request(request).get();
+                if (response.status_code() != web::http::status_codes::OK)
                 {
-                    Client& client = Client::GetInstance();
-                    URI endpoint = URI(client.GetHostName()) / "api" / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "pull-items";
-
-                    web::http::client::http_client httpClient((utility::string_t)endpoint);
-                    web::http::http_request request(web::http::methods::POST);
-                    request.set_body(requestBody);
-
-                    std::string bearerToken = "Bearer " + client.GetAuthToken();
-                    request.headers().add(U("Authorization"), bearerToken.c_str());
-
-                    web::http::http_response response = httpClient.request(request).get();
-                    if (response.status_code() != web::http::status_codes::OK)
-                    {
-                        throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-                    }
+                    throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
                 }
-                catch (const std::exception& ex)
-                {
-                    Logger::LogMessage(LOG_LEVEL_WARN, "Failed to pull items from transfer queue: %", ex.what());
-                }
-            });
+            }
+            catch (const std::exception& ex)
+            {
+                Logger::LogMessage(LOG_LEVEL_WARN, "Failed to pull items from transfer queue: %", ex.what());
+            }
+        });
     }
 }
 
@@ -262,13 +251,13 @@ void HandleLoadTransferStash(void* _this)
     if (callback)
     {
         Client& client = Client::GetInstance();
-        const char* modName = EngineAPI::GetModName();
-        PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
-
-        if ((modName) && (mainPlayer) && (client.IsParticipatingInSeason()) && (client.GetTransferMutex().try_lock()))
+        if ((client.IsParticipatingInSeason()) && (client.GetTransferMutex().try_lock()))
         {
             try
             {
+                const char* modName = EngineAPI::GetModName();
+                PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
+
                 URI endpoint = URI(client.GetHostName()) / "api" / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "transfer-queue";
                 web::http::client::http_client httpClient((utility::string_t)endpoint);
                 web::http::http_request request(web::http::methods::GET);

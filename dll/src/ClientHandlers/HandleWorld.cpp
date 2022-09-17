@@ -1,6 +1,7 @@
 #include <Windows.h>
 #include <cpprest/http_client.h>
 #include "LuaAPI.h"
+#include "ChatClient.h"
 #include "ClientHandlers.h"
 #include "DatabaseValues.h"
 #include "DungeonDatabase.h"
@@ -121,8 +122,13 @@ bool HandleLoadWorld(void* _this, const char* mapName, bool unk1, bool modded)
                         web::http::http_response response = httpClient.request(request).get();
                         if (response.status_code() == web::http::status_codes::OK)
                         {
+                            ChatClient& chatClient = ChatClient::GetInstance();
+
                             web::json::value responseBody = response.extract_json().get();
                             web::json::value participantID = responseBody[U("seasonParticipantId")];
+                            web::json::value currentChannel = responseBody[U("currentChannel")];
+
+                            chatClient.SetCurrentChatChannel(currentChannel.as_integer());
                             client.SetParticipantID(participantID.as_integer());
                             client.UpdateSeasonStanding();
                         }

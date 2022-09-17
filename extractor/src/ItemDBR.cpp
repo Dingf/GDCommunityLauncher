@@ -23,7 +23,8 @@ const std::vector<std::string> searchPaths =
     "records/endlessdungeon/items",
     "records/endlessdungeon/scriptentities",
     "records/creatures/npcs/npcgear",
-    "grimleague/items"
+    "grimleague/items",
+    "grimleague/infinitydungeons"
 };
 
 void ItemDBR::BuildItemDB(const std::filesystem::path& dataPath, const std::filesystem::path& outPath)
@@ -76,7 +77,7 @@ void ItemDBR::BuildItemDB(const std::filesystem::path& dataPath, const std::file
 ItemDBR::ItemDBR(const std::filesystem::path& path) : _width(0), _height(0)
 {
     if (!DBRecord::Load(path))
-        throw std::runtime_error(Logger::LogMessage(LOG_LEVEL_ERROR, "The specified path is not a valid item DBR file"));
+        throw std::runtime_error(Logger::LogMessage(LOG_LEVEL_ERROR, "% is not a valid item DBR file", path.string().c_str()));
 
     const Value* bitmapPath = nullptr;
     for (uint32_t i = 0; i < bitmapVariables.size(); ++i)

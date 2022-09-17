@@ -2,21 +2,15 @@
 #include <cpprest/http_client.h>
 #include <Windows.h>
 #include <minizip/unzip.h>
-#include "Client.h"
 #include "LuaAPI.h"
+#include "ChatClient.h"
+#include "Client.h"
 #include "ClientHandlers.h"
-#include "Character.h"
-#include "Quest.h"
+#include "EventManager.h"
 #include "Version.h"
+#include "JSONObject.h"
 #include "URI.h"
 #include "Log.h"
-
-const std::unordered_map<std::string, const utility::char_t*> difficultyTagLookup =
-{
-    { "Normal",   U("normalQuestTags") },
-    { "Elite",    U("eliteQuestTags") },
-    { "Ultimate", U("ultimateQuestTags") },
-};
 
 Client& Client::GetInstance()
 {
@@ -28,7 +22,20 @@ Client& Client::GetInstance()
     return instance;
 }
 
-bool ReadIntFromPipe(HANDLE pipe, uint32_t& value)
+bool ReadInt16FromPipe(HANDLE pipe, uint16_t& value)
+{
+    DWORD bytesRead;
+    uint8_t buffer[2];
+
+    if (!ReadFile(pipe, &buffer, 2, &bytesRead, NULL) || (bytesRead != 2))
+        return false;
+
+    value = (uint32_t)buffer[0] | ((uint32_t)buffer[1] << 8);
+
+    return true;
+}
+
+bool ReadInt32FromPipe(HANDLE pipe, uint32_t& value)
 {
     DWORD bytesRead;
     uint8_t buffer[4];
@@ -46,7 +53,7 @@ bool ReadStringFromPipe(HANDLE pipe, std::string& str)
     DWORD bytesRead;
     uint32_t length;
 
-    if (!ReadIntFromPipe(pipe, length))
+    if (!ReadInt32FromPipe(pipe, length))
         return false;
 
     char* buffer = new char[length + 1];
@@ -63,18 +70,42 @@ bool ReadStringFromPipe(HANDLE pipe, std::string& str)
     return true;
 }
 
+bool ReadWideStringFromPipe(HANDLE pipe, std::wstring& str)
+{
+    uint32_t length;
+
+    if (!ReadInt32FromPipe(pipe, length))
+        return false;
+
+    wchar_t* buffer = new wchar_t[length + 1];
+    for (size_t i = 0; i < length; ++i)
+    {
+        if (!ReadInt16FromPipe(pipe, (uint16_t&)buffer[i]))
+        {
+            delete[] buffer;
+            return false;
+        }
+    }
+
+    buffer[length] = '\0';
+    str = buffer;
+
+    delete[] buffer;
+    return true;
+}
+
 bool ReadSeasonsFromPipe(HANDLE pipe, std::vector<SeasonInfo>& seasons)
 {
     uint32_t count;
-    if (!ReadIntFromPipe(pipe, count))
+    if (!ReadInt32FromPipe(pipe, count))
         return false;
 
     for (uint32_t i = 0; i < count; ++i)
     {
         SeasonInfo season;
 
-        if (!ReadIntFromPipe(pipe, season._seasonID) ||
-            !ReadIntFromPipe(pipe, season._seasonType) ||
+        if (!ReadInt32FromPipe(pipe, season._seasonID) ||
+            !ReadInt32FromPipe(pipe, season._seasonType) ||
             !ReadStringFromPipe(pipe, season._modName) ||
             !ReadStringFromPipe(pipe, season._displayName) ||
             !ReadStringFromPipe(pipe, season._participationToken))
@@ -161,6 +192,81 @@ void Client::ReadDataFromPipe()
     }
 }
 
+void Client::UpdateRefreshToken()
+{
+    pplx::create_task([]()
+    {
+        Client& client = Client::GetInstance();
+        try
+        {
+            URI endpoint = URI(client.GetHostName()) / "api" / "Account" / "refresh-token";
+            web::http::client::http_client httpClient((utility::string_t)endpoint);
+
+            web::json::value requestBody;
+            requestBody[U("refreshToken")] = JSONString(client.GetRefreshToken());
+
+            web::http::http_request request(web::http::methods::POST);
+            request.set_body(requestBody);
+
+            web::http::http_response response = httpClient.request(request).get();
+            if (response.status_code() == web::http::status_codes::OK)
+            {
+                web::json::value responseBody = response.extract_json().get();
+                web::json::value authTokenValue = responseBody[U("access_token")];
+                web::json::value refreshTokenValue = responseBody[U("refresh_token")];
+                if ((!authTokenValue.is_null()) && (!refreshTokenValue.is_null()))
+                {
+                    client._data._authToken = JSONString(authTokenValue.as_string());
+                    client._data._refreshToken = JSONString(refreshTokenValue.as_string());
+                }
+            }
+            else
+            {
+                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+            }
+        }
+        catch (const std::exception& ex)
+        {
+            Logger::LogMessage(LOG_LEVEL_WARN, "Failed to refresh token: %", ex.what());
+        }
+    });
+}
+
+void Client::UpdateConnectionStatus()
+{
+    Client& client = Client::GetInstance();
+    try
+    {
+        URI endpoint = URI(client.GetHostName()) / "api" / "Account" / "status";
+
+        web::http::client::http_client httpClient((utility::string_t)endpoint);
+        web::http::http_request request(web::http::methods::GET);
+
+        web::http::http_response response = httpClient.request(request).get();
+        bool status = (response.status_code() == web::http::status_codes::OK);
+        if (client._online != status)
+        {
+            client._online = status;
+            client.UpdateLeagueInfoText();
+
+            if (status)
+                EventManager::Publish(GDCL_EVENT_CONNECT);
+            else
+                EventManager::Publish(GDCL_EVENT_DISCONNECT);
+        }
+    }
+    catch (const std::exception& ex)
+    {
+        if (client._online == true)
+        {
+            Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to query server status: % %", client._online, ex.what());
+            client._online = false;
+            client.UpdateLeagueInfoText();
+            EventManager::Publish(GDCL_EVENT_DISCONNECT);
+        }
+    }
+}
+
 void Client::UpdateVersionInfoText()
 {
     typedef const char* (__thiscall* GetVersionProto)(void*);
@@ -226,16 +332,6 @@ void Client::UpdateLeagueInfoText()
     }
 }
 
-uint8_t Client::GetCurrentChatChannel(EngineAPI::UI::ChatType type) const
-{
-    if (type == EngineAPI::UI::CHAT_TYPE_GLOBAL)
-        return (_chatChannels & 0xF0) >> 4;
-    else if (type == EngineAPI::UI::CHAT_TYPE_TRADE)
-        return (_chatChannels & 0x0F);
-    else
-        return 0;
-}
-
 void Client::SetActiveSeason(const std::string& modName, bool hardcore)
 {
     _activeSeason = nullptr;
@@ -251,27 +347,10 @@ void Client::SetActiveSeason(const std::string& modName, bool hardcore)
     UpdateLeagueInfoText();
 }
 
-void Client::SetActiveCharacter(const std::wstring& name, bool hasToken, bool async)
+void Client::SetActiveCharacter(const std::wstring& name, bool hasToken)
 {
-    if ((name != _activeCharacter._name) && (!_activeCharacter._name.empty() && _activeCharacter._hasToken))
-        UpdateCharacterData(0, async);
-
     _activeCharacter._name = name;
     _activeCharacter._hasToken = hasToken;
-
-    if (!name.empty() && hasToken)
-        UpdateCharacterData(0, async);
-}
-
-void Client::SetCurrentChatChannel(EngineAPI::UI::ChatType type, uint32_t channel)
-{
-    if (channel <= EngineAPI::UI::CHAT_CHANNEL_MAX)
-    {
-        if (type == EngineAPI::UI::CHAT_TYPE_GLOBAL)
-            _chatChannels = (_chatChannels & 0x0F) | ((channel & 0x0F) << 4);
-        else if (type == EngineAPI::UI::CHAT_TYPE_TRADE)
-            _chatChannels = (_chatChannels & 0xF0) | (channel & 0x0F);
-    }
 }
 
 void Client::UpdateSeasonStanding()
@@ -311,237 +390,18 @@ void Client::UpdateSeasonStanding()
     });
 }
 
-uint32_t GetCharacterID(std::wstring playerName)
-{
-    try
-    {
-        Client& client = Client::GetInstance();
-        URI endpoint = URI(client.GetHostName()) / "api" / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "character" / playerName;
-        web::http::client::http_client httpClient((utility::string_t)endpoint);
-        web::http::http_request request(web::http::methods::GET);
-
-        std::string bearerToken = "Bearer " + client.GetAuthToken();
-        request.headers().add(U("Authorization"), bearerToken.c_str());
-
-        web::http::http_response response = httpClient.request(request).get();
-        switch (response.status_code())
-        {
-            case web::http::status_codes::OK:
-            {
-                web::json::value responseBody = response.extract_json().get();
-                web::json::value characterID = responseBody[U("participantCharacterId")];
-                return (uint32_t)characterID.as_integer();
-            }
-            case web::http::status_codes::NoContent:
-            {
-                return (uint32_t)0;
-            }
-            default:
-            {
-                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-            }
-        }
-    }
-    catch (const std::exception& ex)
-    {
-        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve character ID: %", ex.what());
-        return 0;
-    }
-}
-
-void PostCharacterData(std::wstring playerName, bool async)
-{
-    Client& client = Client::GetInstance();
-    uint32_t characterID = GetCharacterID(playerName);
-
-    std::filesystem::path characterPath = std::filesystem::path(GameAPI::GetBaseFolder()) / "save" / "user" / "_";
-    characterPath += playerName;
-
-    std::filesystem::path characterSavePath = characterPath / "player.gdc";
-
-    std::vector<std::filesystem::path> characterQuestPaths;
-    for (const auto& entry : std::filesystem::directory_iterator(characterPath))
-    {
-        if (entry.is_directory())
-            characterQuestPaths.push_back(entry.path());
-    }
-
-    Character characterData;
-    if (!characterData.ReadFromFile(characterSavePath))
-    {
-        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to load character data. Make sure that cloud saving is diabled.");
-        return;
-    }
-
-    web::json::value characterJSON = characterData.ToJSON();
-    web::json::value characterInfo = web::json::value::object();
-
-    characterInfo[U("name")] = characterJSON[U("HeaderBlock")][U("Name")];
-    characterInfo[U("level")] = characterJSON[U("HeaderBlock")][U("Level")];
-    characterInfo[U("className")] = characterJSON[U("HeaderBlock")][U("ClassName")];
-    characterInfo[U("hardcore")] = characterJSON[U("HeaderBlock")][U("Hardcore")];
-    characterInfo[U("maxDifficulty")] = characterJSON[U("InfoBlock")][U("MaxDifficulty")];
-    characterInfo[U("currentDifficulty")] = characterJSON[U("InfoBlock")][U("CurrentDifficulty")].as_integer() & 0x7F;
-    characterInfo[U("deathCount")] = characterJSON[U("StatsBlock")][U("Deaths")];
-    characterInfo[U("timePlayed")] = characterJSON[U("StatsBlock")][U("PlayedTime")];
-    characterInfo[U("physique")] = characterJSON[U("AttributesBlock")][U("Physique")];
-    characterInfo[U("cunning")] = characterJSON[U("AttributesBlock")][U("Cunning")];
-    characterInfo[U("spirit")] = characterJSON[U("AttributesBlock")][U("Spirit")];
-    characterInfo[U("devotionPoints")] = characterJSON[U("AttributesBlock")][U("TotalDevotionPoints")];
-    characterInfo[U("health")] = characterJSON[U("AttributesBlock")][U("Health")];
-    characterInfo[U("energy")] = characterJSON[U("AttributesBlock")][U("Energy")];
-
-    web::json::value questInfo = web::json::value::object();
-
-    for (size_t i = 0; i < characterQuestPaths.size(); ++i)
-    {
-        for (auto it = difficultyTagLookup.begin(); it != difficultyTagLookup.end(); ++it)
-        {
-            Quest questData;
-            questInfo[it->second] = web::json::value::array();
-            if (questData.ReadFromFile(characterQuestPaths[i] / it->first / "quests.gdd"))
-            {
-                web::json::value questJSON = questData.ToJSON();
-                web::json::array tokensArray = questJSON[U("Tokens")][U("Tokens")].as_array();
-
-                uint32_t index = 0;
-                for (auto it2 = tokensArray.begin(); it2 != tokensArray.end(); ++it2)
-                {
-                    std::string token = JSONString(it2->serialize());
-                    if (token.find("GDL_", 0) == 0)
-                    {
-                        questInfo[it->second][index++] = JSONString(token);
-                    }
-                }
-            }
-        }
-    }
-
-    web::json::value requestBody;
-    requestBody[U("characterData")] = web::json::value::object();
-    requestBody[U("characterData")][U("characterInfo")] = characterInfo;
-    requestBody[U("characterData")][U("questInfo")] = questInfo;
-    requestBody[U("seasonParticipantId")] = client.GetParticipantID();
-    requestBody[U("participantCharacterId")] = characterID;
-
-    pplx::task<void> task = pplx::create_task([requestBody]()
-    {
-        try
-        {
-            Client& client = Client::GetInstance();
-            URI endpoint = URI(client.GetHostName()) / "api" / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "character";
-
-            web::http::client::http_client httpClient((utility::string_t)endpoint);
-            web::http::http_request request(web::http::methods::POST);
-            request.set_body(requestBody);
-
-            std::string bearerToken = "Bearer " + client.GetAuthToken();
-            request.headers().add(U("Authorization"), bearerToken.c_str());
-
-            web::http::http_response response = httpClient.request(request).get();
-            if (response.status_code() == web::http::status_codes::OK)
-            {
-                client.UpdateSeasonStanding();
-            }
-            else
-            {
-                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-            }
-        }
-        catch (const std::exception& ex)
-        {
-            Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload character data: %", ex.what());
-        }
-    });
-
-    if (!async)
-        task.wait();
-}
-
-void Client::UpdateCharacterData(uint32_t delay, bool async)
-{
-    if (delay == 0)
-    {
-        _postCharacterThread->Call(_activeCharacter._name, async);
-    }
-    else
-    {
-        _postCharacterThread->Update(delay, _activeCharacter._name, async);
-    }
-}
-
-void UpdateRefreshToken()
-{
-    pplx::create_task([]()
-    {
-        try
-        {
-            Client& client = Client::GetInstance();
-            URI endpoint = URI(client.GetHostName()) / "api" / "Account" / "refresh-token";
-            web::http::client::http_client httpClient((utility::string_t)endpoint);
-
-            web::json::value requestBody;
-            requestBody[U("refreshToken")] = JSONString(client.GetRefreshToken());
-
-            web::http::http_request request(web::http::methods::POST);
-            request.set_body(requestBody);
-
-            web::http::http_response response = httpClient.request(request).get();
-            if (response.status_code() == web::http::status_codes::OK)
-            {
-                web::json::value responseBody = response.extract_json().get();
-                web::json::value authTokenValue = responseBody[U("access_token")];
-                web::json::value refreshTokenValue = responseBody[U("refresh_token")];
-                if ((!authTokenValue.is_null()) && (!refreshTokenValue.is_null()))
-                {
-                    client._data._authToken = JSONString(authTokenValue.as_string());
-                    client._data._refreshToken = JSONString(refreshTokenValue.as_string());
-                }
-            }
-            else
-            {
-                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-            }
-        }
-        catch (const std::exception& ex)
-        {
-            Logger::LogMessage(LOG_LEVEL_WARN, "Failed to refresh token: %", ex.what());
-        }
-    });
-}
-
-void UpdateConnectionStatus()
-{
-    pplx::task<void> task = pplx::create_task([]()
-    {
-        Client& client = Client::GetInstance();
-        try
-        {
-            URI endpoint = URI(client.GetHostName()) / "api" / "Account" / "status";
-
-            web::http::client::http_client httpClient((utility::string_t)endpoint);
-            web::http::http_request request(web::http::methods::GET);
-
-            web::http::http_response response = httpClient.request(request).get();
-            bool status = (response.status_code() == web::http::status_codes::OK);
-            if (client._online != status)
-            {
-                client._online = status;
-                client.UpdateLeagueInfoText();
-            }
-        }
-        catch (const std::exception&)
-        {
-            client._online = false;
-            client.UpdateLeagueInfoText();
-        }
-    });
-}
-
 bool Client::Initialize()
 {
+    Logger::SetMinimumLogLevel(LOG_LEVEL_WARN);
     LuaAPI::Initialize();
 
+    // Initialize the chat client in a separate thread
+    pplx::task<void> task = pplx::create_task([]()
+    {
+        ChatClient& chatClient = ChatClient::GetInstance();
+    });
+
+    // Initialize the game engine hooks
     if (!HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_GET_VERSION, &HandleGetVersion) ||
         !HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_RENDER, &HandleRender) ||
         !HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_LOAD_WORLD, &HandleLoadWorld) ||
@@ -563,14 +423,14 @@ bool Client::Initialize()
         return false;
     }
 
+    // Initialize threads to handle refreshing the server token/connection status
+    static auto refreshServerTokenThread = std::make_shared<UpdateThread<>>(&Client::UpdateRefreshToken, 1000, 1800000);
+    static auto connectionStatusThread = std::make_shared<UpdateThread<>>(&Client::UpdateConnectionStatus, 1000, 1000);
+
+    refreshServerTokenThread->Update(0);
+    connectionStatusThread->Update(0);
+
     UpdateVersionInfoText();
-
-    _postCharacterThread = std::make_shared<UpdateThread<std::wstring, bool>>(&PostCharacterData);
-    _refreshServerTokenThread = std::make_shared<UpdateThread<>>(&UpdateRefreshToken, 1000, 1800000);
-    _connectionStatusThread = std::make_shared<UpdateThread<>>(&UpdateConnectionStatus, 1000, 10000);
-
-    _refreshServerTokenThread->Update(0);
-    _connectionStatusThread->Update(0);
 
     return true;
 }
@@ -595,7 +455,4 @@ void Client::Cleanup()
     HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_UNLOAD_WORLD);
     HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_SEND_CHAT_MESSAGE);
     HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_SYNC_DUNGEON_PROGRESS);
-
-    _refreshServerTokenThread->Stop();
-    _connectionStatusThread->Stop();
 }

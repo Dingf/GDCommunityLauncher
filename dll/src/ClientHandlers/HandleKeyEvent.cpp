@@ -17,17 +17,17 @@ bool HandleKeyEvent(void* _this, EngineAPI::KeyButtonEvent& event)
             if ((client.IsParticipatingInSeason()) && (event._keyCode == EngineAPI::KEY_ENTER) && (!EngineAPI::IsMultiplayer()) && (event._keyState == EngineAPI::KEY_STATE_DOWN))
             {
                 EngineAPI::UI::ChatWindow& chatWindow = EngineAPI::UI::ChatWindow::GetInstance();
-                if (!chatWindow.GetState())
+                if (!chatWindow.IsVisible())
                     chatWindow.ToggleDisplay();
             }
         }
 
-        //if ((client.IsParticipatingInSeason()) && (event._keyCode == EngineAPI::KEY_TILDE))
+        if ((client.IsParticipatingInSeason()) && (event._keyCode == EngineAPI::KEY_TILDE))
         {
             // Disable the tilde key to prevent console access
-            //return true;
+            return true;
         }
-        //else
+        else
         {
             return callback(_this, event);
         }

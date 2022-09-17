@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 cmake_policy(SET CMP0048 NEW)
-project (GDCommunityLauncher VERSION 1.0.6)
+project (GDCommunityLauncher VERSION 1.1.0)
 
 set(CMAKE_GENERATOR_PLATFORM x64)
 set(CMAKE_CXX_STANDARD 17)
@@ -25,7 +25,10 @@ if (cpprestsdk_FOUND)
     include_directories(${cpprestsdk_INCLUDE_DIR})
 endif()
 
+find_package(microsoft-signalr CONFIG REQUIRED)
+
 include_directories(common/include)
+include_directories(${CMAKE_SOURCE_DIR})
 
 if (WIN32 AND CMAKE_SYSTEM_VERSION)
     string(REGEX MATCH "^([0-9]+).([0-9]).([0-9]+)" version ${CMAKE_SYSTEM_VERSION})

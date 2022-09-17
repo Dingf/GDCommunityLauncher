@@ -10,6 +10,7 @@
 #define IDC_STATIC                      -1
 #define IDB_BITMAP1                     102
 #define IDB_ICON1                       103
+#define IDR_ABOUT_MSG                   104
 
 #define WM_LOGIN_OK                     0x8001
 #define WM_LOGIN_INVALID_LOGIN          0x8002

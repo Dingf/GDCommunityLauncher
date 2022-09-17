@@ -1,7 +1,5 @@
 #include "FileWriter.h"
 
-#include "Log.h"
-
 FileWriter::FileWriter(size_t size)
 {
     _bufferPos = 0;
@@ -185,6 +183,5 @@ void EncodedFileWriter::BufferString(std::string val)
 
 void EncodedFileWriter::BufferWideString(std::wstring val)
 {
-    Logger::LogMessage(LOG_LEVEL_ERROR, "EncodedFileWriter::BufferWideString() is not implemented yet");
     //TODO: implement me
 }

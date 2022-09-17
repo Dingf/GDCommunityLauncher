@@ -23,7 +23,9 @@ class ChatWindow
         void SetChatPrefix(const std::wstring& prefix) { _prefix = prefix; }
 
         void ToggleDisplay();
-        bool GetState();
+
+        bool IsInitialized() { return (_visible != nullptr); }
+        bool IsVisible();
 
     private:
         ChatWindow() : _visible(nullptr) {}
