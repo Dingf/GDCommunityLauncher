@@ -1,13 +1,20 @@
 #include <unordered_map>
 #include <regex>
 #include <cwctype>
+#include <filesystem>
+#include <cpprest/http_client.h>
 #include "ClientHandlers.h"
 #include "ChatClient.h"
+#include "Character.h"
+#include "JSONObject.h"
+#include "URI.h"
+#include "Log.h"
 
 bool HandleChatHelpCommand(std::wstring& name, std::wstring& message, uint32_t& channel, uint8_t& type)
 {
     GameAPI::SendChatMessage(L"/g, /global[CHANNEL] [ON/OFF]", L"Sends a message to the current global chat channel. If no arguments are specified, displays the current global chat channel.\n    [CHANNEL] - Switches the current global chat channel.\n    [ON/OFF] - Enables or disables global chat.\n ", 0);
     GameAPI::SendChatMessage(L"/tr, /trade[CHANNEL] [ON/OFF]", L"Sends a message to the current trade chat channel. If no arguments are specified, displays the current trade chat channel.\n    [CHANNEL] - Switches the current trade chat channel.\n    [ON/OFF] - Enables or disables trade chat.\n ", 0);
+    GameAPI::SendChatMessage(L"/o, /online", L"Displays the number of current users online.\n ", 0);
     GameAPI::SendChatMessage(L"/h, /help", L"Displays this help message. ", 0);
     return false;
 }
@@ -154,6 +161,41 @@ bool HandleChatTradeCommand(std::wstring& name, std::wstring& message, uint32_t&
     return true;
 }
 
+bool HandleChatOnlineCommand(std::wstring& name, std::wstring& message, uint32_t& channel, uint8_t& type)
+{
+    try
+    {
+        Client& client = Client::GetInstance();
+        URI endpoint = URI(client.GetHostName()) / "chat" / "chat" / "connected-clients";
+
+        web::http::client::http_client httpClient((utility::string_t)endpoint);
+        web::http::http_request request(web::http::methods::GET);
+
+        std::string bearerToken = "Bearer " + client.GetAuthToken();
+        request.headers().add(U("Authorization"), bearerToken.c_str());
+
+        web::http::http_response response = httpClient.request(request).get();
+        if (response.status_code() == web::http::status_codes::OK)
+        {
+            web::json::value responseBody = response.extract_json().get();
+            web::json::array usersArray = responseBody.as_array();
+
+            std::wstring message = L"There are " + std::to_wstring(usersArray.size()) + L" users currently online.";
+            GameAPI::SendChatMessage(L"Server", message, EngineAPI::UI::CHAT_TYPE_NORMAL);
+        }
+        else
+        {
+            throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+        }
+    }
+    catch (const std::exception& ex)
+    {
+        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve online users: %", ex.what());
+    }
+
+    return false;
+}
+
 typedef bool(*ChatCommandHandler)(std::wstring&, std::wstring&, uint32_t&, uint8_t&);
 const std::unordered_map<std::wstring, ChatCommandHandler> chatCommandLookup =
 {
@@ -163,6 +205,8 @@ const std::unordered_map<std::wstring, ChatCommandHandler> chatCommandLookup =
     { L"g",        HandleChatGlobalCommand },
     { L"trade",    HandleChatTradeCommand },
     { L"tr",       HandleChatTradeCommand },
+    { L"o",        HandleChatOnlineCommand },
+    { L"online",   HandleChatOnlineCommand },
 };
 
 void HandleSendChatMessage(void* _this, const std::wstring& name, const std::wstring& message, uint8_t type, std::vector<uint32_t> targets, uint32_t unk1)

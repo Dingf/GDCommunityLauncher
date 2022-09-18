@@ -51,8 +51,10 @@ bool ChatWindow::IsVisible()
 
 inline bool CheckMagicAddress(uint8_t* buffer, uint64_t offset)
 {
-    return (((*(uint64_t*)(buffer + offset)) & 0xFF00FFFFFF00FFFF) == 0x4300000040000000) &&
-           (((*(uint64_t*)(buffer + offset + sizeof(uint64_t))) & 0xFF00FFFFFF00FF00) == 0x4100000044008000);
+    return (((*(uint64_t*)(buffer + offset)) & 0x0000FFFF00000000) == 0x0000025800000000) && 
+           (((*(uint64_t*)(buffer + offset + (sizeof(uint64_t) * 1))) & 0x000000000000FFFF) == 0x000000000000C350) &&
+           (((*(uint64_t*)(buffer + offset + (sizeof(uint64_t) * 3))) & 0xFF00000000000000) == 0x4300000000000000) &&
+           (((*(uint64_t*)(buffer + offset + (sizeof(uint64_t) * 4))) & 0xFF00000000000000) == 0x4100000000000000);
 }
 
 void ChatWindow::FindVisibleBit()
@@ -94,11 +96,11 @@ void ChatWindow::FindVisibleBit()
                 uint8_t* buffer = new uint8_t[info.RegionSize];
                 ReadProcessMemory(process, info.BaseAddress, buffer, info.RegionSize, NULL);
 
-                for (uint64_t offset = 0; (offset + sizeof(uint64_t)) <= info.RegionSize; offset += sizeof(uint64_t))
+                for (uint64_t offset = 0; (offset + sizeof(uint64_t)) <= info.RegionSize - (sizeof(uint64_t) * 4); offset += sizeof(uint64_t))
                 {
                     if (CheckMagicAddress(buffer, offset))
                     {
-                        _visible = (uint8_t*)info.BaseAddress + offset - 0x98;
+                        _visible = (uint8_t*)info.BaseAddress + offset - 0x80;
                         break;
                     }
                 }

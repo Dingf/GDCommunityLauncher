@@ -6,7 +6,7 @@ FileReader::FileReader(const std::filesystem::path& filename)
     _bufferSize = 0;
 
     std::ifstream in(filename, std::ifstream::binary | std::ifstream::in);
-    if (in.is_open())
+    if (in.good())
     {
         in.seekg(0, in.end);
         _bufferSize = in.tellg();
@@ -14,8 +14,8 @@ FileReader::FileReader(const std::filesystem::path& filename)
 
         _buffer = new uint8_t[_bufferSize];
         in.read((char*)_buffer, _bufferSize);
-        in.close();
     }
+    in.close();
 }
 
 float FileReader::ReadFloat()

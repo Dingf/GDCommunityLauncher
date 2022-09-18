@@ -5,7 +5,6 @@
 #include <memory>
 #include <signalrclient/hub_connection.h>
 #include "EngineAPI/UI/ChatWindow.h"
-#include "UpdateThread.h"
 
 class ChatClient
 {
@@ -28,8 +27,6 @@ class ChatClient
     private:
         ChatClient();
 
-        static void UpdateChatConnection();
-
         static void OnConnectEvent(void* data);
         static void OnDisconnectEvent(void* data);
 
@@ -43,7 +40,6 @@ class ChatClient
         uint8_t _channels;
         std::string _connectionID;
         std::unique_ptr<signalr::hub_connection> _connection;
-        std::shared_ptr<UpdateThread<>> _chatConnectionThread;
 
 };
 

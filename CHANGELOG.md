@@ -37,11 +37,17 @@
 - Added Lua support for the launcher.
 - Added scaling dungeon integration.
 
-# 1.1.1 (2022-09-17)
+## 1.1.1 (2022-09-17)
 
-- Fixed an issue where the game would freeze when performing any action that modified the character save file
+- Fixed an issue where the game would freeze when performing any action that modified the character save file.
 
-# 1.1.2 (2022-09-17)
+## 1.1.2 (2022-09-17)
 
-- The in-game chat system has been re-enabled
-- Added a temporary fix for users who cannot open the chat window using the Enter key
+- The in-game chat system has been re-enabled.
+- Added a temporary fix for users who cannot open the chat window using the Enter key.
+
+## 1.1.3 (2022-09-18)
+
+- Improved the ability to detect and recognize the Enter key when opening the chat window.
+- Added a new chat command - /online. This command will display the current number of online players.
+- Fixed a crash that would sometimes occur when trying to upload character data before it has finished saving.

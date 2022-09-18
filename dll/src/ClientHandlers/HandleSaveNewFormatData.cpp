@@ -74,6 +74,9 @@ void PostCharacterDataUpload(const std::wstring& playerName, const std::string& 
             characterQuestPaths.push_back(entry.path());
     }
 
+    // Shouldn't happen too often, but wait to make sure that the save file is present and readable
+    while (!std::ifstream(characterSavePath).good());
+
     Character characterData;
     if (!characterData.ReadFromFile(characterSavePath))
     {
@@ -100,18 +103,21 @@ void PostCharacterDataUpload(const std::wstring& playerName, const std::string& 
     characterInfo[U("energy")] = characterJSON[U("AttributesBlock")][U("Energy")];
 
     web::json::value questInfo = web::json::value::object();
+    for (auto pair : difficultyTagLookup)
+        questInfo[pair.second] = web::json::value::array();
 
-    for (size_t i = 0; i < characterQuestPaths.size(); ++i)
+    for (const auto& it : std::filesystem::recursive_directory_iterator(characterPath))
     {
-        for (auto it = difficultyTagLookup.begin(); it != difficultyTagLookup.end(); ++it)
+        Quest questData;
+        const std::filesystem::path& filePath = it.path();
+        if ((filePath.filename() == "quests.gdd") && (questData.ReadFromFile(filePath)))
         {
-            Quest questData;
-            questInfo[it->second] = web::json::value::array();
-            if (questData.ReadFromFile(characterQuestPaths[i] / it->first / "quests.gdd"))
-            {
-                web::json::value questJSON = questData.ToJSON();
-                web::json::array tokensArray = questJSON[U("Tokens")][U("Tokens")].as_array();
+            web::json::value questJSON = questData.ToJSON();
+            web::json::array tokensArray = questJSON[U("Tokens")][U("Tokens")].as_array();
 
+            std::string difficulty = filePath.parent_path().filename().string();
+            if (difficultyTagLookup.count(difficulty) > 0)
+            {
                 uint32_t index = 0;
                 for (auto it2 = tokensArray.begin(); it2 != tokensArray.end(); ++it2)
                 {
@@ -121,7 +127,7 @@ void PostCharacterDataUpload(const std::wstring& playerName, const std::string& 
 
                     if (token.find("gdl_", 0) == 0)
                     {
-                        questInfo[it->second][index++] = JSONString(token);
+                        questInfo[difficultyTagLookup.at(difficulty)][index++] = JSONString(token);
                     }
                 }
             }
