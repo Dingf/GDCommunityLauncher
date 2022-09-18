@@ -90,6 +90,10 @@ bool Character::ReadFromFile(const std::filesystem::path& path)
             return false;
         }
     }
+    else
+    {
+        Logger::LogMessage(LOG_LEVEL_WARN, "The path \"%\" is not recognized as a file.", path.string());
+    }
     return false;
 }
 

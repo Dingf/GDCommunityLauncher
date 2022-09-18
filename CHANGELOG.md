@@ -40,3 +40,8 @@
 # 1.1.1 (2022-09-17)
 
 - Fixed an issue where the game would freeze when performing any action that modified the character save file
+
+# 1.1.2 (2022-09-17)
+
+- The in-game chat system has been re-enabled
+- Added a temporary fix for users who cannot open the chat window using the Enter key

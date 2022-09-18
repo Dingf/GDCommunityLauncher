@@ -102,7 +102,7 @@ enum KeyCode : uint32_t
     KEY_RALT = 117,
     KEY_HOME = 120,
     KEY_ARROW_UP = 121,
-    KeY_PAGE_UP = 122,
+    KEY_PAGE_UP = 122,
     KEY_ARROW_LEFT = 123,
     KEY_ARROW_RIGHT = 124,
     KEY_END = 125,

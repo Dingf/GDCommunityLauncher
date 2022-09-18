@@ -18,7 +18,13 @@ bool HandleKeyEvent(void* _this, EngineAPI::KeyButtonEvent& event)
             {
                 EngineAPI::UI::ChatWindow& chatWindow = EngineAPI::UI::ChatWindow::GetInstance();
                 if (!chatWindow.IsVisible())
+                {
                     chatWindow.ToggleDisplay();
+                    if (!chatWindow.IsVisible())
+                    {
+                        GameAPI::SendChatMessage(L"Server", L"Click here to open chat", EngineAPI::UI::CHAT_TYPE_NORMAL);
+                    }
+                }
             }
         }
 

@@ -170,7 +170,7 @@ void ChatClient::OnBanned(const signalr::value& m)
 ChatClient::ChatClient()
 {
     Client& client = Client::GetInstance();
-    URI endpoint = URI(client.GetHostName()) / "api" / "chat";
+    URI endpoint = URI(client.GetHostName()) / "chat";
 
     _connection = std::make_unique<signalr::hub_connection>(signalr::hub_connection_builder::create(endpoint).skip_negotiation().with_logging(std::make_shared<ChatClientLogger>(), signalr::trace_level::verbose).build());
     _connection->on("Connection", OnConnection);
