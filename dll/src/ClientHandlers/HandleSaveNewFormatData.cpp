@@ -116,7 +116,10 @@ void PostCharacterDataUpload(const std::wstring& playerName, const std::string& 
                 for (auto it2 = tokensArray.begin(); it2 != tokensArray.end(); ++it2)
                 {
                     std::string token = JSONString(it2->serialize());
-                    if (token.find("GDL_", 0) == 0)
+                    for (char& c : token)
+                        c = std::tolower(c);
+
+                    if (token.find("gdl_", 0) == 0)
                     {
                         questInfo[it->second][index++] = JSONString(token);
                     }
@@ -132,7 +135,7 @@ void PostCharacterDataUpload(const std::wstring& playerName, const std::string& 
     requestBody[U("seasonParticipantId")] = client.GetParticipantID();
     requestBody[U("participantCharacterId")] = characterID;
     requestBody[U("lastChecksum")] = JSONString(prevChecksum);
-    requestBody[U("currentChecksum")] = JSONString(GenerateFileMD5(characterSavePath));
+    requestBody[U("currentChecksum")] = JSONString("");// JSONString(GenerateFileMD5(characterSavePath));
 
     pplx::task<void> task = pplx::create_task([requestBody]()
     {
@@ -179,7 +182,7 @@ void HandleSaveNewFormatData(void* _this, void* writer)
         {
             std::filesystem::path characterPath = GetCharacterPath(client.GetActiveCharacterName());
             std::filesystem::path characterSavePath = characterPath / "player.gdc";
-            prevChecksum = GenerateFileMD5(characterSavePath);
+            //prevChecksum = GenerateFileMD5(characterSavePath);
         }
 
         callback(_this, writer);

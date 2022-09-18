@@ -36,3 +36,7 @@
 - The launcher now uses file sizes rather than MD5 checksums when checking local files for updates.
 - Added Lua support for the launcher.
 - Added scaling dungeon integration.
+
+# 1.1.1 (2022-09-17)
+
+- Fixed an issue where the game would freeze when performing any action that modified the character save file

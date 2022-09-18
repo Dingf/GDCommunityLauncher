@@ -425,7 +425,7 @@ bool Client::Initialize()
 
     // Initialize threads to handle refreshing the server token/connection status
     static auto refreshServerTokenThread = std::make_shared<UpdateThread<>>(&Client::UpdateRefreshToken, 1000, 1800000);
-    static auto connectionStatusThread = std::make_shared<UpdateThread<>>(&Client::UpdateConnectionStatus, 1000, 1000);
+    static auto connectionStatusThread = std::make_shared<UpdateThread<>>(&Client::UpdateConnectionStatus, 1000, 30000);
 
     refreshServerTokenThread->Update(0);
     connectionStatusThread->Update(0);
