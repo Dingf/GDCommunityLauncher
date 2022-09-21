@@ -87,12 +87,14 @@ void PostCharacterDataUpload(const std::wstring& playerName, const std::string& 
     web::json::value characterJSON = characterData.ToJSON();
     web::json::value characterInfo = web::json::value::object();
 
+    uint32_t currentDifficulty = characterJSON[U("InfoBlock")][U("CurrentDifficulty")].as_integer() & 0x7F;
+
     characterInfo[U("name")] = characterJSON[U("HeaderBlock")][U("Name")];
     characterInfo[U("level")] = characterJSON[U("HeaderBlock")][U("Level")];
     characterInfo[U("className")] = characterJSON[U("HeaderBlock")][U("ClassName")];
     characterInfo[U("hardcore")] = characterJSON[U("HeaderBlock")][U("Hardcore")];
     characterInfo[U("maxDifficulty")] = characterJSON[U("InfoBlock")][U("MaxDifficulty")];
-    characterInfo[U("currentDifficulty")] = characterJSON[U("InfoBlock")][U("CurrentDifficulty")].as_integer() & 0x7F;
+    characterInfo[U("currentDifficulty")] = currentDifficulty;
     characterInfo[U("deathCount")] = characterJSON[U("StatsBlock")][U("Deaths")];
     characterInfo[U("timePlayed")] = characterJSON[U("StatsBlock")][U("PlayedTime")];
     characterInfo[U("physique")] = characterJSON[U("AttributesBlock")][U("Physique")];
@@ -101,6 +103,7 @@ void PostCharacterDataUpload(const std::wstring& playerName, const std::string& 
     characterInfo[U("devotionPoints")] = characterJSON[U("AttributesBlock")][U("TotalDevotionPoints")];
     characterInfo[U("health")] = characterJSON[U("AttributesBlock")][U("Health")];
     characterInfo[U("energy")] = characterJSON[U("AttributesBlock")][U("Energy")];
+    characterInfo[U("lastAttackedBy")] = characterJSON[U("StatsBlock")][U("PerDifficultyStats")][currentDifficulty][U("LastAttackedBy")];
 
     web::json::value questInfo = web::json::value::object();
     for (auto pair : difficultyTagLookup)
@@ -108,26 +111,31 @@ void PostCharacterDataUpload(const std::wstring& playerName, const std::string& 
 
     for (const auto& it : std::filesystem::recursive_directory_iterator(characterPath))
     {
-        Quest questData;
         const std::filesystem::path& filePath = it.path();
-        if ((filePath.filename() == "quests.gdd") && (questData.ReadFromFile(filePath)))
+        if (filePath.filename() == "quests.gdd")
         {
-            web::json::value questJSON = questData.ToJSON();
-            web::json::array tokensArray = questJSON[U("Tokens")][U("Tokens")].as_array();
+            while (!std::ifstream(filePath).good());
 
-            std::string difficulty = filePath.parent_path().filename().string();
-            if (difficultyTagLookup.count(difficulty) > 0)
+            Quest questData;
+            if (questData.ReadFromFile(filePath))
             {
-                uint32_t index = 0;
-                for (auto it2 = tokensArray.begin(); it2 != tokensArray.end(); ++it2)
-                {
-                    std::string token = JSONString(it2->serialize());
-                    for (char& c : token)
-                        c = std::tolower(c);
+                web::json::value questJSON = questData.ToJSON();
+                web::json::array tokensArray = questJSON[U("Tokens")][U("Tokens")].as_array();
 
-                    if (token.find("gdl_", 0) == 0)
+                std::string difficulty = filePath.parent_path().filename().string();
+                if (difficultyTagLookup.count(difficulty) > 0)
+                {
+                    uint32_t index = 0;
+                    for (auto it2 = tokensArray.begin(); it2 != tokensArray.end(); ++it2)
                     {
-                        questInfo[difficultyTagLookup.at(difficulty)][index++] = JSONString(token);
+                        std::string token = JSONString(it2->serialize());
+                        for (char& c : token)
+                            c = std::tolower(c);
+
+                        if (token.find("gdl_", 0) == 0)
+                        {
+                            questInfo[difficultyTagLookup.at(difficulty)][index++] = JSONString(token);
+                        }
                     }
                 }
             }

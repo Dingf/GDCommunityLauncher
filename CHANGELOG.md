@@ -51,3 +51,8 @@
 - Improved the ability to detect and recognize the Enter key when opening the chat window.
 - Added a new chat command - /online. This command will display the current number of online players.
 - Fixed a crash that would sometimes occur when trying to upload character data before it has finished saving.
+
+# 1.1.4 (2022-09-20)
+
+- Added the name of the enemy that dealt the killing blow to the serverwide death announcement.
+- Added a new chat command - /challenges. This command will display an overview of your current challenges.
