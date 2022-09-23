@@ -83,7 +83,7 @@ bool Client::WriteDataToPipe(HANDLE pipe) const
         !WriteStringToPipe(pipe, _data._authToken) ||
         !WriteStringToPipe(pipe, _data._refreshToken) ||
         !WriteStringToPipe(pipe, _data._hostName) ||
-        !WriteStringToPipe(pipe, _data._updatePath) ||
+        !WriteInt32ToPipe(pipe, _data._updateFlag) ||
         !WriteSeasonsToPipe(pipe, _data._seasons))
     {
         Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to write client data to the stdin pipe.");

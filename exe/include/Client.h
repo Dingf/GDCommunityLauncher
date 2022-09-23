@@ -17,12 +17,13 @@ class Client
             _data._authToken = data._authToken;
             _data._refreshToken = data._refreshToken;
             _data._hostName = data._hostName;
-            _data._updatePath = data._updatePath;
+            _data._updateFlag = data._updateFlag;
             _data._seasons = data._seasons;
             return *this;
         }
 
         bool IsValid() const { return _data.IsValid(); }
+        bool HasUpdate() const { return _data._updateFlag; }
 
         bool WriteDataToPipe(HANDLE pipe) const;
 
@@ -31,7 +32,6 @@ class Client
         const std::string& GetAuthToken() const { return _data._authToken; }
         const std::string& GetHostName() const { return _data._hostName; }
         const std::string& GetRole() const { return _data._role; }
-        const std::string& GetUpdatePath() const { return _data._updatePath; }
 
     private:
         Client(const ClientData& data) { *this = data; }

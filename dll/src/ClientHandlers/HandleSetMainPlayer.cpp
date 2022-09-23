@@ -2,6 +2,53 @@
 #include "ClientHandlers.h"
 #include "Quest.h"
 
+bool HasParticipationTokenFromAPI(PULONG_PTR mainPlayer, const SeasonInfo* seasonInfo)
+{
+    for (auto difficulty : GameAPI::GAME_DIFFICULTIES)
+    {
+        const std::vector<GameAPI::TriggerToken>& tokens = GameAPI::GetPlayerTokens(mainPlayer, difficulty);
+        for (size_t i = 0; i < tokens.size(); ++i)
+        {
+            std::string token = tokens[i].GetTokenString();
+            for (char& c : token)
+                c = std::tolower(c);
+
+            if (token == seasonInfo->_participationToken)
+                return true;
+        }
+    }
+    return false;
+}
+
+bool HasParticipationTokenFromFile(const std::wstring& playerName, const SeasonInfo* seasonInfo)
+{
+    std::filesystem::path characterPath = std::filesystem::path(GameAPI::GetBaseFolder()) / "save" / "user" / "_";
+    characterPath += playerName;
+
+    for (const auto& it : std::filesystem::recursive_directory_iterator(characterPath))
+    {
+        Quest questData;
+        const std::filesystem::path& filePath = it.path();
+        if ((filePath.filename() == "quests.gdd") && (questData.ReadFromFile(filePath)))
+        {
+            web::json::value questJSON = questData.ToJSON();
+            web::json::array tokensArray = questJSON[U("Tokens")][U("Tokens")].as_array();
+
+            uint32_t index = 0;
+            for (auto it2 = tokensArray.begin(); it2 != tokensArray.end(); ++it2)
+            {
+                std::string token = JSONString(it2->serialize());
+                for (char& c : token)
+                    c = std::tolower(c);
+
+                if (token == seasonInfo->_participationToken)
+                    return true;
+            }
+        }
+    }
+    return false;
+}
+
 void HandleSetMainPlayer(void* _this, uint32_t unk1)
 {
     typedef void(__thiscall* SetMainPlayerProto)(void*, uint32_t);
@@ -18,27 +65,9 @@ void HandleSetMainPlayer(void* _this, uint32_t unk1)
         if ((mainPlayer) && (seasonInfo))
         {
             std::wstring playerName = GameAPI::GetPlayerName(mainPlayer);
-            bool hasParticipationToken = GameAPI::HasToken(mainPlayer, seasonInfo->_participationToken);
-
-            for (auto difficulty : GameAPI::GAME_DIFFICULTIES)
-            {
-                if (!hasParticipationToken)
-                {
-                    const std::vector<GameAPI::TriggerToken>& tokens = GameAPI::GetPlayerTokens(mainPlayer, difficulty);
-                    for (size_t i = 0; i < tokens.size(); ++i)
-                    {
-                        std::string token = tokens[i].GetTokenString();
-                        for (char& c : token)
-                            c = std::tolower(c);
-
-                        if (token == seasonInfo->_participationToken)
-                        {
-                            hasParticipationToken = true;
-                            break;
-                        }
-                    }
-                }
-            }
+            bool hasParticipationToken = GameAPI::HasToken(mainPlayer, seasonInfo->_participationToken) ||
+                                         HasParticipationTokenFromAPI(mainPlayer, seasonInfo) || 
+                                         HasParticipationTokenFromFile(playerName, seasonInfo);
 
             client.SetActiveCharacter(playerName, hasParticipationToken);
             pplx::create_task([&client]()

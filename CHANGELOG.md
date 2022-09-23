@@ -63,3 +63,10 @@
 - Fixed a crash that would occur when loading a character while in-game cloud saving was enabled.
     - Characters will still remain unable to earn progress towards quests and achievements while cloud saving is enabled.
 - The launcher now requires a specific game version (determined by the current season) in order to start. This ensures that playtesting and temporary balance changes do not affect seasonal gameplay.
+
+## 1.1.6 (2022-09-23)
+
+- Fixed a bug where the launcher would not recognize players on shatteredrealm.map as participating in the season
+- The launcher now searches the current Grim Dawn directory for the installation .zip instead of passing a file path when performing an update.
+- Moved server auth and downloading functions back to the .exe to avoid load conflicts with the .dll.
+    - This will increase the file size of the launcher slightly, but should fix issues where the .dll was not being unloaded before updating which would cause the update to fail.

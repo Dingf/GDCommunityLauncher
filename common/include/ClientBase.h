@@ -34,13 +34,13 @@ struct ClientData
         return (!_username.empty() && !_authToken.empty() && !_refreshToken.empty() && !_hostName.empty());
     }
 
+    bool        _updateFlag;
     uint32_t    _participantID;
     std::string _role;
     std::string _username;
     std::string _authToken;
     std::string _refreshToken;
     std::string _hostName;
-    std::string _updatePath;
     std::vector<SeasonInfo> _seasons;
 };
 

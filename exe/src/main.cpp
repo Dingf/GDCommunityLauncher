@@ -24,13 +24,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
         return EXIT_FAILURE;
     }
 
-    // Load the DLL which contains the functions used to communicate with the server
-    if (!LoadLibrary(TEXT("GDCommunityLauncher.dll")))
-    {
-        MessageBox(NULL, TEXT("Failed to load GDCommunityLauncher.dll."), NULL, MB_OK | MB_ICONERROR);
-        return EXIT_FAILURE;
-    }
-
     // Load the launcher configuration from the .ini file
     Configuration config;
     std::filesystem::path configPath = current / "GDCommunityLauncher.ini";

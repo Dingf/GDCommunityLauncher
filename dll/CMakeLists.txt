@@ -17,8 +17,6 @@ include/ChatClient.h
 include/Client.h
 include/ClientHandlers.h
 include/DatabaseValues.h
-include/Exports/ServerAuthExport.h
-include/Exports/UpdateDialogExport.h
 res/ItemDatabaseValues.rc
 res/DungeonDatabaseValues.rc
 src/EventManager.cpp
@@ -43,8 +41,6 @@ src/ClientHandlers/HandleTransferStash.cpp
 src/ClientHandlers/HandleBestowToken.cpp
 src/ClientHandlers/HandleSendChatMessage.cpp
 src/ClientHandlers/HandleEndlessDungeon.cpp
-src/Exports/ServerAuthExport.cpp
-src/Exports/UpdateDialogExport.cpp
 src/main.cpp)
 
 target_include_directories(dll PRIVATE include)

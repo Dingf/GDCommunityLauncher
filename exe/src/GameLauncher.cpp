@@ -2,7 +2,6 @@
 #include <fstream>
 #include <filesystem>
 #include <windows.h>
-#include <delayimp.h>
 #include <minizip/unzip.h>
 #include "GameLauncher.h"
 #include "Client.h"
@@ -129,9 +128,10 @@ LPVOID BuildEnvironmentVariables()
     }
 }
 
-bool ExtractZIPUpdate(const std::filesystem::path& path)
+bool ExtractZIPUpdate()
 {
-    const char* pathString = path.u8string().c_str();
+    std::filesystem::path path = std::filesystem::current_path() / "GDCommunityLauncher.zip";
+    const char* pathString = path.string().c_str();
     unzFile zipFile = unzOpen(pathString);
     if ((zipFile) && (unzLocateFile(zipFile, "GDCommunityLauncher.dll", 0) != UNZ_END_OF_LIST_OF_FILE))
     {
@@ -178,17 +178,10 @@ HANDLE GameLauncher::LaunchProcess(const std::filesystem::path& exePath, const s
     Client& client = Client::GetInstance();
 
     // If we need to update the launcher, unload the DLL and then overwrite it with the copy from the .zip file
-    if (!client.GetUpdatePath().empty())
+    if (client.HasUpdate() && !ExtractZIPUpdate())
     {
-        if (__FUnloadDelayLoadedDLL2("GDCommunityLauncher.dll"))
-        {
-            HMODULE launcherDLL = GetModuleHandle(TEXT("GDCommunityLauncher.dll"));
-            if (launcherDLL)
-            {
-                FreeLibrary(launcherDLL);
-                ExtractZIPUpdate(client.GetUpdatePath());
-            }
-        }
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to update GDCommunityLauncher.dll");
+        return false;
     }
 
     HANDLE pipeRead, pipeWrite;
