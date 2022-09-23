@@ -52,7 +52,14 @@
 - Added a new chat command - /online. This command will display the current number of online players.
 - Fixed a crash that would sometimes occur when trying to upload character data before it has finished saving.
 
-# 1.1.4 (2022-09-20)
+## 1.1.4 (2022-09-20)
 
 - Added the name of the enemy that dealt the killing blow to the serverwide death announcement.
 - Added a new chat command - /challenges. This command will display an overview of your current challenges.
+
+## 1.1.5 (2022-09-22)
+
+- Changed the /challenges chat command to run asynchronously.
+- Fixed a crash that would occur when loading a character while in-game cloud saving was enabled.
+    - Characters will still remain unable to earn progress towards quests and achievements while cloud saving is enabled.
+- The launcher now requires a specific game version (determined by the current season) in order to start. This ensures that playtesting and temporary balance changes do not affect seasonal gameplay.

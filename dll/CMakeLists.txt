@@ -11,6 +11,7 @@ include/EngineAPI/KeyButtonEvent.h
 include/EngineAPI/UI/ChatWindow.h
 include/GameAPI.h
 include/GameAPI/Difficulty.h
+include/GameAPI/TriggerToken.h
 include/LuaAPI.h
 include/ChatClient.h
 include/Client.h
@@ -27,6 +28,7 @@ src/EngineAPI/Platform.cpp
 src/EngineAPI/Color.cpp
 src/EngineAPI/UI/ChatWindow.cpp
 src/GameAPI.cpp
+src/GameAPI/TriggerToken.cpp
 src/LuaAPI.cpp
 src/ChatClient.cpp
 src/Client.cpp

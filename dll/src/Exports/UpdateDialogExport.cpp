@@ -218,7 +218,7 @@ bool DownloadFile(const std::filesystem::path& filenamePath, const std::string& 
     }
 }
 
-bool VerifyBaseGameFiles(const std::string& hostName, const std::string& authToken)
+bool VerifyBaseGameFiles(const std::string& hostName, const std::string& authToken, std::string& expectedVersion)
 {
     std::vector<pplx::task<bool>> tasks;
     // TODO: Make this more scalable, like store it as a list in a file or something
@@ -250,6 +250,11 @@ bool VerifyBaseGameFiles(const std::string& hostName, const std::string& authTok
         {
             return true;
         }
+        else if (response.status_code() == web::http::status_codes::BadRequest)
+        {
+            expectedVersion = response.extract_utf8string().get();
+            throw std::runtime_error("File size mismatch. Server expects game version " + expectedVersion);
+        }
         else
         {
             throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
@@ -260,9 +265,4 @@ bool VerifyBaseGameFiles(const std::string& hostName, const std::string& authTok
         Logger::LogMessage(LOG_LEVEL_WARN, "Failed to verify base game files: %", ex.what());
         return false;
     }
-
-    /*return pplx::when_all(std::begin(tasks), std::end(tasks)).then([](std::vector<bool> results)
-    {
-        return (std::all_of(results.begin(), results.end(), [](bool b) { return b; }));
-    }).get();*/
 }

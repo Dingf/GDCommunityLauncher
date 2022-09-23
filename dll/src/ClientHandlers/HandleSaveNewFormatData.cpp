@@ -7,11 +7,11 @@
 #include "md5.hpp"
 #include "Log.h"
 
-const std::unordered_map<std::string, const utility::char_t*> difficultyTagLookup =
+const std::unordered_map<GameAPI::Difficulty, const utility::char_t*> difficultyTagLookup =
 {
-    { "Normal",   U("normalQuestTags") },
-    { "Elite",    U("eliteQuestTags") },
-    { "Ultimate", U("ultimateQuestTags") },
+    { GameAPI::GAME_DIFFICULTY_NORMAL,   U("normalQuestTags") },
+    { GameAPI::GAME_DIFFICULTY_ELITE,    U("eliteQuestTags") },
+    { GameAPI::GAME_DIFFICULTY_ULTIMATE, U("ultimateQuestTags") },
 };
 
 std::filesystem::path GetCharacterPath(const std::wstring& playerName)
@@ -63,9 +63,17 @@ void PostCharacterDataUpload(const std::wstring& playerName, const std::string& 
 {
     Client& client = Client::GetInstance();
     uint32_t characterID = GetCharacterID(playerName);
+    PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
 
     std::filesystem::path characterPath = GetCharacterPath(playerName);
     std::filesystem::path characterSavePath = characterPath / "player.gdc";
+
+    // If using cloud saves, the character path won't exist so just return
+    if (!std::filesystem::is_directory(characterPath))
+    {
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Character path not found. Make sure that cloud saving is diabled.");
+        return;
+    }
 
     std::vector<std::filesystem::path> characterQuestPaths;
     for (const auto& entry : std::filesystem::directory_iterator(characterPath))
@@ -109,36 +117,17 @@ void PostCharacterDataUpload(const std::wstring& playerName, const std::string& 
     for (auto pair : difficultyTagLookup)
         questInfo[pair.second] = web::json::value::array();
 
-    for (const auto& it : std::filesystem::recursive_directory_iterator(characterPath))
+    for (auto difficulty : GameAPI::GAME_DIFFICULTIES)
     {
-        const std::filesystem::path& filePath = it.path();
-        if (filePath.filename() == "quests.gdd")
+        const std::vector<GameAPI::TriggerToken>& tokens = GameAPI::GetPlayerTokens(mainPlayer, difficulty);
+        for (size_t i = 0, index = 0; i < tokens.size(); ++i)
         {
-            while (!std::ifstream(filePath).good());
+            std::string token = tokens[i].GetTokenString();
+            for (char& c : token)
+                c = std::tolower(c);
 
-            Quest questData;
-            if (questData.ReadFromFile(filePath))
-            {
-                web::json::value questJSON = questData.ToJSON();
-                web::json::array tokensArray = questJSON[U("Tokens")][U("Tokens")].as_array();
-
-                std::string difficulty = filePath.parent_path().filename().string();
-                if (difficultyTagLookup.count(difficulty) > 0)
-                {
-                    uint32_t index = 0;
-                    for (auto it2 = tokensArray.begin(); it2 != tokensArray.end(); ++it2)
-                    {
-                        std::string token = JSONString(it2->serialize());
-                        for (char& c : token)
-                            c = std::tolower(c);
-
-                        if (token.find("gdl_", 0) == 0)
-                        {
-                            questInfo[difficultyTagLookup.at(difficulty)][index++] = JSONString(token);
-                        }
-                    }
-                }
-            }
+            if (token.find("gdl_", 0) == 0)
+                questInfo[difficultyTagLookup.at(difficulty)][index++] = JSONString(token);
         }
     }
 

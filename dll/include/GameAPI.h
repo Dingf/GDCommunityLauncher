@@ -4,6 +4,7 @@
 #include <string>
 #include <Windows.h>
 #include "GameAPI/Difficulty.h"
+#include "GameAPI/TriggerToken.h"
 
 namespace GameAPI
 {
@@ -12,6 +13,7 @@ constexpr char GAPI_NAME_GAME_ENGINE[] = "?gGameEngine@GAME@@3PEAVGameEngine@1@E
 constexpr char GAPI_NAME_GET_MAIN_PLAYER[] = "?GetMainPlayer@GameEngine@GAME@@QEBAPEAVPlayer@2@XZ";
 constexpr char GAPI_NAME_GET_PLAYER_NAME[] = "?GetPlayerName@Player@GAME@@QEBAPEBGXZ";
 constexpr char GAPI_NAME_GET_PLAYER_PARTY_ID[] = "?GetPartyId@Player@GAME@@QEBAHXZ";
+constexpr char GAPI_NAME_GET_PLAYER_TOKENS[] = "?GetTokens@Player@GAME@@QEBAAEBV?$vector@UTriggerToken@GAME@@@mem@@W4GameDifficulty@2@@Z";
 constexpr char GAPI_NAME_GET_PLAYER_MAX_DIFFICULTY[] = "?GetGreatestDifficultyCompleted@Player@GAME@@QEBA?AW4GameDifficulty@2@XZ";
 constexpr char GAPI_NAME_GET_BASE_FOLDER[] = "?GetBaseFolder@GameEngine@GAME@@SA?AV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@XZ";
 constexpr char GAPI_NAME_GET_GAME_DIFFICULTY[] = "?GetGameDifficulty@GameEngine@GAME@@QEBA?AW4GameDifficulty@2@XZ";
@@ -38,6 +40,7 @@ constexpr char GAPI_NAME_GAME_ENGINE[] = "?gGameEngine@GAME@@3PAVGameEngine@1@A"
 constexpr char GAPI_NAME_GET_MAIN_PLAYER[] = "?GetMainPlayer@GameEngine@GAME@@QBEPAVPlayer@2@XZ";
 constexpr char GAPI_NAME_GET_PLAYER_NAME[] = "?GetPlayerName@Player@GAME@@QBEPBGXZ";
 constexpr char GAPI_NAME_GET_PLAYER_PARTY_ID[] = "?GetPartyId@Player@GAME@@QBEHXZ";
+constexpr char GAPI_NAME_GET_PLAYER_TOKENS[] = "?GetTokens@Player@GAME@@QBEABV?$vector@UTriggerToken@GAME@@@mem@@W4GameDifficulty@2@@Z";
 constexpr char GAPI_NAME_GET_PLAYER_MAX_DIFFICULTY[] = "?GetGreatestDifficultyCompleted@Player@GAME@@QBE?AW4GameDifficulty@2@XZ";
 constexpr char GAPI_NAME_GET_BASE_FOLDER[] = "?GetBaseFolder@GameEngine@GAME@@SA?AV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@XZ";
 constexpr char GAPI_NAME_GET_GAME_DIFFICULTY[] = "?GetGameDifficulty@GameEngine@GAME@@QBE?AW4GameDifficulty@2@XZ";

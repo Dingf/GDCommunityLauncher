@@ -20,33 +20,21 @@ void HandleSetMainPlayer(void* _this, uint32_t unk1)
             std::wstring playerName = GameAPI::GetPlayerName(mainPlayer);
             bool hasParticipationToken = GameAPI::HasToken(mainPlayer, seasonInfo->_participationToken);
 
-            if (!hasParticipationToken)
+            for (auto difficulty : GameAPI::GAME_DIFFICULTIES)
             {
-                Quest questData;
-
-                std::filesystem::path characterPath = std::filesystem::path(GameAPI::GetBaseFolder()) / "save" / "user" / "_";
-                characterPath += playerName;
-
-                for (const auto& it : std::filesystem::recursive_directory_iterator(characterPath))
+                if (!hasParticipationToken)
                 {
-                    const std::filesystem::path& filePath = it.path();
-                    if ((!hasParticipationToken) && (filePath.filename() == "quests.gdd") && (questData.ReadFromFile(filePath)))
+                    const std::vector<GameAPI::TriggerToken>& tokens = GameAPI::GetPlayerTokens(mainPlayer, difficulty);
+                    for (size_t i = 0; i < tokens.size(); ++i)
                     {
-                        web::json::value questJSON = questData.ToJSON();
-                        web::json::array tokensArray = questJSON[U("Tokens")][U("Tokens")].as_array();
+                        std::string token = tokens[i].GetTokenString();
+                        for (char& c : token)
+                            c = std::tolower(c);
 
-                        uint32_t index = 0;
-                        for (auto it2 = tokensArray.begin(); it2 != tokensArray.end(); ++it2)
+                        if (token == seasonInfo->_participationToken)
                         {
-                            std::string token = JSONString(it2->serialize());
-                            for (char& c : token)
-                                c = std::tolower(c);
-
-                            if (token == seasonInfo->_participationToken)
-                            {
-                                hasParticipationToken = true;
-                                break;
-                            }
+                            hasParticipationToken = true;
+                            break;
                         }
                     }
                 }

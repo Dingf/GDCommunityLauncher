@@ -91,9 +91,10 @@ INT_PTR CALLBACK UpdateDialogHandler(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
             DestroyWindow(hwnd);
             return TRUE;
         }
-        case WM_UPDATE_OLD_VERSION:
+        case WM_UPDATE_WRONG_VERSION:
         {
-            MessageBoxA(hwnd, "The version of the launcher that you are using is out of date. Please download the latest version and try again.", "Error", MB_OK | MB_ICONERROR);
+            std::string message = "The current Grim Dawn Community League requires Grim Dawn v" + std::string((const char*)lp) + " to play. Please switch your game version and try again.";
+            MessageBoxA(hwnd, message.c_str(), "", MB_OK | MB_ICONINFORMATION);
             DestroyWindow(hwnd);
             return TRUE;
         }
@@ -173,6 +174,13 @@ bool UpdateDialog::Update()
             return;
         }
 
+        std::string gameVersion;
+        if (!VerifyBaseGameFiles(hostName, authToken, gameVersion))
+        {
+            SendMessage(UpdateDialog::_window, WM_UPDATE_WRONG_VERSION, NULL, (LPARAM)gameVersion.c_str());
+            return;
+        }
+
         std::unordered_map<std::wstring, std::string> downloadList;
         if (!GetDownloadList(hostName, modName, authToken, downloadList))
         {
@@ -187,12 +195,6 @@ bool UpdateDialog::Update()
         else
         {
             SendMessage(UpdateDialog::_window, WM_UPDATE_OK, NULL, NULL);
-        }
-
-        if (!VerifyBaseGameFiles(hostName, authToken))
-        {
-            SendMessage(UpdateDialog::_window, WM_UPDATE_FAIL, NULL, NULL);
-            return;
         }
     });
 

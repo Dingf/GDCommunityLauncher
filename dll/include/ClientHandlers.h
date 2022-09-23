@@ -18,7 +18,7 @@ void HandleSetTransferOpen(void* _this, uint32_t unk1, bool unk2, bool unk3);
 void HandleSaveNewFormatData(void* _this, void* writer);
 void HandleSaveTransferStash(void* _this);
 void HandleLoadTransferStash(void* _this);
-void HandleBestowToken(void* _this, void* token);
+void HandleBestowToken(void* _this, const GameAPI::TriggerToken& token);
 void HandleUnloadWorld(void* _this);
 void HandleSendChatMessage(void* _this, const std::wstring& name, const std::wstring& message, uint8_t type, std::vector<uint32_t> targets, uint32_t unk1);
 void HandleSyncDungeonProgress(void* _this, int unk1);
