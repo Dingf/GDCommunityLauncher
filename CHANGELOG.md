@@ -13,7 +13,7 @@
 - Fixed a crash that would occur when trying to make API calls while unable to connect to the server.
 - The launcher now displays an error message box if it is unable to connect to the server instead of terminating silently.
 - League overlay text now displays a warning message (instead of rank and points) for the following cases:
-    - Cloud Saving is enabled (Steam only)
+    - Cloud Saving is enabled
     - The current game session is multiplayer
     - The launcher is unable to connect to the server
 	
@@ -66,7 +66,14 @@
 
 ## 1.1.6 (2022-09-23)
 
-- Fixed a bug where the launcher would not recognize players on shatteredrealm.map as participating in the season
+- Fixed a bug where the launcher would not recognize players on shatteredrealm.map as participating in the season.
 - The launcher now searches the current Grim Dawn directory for the installation .zip instead of passing a file path when performing an update.
 - Moved server auth and downloading functions back to the .exe to avoid load conflicts with the .dll.
     - This will increase the file size of the launcher slightly, but should fix issues where the .dll was not being unloaded before updating which would cause the update to fail.
+	
+## 1.1.7 (2022-09-27)
+
+- Changed the /online chat command to run asynchronously.
+- Fixed an issue where the transfer stash would sometimes send multiple upload requests if the server was unresponsive.
+- Fixed a crash that would sometimes occur when the Lua state becomes invalid after exiting to the main menu.
+- Fixed a crash that would occur when loading a new character while in-game cloud saving was enabled (for real this time).

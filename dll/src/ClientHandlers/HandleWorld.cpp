@@ -106,6 +106,8 @@ bool HandleLoadWorld(void* _this, const char* mapName, bool unk1, bool modded)
             // Check the map name to make sure that we are not in the main menu when setting the active season
             if ((modName) && (mapName) && (std::string(mapName) != "levels/mainmenu/mainmenu.map"))
             {
+                LuaAPI::Initialize();
+
                 // Attempt to register the user for the active season
                 const SeasonInfo* seasonInfo = client.GetActiveSeason();
                 if (seasonInfo)
@@ -184,6 +186,7 @@ void HandleUnloadWorld(void* _this)
         const std::wstring& characterName = client.GetActiveCharacterName();
         if ((!EngineAPI::IsMultiplayer()) && (client.IsParticipatingInSeason()) && (!characterName.empty()) && (client.IsOnline()))
         {
+            LuaAPI::Cleanup();
             client.SetActiveCharacter({}, false);
         }
     }

@@ -25,24 +25,27 @@ bool HasParticipationTokenFromFile(const std::wstring& playerName, const SeasonI
     std::filesystem::path characterPath = std::filesystem::path(GameAPI::GetBaseFolder()) / "save" / "user" / "_";
     characterPath += playerName;
 
-    for (const auto& it : std::filesystem::recursive_directory_iterator(characterPath))
+    if (std::filesystem::is_directory(characterPath))
     {
-        Quest questData;
-        const std::filesystem::path& filePath = it.path();
-        if ((filePath.filename() == "quests.gdd") && (questData.ReadFromFile(filePath)))
+        for (const auto& it : std::filesystem::recursive_directory_iterator(characterPath))
         {
-            web::json::value questJSON = questData.ToJSON();
-            web::json::array tokensArray = questJSON[U("Tokens")][U("Tokens")].as_array();
-
-            uint32_t index = 0;
-            for (auto it2 = tokensArray.begin(); it2 != tokensArray.end(); ++it2)
+            Quest questData;
+            const std::filesystem::path& filePath = it.path();
+            if ((filePath.filename() == "quests.gdd") && (questData.ReadFromFile(filePath)))
             {
-                std::string token = JSONString(it2->serialize());
-                for (char& c : token)
-                    c = std::tolower(c);
+                web::json::value questJSON = questData.ToJSON();
+                web::json::array tokensArray = questJSON[U("Tokens")][U("Tokens")].as_array();
 
-                if (token == seasonInfo->_participationToken)
-                    return true;
+                uint32_t index = 0;
+                for (auto it2 = tokensArray.begin(); it2 != tokensArray.end(); ++it2)
+                {
+                    std::string token = JSONString(it2->serialize());
+                    for (char& c : token)
+                        c = std::tolower(c);
+
+                    if (token == seasonInfo->_participationToken)
+                        return true;
+                }
             }
         }
     }

@@ -177,35 +177,38 @@ bool HandleChatTradeCommand(std::wstring& name, std::wstring& message, uint32_t&
 
 bool HandleChatOnlineCommand(std::wstring& name, std::wstring& message, uint32_t& channel, uint8_t& type)
 {
-    try
+    pplx::create_task([]()
     {
-        Client& client = Client::GetInstance();
-        URI endpoint = URI(client.GetHostName()) / "chat" / "chat" / "connected-clients";
-
-        web::http::client::http_client httpClient((utility::string_t)endpoint);
-        web::http::http_request request(web::http::methods::GET);
-
-        std::string bearerToken = "Bearer " + client.GetAuthToken();
-        request.headers().add(U("Authorization"), bearerToken.c_str());
-
-        web::http::http_response response = httpClient.request(request).get();
-        if (response.status_code() == web::http::status_codes::OK)
+        try
         {
-            web::json::value responseBody = response.extract_json().get();
-            web::json::array usersArray = responseBody.as_array();
+            Client& client = Client::GetInstance();
+            URI endpoint = URI(client.GetHostName()) / "chat" / "chat" / "connected-clients";
 
-            std::wstring message = L"There are " + std::to_wstring(usersArray.size()) + L" users currently online.";
-            GameAPI::SendChatMessage(L"Server", message, EngineAPI::UI::CHAT_TYPE_NORMAL);
+            web::http::client::http_client httpClient((utility::string_t)endpoint);
+            web::http::http_request request(web::http::methods::GET);
+
+            std::string bearerToken = "Bearer " + client.GetAuthToken();
+            request.headers().add(U("Authorization"), bearerToken.c_str());
+
+            web::http::http_response response = httpClient.request(request).get();
+            if (response.status_code() == web::http::status_codes::OK)
+            {
+                web::json::value responseBody = response.extract_json().get();
+                web::json::array usersArray = responseBody.as_array();
+
+                std::wstring message = L"There are " + std::to_wstring(usersArray.size()) + L" users currently online.";
+                GameAPI::SendChatMessage(L"Server", message, EngineAPI::UI::CHAT_TYPE_NORMAL);
+            }
+            else
+            {
+                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+            }
         }
-        else
+        catch (const std::exception& ex)
         {
-            throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+            Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve online users: %", ex.what());
         }
-    }
-    catch (const std::exception& ex)
-    {
-        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve online users: %", ex.what());
-    }
+    });
 
    return false;
 }

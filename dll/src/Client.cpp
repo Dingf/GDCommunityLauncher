@@ -395,7 +395,6 @@ void Client::UpdateSeasonStanding()
 bool Client::Initialize()
 {
     Logger::SetMinimumLogLevel(LOG_LEVEL_WARN);
-    LuaAPI::Initialize();
 
     // Initialize the chat client in a separate thread
     pplx::task<void> task = pplx::create_task([]()

@@ -1,6 +1,9 @@
 #ifndef INC_GDCL_DLL_CLIENT_HANDLERS_H
 #define INC_GDCL_DLL_CLIENT_HANDLERS_H
 
+#include <string>
+#include <vector>
+#include <filesystem>
 #include "HookManager.h"
 #include "EngineAPI.h"
 #include "GameAPI.h"
@@ -22,5 +25,7 @@ void HandleBestowToken(void* _this, const GameAPI::TriggerToken& token);
 void HandleUnloadWorld(void* _this);
 void HandleSendChatMessage(void* _this, const std::wstring& name, const std::wstring& message, uint8_t type, std::vector<uint32_t> targets, uint32_t unk1);
 void HandleSyncDungeonProgress(void* _this, int unk1);
+
+std::string GenerateFileMD5(const std::filesystem::path& path);
 
 #endif//INC_GDCL_DLL_CLIENT_HANDLERS_H

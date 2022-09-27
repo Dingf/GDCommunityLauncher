@@ -160,8 +160,7 @@ ServerAuthResult ServerAuthenticate(ClientData& data, const std::string& passwor
         return SERVER_AUTH_INVALID_SEASONS;
     }
 
-    if (GetLauncherVersion(data._hostName) != std::string(GDCL_VERSION))
-        data._updateFlag = true;
+    data._updateFlag = (GetLauncherVersion(data._hostName) != std::string(GDCL_VERSION));
 
     if (callback)
         callback(SERVER_AUTH_OK, data);

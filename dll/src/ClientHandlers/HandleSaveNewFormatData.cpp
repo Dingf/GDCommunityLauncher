@@ -14,6 +14,25 @@ const std::unordered_map<GameAPI::Difficulty, const utility::char_t*> difficulty
     { GameAPI::GAME_DIFFICULTY_ULTIMATE, U("ultimateQuestTags") },
 };
 
+std::string GenerateFileMD5(const std::filesystem::path& path)
+{
+    std::stringstream buffer;
+    std::ifstream in(path, std::ifstream::binary | std::ifstream::in);
+    if (!in.is_open())
+        return {};
+
+    buffer << in.rdbuf();
+
+    in.close();
+
+    // Capitalize the MD5 hash to match the server output
+    std::string result = websocketpp::md5::md5_hash_hex(buffer.str());
+    for (std::string::iterator it = result.begin(); it != result.end(); ++it)
+        *it = toupper(*it);
+
+    return result;
+}
+
 std::filesystem::path GetCharacterPath(const std::wstring& playerName)
 {
     std::filesystem::path result = std::filesystem::path(GameAPI::GetBaseFolder()) / "save" / "user" / "_";
@@ -62,6 +81,11 @@ uint32_t GetCharacterID(const std::wstring& playerName)
 void PostCharacterDataUpload(const std::wstring& playerName, const std::string& prevChecksum)
 {
     Client& client = Client::GetInstance();
+
+    // Shouldn't happen, but if player name is empty we can't do anything here
+    if (playerName.empty())
+        return;
+
     uint32_t characterID = GetCharacterID(playerName);
     PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
 
@@ -71,7 +95,7 @@ void PostCharacterDataUpload(const std::wstring& playerName, const std::string& 
     // If using cloud saves, the character path won't exist so just return
     if (!std::filesystem::is_directory(characterPath))
     {
-        Logger::LogMessage(LOG_LEVEL_ERROR, "Character path not found. Make sure that cloud saving is diabled.");
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Character path \"%\" was not found. Make sure that cloud saving is diabled.", characterPath.string());
         return;
     }
 
@@ -138,7 +162,7 @@ void PostCharacterDataUpload(const std::wstring& playerName, const std::string& 
     requestBody[U("seasonParticipantId")] = client.GetParticipantID();
     requestBody[U("participantCharacterId")] = characterID;
     requestBody[U("lastChecksum")] = JSONString(prevChecksum);
-    requestBody[U("currentChecksum")] = JSONString("");// JSONString(GenerateFileMD5(characterSavePath));
+    requestBody[U("currentChecksum")] = JSONString(GenerateFileMD5(characterSavePath));
 
     pplx::task<void> task = pplx::create_task([requestBody]()
     {
@@ -185,7 +209,7 @@ void HandleSaveNewFormatData(void* _this, void* writer)
         {
             std::filesystem::path characterPath = GetCharacterPath(client.GetActiveCharacterName());
             std::filesystem::path characterSavePath = characterPath / "player.gdc";
-            //prevChecksum = GenerateFileMD5(characterSavePath);
+            prevChecksum = GenerateFileMD5(characterSavePath);
         }
 
         callback(_this, writer);

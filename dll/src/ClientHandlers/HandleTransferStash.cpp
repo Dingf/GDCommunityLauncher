@@ -1,4 +1,5 @@
 #include <filesystem>
+#include <thread>
 #include <cpprest/http_client.h>
 #include "ClientHandlers.h"
 #include "SharedStash.h"
@@ -69,8 +70,6 @@ void PostTransferStashUpload()
             web::json::array transferItems = stashTabs[5][U("Items")].as_array();
             if (transferItems.size() > 0)
             {
-                std::scoped_lock lock(client.GetTransferMutex());
-
                 uint32_t index = 0;
                 web::json::value requestBody = web::json::value::array();
                 for (auto it = transferItems.begin(); it != transferItems.end(); ++it)
@@ -185,21 +184,28 @@ void HandleSaveTransferStash(void* _this)
         Client& client = Client::GetInstance();
         if (client.IsParticipatingInSeason())
         {
-            const char* modName = EngineAPI::GetModName();
-            PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
-            std::filesystem::path stashPath = GetTransferStashPath(modName, GameAPI::IsPlayerHardcore(mainPlayer), false);
-            prevChecksum = GenerateFileMD5(stashPath);
-        }
-
-        callback(_this);
-
-        if (client.IsParticipatingInSeason())
-        {
-            pplx::create_task([prevChecksum]()
+            client.GetTransferMutex();
+            if (client.GetTransferMutex().try_lock())
             {
-                PostTransferStashUpload();
-                PostTransferStashChecksums(prevChecksum);
-            });
+                const char* modName = EngineAPI::GetModName();
+                PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
+                std::filesystem::path stashPath = GetTransferStashPath(modName, GameAPI::IsPlayerHardcore(mainPlayer), false);
+                prevChecksum = GenerateFileMD5(stashPath);
+
+                callback(_this);
+
+                pplx::create_task([prevChecksum]()
+                {
+                    Client& client = Client::GetInstance();
+                    PostTransferStashUpload();
+                    PostTransferStashChecksums(prevChecksum);
+                    client.GetTransferMutex().unlock();
+                });
+            }
+        }
+        else
+        {
+            callback(_this);
         }
     }
 }
@@ -215,31 +221,28 @@ void PostPullTransferItems(const std::vector<Item*>& items)
             requestBody[i] = items[i]->_itemID;
         }
 
-        pplx::create_task([requestBody]()
+        try
         {
-            try
+            Client& client = Client::GetInstance();
+            URI endpoint = URI(client.GetHostName()) / "api" / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "pull-items";
+
+            web::http::client::http_client httpClient((utility::string_t)endpoint);
+            web::http::http_request request(web::http::methods::POST);
+            request.set_body(requestBody);
+
+            std::string bearerToken = "Bearer " + client.GetAuthToken();
+            request.headers().add(U("Authorization"), bearerToken.c_str());
+
+            web::http::http_response response = httpClient.request(request).get();
+            if (response.status_code() != web::http::status_codes::OK)
             {
-                Client& client = Client::GetInstance();
-                URI endpoint = URI(client.GetHostName()) / "api" / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "pull-items";
-
-                web::http::client::http_client httpClient((utility::string_t)endpoint);
-                web::http::http_request request(web::http::methods::POST);
-                request.set_body(requestBody);
-
-                std::string bearerToken = "Bearer " + client.GetAuthToken();
-                request.headers().add(U("Authorization"), bearerToken.c_str());
-
-                web::http::http_response response = httpClient.request(request).get();
-                if (response.status_code() != web::http::status_codes::OK)
-                {
-                    throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-                }
+                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
             }
-            catch (const std::exception& ex)
-            {
-                Logger::LogMessage(LOG_LEVEL_WARN, "Failed to pull items from transfer queue: %", ex.what());
-            }
-        });
+        }
+        catch (const std::exception& ex)
+        {
+            Logger::LogMessage(LOG_LEVEL_WARN, "Failed to pull items from transfer queue: %", ex.what());
+        }
     }
 }
 

@@ -3,9 +3,9 @@
 #include <Windows.h>
 #include "Client.h"
 #include "Configuration.h"
+#include "ServerAuth.h"
 #include "LoginDialog.h"
 #include "Version.h"
-#include "dll/include/Exports/ServerAuthExport.h"
 
 namespace LoginDialog
 {
