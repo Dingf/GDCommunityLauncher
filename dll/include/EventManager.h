@@ -8,6 +8,8 @@ enum GDCLEvent
 {
     GDCL_EVENT_CONNECT,
     GDCL_EVENT_DISCONNECT,
+    GDCL_EVENT_WORLD_LOAD,
+    GDCL_EVENT_WORLD_UNLOAD,
 };
 
 class EventManager

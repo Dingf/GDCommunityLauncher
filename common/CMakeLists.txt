@@ -1,6 +1,7 @@
 add_library(common
 include/md5.hpp
 include/ClientBase.h
+include/Configuration.h
 include/Date.h
 include/FileBuffer.h
 include/FileReader.h
@@ -11,6 +12,7 @@ include/Value.h
 include/Version.h
 include/JSONObject.h
 include/URI.h
+src/Configuration.cpp
 src/FileReader.cpp
 src/FileWriter.cpp
 src/Value.cpp)

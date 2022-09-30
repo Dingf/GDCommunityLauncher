@@ -1,6 +1,5 @@
 add_executable(exe WIN32
 include/Client.h
-include/Configuration.h
 include/GameLauncher.h
 include/ServerAuth.h
 include/LoginDialog.h
@@ -8,7 +7,6 @@ include/UpdateDialog.h
 res/LoginDialog.rc
 res/UpdateDialog.rc
 src/Client.cpp
-src/Configuration.cpp
 src/GameLauncher.cpp
 src/ServerAuth.cpp
 src/LoginDialog.cpp

@@ -6,6 +6,8 @@
 #include "DatabaseValues.h"
 #include "DungeonDatabase.h"
 #include "ItemDatabase.h"
+#include "EventManager.h"
+#include "Configuration.h"
 #include "URI.h"
 #include "Log.h"
 
@@ -106,7 +108,7 @@ bool HandleLoadWorld(void* _this, const char* mapName, bool unk1, bool modded)
             // Check the map name to make sure that we are not in the main menu when setting the active season
             if ((modName) && (mapName) && (std::string(mapName) != "levels/mainmenu/mainmenu.map"))
             {
-                LuaAPI::Initialize();
+                ChatClient& chatClient = ChatClient::GetInstance();
 
                 // Attempt to register the user for the active season
                 const SeasonInfo* seasonInfo = client.GetActiveSeason();
@@ -124,13 +126,9 @@ bool HandleLoadWorld(void* _this, const char* mapName, bool unk1, bool modded)
                         web::http::http_response response = httpClient.request(request).get();
                         if (response.status_code() == web::http::status_codes::OK)
                         {
-                            ChatClient& chatClient = ChatClient::GetInstance();
 
                             web::json::value responseBody = response.extract_json().get();
                             web::json::value participantID = responseBody[U("seasonParticipantId")];
-                            web::json::value currentChannel = responseBody[U("currentChannel")];
-
-                            chatClient.SetCurrentChatChannel(currentChannel.as_integer());
                             client.SetParticipantID(participantID.as_integer());
                             client.UpdateSeasonStanding();
                         }
@@ -143,6 +141,9 @@ bool HandleLoadWorld(void* _this, const char* mapName, bool unk1, bool modded)
                     {
                         Logger::LogMessage(LOG_LEVEL_WARN, "Failed to register for season %: %", seasonInfo->_seasonID, ex.what());
                     }
+
+                    EventManager::Publish(GDCL_EVENT_WORLD_LOAD);
+                    LuaAPI::Initialize();
                 }
             }
             else
@@ -186,8 +187,9 @@ void HandleUnloadWorld(void* _this)
         const std::wstring& characterName = client.GetActiveCharacterName();
         if ((!EngineAPI::IsMultiplayer()) && (client.IsParticipatingInSeason()) && (!characterName.empty()) && (client.IsOnline()))
         {
-            LuaAPI::Cleanup();
             client.SetActiveCharacter({}, false);
+            EventManager::Publish(GDCL_EVENT_WORLD_UNLOAD);
+            LuaAPI::Cleanup();
         }
     }
 }

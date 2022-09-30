@@ -29,6 +29,7 @@ class ChatClient
 
         static void OnConnectEvent(void* data);
         static void OnDisconnectEvent(void* data);
+        static void OnWorldLoadEvent(void* data);
 
         static void OnConnection(const signalr::value& m);
         static void OnReceiveMessage(const signalr::value& m);
@@ -36,6 +37,9 @@ class ChatClient
         static void OnWelcomeMessage(const signalr::value& m);
         static void OnJoinedChannel(const signalr::value& m);
         static void OnBanned(const signalr::value& m);
+
+        void LoadConfig();
+        void SaveConfig();
 
         uint8_t _channels;
         std::string _connectionID;

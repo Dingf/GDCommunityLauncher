@@ -356,7 +356,7 @@ INT_PTR CALLBACK UpdateDialogHandler(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
         }
         case WM_UPDATE_WRONG_VERSION:
         {
-            std::string message = "The current Grim Dawn Community League requires Grim Dawn v" + std::string((const char*)lp) + " to play. Please switch your game version and try again.";
+            std::string message = "The current Grim Dawn Community League requires Ashes of Malmouth, Forgotten Gods, and Grim Dawn v" + std::string((const char*)lp) + " to play. Please verify your game version and try again.";
             MessageBoxA(hwnd, message.c_str(), "", MB_OK | MB_ICONINFORMATION);
             DestroyWindow(hwnd);
             return TRUE;

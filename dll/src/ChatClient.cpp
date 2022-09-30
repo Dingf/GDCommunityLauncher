@@ -8,6 +8,7 @@
 #include "ChatClient.h"
 #include "Client.h"
 #include "EventManager.h"
+#include "Configuration.h"
 #include "URI.h"
 #include "Log.h"
 
@@ -157,6 +158,8 @@ void ChatClient::OnJoinedChannel(const signalr::value& m)
 
             GameAPI::SendChatMessage(L"Server", joinMessage, EngineAPI::UI::CHAT_TYPE_TRADE);
         }
+
+        chatClient.SaveConfig();
     }
 }
 
@@ -182,6 +185,7 @@ ChatClient::ChatClient()
 
     EventManager::Subscribe(GDCL_EVENT_CONNECT, &ChatClient::OnConnectEvent);
     EventManager::Subscribe(GDCL_EVENT_DISCONNECT, &ChatClient::OnDisconnectEvent);
+    EventManager::Subscribe(GDCL_EVENT_WORLD_LOAD, &ChatClient::OnWorldLoadEvent);
 
     _channels = 0;
 }
@@ -284,6 +288,12 @@ void ChatClient::OnDisconnectEvent(void* data)
     });
 }
 
+void ChatClient::OnWorldLoadEvent(void* data)
+{
+    ChatClient& chatClient = ChatClient::GetInstance();
+    chatClient.LoadConfig();
+}
+
 void ChatClient::SendChatMessage(EngineAPI::UI::ChatType type, const std::wstring& name, const std::wstring& message)
 {
     std::vector<signalr::value> args;
@@ -368,4 +378,37 @@ void ChatClient::DisplayWelcomeMessage()
     {
         LogExceptionPointer(ex, "Failed to retrieve welcome message: %");
     });
+}
+
+void ChatClient::LoadConfig()
+{
+    Configuration config;
+    std::filesystem::path configPath = std::filesystem::current_path() / "GDCommunityLauncher.ini";
+    if (std::filesystem::is_regular_file(configPath))
+    {
+        config.Load(configPath);
+        const Value* channelValue = config.GetValue("Chat", "channel");
+        uint32_t channel = (channelValue) ? channelValue->ToInt() : 0;
+        SetCurrentChatChannel(channel);
+    }
+    else
+    {
+        Logger::LogMessage(LOG_LEVEL_WARN, "Could not open configuration file %", configPath.string());
+    }
+}
+
+void ChatClient::SaveConfig()
+{
+    Configuration config;
+    std::filesystem::path configPath = std::filesystem::current_path() / "GDCommunityLauncher.ini";
+    if (std::filesystem::is_regular_file(configPath))
+    {
+        config.Load(configPath);
+        config.SetValue("Chat", "channel", (int)_channels);
+        config.Save(configPath);
+    }
+    else
+    {
+        Logger::LogMessage(LOG_LEVEL_WARN, "Could not open configuration file %", configPath.string());
+    }
 }

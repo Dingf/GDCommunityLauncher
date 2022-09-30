@@ -77,3 +77,11 @@
 - Fixed an issue where the transfer stash would sometimes send multiple upload requests if the server was unresponsive.
 - Fixed a crash that would sometimes occur when the Lua state becomes invalid after exiting to the main menu.
 - Fixed a crash that would occur when loading a new character while in-game cloud saving was enabled (for real this time).
+
+## 1.1.8 (2022-09-29)
+
+- Added an option to set global and trade chat colors.
+    - To change chat colors, type `/global color` or `/trade color` followed by a color alias or a 6-digit hex code.
+	- This change does not affect chat messages that were created before the command was issued.
+- The launcher now saves the current chat channel and color values in the configuration file.
+- Changed the shortcut for trade chat from /tr to /t.
