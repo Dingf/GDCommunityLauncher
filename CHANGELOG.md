@@ -82,6 +82,11 @@
 
 - Added an option to set global and trade chat colors.
     - To change chat colors, type `/global color` or `/trade color` followed by a color alias or a 6-digit hex code.
-	- This change does not affect chat messages that were created before the command was issued.
+    - This change does not affect chat messages that were created before the command was issued.
 - The launcher now saves the current chat channel and color values in the configuration file.
 - Changed the shortcut for trade chat from /tr to /t.
+
+## 1.1.9 (2022-10-11)
+
+- Fixed a crash that would sometimes occur when setting chat colors.
+- Improved the search algorithm for finding the chat window addresses.

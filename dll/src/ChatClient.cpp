@@ -75,11 +75,7 @@ void ChatClient::OnConnection(const signalr::value& m)
     {
         ChatClient& chatClient = ChatClient::GetInstance();
         chatClient._connectionID = m.as_array()[0].as_string();
-
-        EngineAPI::UI::ChatWindow& chatWindow = EngineAPI::UI::ChatWindow::GetInstance();
-        if (chatWindow.IsInitialized())
-            GameAPI::SendChatMessage(L"Server", L"Connected to chat server.", EngineAPI::UI::CHAT_TYPE_NORMAL);
-
+        GameAPI::SendChatMessage(L"Server", L"Connected to chat server.", EngineAPI::UI::CHAT_TYPE_NORMAL);
     }
 }
 
@@ -165,9 +161,7 @@ void ChatClient::OnJoinedChannel(const signalr::value& m)
 
 void ChatClient::OnBanned(const signalr::value& m)
 {
-    EngineAPI::UI::ChatWindow& chatWindow = EngineAPI::UI::ChatWindow::GetInstance();
-    if (chatWindow.IsInitialized())
-        GameAPI::SendChatMessage(L"Server", L"Your account has been banned from chat.", EngineAPI::UI::CHAT_TYPE_NORMAL);
+    GameAPI::SendChatMessage(L"Server", L"Your account has been banned from chat.", EngineAPI::UI::CHAT_TYPE_NORMAL);
 }
 
 ChatClient::ChatClient()
@@ -277,9 +271,7 @@ void ChatClient::OnConnectEvent(void* data)
 
 void ChatClient::OnDisconnectEvent(void* data)
 {
-    EngineAPI::UI::ChatWindow& chatWindow = EngineAPI::UI::ChatWindow::GetInstance();
-    if (chatWindow.IsInitialized())
-        GameAPI::SendChatMessage(L"Server", L"Disconnected from chat server.", EngineAPI::UI::CHAT_TYPE_NORMAL);
+    GameAPI::SendChatMessage(L"Server", L"Disconnected from chat server.", EngineAPI::UI::CHAT_TYPE_NORMAL);
 
     ChatClient& chatClient = ChatClient::GetInstance();
     chatClient._connection->stop([](std::exception_ptr ex)

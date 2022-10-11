@@ -23,17 +23,16 @@ class ChatWindow
         void SetChatPrefix(const std::wstring& prefix) { _prefix = prefix; }
 
         uint32_t GetChatColor(ChatType type);
-        void SetChatColor(ChatType type, uint32_t color) { SetChatColor(type, color, true); }
+        bool SetChatColor(ChatType type, uint32_t color, bool save = true);
 
         void ToggleDisplay();
 
-        bool IsInitialized() { return (_visible != nullptr) && (_colors != nullptr); }
+        bool IsToggleInitialized() const { return (_visible != nullptr); }
+        bool IsColorsInitialized() const { return (_colors != nullptr); }
         bool IsVisible();
 
     private:
         ChatWindow() : _visible(nullptr) {}
-
-        void SetChatColor(ChatType type, uint32_t color, bool save);
 
         void FindMagicAddresses();
         void LoadConfig();

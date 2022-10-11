@@ -53,6 +53,7 @@ const std::unordered_map<std::wstring, EngineAPI::Color> chatColorMap =
     { L"x", EngineAPI::Color::GRAY },       { L"gray", EngineAPI::Color::GRAY }, { L"grey", EngineAPI::Color::GRAY },
     { L"y", EngineAPI::Color::YELLOW },     { L"yellow", EngineAPI::Color::YELLOW },
     { L"z", EngineAPI::Color::SLATE },      { L"slate", EngineAPI::Color::SLATE },
+    { L"gorstak", EngineAPI::Color(0.871f, 0.680f, 1.000f, 1.000f) }
 };
 
 bool HandleChatHelpCommand(std::wstring& name, std::wstring& message, uint32_t& channel, uint8_t& type)
@@ -113,20 +114,27 @@ bool HandleChatGlobalCommand(std::wstring& name, std::wstring& message, uint32_t
             inputStream >> colorCode;
 
             // Swap red and blue values to match color code format
-            colorCode |= (colorCode & 0x000000FF) << 24;
-            colorCode = (colorCode & 0xFFFFFF00) | ((colorCode | 0x00FF0000) >> 16);
+            colorCode = (colorCode & 0x00FFFFFF) | ((colorCode & 0x000000FF) << 24);
+            colorCode = (colorCode & 0xFFFFFF00) | ((colorCode & 0x00FF0000) >> 16);
             colorCode = (colorCode & 0xFF00FFFF) | ((colorCode & 0xFF000000) >> 8);
+            colorCode = (colorCode & 0x00FFFFFF);
         }
 
         if (colorCode != 0)
         {
-            chatWindow.SetChatColor(EngineAPI::UI::CHAT_TYPE_GLOBAL, colorCode);
+            if (chatWindow.SetChatColor(EngineAPI::UI::CHAT_TYPE_GLOBAL, colorCode))
+            {
+                std::wstringstream outputStream;
+                outputStream << std::hex << std::uppercase << std::setfill(L'0') << std::setw(2) << (colorCode & 0x0000FF) << std::setw(2) << ((colorCode & 0x00FF00) >> 8) << std::setw(2) << ((colorCode & 0xFF0000) >> 16);
 
-            std::wstringstream outputStream;
-            outputStream << std::hex << std::uppercase << std::setfill(L'0') << std::setw(2) << (colorCode & 0x0000FF) << std::setw(2) << ((colorCode & 0x00FF00) >> 8) << std::setw(2) << ((colorCode & 0xFF0000) >> 16);
-
-            name = L"Server";
-            message = L"Changed global chat text color to #" + outputStream.str() + L".";
+                name = L"Server";
+                message = L"Changed global chat text color to #" + outputStream.str() + L".";
+            }
+            else
+            {
+                name = L"Server";
+                message = L"Could not change global chat text color.";
+            }
             return true;
         }
     }
@@ -227,20 +235,27 @@ bool HandleChatTradeCommand(std::wstring& name, std::wstring& message, uint32_t&
             inputStream >> colorCode;
 
             // Swap red and blue values to match color code format
-            colorCode |= (colorCode & 0x000000FF) << 24;
-            colorCode = (colorCode & 0xFFFFFF00) | ((colorCode | 0x00FF0000) >> 16);
+            colorCode = (colorCode & 0x00FFFFFF) | ((colorCode & 0x000000FF) << 24);
+            colorCode = (colorCode & 0xFFFFFF00) | ((colorCode & 0x00FF0000) >> 16);
             colorCode = (colorCode & 0xFF00FFFF) | ((colorCode & 0xFF000000) >> 8);
+            colorCode = (colorCode & 0x00FFFFFF);
         }
 
         if (colorCode != 0)
         {
-            chatWindow.SetChatColor(EngineAPI::UI::CHAT_TYPE_TRADE, colorCode);
+            if (chatWindow.SetChatColor(EngineAPI::UI::CHAT_TYPE_TRADE, colorCode))
+            {
+                std::wstringstream outputStream;
+                outputStream << std::hex << std::uppercase << std::setfill(L'0') << std::setw(2) << (colorCode & 0x0000FF) << std::setw(2) << ((colorCode & 0x00FF00) >> 8) << std::setw(2) << ((colorCode & 0xFF0000) >> 16);
 
-            std::wstringstream outputStream;
-            outputStream << std::hex << std::uppercase << std::setfill(L'0') << std::setw(2) << (colorCode & 0x0000FF) <<  std::setw(2) << ((colorCode & 0x00FF00) >> 8) << std::setw(2) << ((colorCode & 0xFF0000) >> 16);
-
-            name = L"Server";
-            message = L"Changed trade chat text color to #" + outputStream.str() + L".";
+                name = L"Server";
+                message = L"Changed trade chat text color to #" + outputStream.str() + L".";
+            }
+            else
+            {
+                name = L"Server";
+                message = L"Could not change trade chat text color.";
+            }
             return true;
         }
     }

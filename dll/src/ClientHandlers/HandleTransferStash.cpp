@@ -182,26 +182,22 @@ void HandleSaveTransferStash(void* _this)
         std::string prevChecksum;
 
         Client& client = Client::GetInstance();
-        if (client.IsParticipatingInSeason())
+        if ((client.IsParticipatingInSeason()) && (client.GetTransferMutex().try_lock()))
         {
-            client.GetTransferMutex();
-            if (client.GetTransferMutex().try_lock())
+            const char* modName = EngineAPI::GetModName();
+            PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
+            std::filesystem::path stashPath = GetTransferStashPath(modName, GameAPI::IsPlayerHardcore(mainPlayer), false);
+            prevChecksum = GenerateFileMD5(stashPath);
+
+            callback(_this);
+
+            pplx::create_task([prevChecksum]()
             {
-                const char* modName = EngineAPI::GetModName();
-                PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
-                std::filesystem::path stashPath = GetTransferStashPath(modName, GameAPI::IsPlayerHardcore(mainPlayer), false);
-                prevChecksum = GenerateFileMD5(stashPath);
-
-                callback(_this);
-
-                pplx::create_task([prevChecksum]()
-                {
-                    Client& client = Client::GetInstance();
-                    PostTransferStashUpload();
-                    PostTransferStashChecksums(prevChecksum);
-                    client.GetTransferMutex().unlock();
-                });
-            }
+                Client& client = Client::GetInstance();
+                PostTransferStashUpload();
+                PostTransferStashChecksums(prevChecksum);
+                client.GetTransferMutex().unlock();
+            });
         }
         else
         {

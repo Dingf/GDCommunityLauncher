@@ -95,7 +95,7 @@ void PostCharacterDataUpload(const std::wstring& playerName, const std::string& 
     // If using cloud saves, the character path won't exist so just return
     if (!std::filesystem::is_directory(characterPath))
     {
-        Logger::LogMessage(LOG_LEVEL_ERROR, "Character path \"%\" was not found. Make sure that cloud saving is diabled.", characterPath.string());
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Character path \"%\" was not found. Make sure that cloud saving is disabled.", characterPath.string());
         return;
     }
 
@@ -112,7 +112,7 @@ void PostCharacterDataUpload(const std::wstring& playerName, const std::string& 
     Character characterData;
     if (!characterData.ReadFromFile(characterSavePath))
     {
-        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to load character data. Make sure that cloud saving is diabled.");
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to load character data. Make sure that cloud saving is disabled.");
         return;
     }
 

@@ -17,7 +17,7 @@ bool HandleKeyEvent(void* _this, EngineAPI::KeyButtonEvent& event)
             // Enable the chat window while playing the league mod in single player
             if ((client.IsParticipatingInSeason()) && (event._keyCode == EngineAPI::KEY_ENTER) && (!EngineAPI::IsMultiplayer()) && (event._keyState == EngineAPI::KEY_STATE_DOWN))
             {
-                if (!chatWindow.IsVisible())
+                if ((chatWindow.IsToggleInitialized()) && (!chatWindow.IsVisible()))
                 {
                     chatWindow.ToggleDisplay();
                     if (!chatWindow.IsVisible())

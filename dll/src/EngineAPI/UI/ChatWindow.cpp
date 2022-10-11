@@ -33,34 +33,40 @@ uint32_t ChatWindow::GetChatColor(ChatType type)
     }
 }
 
-void ChatWindow::SetChatColor(ChatType type, uint32_t color, bool save)
+bool ChatWindow::SetChatColor(ChatType type, uint32_t color, bool save)
 {
-    float* baseAddress = nullptr;
-
-    // Trim alpha since we will always set it to 1.0f
-    color &= 0x00FFFFFF;
-
-    if (type == CHAT_TYPE_TRADE)
+    if (IsColorsInitialized())
     {
-        baseAddress = (float*)(_colors);
-        _tradeColor = color;
-    }
-    else if (type == CHAT_TYPE_GLOBAL)
-    {
-        baseAddress = (float*)(_colors + sizeof(uint64_t) * 4);
-        _globalColor = color;
-    }
+        float* baseAddress = nullptr;
 
-    if (baseAddress)
-    {
-        baseAddress[0] = (color & 0x0000FF) / 255.0f;
-        baseAddress[1] = ((color & 0x00FF00) >> 8) / 255.0f;
-        baseAddress[2] = ((color & 0xFF0000) >> 16) / 255.0f;
-        baseAddress[3] = 1.0f;
-    }
+        // Trim alpha since we will always set it to 1.0f
+        color &= 0x00FFFFFF;
 
-    if (save)
-        SaveConfig();
+        if (type == CHAT_TYPE_TRADE)
+        {
+            baseAddress = (float*)(_colors);
+            _tradeColor = color;
+        }
+        else if (type == CHAT_TYPE_GLOBAL)
+        {
+            baseAddress = (float*)(_colors + sizeof(uint64_t) * 4);
+            _globalColor = color;
+        }
+
+        if (baseAddress)
+        {
+            baseAddress[0] = (color & 0x0000FF) / 255.0f;
+            baseAddress[1] = ((color & 0x00FF00) >> 8) / 255.0f;
+            baseAddress[2] = ((color & 0xFF0000) >> 16) / 255.0f;
+            baseAddress[3] = 1.0f;
+        }
+
+        if (save)
+            SaveConfig();
+
+        return true;
+    }
+    return false;
 }
 
 void ChatWindow::ToggleDisplay()
@@ -72,13 +78,13 @@ void ChatWindow::ToggleDisplay()
             if (!_prefix.empty())
             {
                 wchar_t buffer[7] = { 0 };
-                uint8_t length = min(_prefix.size(), 7);
+                size_t length = min(_prefix.size(), 7);
 
                 memcpy(buffer, _prefix.c_str(), sizeof(wchar_t) * length);
                 memcpy(_visible + 0xB0, buffer, sizeof(wchar_t) * 7);
-                *(_visible + 0xC0)  = length;  // String length
-                *(_visible + 0xC8)  = 0x07;    // Some sort of buffer size value? <= 0x07 indicates in-place memory, >= 0x0F indicates a pointer that grows by 8 each time
-                *(_visible + 0x160) = length;  // Text caret position
+                *(_visible + 0xC0)  = (uint8_t)length;  // String length
+                *(_visible + 0xC8)  = 0x07;             // Some sort of buffer size value? <= 0x07 indicates in-place memory, >= 0x0F indicates a pointer that grows by 8 each time
+                *(_visible + 0x160) = (uint8_t)length;  // Text caret position
             }
         }
 
@@ -88,28 +94,81 @@ void ChatWindow::ToggleDisplay()
 
 bool ChatWindow::IsVisible()
 {
-    if (IsInitialized())
+    if (IsToggleInitialized())
     {
         return (*_visible != 0);
     }
     return false;
 }
 
-inline bool CheckVisibleBitAddress(uint8_t* buffer, uint64_t offset)
+inline bool CheckVisibleBitAddress(uint8_t* buffer, uint64_t offset, uint64_t size)
 {
-    return (((*(uint64_t*)(buffer + offset))                          & 0x0000FFFF00000000) == 0x0000025800000000) && 
-           (((*(uint64_t*)(buffer + offset + (sizeof(uint64_t) * 1))) & 0x000000000000FFFF) == 0x000000000000C350) &&
-           (((*(uint64_t*)(buffer + offset + (sizeof(uint64_t) * 2)))                     ) == 0x0000000000000000) &&
-           (((*(uint64_t*)(buffer + offset + (sizeof(uint64_t) * 3))) & 0xFF000000000000FF) == 0x4300000000000000) &&
-           (((*(uint64_t*)(buffer + offset + (sizeof(uint64_t) * 4))) & 0xF0000000000000FF) == 0x4000000000000000);
+    if (offset + 0x28 <= size)
+    {
+        return ((*(uint64_t*)(buffer + offset)        & 0x0000FFFF00000000) == 0x0000025800000000) &&
+               ((*(uint64_t*)(buffer + offset + 0x08) & 0x000000000000FFFF) == 0x000000000000C350) &&
+               ((*(uint64_t*)(buffer + offset + 0x18) & 0xFF000000000000FF) == 0x4300000000000000) &&
+               ((*(uint64_t*)(buffer + offset + 0x20) & 0xF0000000000000FF) == 0x4000000000000000);
+    }
+    return false;
 }
 
-inline bool CheckColorAddress(uint8_t* buffer, uint64_t offset)
+inline bool CheckVisibleBitAddress2(uint8_t* buffer, uint64_t offset, uint64_t size)
 {
-    return ((*(uint64_t*)(buffer + offset))                           == 0x000000000061002F) &&
-           ((*(uint64_t*)(buffer + offset + (sizeof(uint64_t) * 4)))  == 0x000000000070002F) && 
-           ((*(uint64_t*)(buffer + offset + (sizeof(uint64_t) * 8)))  == 0x000000000072002F) &&
-           ((*(uint64_t*)(buffer + offset + (sizeof(uint64_t) * 12))) == 0x000000000074002F);
+    if (offset + 0x50 <= size)
+    {
+        return (*(uint64_t*)(buffer + offset)        == 0x0075006F00720047) &&
+               (*(uint64_t*)(buffer + offset + 0x08) == 0x0000003100200070) &&
+               (*(uint64_t*)(buffer + offset + 0x20) == 0x0075006F00720047) &&
+               (*(uint64_t*)(buffer + offset + 0x28) == 0x0000003200200070) &&
+               (*(uint64_t*)(buffer + offset + 0x40) == 0x0075006F00720047) &&
+               (*(uint64_t*)(buffer + offset + 0x48) == 0x0000003300200070);
+    }
+    return false;
+}
+
+inline bool CheckVisibleBitAddress3(uint8_t* buffer, uint64_t offset, uint64_t size)
+{
+    if (offset + 0x140 <= size)
+    {
+        return (*(buffer + offset) == 0x00) &&
+               (*(buffer + offset + 0xC0) == 0x00) &&
+               (*(buffer + offset + 0xC8) == 0x07) &&
+               (*(buffer + offset + 0xD0) == 0x7C) &&
+               (*(buffer + offset + 0x110) == 0x3A) &&
+               (*(buffer + offset + 0x118) == 0x3F) &&
+               (*(buffer + offset + 0x130) == 0x3A) &&
+               (*(buffer + offset + 0x138) == 0x3F);
+    }
+    return false;
+}
+
+inline bool CheckColorAddress1(uint8_t* buffer, uint64_t offset, uint64_t size)
+{
+    if (offset + 0x68 <= size)
+    {
+        return (*(uint64_t*)(buffer + offset)        == 0x000000000061002F) &&
+               (*(uint64_t*)(buffer + offset + 0x20) == 0x000000000070002F) &&
+               (*(uint64_t*)(buffer + offset + 0x40) == 0x000000000072002F) &&
+               (*(uint64_t*)(buffer + offset + 0x60) == 0x000000000074002F);
+    }
+    return false;
+}
+
+inline bool CheckColorAddress2(uint8_t* buffer, uint64_t offset, uint64_t size)
+{
+    if (offset + 0x40 <= size)
+    {
+        return (*(uint64_t*)(buffer + offset)        == 0x3F80000000000000) &&
+               (*(uint64_t*)(buffer + offset + 0x08) == 0x3F80000000000000) &&
+               (*(uint64_t*)(buffer + offset + 0x10) == 0x3F8000003F800000) &&
+               (*(uint64_t*)(buffer + offset + 0x18) == 0x3F8000003F800000) &&
+               (*(uint64_t*)(buffer + offset + 0x20) == 0x3F3333333F800000) &&
+               (*(uint64_t*)(buffer + offset + 0x28) == 0x3F80000000000000) &&
+               (*(uint64_t*)(buffer + offset + 0x30) == 0x3F80000000000000) &&
+               (*(uint64_t*)(buffer + offset + 0x38) == 0x3F8000003F333333);
+    }
+    return false;
 }
 
 void ChatWindow::FindMagicAddresses()
@@ -142,32 +201,50 @@ void ChatWindow::FindMagicAddresses()
         HANDLE process = GetCurrentProcess();
         MEMORY_BASIC_INFORMATION info;
 
-        while ((_visible == nullptr) && (start < max))
+        while (start < max)
         {
             if (VirtualQueryEx(process, start, &info, sizeof(info)) != sizeof(info))
                 break;
 
-            if ((info.RegionSize <= 0x400000) && (info.AllocationProtect & PAGE_READWRITE) && ((!_colors) || (!_visible)))
+            if ((info.RegionSize <= 0x1000000) && (info.AllocationProtect & PAGE_READWRITE) && ((!_colors) || (!_visible)))
             {
                 uint8_t* buffer = new uint8_t[info.RegionSize];
                 ReadProcessMemory(process, info.BaseAddress, buffer, info.RegionSize, NULL);
 
-                for (uint64_t offset = 0; (offset + sizeof(uint64_t)) <= info.RegionSize - (sizeof(uint64_t) * 4); offset += sizeof(uint64_t))
+                for (uint64_t offset = 0; (offset + sizeof(uint64_t)) <= info.RegionSize; offset += sizeof(uint64_t))
                 {
-                    if ((!_visible) && (CheckVisibleBitAddress(buffer, offset)))
+                    if (!_visible)
                     {
-                        _visible = (uint8_t*)info.BaseAddress + offset - 0x80;
+                        if (CheckVisibleBitAddress(buffer, offset, info.RegionSize))
+                            _visible = (uint8_t*)info.BaseAddress + offset - 0x80;
+                        else if (CheckVisibleBitAddress2(buffer, offset, info.RegionSize))
+                            _visible = (uint8_t*)info.BaseAddress + offset + 0xAF8;
+                        else if (CheckVisibleBitAddress3(buffer, offset, info.RegionSize))
+                            _visible = (uint8_t*)info.BaseAddress + offset;
+
+                        // The visible bit should be 0 initially, so if it's not then reset the address
+                        if ((_visible) && (*_visible != 0))
+                            _visible = nullptr;
                     }
-                    if ((!_colors) && (CheckColorAddress(buffer, offset)))
+                    if (!_colors)
                     {
-                        _colors = (uint8_t*)info.BaseAddress + offset + 0xE0;
-                        (*(uint64_t*)((uint8_t*)info.BaseAddress + offset + (sizeof(uint64_t) * 0x0C))) = 0x000000650074002F;   // Change /t to /te so that we can bind /t ourselves
+                        if (CheckColorAddress1(buffer, offset, info.RegionSize))
+                            _colors = (uint8_t*)info.BaseAddress + offset + 0xE0;
+                        else if (CheckColorAddress2(buffer, offset, info.RegionSize))
+                            _colors = (uint8_t*)info.BaseAddress + offset;
                     }
                 }
                 delete[] buffer;
             }
             start += info.RegionSize;
         }
+    }
+
+    if (_colors)
+    {
+        uint64_t* tradeShortcut = (uint64_t*)(_colors - 0x80);
+        if (*tradeShortcut == 0x000000000074002F)
+            *tradeShortcut = 0x000000650074002F;   // Change /t to /te so that we can bind /t ourselves
     }
 }
 
@@ -185,7 +262,7 @@ void ChatWindow::LoadConfig()
         const Value* tradeColorValue = config.GetValue("Chat", "trade_color");
         _tradeColor = (tradeColorValue) ? tradeColorValue->ToInt() : EngineAPI::Color::GREEN.GetColorCode();
 
-        if (_colors)
+        if (IsColorsInitialized())
         {
             SetChatColor(CHAT_TYPE_GLOBAL, _globalColor, false);
             SetChatColor(CHAT_TYPE_TRADE, _tradeColor, false);
