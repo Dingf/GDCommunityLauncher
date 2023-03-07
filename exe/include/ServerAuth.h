@@ -16,7 +16,7 @@ enum ServerAuthResult
 
 typedef void(*ServerAuthCallback)(ServerAuthResult, const ClientData&);
 
-std::string GetLauncherVersion(const std::string& hostName);
+std::string GetLauncherVersion(const URI& gameURL);
 ServerAuthResult ServerAuthenticate(ClientData& data, const std::string& password, ServerAuthCallback callback);
 
 #endif//INC_GDCL_EXE_SERVER_AUTH_H

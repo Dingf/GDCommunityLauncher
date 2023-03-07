@@ -4,8 +4,7 @@
 #include "Quest.h"
 #include "ClientHandlers.h"
 #include "URI.h"
-#include "md5.hpp"
-#include "Log.h"
+#include "MD5.h"
 
 const std::unordered_map<GameAPI::Difficulty, const utility::char_t*> difficultyTagLookup =
 {
@@ -13,25 +12,6 @@ const std::unordered_map<GameAPI::Difficulty, const utility::char_t*> difficulty
     { GameAPI::GAME_DIFFICULTY_ELITE,    U("eliteQuestTags") },
     { GameAPI::GAME_DIFFICULTY_ULTIMATE, U("ultimateQuestTags") },
 };
-
-std::string GenerateFileMD5(const std::filesystem::path& path)
-{
-    std::stringstream buffer;
-    std::ifstream in(path, std::ifstream::binary | std::ifstream::in);
-    if (!in.is_open())
-        return {};
-
-    buffer << in.rdbuf();
-
-    in.close();
-
-    // Capitalize the MD5 hash to match the server output
-    std::string result = websocketpp::md5::md5_hash_hex(buffer.str());
-    for (std::string::iterator it = result.begin(); it != result.end(); ++it)
-        *it = toupper(*it);
-
-    return result;
-}
 
 std::filesystem::path GetCharacterPath(const std::wstring& playerName)
 {
@@ -45,7 +25,7 @@ uint32_t GetCharacterID(const std::wstring& playerName)
     try
     {
         Client& client = Client::GetInstance();
-        URI endpoint = URI(client.GetHostName()) / "api" / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "character" / playerName;
+        URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "character" / playerName;
         web::http::client::http_client httpClient((utility::string_t)endpoint);
         web::http::http_request request(web::http::methods::GET);
 
@@ -146,12 +126,12 @@ void PostCharacterDataUpload(const std::wstring& playerName, const std::string& 
         const std::vector<GameAPI::TriggerToken>& tokens = GameAPI::GetPlayerTokens(mainPlayer, difficulty);
         for (size_t i = 0, index = 0; i < tokens.size(); ++i)
         {
-            std::string token = tokens[i].GetTokenString();
-            for (char& c : token)
+            std::string tokenString = tokens[i];
+            for (char& c : tokenString)
                 c = std::tolower(c);
 
-            if (token.find("gdl_", 0) == 0)
-                questInfo[difficultyTagLookup.at(difficulty)][index++] = JSONString(token);
+            if (tokenString.find("gdl_", 0) == 0)
+                questInfo[difficultyTagLookup.at(difficulty)][index++] = JSONString(tokenString);
         }
     }
 
@@ -169,7 +149,7 @@ void PostCharacterDataUpload(const std::wstring& playerName, const std::string& 
         try
         {
             Client& client = Client::GetInstance();
-            URI endpoint = URI(client.GetHostName()) / "api" / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "character";
+            URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "character";
 
             web::http::client::http_client httpClient((utility::string_t)endpoint);
             web::http::http_request request(web::http::methods::POST);

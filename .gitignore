@@ -1,10 +1,11 @@
 # Visual Studio Data
 /.vs
 
-# Build directories
+# Build/workspace directories
 /build
 /build64
 /out
+/work
 
 # Node.js intermediate files
 package-lock.json

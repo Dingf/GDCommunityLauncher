@@ -4,8 +4,7 @@
 #include "ClientHandlers.h"
 #include "SharedStash.h"
 #include "URI.h"
-#include "Log.h"
-#include "md5.hpp"
+#include "MD5.h"
 
 std::filesystem::path GetTransferStashPath(const char* modName, bool hardcore, bool backup)
 {
@@ -63,6 +62,32 @@ void PostTransferStashUpload()
             return;
         }
 
+        auto tab = stashData.GetStashTab(0);
+        auto itemlist = tab->GetItemList();
+        for (auto pair : itemlist)
+        {
+            pair.first->_itemSeed = 0xAAAAAAAA;
+            pair.first->_itemComponentSeed = 0xBBBBBBBB;
+            pair.first->_itemUnk1 = 0xCCCCCCCC;
+            pair.first->_itemAugmentSeed = 0xDDDDDDDD;
+            pair.first->_itemUnk2 = 0xEEEEEEEE;
+
+            pair.first->_itemModifier = "modifier";
+            pair.first->_itemIllusion = "illusion";
+            pair.first->_itemCompletion = "completion";
+
+
+            /*std::string _itemName;
+            std::string _itemPrefix;
+            std::string _itemSuffix;
+            std::string _itemModifier;
+            std::string _itemIllusion;
+            std::string _itemComponent;
+            std::string _itemCompletion;
+            std::string _itemAugment;*/
+        }
+        stashData.WriteToFile(stashPath);
+
         web::json::value stashJSON = stashData.ToJSON();
         web::json::array stashTabs = stashJSON[U("Tabs")].as_array();
         if (stashTabs.size() >= 6)
@@ -75,8 +100,8 @@ void PostTransferStashUpload()
                 for (auto it = transferItems.begin(); it != transferItems.end(); ++it)
                 {
                     requestBody[index] = *it;
-                    requestBody[index].erase(U("Unknown1"));
-                    requestBody[index].erase(U("Unknown2"));
+                    requestBody[index].erase(U("unknown1"));
+                    requestBody[index].erase(U("unknown2"));
                     requestBody[index].erase(U("X"));
                     requestBody[index].erase(U("Y"));
                     index++;
@@ -84,7 +109,7 @@ void PostTransferStashUpload()
 
                 try
                 {
-                    URI endpoint = URI(client.GetHostName()) / "api" / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "stash";
+                    URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "stash";
 
                     web::http::client::http_client httpClient((utility::string_t)endpoint);
                     web::http::http_request request(web::http::methods::POST);
@@ -149,7 +174,7 @@ void PostTransferStashChecksums(const std::string& prevChecksum)
             try
             {
                 Client& client = Client::GetInstance();
-                URI endpoint = URI(client.GetHostName()) / "api" / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "shared-stash";
+                URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "shared-stash";
 
                 web::http::client::http_client httpClient((utility::string_t)endpoint);
                 web::http::http_request request(web::http::methods::POST);
@@ -182,7 +207,8 @@ void HandleSaveTransferStash(void* _this)
         std::string prevChecksum;
 
         Client& client = Client::GetInstance();
-        if ((client.IsParticipatingInSeason()) && (client.GetTransferMutex().try_lock()))
+        //TODO: Change me back
+        //if ((client.IsParticipatingInSeason()) && (client.GetTransferMutex().try_lock()))
         {
             const char* modName = EngineAPI::GetModName();
             PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
@@ -199,9 +225,9 @@ void HandleSaveTransferStash(void* _this)
                 client.GetTransferMutex().unlock();
             });
         }
-        else
+        //else
         {
-            callback(_this);
+            //callback(_this);
         }
     }
 }
@@ -220,7 +246,7 @@ void PostPullTransferItems(const std::vector<Item*>& items)
         try
         {
             Client& client = Client::GetInstance();
-            URI endpoint = URI(client.GetHostName()) / "api" / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "pull-items";
+            URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "pull-items";
 
             web::http::client::http_client httpClient((utility::string_t)endpoint);
             web::http::http_request request(web::http::methods::POST);
@@ -257,7 +283,7 @@ void HandleLoadTransferStash(void* _this)
                 const char* modName = EngineAPI::GetModName();
                 PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
 
-                URI endpoint = URI(client.GetHostName()) / "api" / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "transfer-queue";
+                URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "transfer-queue";
                 web::http::client::http_client httpClient((utility::string_t)endpoint);
                 web::http::http_request request(web::http::methods::GET);
 

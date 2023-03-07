@@ -1,17 +1,19 @@
 add_library(dll SHARED
 include/EventManager.h
 include/HookManager.h
-include/UpdateThread.h
 include/EngineAPI.h
 include/EngineAPI/Platform.h
 include/EngineAPI/Color.h
 include/EngineAPI/Rect.h
 include/EngineAPI/GraphicsAlign.h
 include/EngineAPI/KeyButtonEvent.h
+include/EngineAPI/MouseEvent.h
 include/EngineAPI/UI/ChatWindow.h
 include/GameAPI.h
 include/GameAPI/Difficulty.h
 include/GameAPI/TriggerToken.h
+include/GameAPI/ItemReplicaInfo.h
+include/ItemLinker.h
 include/LuaAPI.h
 include/ChatClient.h
 include/Client.h
@@ -26,7 +28,10 @@ src/EngineAPI/Platform.cpp
 src/EngineAPI/Color.cpp
 src/EngineAPI/UI/ChatWindow.cpp
 src/GameAPI.cpp
+src/GameAPI/Difficulty.cpp
 src/GameAPI/TriggerToken.cpp
+src/GameAPI/ItemReplicaInfo.cpp
+src/ItemLinker.cpp
 src/LuaAPI.cpp
 src/ChatClient.cpp
 src/Client.cpp
@@ -34,6 +39,7 @@ src/ClientHandlers/HandleDisplayText.cpp
 src/ClientHandlers/HandleRender.cpp
 src/ClientHandlers/HandleWorld.cpp
 src/ClientHandlers/HandleKeyEvent.cpp
+src/ClientHandlers/HandleMouseEvent.cpp
 src/ClientHandlers/HandleLua.cpp
 src/ClientHandlers/HandleSetMainPlayer.cpp
 src/ClientHandlers/HandleSaveNewFormatData.cpp
@@ -44,7 +50,7 @@ src/ClientHandlers/HandleEndlessDungeon.cpp
 src/main.cpp)
 
 target_include_directories(dll PRIVATE include)
-target_link_libraries(dll PRIVATE cpprestsdk::cpprest cpprestsdk::cpprestsdk_zlib_internal cpprestsdk::cpprestsdk_brotli_internal)
+target_link_libraries(dll PRIVATE cpprestsdk::cpprest)
 target_link_libraries(dll PRIVATE microsoft-signalr::microsoft-signalr)
 target_link_libraries(dll PRIVATE minizip::minizip)
 target_link_libraries(dll PRIVATE minhook::minhook)

@@ -35,7 +35,7 @@
 - The launcher now properly checks the start and end dates of available seasons to determine which ones are currently active.
 - The launcher now uses file sizes rather than MD5 checksums when checking local files for updates.
 - Added Lua support for the launcher.
-- Added scaling dungeon integration.
+- Added Boundless dungeon integration.
 
 ## 1.1.1 (2022-09-17)
 
@@ -90,3 +90,10 @@
 
 - Fixed a crash that would sometimes occur when setting chat colors.
 - Improved the search algorithm for finding the chat window addresses.
+
+## 1.2.0 (TBD)
+
+- Added support for linking items in chat. To link an item, use Shift + Left Click on an item while the chat window is open.
+    - If there is text currently in the chat window, the text will also be sent and the item link will appear at the end of the message.
+- Fixed a bug where chat messages would not be displayed if a character is dead.
+- 

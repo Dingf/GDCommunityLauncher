@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include "URI.h"
 
 enum SeasonType
 {
@@ -31,7 +32,7 @@ struct ClientData
 {
     bool IsValid() const
     {
-        return (!_username.empty() && !_authToken.empty() && !_refreshToken.empty() && !_hostName.empty());
+        return (!_username.empty() && !_authToken.empty() && !_refreshToken.empty() && !_gameURL.empty());
     }
 
     bool        _updateFlag;
@@ -40,7 +41,8 @@ struct ClientData
     std::string _username;
     std::string _authToken;
     std::string _refreshToken;
-    std::string _hostName;
+    URI         _gameURL;
+    URI         _chatURL;
     std::vector<SeasonInfo> _seasons;
 };
 

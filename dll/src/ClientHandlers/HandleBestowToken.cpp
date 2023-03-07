@@ -20,7 +20,7 @@ void HandleBestowToken(void* _this, const GameAPI::TriggerToken& token)
 
         if ((modName) && (mainPlayer) && (seasonInfo))
         {
-            std::string tokenString = token.GetTokenString();
+            std::string tokenString = token;
             for (char& c : tokenString)
                 c = std::tolower(c);
 
@@ -53,7 +53,7 @@ void HandleBestowToken(void* _this, const GameAPI::TriggerToken& token)
                         PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
 
                         // Otherwise if it's a season token, pass it along to the server and update the points/rank
-                        URI endpoint = URI(client.GetHostName()) / "api" / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "quest-tag" / tokenString;
+                        URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "quest-tag" / tokenString;
                         web::http::client::http_client httpClient((utility::string_t)endpoint);
                         web::http::http_request request(web::http::methods::POST);
 

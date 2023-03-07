@@ -121,7 +121,7 @@ INT_PTR CALLBACK LoginDialogHandler(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
                         ClientData data;
                         
                         data._username = username;
-                        data._hostName = hostValue->ToString();
+                        data._gameURL = hostValue->ToString();
 
                         std::thread t(&ServerAuthenticate, data, password, LoginValidateCallback);
                         t.detach();
@@ -268,7 +268,7 @@ bool LoginDialog::Login(void* configPointer)
         {
             ClientData data;
             data._username = username;
-            data._hostName = hostName;
+            data._gameURL = hostName;
 
             std::future<ServerAuthResult> future = std::async(&ServerAuthenticate, std::ref(data), password, nullptr);
             ServerAuthResult loginResult = future.get();

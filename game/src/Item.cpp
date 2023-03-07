@@ -137,23 +137,20 @@ web::json::value Item::ToJSON() const
 {
     web::json::value obj = web::json::value::object();
 
-    if (_itemID != 0)
-        obj[U("ItemID")] = _itemID;
-
-    obj[U("Name")] = JSONString(_itemName);
-    obj[U("Prefix")] = JSONString(_itemPrefix);
-    obj[U("Suffix")] = JSONString(_itemSuffix);
-    obj[U("Modifier")] = JSONString(_itemModifier);
-    obj[U("Illusion")] = JSONString(_itemIllusion);
-    obj[U("ItemSeed")] = _itemSeed;
-    obj[U("Component")] = JSONString(_itemComponent);
-    obj[U("Completion")] = JSONString(_itemCompletion);
-    obj[U("ComponentSeed")] = _itemComponentSeed;
-    obj[U("Augment")] = JSONString(_itemAugment);
-    obj[U("Unknown1")] = _itemUnk1;
-    obj[U("AugmentSeed")] = _itemAugmentSeed;
-    obj[U("Unknown2")] = _itemUnk2;
-    obj[U("StackCount")] = _itemStackCount;
+    obj[U("name")] = JSONString(_itemName);
+    obj[U("prefix")] = JSONString(_itemPrefix);
+    obj[U("suffix")] = JSONString(_itemSuffix);
+    obj[U("modifier")] = JSONString(_itemModifier);
+    obj[U("illusion")] = JSONString(_itemIllusion);
+    obj[U("itemSeed")] = _itemSeed;
+    obj[U("component")] = JSONString(_itemComponent);
+    obj[U("completion")] = JSONString(_itemCompletion);
+    obj[U("componentSeed")] = _itemComponentSeed;
+    obj[U("augment")] = JSONString(_itemAugment);
+    obj[U("unknown1")] = _itemUnk1;
+    obj[U("augmentSeed")] = _itemAugmentSeed;
+    obj[U("unknown2")] = _itemUnk2;
+    obj[U("stackCount")] = _itemStackCount;
 
     return obj;
 }

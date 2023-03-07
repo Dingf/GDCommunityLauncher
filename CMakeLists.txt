@@ -26,6 +26,9 @@ if (cpprestsdk_FOUND)
 endif()
 
 find_package(microsoft-signalr CONFIG REQUIRED)
+if (microsoft-signalr_FOUND)
+    add_compile_definitions(NO_SIGNALRCLIENT_EXPORTS)
+endif()
 
 include_directories(common/include)
 include_directories(${CMAKE_SOURCE_DIR})

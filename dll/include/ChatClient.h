@@ -13,14 +13,16 @@ class ChatClient
 
         static ChatClient& GetInstance();
 
-        uint8_t GetCurrentChatChannel(EngineAPI::UI::ChatType type) const;
+        uint8_t GetChannel(EngineAPI::UI::ChatType type) const;
 
-        void SetCurrentChatChannel(EngineAPI::UI::ChatType type, uint32_t channel);
-        void SetCurrentChatChannel(uint32_t channel);
+        const std::string& GetConnectionID() const { return _connectionID; }
 
-        void SendChatMessage(EngineAPI::UI::ChatType type, const std::wstring& name, const std::wstring& message);
+        void SetChannel(EngineAPI::UI::ChatType type, uint32_t channel);
+        void SetChannel(uint32_t channel);
 
-        void SetChannelAndSendMessage(EngineAPI::UI::ChatType type, uint32_t channel, const std::wstring& name, const std::wstring& message);
+        bool ProcessChatCommand(std::wstring& name, std::wstring& message, uint8_t& type, void* item = nullptr);
+        void SendMessage(EngineAPI::UI::ChatType type, const std::wstring& name, const std::wstring& message, void* item = nullptr);
+        void SetChannelAndSendMessage(EngineAPI::UI::ChatType type, uint32_t channel, const std::wstring& name, const std::wstring& message, void* item = nullptr);
 
         void DisplayWelcomeMessage();
 

@@ -131,8 +131,8 @@ LPVOID BuildEnvironmentVariables()
 bool ExtractZIPUpdate()
 {
     std::filesystem::path path = std::filesystem::current_path() / "GDCommunityLauncher.zip";
-    const char* pathString = path.string().c_str();
-    unzFile zipFile = unzOpen(pathString);
+    std::string pathString = path.string();
+    unzFile zipFile = unzOpen(pathString.c_str());
     if ((zipFile) && (unzLocateFile(zipFile, "GDCommunityLauncher.dll", 0) != UNZ_END_OF_LIST_OF_FILE))
     {
         std::filesystem::path filenamePath = std::filesystem::current_path() / "GDCommunityLauncher.dll";

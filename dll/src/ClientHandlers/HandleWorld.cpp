@@ -9,7 +9,6 @@
 #include "EventManager.h"
 #include "Configuration.h"
 #include "URI.h"
-#include "Log.h"
 
 void* prevRegion = nullptr;
 
@@ -116,7 +115,7 @@ bool HandleLoadWorld(void* _this, const char* mapName, bool unk1, bool modded)
                 {
                     try
                     {
-                        URI endpoint = URI(client.GetHostName()) / "api" / "Season" / std::to_string(seasonInfo->_seasonID) / "add-participant" / client.GetUsername();
+                        URI endpoint = client.GetServerGameURL() / "Season" / std::to_string(seasonInfo->_seasonID) / "add-participant" / client.GetUsername();
                         web::http::client::http_client httpClient((utility::string_t)endpoint);
                         web::http::http_request request(web::http::methods::POST);
 

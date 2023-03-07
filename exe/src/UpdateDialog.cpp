@@ -28,9 +28,9 @@ namespace UpdateDialog
 
 typedef void(*DownloadValueCallback)(size_t);
 
-std::string GetSeasonModName(const std::string& hostName, const std::string& authToken)
+std::string GetSeasonModName(const URI& gameURL, const std::string& authToken)
 {
-    URI endpoint = URI(hostName) / "api" / "Season" / "latest";
+    URI endpoint = gameURL / "Season" / "latest";
     web::http::client::http_client httpClient((utility::string_t)endpoint);
     web::http::http_request request(web::http::methods::GET);
 
@@ -78,12 +78,12 @@ std::string GetSeasonModName(const std::string& hostName, const std::string& aut
     return {};
 }
 
-bool GetLauncherUpdate(const std::string& hostName, const std::string& authToken, std::unordered_map<std::wstring, std::string>& downloadList)
+bool GetLauncherUpdate(const URI& gameURL, const std::string& authToken, std::unordered_map<std::wstring, std::string>& downloadList)
 {
-    std::string version = GetLauncherVersion(hostName);
+    std::string version = GetLauncherVersion(gameURL);
     if (version != std::string(GDCL_VERSION))
     {
-        URI endpoint = URI(hostName) / "api" / "File" / "launcher";
+        URI endpoint = gameURL / "File" / "launcher";
         endpoint.Append(std::string("?v="), false);
         endpoint += GDCL_VERSION;
 
@@ -122,12 +122,12 @@ bool GetLauncherUpdate(const std::string& hostName, const std::string& authToken
     return true;
 }
 
-bool GetDownloadList(const std::string& hostName, const std::string& modName, const std::string& authToken, std::unordered_map<std::wstring, std::string>& downloadList)
+bool GetDownloadList(const URI& gameURL, const std::string& modName, const std::string& authToken, std::unordered_map<std::wstring, std::string>& downloadList)
 {
     // Check for updates to the launcher, and add them to the download list if they exist
-    GetLauncherUpdate(hostName, authToken, downloadList);
+    GetLauncherUpdate(gameURL, authToken, downloadList);
 
-    URI endpoint = URI(hostName) / "api" / "File" / "filenames";
+    URI endpoint = gameURL / "File" / "filenames";
     endpoint.Append(std::string("?v="), false);
     endpoint += GDCL_VERSION;
 
@@ -183,11 +183,9 @@ bool GetDownloadList(const std::string& hostName, const std::string& modName, co
     return false;
 }
 
-bool DownloadFile(const std::filesystem::path& filenamePath, const std::string& downloadURL, DownloadValueCallback totalSizeCallback, DownloadValueCallback downloadSizeCallback)
+bool DownloadFile(const std::filesystem::path& filenamePath, const URI& downloadURL, DownloadValueCallback totalSizeCallback, DownloadValueCallback downloadSizeCallback)
 {
-    URI endpoint = URI(downloadURL);
-
-    web::http::client::http_client httpClient((utility::string_t)endpoint);
+    web::http::client::http_client httpClient((utility::string_t)downloadURL);
     web::http::http_request request(web::http::methods::GET);
 
     try
@@ -233,14 +231,14 @@ bool DownloadFile(const std::filesystem::path& filenamePath, const std::string& 
     }
 }
 
-bool VerifyBaseGameFiles(const std::string& hostName, const std::string& authToken, std::string& expectedVersion)
+bool VerifyBaseGameFiles(const URI& gameURL, const std::string& authToken, std::string& expectedVersion)
 {
     std::vector<pplx::task<bool>> tasks;
     // TODO: Make this more scalable, like store it as a list in a file or something
     std::vector<std::string> paths = { "database/database.arz", "gdx1/database/GDX1.arz", "gdx2/database/GDX2.arz" };
     try
     {
-        URI endpoint = URI(hostName) / "api" / "File" / "base-game" / "file-sizes";
+        URI endpoint = gameURL / "File" / "base-game" / "file-sizes";
 
         web::http::client::http_client httpClient((utility::string_t)endpoint);
         web::http::http_request request(web::http::methods::POST);
@@ -428,9 +426,9 @@ bool UpdateDialog::Update()
     auto updateTask   = std::async([]()
     {
         Client& client = Client::GetInstance();
-        std::string hostName = client.GetHostName();
+        URI gameURL = client.GetServerGameURL();
         std::string authToken = client.GetAuthToken();
-        std::string modName = GetSeasonModName(hostName, authToken);
+        std::string modName = GetSeasonModName(gameURL, authToken);
         if (modName.empty())
         {
             SendMessage(UpdateDialog::_window, WM_UPDATE_NO_SEASON, NULL, NULL);
@@ -438,14 +436,14 @@ bool UpdateDialog::Update()
         }
 
         std::string gameVersion;
-        if (!VerifyBaseGameFiles(hostName, authToken, gameVersion))
+        if (!VerifyBaseGameFiles(gameURL, authToken, gameVersion))
         {
             SendMessage(UpdateDialog::_window, WM_UPDATE_WRONG_VERSION, NULL, (LPARAM)gameVersion.c_str());
             return;
         }
 
         std::unordered_map<std::wstring, std::string> downloadList;
-        if (!GetDownloadList(hostName, modName, authToken, downloadList))
+        if (!GetDownloadList(gameURL, modName, authToken, downloadList))
         {
             SendMessage(UpdateDialog::_window, WM_UPDATE_FAIL, NULL, NULL);
             return;

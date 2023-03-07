@@ -2,15 +2,17 @@
 #include <cpprest/http_client.h>
 #include <Windows.h>
 #include <minizip/unzip.h>
-#include "LuaAPI.h"
-#include "ChatClient.h"
 #include "Client.h"
 #include "ClientHandlers.h"
+#include "ChatClient.h"
+#include "ItemLinker.h"
+#include "LuaAPI.h"
 #include "EventManager.h"
-#include "Version.h"
 #include "JSONObject.h"
+#include "UpdateThread.h"
 #include "URI.h"
 #include "Log.h"
+#include "Version.h"
 
 Client& Client::GetInstance()
 {
@@ -169,10 +171,13 @@ void Client::ReadDataFromPipe()
         HANDLE pipe = GetStdHandle(STD_INPUT_HANDLE);
 
         uint32_t updateFlag;
+        std::string gameURL;
+        std::string chatURL;
         if (!ReadStringFromPipe(pipe, _data._username) ||
             !ReadStringFromPipe(pipe, _data._authToken) ||
             !ReadStringFromPipe(pipe, _data._refreshToken) ||
-            !ReadStringFromPipe(pipe, _data._hostName) ||
+            !ReadStringFromPipe(pipe, gameURL) ||
+            !ReadStringFromPipe(pipe, chatURL) ||
             !ReadInt32FromPipe(pipe, updateFlag) ||
             !ReadSeasonsFromPipe(pipe, _data._seasons))
         {
@@ -182,6 +187,8 @@ void Client::ReadDataFromPipe()
 
         CloseHandle(pipe);
 
+        _data._gameURL = gameURL;
+        _data._chatURL = chatURL;
         _data._updateFlag = (updateFlag != 0);
         if ((_data._updateFlag != 0) && (!ExtractZIPUpdate()))
         {
@@ -201,7 +208,7 @@ void Client::UpdateRefreshToken()
         Client& client = Client::GetInstance();
         try
         {
-            URI endpoint = URI(client.GetHostName()) / "api" / "Account" / "refresh-token";
+            URI endpoint = client.GetServerGameURL() / "Account" / "refresh-token";
             web::http::client::http_client httpClient((utility::string_t)endpoint);
 
             web::json::value requestBody;
@@ -239,7 +246,7 @@ void Client::UpdateConnectionStatus()
     Client& client = Client::GetInstance();
     try
     {
-        URI endpoint = URI(client.GetHostName()) / "api" / "Account" / "status";
+        URI endpoint = client.GetServerGameURL() / "Account" / "status";
 
         web::http::client::http_client httpClient((utility::string_t)endpoint);
         web::http::http_request request(web::http::methods::GET);
@@ -361,7 +368,7 @@ void Client::UpdateSeasonStanding()
     {
         try
         {
-            URI endpoint = URI(GetHostName()) / "api" / "Season" / "participant" / std::to_string(GetParticipantID()) / "standing";
+            URI endpoint = GetServerGameURL() / "Season" / "participant" / std::to_string(GetParticipantID()) / "standing";
             web::http::client::http_client httpClient((utility::string_t)endpoint);
             web::http::http_request request(web::http::methods::GET);
 
@@ -394,7 +401,7 @@ void Client::UpdateSeasonStanding()
 
 bool Client::Initialize()
 {
-    Logger::SetMinimumLogLevel(LOG_LEVEL_WARN);
+    Logger::SetMinimumLogLevel(LOG_LEVEL_DEBUG);
 
     // Initialize the chat client in a separate thread
     pplx::task<void> task = pplx::create_task([]()
@@ -408,6 +415,7 @@ bool Client::Initialize()
         !HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_LOAD_WORLD, &HandleLoadWorld) ||
         !HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_SET_REGION_OF_NOTE, &HandleSetRegionOfNote) ||
         !HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_HANDLE_KEY_EVENT, &HandleKeyEvent) ||
+        !HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_HANDLE_MOUSE_EVENT, &HandleMouseEvent) ||
         !HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_RENDER_STYLED_TEXT_2D, &HandleRenderStyledText2D) ||
         !HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_LUA_INITIALIZE, &HandleLuaInitialize) ||
         !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_SET_MAIN_PLAYER, &HandleSetMainPlayer) ||
@@ -424,12 +432,16 @@ bool Client::Initialize()
         return false;
     }
 
-    // Initialize threads to handle refreshing the server token/connection status
-    static auto refreshServerTokenThread = std::make_shared<UpdateThread<>>(&Client::UpdateRefreshToken, 1000, 1800000);
-    static auto connectionStatusThread = std::make_shared<UpdateThread<>>(&Client::UpdateConnectionStatus, 1000, 30000);
+    // Initialize the item linking hooks
+    if (!ItemLinker::Initialize())
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to create one or more item linking hooks.");
 
-    refreshServerTokenThread->Update(0);
-    connectionStatusThread->Update(0);
+    // Initialize threads to handle refreshing the server token/connection status
+    _refreshServerTokenThread = std::make_shared<UpdateThread<>>(&Client::UpdateRefreshToken, 1000, 1800000);
+    _connectionStatusThread = std::make_shared<UpdateThread<>>(&Client::UpdateConnectionStatus, 1000, 30000);
+
+    _refreshServerTokenThread->Update(0);
+    _connectionStatusThread->Update(0);
 
     UpdateVersionInfoText();
 
@@ -438,13 +450,12 @@ bool Client::Initialize()
 
 void Client::Cleanup()
 {
-    LuaAPI::Cleanup();
-
     HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_GET_VERSION);
     HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_RENDER);
     HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_LOAD_WORLD);
     HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_SET_REGION_OF_NOTE);
     HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_HANDLE_KEY_EVENT);
+    HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_HANDLE_MOUSE_EVENT);
     HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_RENDER_STYLED_TEXT_2D);
     HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_LUA_INITIALIZE);
     HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_SET_MAIN_PLAYER);
@@ -456,4 +467,9 @@ void Client::Cleanup()
     HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_UNLOAD_WORLD);
     HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_SEND_CHAT_MESSAGE);
     HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_SYNC_DUNGEON_PROGRESS);
+
+    _refreshServerTokenThread->Stop();
+    _connectionStatusThread->Stop();
+
+    ItemLinker::Cleanup();
 }

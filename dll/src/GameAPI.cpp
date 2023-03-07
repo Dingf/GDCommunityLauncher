@@ -60,21 +60,6 @@ int32_t GetPlayerPartyID(PULONG_PTR player)
     return callback((LPVOID)player);
 }
 
-Difficulty GetPlayerMaxDifficulty(PULONG_PTR player)
-{
-    typedef Difficulty(__thiscall* GetPlayerMaxDifficultyProto)(LPVOID);
-
-    HMODULE gameDLL = GetModuleHandle(TEXT("Game.dll"));
-    if ((!gameDLL) || (!player))
-        return GAME_DIFFICULTY_NORMAL;
-
-    GetPlayerMaxDifficultyProto callback = (GetPlayerMaxDifficultyProto)GetProcAddress(gameDLL, GAPI_NAME_GET_PLAYER_MAX_DIFFICULTY);
-    if (!callback)
-        return GAME_DIFFICULTY_NORMAL;
-
-    return callback((LPVOID)player);
-}
-
 std::string GetBaseFolder()
 {
     typedef std::string(__thiscall* GetBaseFolderProto)(LPVOID);
@@ -88,23 +73,6 @@ std::string GetBaseFolder()
 
     if ((!callback) || (!gameEngine))
         return {};
-
-    return callback((LPVOID)*gameEngine);
-}
-
-Difficulty GetGameDifficulty()
-{
-    typedef Difficulty(__thiscall* GetGameDifficultyProto)(LPVOID);
-
-    HMODULE gameDLL = GetModuleHandle(TEXT("Game.dll"));
-    if (!gameDLL)
-        return {};
-
-    GetGameDifficultyProto callback = (GetGameDifficultyProto)GetProcAddress(gameDLL, GAPI_NAME_GET_GAME_DIFFICULTY);
-    PULONG_PTR gameEngine = GetGameEngineHandle();
-
-    if ((!callback) || (!gameEngine))
-        return GAME_DIFFICULTY_NORMAL;
 
     return callback((LPVOID)*gameEngine);
 }
@@ -208,6 +176,23 @@ void SendChatMessage(const std::wstring& name, const std::wstring& message, uint
         return;
 
     callback((LPVOID)*gameEngine, name, message, type, { playerID }, 0);
+}
+
+void AddChatMessage(const std::wstring& name, const std::wstring& message, uint8_t type, void* item)
+{
+    typedef void(__thiscall* AddChatMessageProto)(void*, const std::wstring&, const std::wstring&, uint8_t, void*);
+
+    HMODULE gameDLL = GetModuleHandle(TEXT("Game.dll"));
+    if (!gameDLL)
+        return;
+
+    AddChatMessageProto callback = (AddChatMessageProto)GetProcAddress(gameDLL, GameAPI::GAPI_NAME_ADD_CHAT_MESSAGE);
+    PULONG_PTR gameEngine = GetGameEngineHandle();
+
+    if ((!callback) || (!gameEngine))
+        return;
+
+    callback((LPVOID)*gameEngine, name, message, type, item);
 }
 
 }

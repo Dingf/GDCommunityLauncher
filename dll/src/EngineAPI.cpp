@@ -220,7 +220,23 @@ PULONG_PTR GetLocalizationManager()
     return callback();
 }
 
-PULONG_PTR GetEntityRegion(LPVOID entity)
+uint32_t GetObjectID(void* object)
+{
+    typedef uint32_t(__thiscall* GetObjectIDProto)(void*);
+
+    HMODULE engineDLL = GetModuleHandle(TEXT("Engine.dll"));
+    if ((!engineDLL) || (!object))
+        return 0;
+
+    GetObjectIDProto callback = (GetObjectIDProto)GetProcAddress(engineDLL, EAPI_NAME_GET_OBJECT_ID);
+    if (!callback)
+        return 0;
+
+    return callback(object);
+
+}
+
+PULONG_PTR GetEntityRegion(void* entity)
 {
     typedef PULONG_PTR(__thiscall* GetEntityRegionProto)(void*);
 
@@ -235,7 +251,7 @@ PULONG_PTR GetEntityRegion(LPVOID entity)
     return callback(entity);
 }
 
-PULONG_PTR GetRegionID(LPVOID region)
+PULONG_PTR GetRegionID(void* region)
 {
     typedef PULONG_PTR(__thiscall* GetRegionIDProto)(void*);
 
@@ -250,7 +266,7 @@ PULONG_PTR GetRegionID(LPVOID region)
     return callback(region);
 }
 
-const char* GetRegionName(LPVOID region)
+const char* GetRegionName(void* region)
 {
     typedef PULONG_PTR(__thiscall* GetRegionNameProto)(void*);
 
@@ -267,6 +283,22 @@ const char* GetRegionName(LPVOID region)
         return (const char*)(*result);
     else
         return (const char*)result;
+}
+
+void DestroyObjectEx(void* object)
+{
+    typedef void(__thiscall* DestroyObjectExProto)(void*, void*, const char*, int32_t);
+
+    HMODULE engineDLL = GetModuleHandle(TEXT("Engine.dll"));
+    PULONG_PTR objectManager = GetObjectManager();
+    if ((!engineDLL) || (!objectManager))
+        return;
+
+    DestroyObjectExProto callback = (DestroyObjectExProto)GetProcAddress(engineDLL, EAPI_NAME_DESTROY_OBJECT_EX);
+    if (!callback)
+        return;
+
+    callback(objectManager, object, nullptr, 0);
 }
 
 PULONG_PTR LoadFontDirect(const std::string& fontName)

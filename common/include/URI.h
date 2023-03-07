@@ -3,14 +3,16 @@
 
 #include <string>
 #include <cpprest/uri.h>
+#include "JSONObject.h"
 
 class URI
 {
     public:
         URI() {}
-        URI(std::string str) { *this = str; }
+        URI(std::string str) { _data = str; }
         URI(std::wstring str) { *this = str; }
-        URI(const char* str) { *this = str; }
+        URI(const char* str) { _data = str; }
+        URI(JSONString& str) { _data = (std::string)str; }
 
         URI& operator=(const URI& uri)
         {
@@ -71,6 +73,9 @@ class URI
         {
             return _data;
         }
+
+        bool empty() const { return _data.empty(); }
+        size_t size() const { return _data.size(); }
 
         template <class T>
         void Append(const std::basic_string<T>& str, bool encode = true)

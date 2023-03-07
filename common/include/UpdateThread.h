@@ -1,5 +1,5 @@
-#ifndef INC_GDCL_DLL_UPDATE_THREAD_H
-#define INC_GDCL_DLL_UPDATE_THREAD_H
+#ifndef INC_GDCL_UPDATE_THREAD_H
+#define INC_GDCL_UPDATE_THREAD_H
 
 #include <string>
 #include <memory>
@@ -76,4 +76,4 @@ class UpdateThread
         std::unique_ptr<std::thread> _thread;
 };
 
-#endif//INC_GDCL_DLL_UPDATE_THREAD_H
+#endif//INC_GDCL_UPDATE_THREAD_H

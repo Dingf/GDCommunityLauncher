@@ -20,7 +20,7 @@ ChatWindow& ChatWindow::GetInstance(bool init)
     return instance;
 }
 
-uint32_t ChatWindow::GetChatColor(ChatType type)
+uint32_t ChatWindow::GetChatColor(ChatType type) const
 {
     switch (type)
     {
@@ -69,30 +69,25 @@ bool ChatWindow::SetChatColor(ChatType type, uint32_t color, bool save)
     return false;
 }
 
+void ChatWindow::SetBufferText(const std::wstring& text)
+{
+    *(std::wstring*)(_visible + 0xB0) = text;
+    *(_visible + 0x160) = (text.size() > 0xFF) ? 0xFF : (uint8_t)text.size();  // Text caret position
+}
+
 void ChatWindow::ToggleDisplay()
 {
     if (_visible != nullptr)
     {
-        if (*_visible == 0)
-        {
-            if (!_prefix.empty())
-            {
-                wchar_t buffer[7] = { 0 };
-                size_t length = min(_prefix.size(), 7);
-
-                memcpy(buffer, _prefix.c_str(), sizeof(wchar_t) * length);
-                memcpy(_visible + 0xB0, buffer, sizeof(wchar_t) * 7);
-                *(_visible + 0xC0)  = (uint8_t)length;  // String length
-                *(_visible + 0xC8)  = 0x07;             // Some sort of buffer size value? <= 0x07 indicates in-place memory, >= 0x0F indicates a pointer that grows by 8 each time
-                *(_visible + 0x160) = (uint8_t)length;  // Text caret position
-            }
-        }
+        if ((*_visible == 0) && (!_prefix.empty()))
+            SetBufferText(_prefix);
 
         *_visible ^= 1;
+        *(_visible + 0xA9) = *_visible;
     }
 }
 
-bool ChatWindow::IsVisible()
+bool ChatWindow::IsVisible() const
 {
     if (IsToggleInitialized())
     {

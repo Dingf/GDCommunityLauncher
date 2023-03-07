@@ -9,11 +9,11 @@ bool HasParticipationTokenFromAPI(PULONG_PTR mainPlayer, const SeasonInfo* seaso
         const std::vector<GameAPI::TriggerToken>& tokens = GameAPI::GetPlayerTokens(mainPlayer, difficulty);
         for (size_t i = 0; i < tokens.size(); ++i)
         {
-            std::string token = tokens[i].GetTokenString();
-            for (char& c : token)
+            std::string tokenString = tokens[i];
+            for (char& c : tokenString)
                 c = std::tolower(c);
 
-            if (token == seasonInfo->_participationToken)
+            if (tokenString == seasonInfo->_participationToken)
                 return true;
         }
     }

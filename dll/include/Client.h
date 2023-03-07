@@ -6,8 +6,8 @@
 #include <vector>
 #include <unordered_map>
 #include <mutex>
-#include "UpdateThread.h"
 #include "ClientBase.h"
+#include "UpdateThread.h"
 
 class Client
 {
@@ -31,7 +31,9 @@ class Client
         const std::string& GetUsername() const { return _data._username; }
         const std::string& GetRefreshToken() const { return _data._refreshToken; }
         const std::string& GetAuthToken() const { return _data._authToken; }
-        const std::string& GetHostName() const { return _data._hostName; }
+
+        const URI& GetServerGameURL() const { return _data._gameURL; }
+        const URI& GetServerChatURL() const { return _data._chatURL; }
 
         const std::vector<SeasonInfo>& GetSeasons() const { return _data._seasons; }
         const SeasonInfo* GetActiveSeason() const { return _activeSeason; }
@@ -49,11 +51,12 @@ class Client
 
         void UpdateSeasonStanding();
 
+        static void UpdateRefreshToken();
+        static void UpdateConnectionStatus();
+
     private:
         Client() : _activeSeason(nullptr), _online(false) {}
 
-        static void UpdateRefreshToken();
-        static void UpdateConnectionStatus();
         void UpdateVersionInfoText();
         void UpdateLeagueInfoText();
 
@@ -71,6 +74,9 @@ class Client
         std::string _versionInfoText;
         std::wstring _leagueInfoText;
         std::mutex _transferMutex;
+
+        std::shared_ptr<UpdateThread<>> _refreshServerTokenThread;
+        std::shared_ptr<UpdateThread<>> _connectionStatusThread;
 };
 
 #endif//INC_GDCL_DLL_CLIENT_H

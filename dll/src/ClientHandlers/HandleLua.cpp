@@ -1,6 +1,21 @@
 #include "ClientHandlers.h"
 #include "Version.h"
 
+void LuaRunCode(void* _this, const char* code)
+{
+    typedef void(__thiscall* LuaRunCodeProto)(void*, const char*);
+
+    HMODULE engineDLL = GetModuleHandle(TEXT("Engine.dll"));
+    if (!engineDLL)
+        return;
+
+    LuaRunCodeProto callback = (LuaRunCodeProto)GetProcAddress(engineDLL, EngineAPI::EAPI_NAME_LUA_RUN_CODE);
+    if (callback)
+    {
+        callback(_this, code);
+    }
+}
+
 void HandleLuaInitialize(void* _this, bool unk1, bool unk2)
 {
     typedef void(__thiscall* LuaInitializeProto)(void*, bool, bool);
@@ -10,10 +25,7 @@ void HandleLuaInitialize(void* _this, bool unk1, bool unk2)
     {
         callback(_this, unk1, unk2);
 
-        typedef void(__thiscall* LuaRunCodeProto)(void*, const char*);
-        LuaRunCodeProto luaRunCode = (LuaRunCodeProto)GetProcAddress(GetModuleHandle(TEXT("Engine.dll")), EngineAPI::EAPI_NAME_LUA_RUN_CODE);
-
         std::string code = "function GDCL_GetVersion() return \"" + std::string(GDCL_VERSION) + "\" end";
-        luaRunCode(_this, code.c_str());
+        LuaRunCode(_this, code.c_str());
     }
 }
