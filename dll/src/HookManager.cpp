@@ -30,7 +30,7 @@ LPVOID HookManager::GetOriginalFunction(LPCSTR moduleName, LPCSTR functionName)
     return NULL;
 }
 
-LPVOID HookManager::CreateHook(LPCSTR moduleName, LPCSTR functionName, PVOID function)
+LPVOID HookManager::CreateHook(LPCSTR moduleName, LPCSTR functionName, PVOID function, bool forceMinHook)
 {
     HookManager& instance = GetInstance();
     ExportKey key(moduleName, functionName);
@@ -46,50 +46,52 @@ LPVOID HookManager::CreateHook(LPCSTR moduleName, LPCSTR functionName, PVOID fun
 
     std::string moduleString(moduleName);
     std::string functionString(functionName);
-    IMAGE_DATA_DIRECTORY imports = ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT];
-    for (PIMAGE_IMPORT_DESCRIPTOR descriptor = (PIMAGE_IMPORT_DESCRIPTOR)(start + imports.VirtualAddress); descriptor->Name != NULL; descriptor++)
+
+    if (!forceMinHook)
     {
-        if ((LPCSTR)(start + descriptor->Name) != moduleString)
-            continue;
-
-        if ((descriptor->FirstThunk == NULL) || (descriptor->OriginalFirstThunk == NULL))
-            return NULL;
-
-        PIMAGE_THUNK_DATA thunk = (PIMAGE_THUNK_DATA)(start + descriptor->FirstThunk);
-        PIMAGE_THUNK_DATA originalThunk = (PIMAGE_THUNK_DATA)(start + descriptor->OriginalFirstThunk);
-
-        for (; originalThunk->u1.AddressOfData != NULL; originalThunk++, thunk++)
+        IMAGE_DATA_DIRECTORY imports = ntHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT];
+        for (PIMAGE_IMPORT_DESCRIPTOR descriptor = (PIMAGE_IMPORT_DESCRIPTOR)(start + imports.VirtualAddress); descriptor->Name != NULL; descriptor++)
         {
-            PIMAGE_IMPORT_BY_NAME importData = (PIMAGE_IMPORT_BY_NAME)(start + originalThunk->u1.AddressOfData);
-            if ((LPCSTR)importData->Name != functionString)
+            if ((LPCSTR)(start + descriptor->Name) != moduleString)
                 continue;
 
-            DWORD originalProtect;
-            LPVOID originalFunction = (LPVOID)thunk->u1.Function;
-
-            if (!VirtualProtect(&thunk->u1.Function, sizeof(DWORD_PTR), PAGE_EXECUTE_READWRITE, &originalProtect))
+            if ((descriptor->FirstThunk == NULL) || (descriptor->OriginalFirstThunk == NULL))
                 return NULL;
 
-            thunk->u1.Function = (DWORD_PTR)function;
+            PIMAGE_THUNK_DATA thunk = (PIMAGE_THUNK_DATA)(start + descriptor->FirstThunk);
+            PIMAGE_THUNK_DATA originalThunk = (PIMAGE_THUNK_DATA)(start + descriptor->OriginalFirstThunk);
 
-            if (!VirtualProtect(&thunk->u1.Function, sizeof(DWORD_PTR), originalProtect, &originalProtect))
-                return NULL;
+            for (; originalThunk->u1.AddressOfData != NULL; originalThunk++, thunk++)
+            {
+                PIMAGE_IMPORT_BY_NAME importData = (PIMAGE_IMPORT_BY_NAME)(start + originalThunk->u1.AddressOfData);
+                if ((LPCSTR)importData->Name != functionString)
+                    continue;
 
-            instance._originalFunctions[key] = originalFunction;
-            return originalFunction;
+                DWORD originalProtect;
+                LPVOID originalFunction = (LPVOID)thunk->u1.Function;
+
+                if (!VirtualProtect(&thunk->u1.Function, sizeof(DWORD_PTR), PAGE_EXECUTE_READWRITE, &originalProtect))
+                    return NULL;
+
+                thunk->u1.Function = (DWORD_PTR)function;
+
+                if (!VirtualProtect(&thunk->u1.Function, sizeof(DWORD_PTR), originalProtect, &originalProtect))
+                    return NULL;
+
+                instance._originalFunctions[key] = originalFunction;
+                return originalFunction;
+            }
         }
     }
 
-    LPVOID moduleFunction = GetProcAddress(GetModuleHandle(TEXT(moduleName)), functionName);
+    HMODULE module = GetModuleHandle(TEXT(moduleName));
+    if (module == NULL)
+        return NULL;
+
+    LPVOID moduleFunction = GetProcAddress(module, functionName);
     LPVOID trampoline = NULL;
 
-    if (moduleFunction == NULL)
-        return NULL;
-
-    if (MH_CreateHook(moduleFunction, function, &trampoline) != MH_OK)
-        return NULL;
-
-    if (MH_EnableHook(moduleFunction) != MH_OK)
+    if ((moduleFunction == NULL) || (MH_CreateHook(moduleFunction, function, &trampoline) != MH_OK) || (MH_EnableHook(moduleFunction) != MH_OK))
         return NULL;
 
     instance._originalFunctions[key] = trampoline;

@@ -6,6 +6,12 @@
 namespace EngineAPI
 {
 
+#if _WIN64
+constexpr char EAPI_NAME_HANDLE_MOUSE_EVENT[] = "?HandleMouseEvent@DisplayWidget@GAME@@UEAA_NAEBUMouseEvent@InputDevice@2@@Z";
+#else
+constexpr char EAPI_NAME_HANDLE_MOUSE_EVENT[] = "?HandleMouseEvent@DisplayWidget@GAME@@UAE_NABUMouseEvent@InputDevice@2@@Z";
+#endif
+
 enum MouseAction : uint32_t
 {
     MOUSE_ACTION_NONE        = 0x00,

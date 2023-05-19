@@ -5,7 +5,17 @@
 #include "Configuration.h"
 #include "ServerAuth.h"
 #include "LoginDialog.h"
+#include "SelectorDialog.h"
 #include "Version.h"
+
+enum LoginResult
+{
+    LOGIN_RESULT_OK = 0,
+    LOGIN_RESULT_INVALID_LOGIN = 1,
+    LOGIN_RESULT_TIMEOUT = 2,
+    LOGIN_RESULT_INVALID_SEASONS = 3,
+    LOGIN_RESULT_OTHER_ERROR = 4,
+};
 
 namespace LoginDialog
 {
@@ -33,6 +43,18 @@ void SetDialogState(HWND hwnd, BOOL state)
     EnableWindow(GetDlgItem(hwnd, IDHELP), state);
 }
 
+bool InitializeClient(const ClientData& data)
+{
+    if (!SelectorDialog::Select((void*)&data))
+        return false;
+
+    if ((LoginDialog::_config) && (!data._branch.empty()))
+        LoginDialog::_config->SetValue("Login", "branch", data._branch.c_str());
+
+    Client& client = Client::GetInstance(data);
+    return true;
+}
+
 void LoginValidateCallback(ServerAuthResult result, const ClientData& data)
 {
     if (LoginDialog::_window)
@@ -41,8 +63,12 @@ void LoginValidateCallback(ServerAuthResult result, const ClientData& data)
         {
             case SERVER_AUTH_OK:
             {
-                Client& client = Client::GetInstance(data);
-                SendMessage(LoginDialog::_window, WM_LOGIN_OK, NULL, NULL);
+                if (!InitializeClient(data))
+                    SendMessage(LoginDialog::_window, WM_LOGIN_OTHER_ERROR, NULL, NULL);
+                else if (data._seasons.empty())
+                    SendMessage(LoginDialog::_window, WM_LOGIN_INVALID_SEASONS, NULL, NULL);
+                else
+                    SendMessage(LoginDialog::_window, WM_LOGIN_OK, NULL, NULL);
                 break;
             }
             case SERVER_AUTH_INVALID_LOGIN:
@@ -50,9 +76,6 @@ void LoginValidateCallback(ServerAuthResult result, const ClientData& data)
                 break;
             case SERVER_AUTH_TIMEOUT:
                 SendMessage(LoginDialog::_window, WM_LOGIN_TIMEOUT, NULL, NULL);
-                break;
-            case SERVER_AUTH_INVALID_SEASONS:
-                SendMessage(LoginDialog::_window, WM_LOGIN_INVALID_SEASONS, NULL, NULL);
                 break;
         }
     }
@@ -62,7 +85,7 @@ void SetConfigurationData(HWND hwnd, Configuration* config)
 {
     if (config)
     {
-        bool isRememberMeChecked = (IsDlgButtonChecked(hwnd, IDC_CHECK1) == BST_CHECKED);
+        bool isRememberMeChecked = IsDlgButtonChecked(hwnd, IDC_CHECK1);
 
         config->SetValue("Login", "autologin", isRememberMeChecked);
         if (isRememberMeChecked)
@@ -80,23 +103,23 @@ void SetConfigurationData(HWND hwnd, Configuration* config)
     }
 }
 
-void DisplayLoginErrorMessageBox(HWND hwnd, ServerAuthResult result)
+void DisplayLoginErrorMessageBox(HWND hwnd, LoginResult result)
 {
     switch (result)
     {
-        case SERVER_AUTH_INVALID_LOGIN:
+        case LOGIN_RESULT_INVALID_LOGIN:
             MessageBoxA(hwnd, "The username and/or password was incorrect.", "Error", MB_OK | MB_ICONERROR);
             break;
 
-        case SERVER_AUTH_TIMEOUT:
+        case LOGIN_RESULT_TIMEOUT:
             MessageBoxA(hwnd, "Could not connect to the server.", "Error", MB_OK | MB_ICONERROR);
             break;
 
-        case SERVER_AUTH_INVALID_SEASONS:
+        case LOGIN_RESULT_INVALID_SEASONS:
             MessageBoxA(hwnd, "The Grim Dawn Community League is not currently active. Please visit https://www.grimleague.com for news about the upcoming season.", "", MB_OK | MB_ICONINFORMATION);
             break;
 
-        case SERVER_AUTH_UNKNOWN_ERR:
+        case LOGIN_RESULT_OTHER_ERROR:
             MessageBoxA(hwnd, "Could not initialize the Grim Dawn Community Launcher.", "Error", MB_OK | MB_ICONERROR);
             break;
     }
@@ -121,9 +144,10 @@ INT_PTR CALLBACK LoginDialogHandler(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
                         ClientData data;
                         
                         data._username = username;
+                        data._password = password;
                         data._gameURL = hostValue->ToString();
 
-                        std::thread t(&ServerAuthenticate, data, password, LoginValidateCallback);
+                        std::thread t(&ServerAuthenticate, data, LoginValidateCallback);
                         t.detach();
 
                         SetDialogState(hwnd, FALSE);
@@ -217,19 +241,25 @@ INT_PTR CALLBACK LoginDialogHandler(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
         }
         case WM_LOGIN_INVALID_LOGIN:
         {
-            DisplayLoginErrorMessageBox(hwnd, SERVER_AUTH_INVALID_LOGIN);
+            DisplayLoginErrorMessageBox(hwnd, LOGIN_RESULT_INVALID_LOGIN);
             SetDialogState(hwnd, TRUE);
             return TRUE;
         }
         case WM_LOGIN_TIMEOUT:
         {
-            DisplayLoginErrorMessageBox(hwnd, SERVER_AUTH_TIMEOUT);
+            DisplayLoginErrorMessageBox(hwnd, LOGIN_RESULT_TIMEOUT);
             SetDialogState(hwnd, TRUE);
             return TRUE;
         }
         case WM_LOGIN_INVALID_SEASONS:
         {
-            DisplayLoginErrorMessageBox(hwnd, SERVER_AUTH_INVALID_SEASONS);
+            DisplayLoginErrorMessageBox(hwnd, LOGIN_RESULT_INVALID_SEASONS);
+            SetDialogState(hwnd, TRUE);
+            return TRUE;
+        }
+        case WM_LOGIN_OTHER_ERROR:
+        {
+            DisplayLoginErrorMessageBox(hwnd, LOGIN_RESULT_OTHER_ERROR);
             SetDialogState(hwnd, TRUE);
             return TRUE;
         }
@@ -264,22 +294,39 @@ bool LoginDialog::Login(void* configPointer)
         if ((passwordValue) && (passwordValue->GetType() == VALUE_TYPE_STRING))
             password = passwordValue->ToString();
 
+        std::string branch;
+        const Value* branchValue = _config->GetValue("Login", "branch");
+        if ((branchValue) && (branchValue->GetType() == VALUE_TYPE_STRING))
+            branch = branchValue->ToString();
+
         if ((!hostName.empty()) && (!username.empty()) && (!password.empty()))
         {
             ClientData data;
             data._username = username;
+            data._password = password;
             data._gameURL = hostName;
+            data._branch = branch;
 
-            std::future<ServerAuthResult> future = std::async(&ServerAuthenticate, std::ref(data), password, nullptr);
+            std::future<ServerAuthResult> future = std::async(&ServerAuthenticate, std::ref(data), nullptr);
             ServerAuthResult loginResult = future.get();
             if (loginResult == SERVER_AUTH_OK)
             {
-                Client& client = Client::GetInstance(data);
+                if (!InitializeClient(data))
+                {
+                    DisplayLoginErrorMessageBox(NULL, LOGIN_RESULT_OTHER_ERROR);
+                    return false;
+                }
+                else if (data._seasons.empty())
+                {
+                    DisplayLoginErrorMessageBox(NULL, LOGIN_RESULT_INVALID_SEASONS);
+                    return false;
+                }
+
                 autoLogin = true;
             }
             else
             {
-                DisplayLoginErrorMessageBox(NULL, loginResult);
+                DisplayLoginErrorMessageBox(NULL, (LoginResult)loginResult);
                 if (loginResult != SERVER_AUTH_INVALID_LOGIN)
                     return false;
             }

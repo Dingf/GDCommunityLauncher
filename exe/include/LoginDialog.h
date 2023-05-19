@@ -16,6 +16,7 @@
 #define WM_LOGIN_INVALID_LOGIN          0x8002
 #define WM_LOGIN_TIMEOUT                0x8003
 #define WM_LOGIN_INVALID_SEASONS        0x8004
+#define WM_LOGIN_OTHER_ERROR            0x8005
 
 namespace LoginDialog
 {

@@ -49,17 +49,17 @@
 ## 1.1.3 (2022-09-18)
 
 - Improved the ability to detect and recognize the Enter key when opening the chat window.
-- Added a new chat command - /online. This command will display the current number of online players.
+- Added a new chat command - `/online`. This command will display the current number of online players.
 - Fixed a crash that would sometimes occur when trying to upload character data before it has finished saving.
 
 ## 1.1.4 (2022-09-20)
 
 - Added the name of the enemy that dealt the killing blow to the serverwide death announcement.
-- Added a new chat command - /challenges. This command will display an overview of your current challenges.
+- Added a new chat command - `/challenges`. This command will display an overview of your current challenges.
 
 ## 1.1.5 (2022-09-22)
 
-- Changed the /challenges chat command to run asynchronously.
+- Changed the `/challenges` chat command to run asynchronously.
 - Fixed a crash that would occur when loading a character while in-game cloud saving was enabled.
     - Characters will still remain unable to earn progress towards quests and achievements while cloud saving is enabled.
 - The launcher now requires a specific game version (determined by the current season) in order to start. This ensures that playtesting and temporary balance changes do not affect seasonal gameplay.
@@ -73,7 +73,7 @@
 	
 ## 1.1.7 (2022-09-27)
 
-- Changed the /online chat command to run asynchronously.
+- Changed the `/online` chat command to run asynchronously.
 - Fixed an issue where the transfer stash would sometimes send multiple upload requests if the server was unresponsive.
 - Fixed a crash that would sometimes occur when the Lua state becomes invalid after exiting to the main menu.
 - Fixed a crash that would occur when loading a new character while in-game cloud saving was enabled (for real this time).
@@ -84,16 +84,19 @@
     - To change chat colors, type `/global color` or `/trade color` followed by a color alias or a 6-digit hex code.
     - This change does not affect chat messages that were created before the command was issued.
 - The launcher now saves the current chat channel and color values in the configuration file.
-- Changed the shortcut for trade chat from /tr to /t.
+- Changed the shortcut for trade chat from `/tr` to `/t`.
 
 ## 1.1.9 (2022-10-11)
 
 - Fixed a crash that would sometimes occur when setting chat colors.
 - Improved the search algorithm for finding the chat window addresses.
 
-## 1.2.0 (TBD)
+## 1.2.0 (2023-05-19)
 
-- Added support for linking items in chat. To link an item, use Shift + Left Click on an item while the chat window is open.
+- Added support for linking items in chat.
+    - To link an item, use Shift + Left Click or Ctrl + Shift + Left Click on an item while the chat window is open.
     - If there is text currently in the chat window, the text will also be sent and the item link will appear at the end of the message.
-- Fixed a bug where chat messages would not be displayed if a character is dead.
-- 
+- Added support for in-game item crafting using special items that can only be obtained during the season.
+- Added support for character and shared stash sync with the game server.
+- Removed the ability to join multiplayer games while playing through the launcher.
+- The launcher now saves character data in a separate folder based on the current active season

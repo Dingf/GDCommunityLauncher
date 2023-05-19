@@ -1,23 +1,7 @@
-add_library(common
-include/external/md5.hpp
-include/ClientBase.h
-include/Configuration.h
-include/Date.h
-include/FileBuffer.h
-include/FileReader.h
-include/FileWriter.h
-include/FileData.h
-include/JSONObject.h
-include/Log.h
-include/MD5.h
-include/UpdateThread.h
-include/URI.h
-include/Value.h
-include/Version.h
-src/Configuration.cpp
-src/FileReader.cpp
-src/FileWriter.cpp
-src/Value.cpp)
+file(GLOB_RECURSE INCLUDE "include/*.h")
+file(GLOB_RECURSE SOURCE "src/*.cpp")
+
+add_library(common ${INCLUDE} ${SOURCE})
 
 target_include_directories(common PRIVATE include)
 

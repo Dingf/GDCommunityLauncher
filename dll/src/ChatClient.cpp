@@ -1,4 +1,5 @@
 #include <future>
+#include <cpprest/http_client.h>
 #include <signalrclient/hub_connection.h>
 #include <signalrclient/hub_connection_builder.h>
 #include <signalrclient/signalr_value.h>
@@ -8,6 +9,7 @@
 #include "Client.h"
 #include "EventManager.h"
 #include "Configuration.h"
+#include "Item.h"
 #include "URI.h"
 #include "Log.h"
 
@@ -19,6 +21,46 @@ class ChatClientLogger : public signalr::log_writer
         Logger::LogMessage(LOG_LEVEL_INFO, entry);
     }
 };
+
+GameAPI::ItemReplicaInfo ItemToInfo(const Item& item)
+{
+    GameAPI::ItemReplicaInfo info;
+    info._itemName = item._itemName;
+    info._itemPrefix = item._itemPrefix;
+    info._itemSuffix = item._itemSuffix;
+    info._itemModifier = item._itemModifier;
+    info._itemIllusion = item._itemIllusion;
+    info._itemComponent = item._itemComponent;
+    info._itemCompletion = item._itemCompletion;
+    info._itemAugment = item._itemAugment;
+    info._itemSeed = item._itemSeed;
+    info._itemComponentSeed = item._itemComponentSeed;
+    info._unk3 = item._itemUnk1;
+    info._itemAugmentSeed = item._itemAugmentSeed;
+    info._unk4 = item._itemUnk2;
+    info._itemStackCount = item._itemStackCount;
+    return info;
+}
+
+Item InfoToItem(const GameAPI::ItemReplicaInfo& info)
+{
+    Item item;
+    item._itemName = info._itemName;
+    item._itemPrefix = info._itemPrefix;
+    item._itemSuffix = info._itemSuffix;
+    item._itemModifier = info._itemModifier;
+    item._itemIllusion = info._itemIllusion;
+    item._itemComponent = info._itemComponent;
+    item._itemCompletion = info._itemCompletion;
+    item._itemAugment = info._itemAugment;
+    item._itemSeed = info._itemSeed;
+    item._itemComponentSeed = info._itemComponentSeed;
+    item._itemUnk1 = info._unk3;
+    item._itemAugmentSeed = info._itemAugmentSeed;
+    item._itemUnk2 = info._unk4;
+    item._itemStackCount = info._itemStackCount;
+    return item;
+}
 
 std::wstring RawToWide(const std::string& str)
 {
@@ -86,8 +128,11 @@ void ChatClient::OnConnectEvent(void* data)
 
 void ChatClient::OnDisconnectEvent(void* data)
 {
-    // TODO: Make this appear only if participating in the season
-    GameAPI::AddChatMessage(L"Server", L"Disconnected from chat server.", EngineAPI::UI::CHAT_TYPE_NORMAL);
+    Client& client = Client::GetInstance();
+    if (client.GetActiveSeason() != nullptr)
+    {
+        GameAPI::AddChatMessage(L"Server", L"Disconnected from chat server.", EngineAPI::UI::CHAT_TYPE_NORMAL);
+    }
 
     ChatClient& chatClient = ChatClient::GetInstance();
     chatClient._connection->stop([](std::exception_ptr ex)
@@ -127,14 +172,11 @@ void ChatClient::OnReceiveMessage(const signalr::value& m)
         if ((values.size() >= 4) && (values[3].as_string().size() > 0))
         {
             web::json::value itemJSON = web::json::value::parse(values[3].as_string());
-            GameAPI::ItemReplicaInfo itemInfo = Item(itemJSON);
+            GameAPI::ItemReplicaInfo itemInfo = ItemToInfo(Item(itemJSON));
             item = GameAPI::CreateItem(itemInfo);
         }
 
         GameAPI::AddChatMessage(name, message, type, item);
-
-        //if (item)
-        //    EngineAPI::DestroyObjectEx(item);
     }
 }
 
@@ -163,6 +205,8 @@ void ChatClient::OnWelcomeMessage(const signalr::value& m)
             std::wstring message = CharToWide(messages[i].as_string());
             GameAPI::AddChatMessage(L"Server", message, EngineAPI::UI::CHAT_TYPE_NORMAL);
         }
+
+        chatClient.DisplayNewTradeNotifications();
     }
 }
 
@@ -223,7 +267,7 @@ ChatClient::ChatClient()
 
     EventManager::Subscribe(GDCL_EVENT_CONNECT, &ChatClient::OnConnectEvent);
     EventManager::Subscribe(GDCL_EVENT_DISCONNECT, &ChatClient::OnDisconnectEvent);
-    EventManager::Subscribe(GDCL_EVENT_WORLD_LOAD, &ChatClient::OnWorldLoadEvent);
+    EventManager::Subscribe(GDCL_EVENT_WORLD_PRE_LOAD, &ChatClient::OnWorldLoadEvent);
 
     _channels = 0;
 }
@@ -232,7 +276,7 @@ ChatClient::~ChatClient()
 {
     EventManager::Unsubscribe(GDCL_EVENT_CONNECT, &ChatClient::OnConnectEvent);
     EventManager::Unsubscribe(GDCL_EVENT_DISCONNECT, &ChatClient::OnDisconnectEvent);
-    EventManager::Unsubscribe(GDCL_EVENT_WORLD_LOAD, &ChatClient::OnWorldLoadEvent);
+    EventManager::Unsubscribe(GDCL_EVENT_WORLD_PRE_LOAD, &ChatClient::OnWorldLoadEvent);
 
     _connection->stop([](std::exception_ptr ex)
     {
@@ -324,7 +368,8 @@ std::vector<signalr::value> BuildSendMessageArgs(EngineAPI::UI::ChatType type, c
     {
         GameAPI::ItemReplicaInfo itemInfo;
         GameAPI::GetItemReplicaInfo(item, itemInfo);
-        std::string itemJSON = JSONString(((Item)itemInfo).ToJSON().serialize());
+        Item item = InfoToItem(itemInfo);
+        std::string itemJSON = JSONString(item.ToJSON().serialize());
         args.push_back(itemJSON);
     }
     else
@@ -334,7 +379,7 @@ std::vector<signalr::value> BuildSendMessageArgs(EngineAPI::UI::ChatType type, c
     return args;
 }
 
-void ChatClient::SendMessage(EngineAPI::UI::ChatType type, const std::wstring& name, const std::wstring& message, void* item)
+void ChatClient::SendChatMessage(EngineAPI::UI::ChatType type, const std::wstring& name, const std::wstring& message, void* item)
 {
     std::vector<signalr::value> args = BuildSendMessageArgs(type, name, message, _channels, item);
     _connection->invoke("Send", args, [](const signalr::value& value, std::exception_ptr ex)
@@ -367,6 +412,49 @@ void ChatClient::DisplayWelcomeMessage()
     {
         LogExceptionPointer(ex, "Failed to retrieve welcome message: %");
     });
+}
+
+void ChatClient::DisplayNewTradeNotifications()
+{
+    Client& client = Client::GetInstance();
+    URI endpoint = client.GetServerGameURL() / "Trade" / "participant" / std::to_string(client.GetParticipantID()) / "trade-notifications" / "new";
+    endpoint.AddParam("branch", client.GetBranch());
+
+    web::http::client::http_client httpClient((utility::string_t)endpoint);
+    web::http::http_request request(web::http::methods::GET);
+
+    std::string bearerToken = "Bearer " + client.GetAuthToken();
+    request.headers().add(U("Authorization"), bearerToken.c_str());
+
+    try
+    {
+        web::http::http_response response = httpClient.request(request).get();
+        switch (response.status_code())
+        {
+            case web::http::status_codes::OK:
+            {
+                std::wstring responseBody = response.extract_string().get();
+                uint32_t newMessages = std::stoi(responseBody);
+                if (newMessages > 0)
+                {
+                    std::wstring message = L"You have " + responseBody + L" new trade notification";
+                    if (newMessages > 1)
+                        message += L"s";
+                    message += L".";
+                    GameAPI::AddChatMessage(L"Server", message, EngineAPI::UI::CHAT_TYPE_TRADE);
+                }
+                return;
+            }
+            default:
+            {
+                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+            }
+        }
+    }
+    catch (const std::exception& ex)
+    {
+        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve new trade notifications: %", ex.what());
+    }
 }
 
 void ChatClient::LoadConfig()

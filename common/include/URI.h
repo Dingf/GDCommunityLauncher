@@ -2,6 +2,7 @@
 #define INC_GDCL_URL_H
 
 #include <string>
+#include <unordered_map>
 #include <cpprest/uri.h>
 #include "JSONObject.h"
 
@@ -66,16 +67,52 @@ class URI
 
         operator utility::string_t() const
         {
-            return utility::string_t(_data.begin(), _data.end());
+            std::string result = operator std::string();
+            return utility::string_t(result.begin(), result.end());
         }
 
         operator std::string() const
         {
-            return _data;
+            std::string result = _data;
+            if (_params.size() > 0)
+            {
+                size_t count = 0;
+                for (auto pair : _params)
+                {
+                    result += (count++ == 0) ? "?" : "&";
+                    result += pair.first;
+                    result += "=";
+                    result += pair.second;
+                }
+            }
+            return result;
         }
 
         bool empty() const { return _data.empty(); }
         size_t size() const { return _data.size(); }
+
+        template <class T>
+        void AddParam(const std::string& key, const T& value)
+        {
+            std::string result = std::to_string(value);
+            if (!result.empty())
+                _params[key] = result;
+        }
+
+        template <>
+        void AddParam(const std::string& key, const std::string& value)
+        {
+            if (!value.empty())
+                _params[key] = value;
+        }
+
+        template <>
+        void AddParam(const std::string& key, const bool& value)
+        {
+            std::string result = (value) ? "true" : "false";
+            if (!result.empty())
+                _params[key] = result;
+        }
 
         template <class T>
         void Append(const std::basic_string<T>& str, bool encode = true)
@@ -107,6 +144,7 @@ class URI
 
     private:
         std::string _data;
+        std::unordered_map<std::string, std::string> _params;
 };
 
 #endif//INC_GDCL_URL_H

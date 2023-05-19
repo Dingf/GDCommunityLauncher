@@ -6,6 +6,12 @@
 namespace EngineAPI
 {
 
+#if _WIN64
+constexpr char EAPI_NAME_HANDLE_KEY_EVENT[] = "?HandleKeyEvent@DisplayWidget@GAME@@UEAA_NAEBVButtonEvent@InputDevice@2@@Z";
+#else
+constexpr char EAPI_NAME_HANDLE_KEY_EVENT[] = "?HandleKeyEvent@DisplayWidget@GAME@@UAE_NABVButtonEvent@InputDevice@2@@Z";
+#endif
+
 enum KeyCode : uint32_t
 {
     KEY_NONE = 0,

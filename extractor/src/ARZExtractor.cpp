@@ -153,7 +153,8 @@ void ARZExtractor::ARZRecord::Write(const std::filesystem::path& outputDir)
 
     std::ofstream out(outputPath, std::ofstream::out);
     if (!out.is_open())
-        throw std::runtime_error(Logger::LogMessage(LOG_LEVEL_ERROR, "Could not open record file % for writing", outputPath.string().c_str()));
+        return;
+        //throw std::runtime_error(Logger::LogMessage(LOG_LEVEL_ERROR, "Could not open record file % for writing", outputPath.string().c_str()));
 
     // Template name is a special case and appears before the other variables
     if (!_templateName.empty())

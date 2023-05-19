@@ -21,13 +21,16 @@ class ChatClient
         void SetChannel(uint32_t channel);
 
         bool ProcessChatCommand(std::wstring& name, std::wstring& message, uint8_t& type, void* item = nullptr);
-        void SendMessage(EngineAPI::UI::ChatType type, const std::wstring& name, const std::wstring& message, void* item = nullptr);
+        void SendChatMessage(EngineAPI::UI::ChatType type, const std::wstring& name, const std::wstring& message, void* item = nullptr);
         void SetChannelAndSendMessage(EngineAPI::UI::ChatType type, uint32_t channel, const std::wstring& name, const std::wstring& message, void* item = nullptr);
 
         void DisplayWelcomeMessage();
+        void DisplayNewTradeNotifications();
 
     private:
         ChatClient();
+        ChatClient(ChatClient&) = delete;
+        void operator=(const ChatClient&) = delete;
 
         static void OnConnectEvent(void* data);
         static void OnDisconnectEvent(void* data);

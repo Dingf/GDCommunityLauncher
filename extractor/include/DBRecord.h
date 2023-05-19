@@ -18,9 +18,11 @@ class DBRecord
         std::filesystem::path GetRootPath()   const { return _rootPath; }
         std::filesystem::path GetRecordPath() const { return _recordPath; }
 
-        virtual bool Load(const std::filesystem::path& path);
+        bool Load(const std::filesystem::path& path);
 
     protected:
+        virtual void LoadValue(std::string key, std::unique_ptr<Value> value);
+
         std::map<std::string, std::vector<std::unique_ptr<Value>>> _variables;
 
         std::filesystem::path _rootPath;

@@ -1,28 +1,7 @@
-add_library(game
-include/UID.h
-include/GDDataBlock.h
-include/Item.h
-include/ItemContainer.h
-include/Skill.h
-include/Faction.h
-include/Quest.h
-include/Stash.h
-include/SharedStash.h
-include/Character.h
-include/ItemDatabase.h
-include/DungeonDatabase.h
-src/UID.cpp
-src/GDDataBlock.cpp
-src/Item.cpp
-src/ItemContainer.cpp
-src/Skill.cpp
-src/Faction.cpp
-src/Quest.cpp
-src/Stash.cpp
-src/SharedStash.cpp
-src/Character.cpp
-src/ItemDatabase.cpp
-src/DungeonDatabase.cpp)
+file(GLOB_RECURSE INCLUDE "include/*.h")
+file(GLOB_RECURSE SOURCE "src/*.cpp")
+
+add_library(game ${INCLUDE} ${SOURCE})
 
 target_include_directories(game PUBLIC include)
 target_link_libraries(game PRIVATE ${cpprestsdk_LIBRARY})

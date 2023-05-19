@@ -5,9 +5,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
-#include <mutex>
 #include "ClientBase.h"
-#include "UpdateThread.h"
 
 class Client
 {
@@ -31,6 +29,8 @@ class Client
         const std::string& GetUsername() const { return _data._username; }
         const std::string& GetRefreshToken() const { return _data._refreshToken; }
         const std::string& GetAuthToken() const { return _data._authToken; }
+        const std::string& GetSeasonName() const { return _data._seasonName; }
+        const std::string& GetBranch() const { return _data._branch; }
 
         const URI& GetServerGameURL() const { return _data._gameURL; }
         const URI& GetServerChatURL() const { return _data._chatURL; }
@@ -38,11 +38,11 @@ class Client
         const std::vector<SeasonInfo>& GetSeasons() const { return _data._seasons; }
         const SeasonInfo* GetActiveSeason() const { return _activeSeason; }
 
-        std::mutex& GetTransferMutex() { return _transferMutex; }
+        std::wstring GetActiveCharacterName() const { return _activeCharacter._name; }
+        std::string GetActiveModName() const { if (IsInActiveSeason()) return _activeSeason->_modName; else return {}; }
 
-        const std::wstring& GetActiveCharacterName() const { return _activeCharacter._name; }
-
-        bool IsParticipatingInSeason() const { return (_activeSeason != nullptr) && (_activeCharacter._hasToken); }
+        bool IsInActiveSeason() const { return (_activeSeason != nullptr) && (!_activeSeason->_modName.empty()); }
+        bool IsParticipatingInSeason() const { return IsInActiveSeason() && (_activeCharacter._hasToken); }
 
         void SetActiveSeason(const std::string& modName, bool hardcore);
         void SetActiveCharacter(const std::wstring& name, bool hasToken);
@@ -51,14 +51,18 @@ class Client
 
         void UpdateSeasonStanding();
 
-        static void UpdateRefreshToken();
-        static void UpdateConnectionStatus();
+        static bool UpdateRefreshToken();
+        static bool UpdateConnectionStatus();
 
     private:
         Client() : _activeSeason(nullptr), _online(false) {}
+        Client(Client&) = delete;
+        void operator=(const Client&) = delete;
 
         void UpdateVersionInfoText();
         void UpdateLeagueInfoText();
+
+        void CreatePlayMenu();
 
         void ReadDataFromPipe();
 
@@ -73,10 +77,6 @@ class Client
 
         std::string _versionInfoText;
         std::wstring _leagueInfoText;
-        std::mutex _transferMutex;
-
-        std::shared_ptr<UpdateThread<>> _refreshServerTokenThread;
-        std::shared_ptr<UpdateThread<>> _connectionStatusThread;
 };
 
 #endif//INC_GDCL_DLL_CLIENT_H

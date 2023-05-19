@@ -130,7 +130,8 @@ void ARCExtractor::ARCFileInfo::Write(const std::filesystem::path& outputDir)
 
     std::ofstream out(outputPath, std::ofstream::out | std::ofstream::binary);
     if (!out.is_open())
-        throw std::runtime_error(Logger::LogMessage(LOG_LEVEL_ERROR, "Could not open record file % for writing", outputPath.string().c_str()));
+        return;
+        //throw std::runtime_error(Logger::LogMessage(LOG_LEVEL_ERROR, "Could not open record file % for writing", outputPath.string().c_str()));
 
     out.write(&_fileData[0], _decompressedSize);
     out.close();

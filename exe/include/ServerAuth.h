@@ -10,13 +10,10 @@ enum ServerAuthResult
     SERVER_AUTH_OK = 0,
     SERVER_AUTH_INVALID_LOGIN = 1,
     SERVER_AUTH_TIMEOUT = 2,
-    SERVER_AUTH_INVALID_SEASONS = 3,
-    SERVER_AUTH_UNKNOWN_ERR = 4,
 };
 
-typedef void(*ServerAuthCallback)(ServerAuthResult, const ClientData&);
+typedef void (*ServerAuthCallback)(ServerAuthResult, const ClientData&);
 
-std::string GetLauncherVersion(const URI& gameURL);
-ServerAuthResult ServerAuthenticate(ClientData& data, const std::string& password, ServerAuthCallback callback);
+ServerAuthResult ServerAuthenticate(ClientData& data, ServerAuthCallback callback);
 
 #endif//INC_GDCL_EXE_SERVER_AUTH_H

@@ -8,7 +8,7 @@ void* _state = NULL;
 
 void lua_settop(void* L, int index)
 {
-    typedef void(__cdecl* LuaSetTopProto)(void*, int);
+    typedef void (__cdecl* LuaSetTopProto)(void*, int);
 
     HMODULE luaDLL = GetModuleHandle(TEXT("lua51.dll"));
     if ((!luaDLL) || (!L))
@@ -28,7 +28,7 @@ void lua_pop(void* L, int n)
 
 void lua_pushstring(void* L, const char* s)
 {
-    typedef void(__cdecl* LuaPushStringProto)(void*, const char*);
+    typedef void (__cdecl* LuaPushStringProto)(void*, const char*);
 
     HMODULE luaDLL = GetModuleHandle(TEXT("lua51.dll"));
     if ((!luaDLL) || (!L))
@@ -43,7 +43,7 @@ void lua_pushstring(void* L, const char* s)
 
 void lua_pushnil(void* L)
 {
-    typedef void(__cdecl* LuaPushNilProto)(void*);
+    typedef void (__cdecl* LuaPushNilProto)(void*);
 
     HMODULE luaDLL = GetModuleHandle(TEXT("lua51.dll"));
     if ((!luaDLL) || (!L))
@@ -58,7 +58,7 @@ void lua_pushnil(void* L)
 
 int lua_gettop(void* L)
 {
-    typedef int(__cdecl* LuaGetTopProto)(void*);
+    typedef int (__cdecl* LuaGetTopProto)(void*);
 
     HMODULE luaDLL = GetModuleHandle(TEXT("lua51.dll"));
     if ((!luaDLL) || (!L))
@@ -73,7 +73,7 @@ int lua_gettop(void* L)
 
 void lua_getfield(void* L, int index, const char* k)
 {
-    typedef void(__cdecl* LuaGetFieldProto)(void*, int, const char*);
+    typedef void (__cdecl* LuaGetFieldProto)(void*, int, const char*);
 
     HMODULE luaDLL = GetModuleHandle(TEXT("lua51.dll"));
     if ((!luaDLL) || (!L))
@@ -93,7 +93,7 @@ void lua_getglobal(void* L, const char* k)
 
 void lua_gettable(void* L, int index)
 {
-    typedef int(__cdecl* LuaGetTableProto)(void*, int);
+    typedef int (__cdecl* LuaGetTableProto)(void*, int);
 
     HMODULE luaDLL = GetModuleHandle(TEXT("lua51.dll"));
     if ((!luaDLL) || (!L))
@@ -108,7 +108,7 @@ void lua_gettable(void* L, int index)
 
 int lua_next(void* L, int index)
 {
-    typedef int(__cdecl* LuaGetNextProto)(void*, int);
+    typedef int (__cdecl* LuaGetNextProto)(void*, int);
 
     HMODULE luaDLL = GetModuleHandle(TEXT("lua51.dll"));
     if ((!luaDLL) || (!L))
@@ -123,7 +123,7 @@ int lua_next(void* L, int index)
 
 int lua_type(void* L, int index)
 {
-    typedef int(__cdecl* LuaGetTypeProto)(void*, int);
+    typedef int (__cdecl* LuaGetTypeProto)(void*, int);
 
     HMODULE luaDLL = GetModuleHandle(TEXT("lua51.dll"));
     if ((!luaDLL) || (!L))
@@ -138,7 +138,7 @@ int lua_type(void* L, int index)
 
 bool lua_toboolean(void* L, int index)
 {
-    typedef int(__cdecl* LuaToBooleanProto)(void*, int);
+    typedef int (__cdecl* LuaToBooleanProto)(void*, int);
 
     HMODULE luaDLL = GetModuleHandle(TEXT("lua51.dll"));
     if ((!luaDLL) || (!L))
@@ -153,7 +153,7 @@ bool lua_toboolean(void* L, int index)
 
 const char* lua_tolstring(void* L, int index, size_t* len)
 {
-    typedef const char*(__cdecl* LuaToStringProto)(void*, int, size_t*);
+    typedef const char* (__cdecl* LuaToStringProto)(void*, int, size_t*);
 
     HMODULE luaDLL = GetModuleHandle(TEXT("lua51.dll"));
     if ((!luaDLL) || (!L))
@@ -173,7 +173,7 @@ const char* lua_tostring(void* L, int index)
 
 ptrdiff_t lua_tointeger(void* L, int index)
 {
-    typedef ptrdiff_t(__cdecl* LuaToIntegerProto)(void*, int);
+    typedef ptrdiff_t (__cdecl* LuaToIntegerProto)(void*, int);
 
     HMODULE luaDLL = GetModuleHandle(TEXT("lua51.dll"));
     if ((!luaDLL) || (!L))
@@ -188,7 +188,7 @@ ptrdiff_t lua_tointeger(void* L, int index)
 
 int HandleLuaGetTop(void* L)
 {
-    typedef int(__cdecl *HandleLuaGetTopProto)(void*);
+    typedef int (__cdecl *HandleLuaGetTopProto)(void*);
 
     HandleLuaGetTopProto callback = (HandleLuaGetTopProto)HookManager::GetOriginalFunction("lua51.dll", "lua_gettop");
     if (callback)

@@ -5,11 +5,11 @@
 #include "Client.h"
 #include "ClientHandlers.h"
 #include "ChatClient.h"
-#include "ItemLinker.h"
-#include "LuaAPI.h"
+#include "HookManager.h"
 #include "EventManager.h"
+#include "ThreadManager.h"
+#include "ServerSync.h"
 #include "JSONObject.h"
-#include "UpdateThread.h"
 #include "URI.h"
 #include "Log.h"
 #include "Version.h"
@@ -121,8 +121,8 @@ bool ReadSeasonsFromPipe(HANDLE pipe, std::vector<SeasonInfo>& seasons)
 bool ExtractZIPUpdate()
 {
     const std::filesystem::path& path = std::filesystem::current_path() / "GDCommunityLauncher.zip";
-    const char* pathString = path.string().c_str();
-    unzFile zipFile = unzOpen(pathString);
+    std::string pathString = path.string();
+    unzFile zipFile = unzOpen(pathString.c_str());
     if ((zipFile) && (unzLocateFile(zipFile, "GDCommunityLauncher.exe", 0) != UNZ_END_OF_LIST_OF_FILE))
     {
         std::filesystem::path filenamePath = std::filesystem::current_path() / "GDCommunityLauncher.exe";
@@ -173,11 +173,15 @@ void Client::ReadDataFromPipe()
         uint32_t updateFlag;
         std::string gameURL;
         std::string chatURL;
+        std::string branch;
+
         if (!ReadStringFromPipe(pipe, _data._username) ||
+            !ReadStringFromPipe(pipe, _data._password) ||
             !ReadStringFromPipe(pipe, _data._authToken) ||
             !ReadStringFromPipe(pipe, _data._refreshToken) ||
             !ReadStringFromPipe(pipe, gameURL) ||
             !ReadStringFromPipe(pipe, chatURL) ||
+            !ReadStringFromPipe(pipe, branch) ||
             !ReadInt32FromPipe(pipe, updateFlag) ||
             !ReadSeasonsFromPipe(pipe, _data._seasons))
         {
@@ -189,6 +193,7 @@ void Client::ReadDataFromPipe()
 
         _data._gameURL = gameURL;
         _data._chatURL = chatURL;
+        _data._branch = branch;
         _data._updateFlag = (updateFlag != 0);
         if ((_data._updateFlag != 0) && (!ExtractZIPUpdate()))
         {
@@ -196,23 +201,30 @@ void Client::ReadDataFromPipe()
             return;
         }
 
+        if (_data._seasons.size() > 0)
+        {
+            _data._seasonName = _data._seasons[0]._modName;
+            GameAPI::SetRootPrefix(_data._seasonName);
+        }
+
         UpdateLeagueInfoText();
         UpdateVersionInfoText();
     }
 }
 
-void Client::UpdateRefreshToken()
+bool Client::UpdateRefreshToken()
 {
     pplx::create_task([]()
     {
-        Client& client = Client::GetInstance();
         try
         {
-            URI endpoint = client.GetServerGameURL() / "Account" / "refresh-token";
+            Client& client = Client::GetInstance();
+            URI endpoint = client.GetServerGameURL() / "Account" / "login";
             web::http::client::http_client httpClient((utility::string_t)endpoint);
 
             web::json::value requestBody;
-            requestBody[U("refreshToken")] = JSONString(client.GetRefreshToken());
+            requestBody[U("username")] = JSONString(client._data._username);
+            requestBody[U("password")] = JSONString(client._data._password);
 
             web::http::http_request request(web::http::methods::POST);
             request.set_body(requestBody);
@@ -225,8 +237,8 @@ void Client::UpdateRefreshToken()
                 web::json::value refreshTokenValue = responseBody[U("refresh_token")];
                 if ((!authTokenValue.is_null()) && (!refreshTokenValue.is_null()))
                 {
-                    client._data._authToken = JSONString(authTokenValue.as_string());
-                    client._data._refreshToken = JSONString(refreshTokenValue.as_string());
+                    client._data._authToken = JSONString(authTokenValue.serialize());
+                    client._data._refreshToken = JSONString(refreshTokenValue.serialize());
                 }
             }
             else
@@ -239,9 +251,10 @@ void Client::UpdateRefreshToken()
             Logger::LogMessage(LOG_LEVEL_WARN, "Failed to refresh token: %", ex.what());
         }
     });
+    return true;
 }
 
-void Client::UpdateConnectionStatus()
+bool Client::UpdateConnectionStatus()
 {
     Client& client = Client::GetInstance();
     try
@@ -256,8 +269,6 @@ void Client::UpdateConnectionStatus()
         if (client._online != status)
         {
             client._online = status;
-            client.UpdateLeagueInfoText();
-
             if (status)
                 EventManager::Publish(GDCL_EVENT_CONNECT);
             else
@@ -270,10 +281,11 @@ void Client::UpdateConnectionStatus()
         {
             Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to query server status: % %", client._online, ex.what());
             client._online = false;
-            client.UpdateLeagueInfoText();
             EventManager::Publish(GDCL_EVENT_DISCONNECT);
         }
     }
+    client.UpdateLeagueInfoText();
+    return true;
 }
 
 void Client::UpdateVersionInfoText()
@@ -283,7 +295,7 @@ void Client::UpdateVersionInfoText()
     _versionInfoText.clear();
 
     GetVersionProto callback = (GetVersionProto)HookManager::GetOriginalFunction("Engine.dll", EngineAPI::EAPI_NAME_GET_VERSION);
-    PULONG_PTR engine = EngineAPI::GetEngineHandle();
+    void** engine = EngineAPI::GetEngineHandle();
 
     if ((callback) && (engine))
     {
@@ -318,6 +330,10 @@ void Client::UpdateLeagueInfoText()
         else if (EngineAPI::IsMultiplayer())
         {
             _leagueInfoText += L" {^Y}(Multiplayer)";
+        }
+        else if (!ServerSync::IsClientTrusted())
+        {
+            _leagueInfoText += L" {^Y}(Desynced ~ Restart Game)";
         }
         else
         {
@@ -399,9 +415,48 @@ void Client::UpdateSeasonStanding()
     });
 }
 
+void Client::CreatePlayMenu()
+{
+    std::filesystem::path userSavePath = GameAPI::GetUserSaveFolder();
+    if (!std::filesystem::is_directory(userSavePath))
+        std::filesystem::create_directories(userSavePath);
+
+    std::filesystem::path playMenuPath = userSavePath / "playmenu.cpn";
+    if (!std::filesystem::is_regular_file(playMenuPath))
+    {
+        std::string seasonName = GetSeasonName();
+        std::wstring serverName = L"Grim Dawn Server";
+        std::string mapName = "maps/world001.map";
+
+        size_t fileSize = 84 + seasonName.size() + (serverName.size() * sizeof(wchar_t) * 2) + (mapName.size() * 2);
+        FileWriter writer(fileSize);
+
+        writer.BufferInt32(0xFFFFFFFF);
+        writer.BufferInt64(2);
+        writer.BufferInt64(1);
+        writer.BufferWideString(serverName);
+        writer.BufferWideString(serverName);
+        writer.BufferString(mapName);
+        writer.BufferInt32(4);      // Max players
+        writer.BufferInt32(0xC8);   // Level range
+        writer.BufferInt64(0);
+        writer.BufferInt32(2);
+        writer.BufferString(seasonName);
+        writer.BufferString(mapName);
+        writer.BufferInt64(1);
+        writer.BufferInt64(1);
+        writer.BufferInt32(0);
+        writer.BufferInt32(0xFFFFFFFF);
+        writer.WriteToFile(playMenuPath);
+    }
+}
+
 bool Client::Initialize()
 {
     Logger::SetMinimumLogLevel(LOG_LEVEL_DEBUG);
+
+    // Initialize the server sync module
+    ServerSync::Initialize();
 
     // Initialize the chat client in a separate thread
     pplx::task<void> task = pplx::create_task([]()
@@ -412,37 +467,51 @@ bool Client::Initialize()
     // Initialize the game engine hooks
     if (!HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_GET_VERSION, &HandleGetVersion) ||
         !HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_RENDER, &HandleRender) ||
+        !HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_DIRECT_READ, &HandleDirectRead) ||
+        !HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_DIRECT_WRITE, &HandleDirectWrite) ||
         !HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_LOAD_WORLD, &HandleLoadWorld) ||
         !HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_SET_REGION_OF_NOTE, &HandleSetRegionOfNote) ||
         !HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_HANDLE_KEY_EVENT, &HandleKeyEvent) ||
         !HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_HANDLE_MOUSE_EVENT, &HandleMouseEvent) ||
         !HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_RENDER_STYLED_TEXT_2D, &HandleRenderStyledText2D) ||
         !HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_LUA_INITIALIZE, &HandleLuaInitialize) ||
+        !HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_CREATE_SERVER_CONNECTION, &HandleCreateNewConnection) ||
+        !HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_ADD_NETWORK_SERVER, &HandleAddNetworkServer) ||
+        !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_GAME_ENGINE_SHUTDOWN, &HandleGameShutdown) ||
         !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_SET_MAIN_PLAYER, &HandleSetMainPlayer) ||
         !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_ON_CARAVAN_INTERACT, &HandleSetTransferOpen) ||
         !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_SAVE_NEW_FORMAT_DATA, &HandleSaveNewFormatData) ||
+        !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_LOAD_NEW_FORMAT_DATA, &HandleLoadNewFormatData) ||
         !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_SAVE_TRANSFER_STASH, &HandleSaveTransferStash) ||
         !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_LOAD_TRANSFER_STASH, &HandleLoadTransferStash) ||
         !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_BESTOW_TOKEN, &HandleBestowToken) ||
         !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_UNLOAD_WORLD, &HandleUnloadWorld) ||
         !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_SEND_CHAT_MESSAGE, &HandleSendChatMessage) ||
-        !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_SYNC_DUNGEON_PROGRESS, &HandleSyncDungeonProgress))
+        !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_SYNC_DUNGEON_PROGRESS, &HandleSyncDungeonProgress) ||
+        !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_USE_ITEM_ENCHANTMENT, &HandleUseItemEnchantment) ||
+        !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_CAN_ENCHANT_BE_USED_ON, &HandleCanEnchantBeUsedOn) ||
+        !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_GET_ITEM_DESCRIPTION, &HandleGetItemDescription) ||
+        !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_GET_WEAPON_DESCRIPTION, &HandleGetItemDescriptionWeapon) ||
+        !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_GET_ARMOR_DESCRIPTION, &HandleGetItemDescriptionArmor) ||
+        !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_GET_ROOT_SAVE_PATH, &HandleGetRootSavePath) ||
+        !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_GET_BASE_FOLDER, &HandleGetBaseFolder) ||
+        !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_GET_USER_SAVE_FOLDER, &HandleGetUserSaveFolder) ||
+        !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_GET_FULL_SAVE_FOLDER, &HandleGetFullSaveFolder) ||
+        !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_GET_PLAYER_FOLDER_1, &HandleGetPlayerFolder1) ||
+        !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_GET_PLAYER_FOLDER_2, &HandleGetPlayerFolder2) ||
+        !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_GET_MAP_FOLDER, &HandleGetMapFolder, true) ||
+        !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_GET_DIFFICULTY_FOLDER, &HandleGetDifficultyFolder) ||
+        !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_GET_SHARED_SAVE_PATH, &HandleGetSharedSavePath, true))
     {
         Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to create one or more game hooks.");
         return false;
     }
 
-    // Initialize the item linking hooks
-    if (!ItemLinker::Initialize())
-        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to create one or more item linking hooks.");
-
     // Initialize threads to handle refreshing the server token/connection status
-    _refreshServerTokenThread = std::make_shared<UpdateThread<>>(&Client::UpdateRefreshToken, 1000, 1800000);
-    _connectionStatusThread = std::make_shared<UpdateThread<>>(&Client::UpdateConnectionStatus, 1000, 30000);
+    ThreadManager::CreatePeriodicThread("refresh_token", 60000, 900000, 0, &Client::UpdateRefreshToken);
+    ThreadManager::CreatePeriodicThread("connection_status", 10000, 10000, 0, &Client::UpdateConnectionStatus);
 
-    _refreshServerTokenThread->Update(0);
-    _connectionStatusThread->Update(0);
-
+    CreatePlayMenu();
     UpdateVersionInfoText();
 
     return true;
@@ -452,24 +521,36 @@ void Client::Cleanup()
 {
     HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_GET_VERSION);
     HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_RENDER);
+    HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_DIRECT_READ);
+    HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_DIRECT_WRITE);
     HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_LOAD_WORLD);
     HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_SET_REGION_OF_NOTE);
     HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_HANDLE_KEY_EVENT);
     HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_HANDLE_MOUSE_EVENT);
     HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_RENDER_STYLED_TEXT_2D);
     HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_LUA_INITIALIZE);
+    HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_GAME_ENGINE_SHUTDOWN);
     HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_SET_MAIN_PLAYER);
     HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_ON_CARAVAN_INTERACT);
     HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_SAVE_NEW_FORMAT_DATA);
+    HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_LOAD_NEW_FORMAT_DATA);
     HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_SAVE_TRANSFER_STASH);
     HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_LOAD_TRANSFER_STASH);
     HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_BESTOW_TOKEN);
     HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_UNLOAD_WORLD);
     HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_SEND_CHAT_MESSAGE);
     HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_SYNC_DUNGEON_PROGRESS);
-
-    _refreshServerTokenThread->Stop();
-    _connectionStatusThread->Stop();
-
-    ItemLinker::Cleanup();
+    HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_USE_ITEM_ENCHANTMENT);
+    HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_CAN_ENCHANT_BE_USED_ON);
+    HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_GET_ITEM_DESCRIPTION);
+    HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_GET_WEAPON_DESCRIPTION);
+    HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_GET_ARMOR_DESCRIPTION);
+    HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_GET_ROOT_SAVE_PATH);
+    HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_GET_BASE_FOLDER);
+    HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_GET_USER_SAVE_FOLDER);
+    HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_GET_FULL_SAVE_FOLDER);
+    HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_GET_PLAYER_FOLDER_1);
+    HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_GET_PLAYER_FOLDER_2);
+    HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_GET_DIFFICULTY_FOLDER);
+    HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_GET_SHARED_SAVE_PATH);
 }

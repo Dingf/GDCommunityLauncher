@@ -3,7 +3,7 @@
 
 void LuaRunCode(void* _this, const char* code)
 {
-    typedef void(__thiscall* LuaRunCodeProto)(void*, const char*);
+    typedef void (__thiscall* LuaRunCodeProto)(void*, const char*);
 
     HMODULE engineDLL = GetModuleHandle(TEXT("Engine.dll"));
     if (!engineDLL)
@@ -18,7 +18,7 @@ void LuaRunCode(void* _this, const char* code)
 
 void HandleLuaInitialize(void* _this, bool unk1, bool unk2)
 {
-    typedef void(__thiscall* LuaInitializeProto)(void*, bool, bool);
+    typedef void (__thiscall* LuaInitializeProto)(void*, bool, bool);
 
     LuaInitializeProto callback = (LuaInitializeProto)HookManager::GetOriginalFunction("Engine.dll", EngineAPI::EAPI_NAME_LUA_INITIALIZE);
     if (callback)

@@ -168,24 +168,11 @@ inline bool CheckColorAddress2(uint8_t* buffer, uint64_t offset, uint64_t size)
 
 void ChatWindow::FindMagicAddresses()
 {
-    typedef void* (*GetObjectManagerProto)();
-    typedef void(__thiscall* GetObjectListProto)(void*, std::vector<void*>&);
-
     _visible = nullptr;
     _colors = nullptr;
 
-    HMODULE engineDLL = GetModuleHandle(TEXT("Engine.dll"));
-    if (!engineDLL)
-        return;
-
-    GetObjectManagerProto GetObjectManager = (GetObjectManagerProto)GetProcAddress(engineDLL, EAPI_NAME_GET_OBJECT_MANAGER);
-    GetObjectListProto GetObjectList = (GetObjectListProto)GetProcAddress(engineDLL, EAPI_NAME_GET_OBJECT_LIST);
-    if (!GetObjectManager || !GetObjectList)
-        return;
-
     std::vector<void*> objects;
-    GetObjectList(GetObjectManager(), objects);
-
+    EngineAPI::GetObjectList(objects);
     if (objects.size() > 0)
     {
         void* min = *std::min_element(objects.begin(), objects.end());

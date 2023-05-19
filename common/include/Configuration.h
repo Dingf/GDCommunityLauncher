@@ -38,6 +38,14 @@ class Configuration
             _configValues.insert(std::make_pair(key, Value::Parse(val)));
         }
 
+        void DeleteValue(const std::string& section, const std::string& name)
+        {
+            ConfigKey key({ section, name });
+            auto it = _configValues.find(key);
+            if (it != _configValues.end())
+                _configValues.erase(it);
+        }
+
     private:
         typedef std::pair<std::string, std::string> ConfigKey;
 

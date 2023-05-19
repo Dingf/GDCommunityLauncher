@@ -68,7 +68,7 @@ void FileWriter::BufferString(const std::string& val)
 
 void FileWriter::BufferWideString(const std::wstring& val)
 {
-    uint32_t length = (uint32_t)(val.size() * 2);
+    uint32_t length = (uint32_t)(val.size());
     BufferInt32(length);
 
     if (_bufferPos + length <= _bufferSize)

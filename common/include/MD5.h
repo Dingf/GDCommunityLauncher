@@ -2,6 +2,7 @@
 #define INC_GDCL_MD5_H
 
 #include <string>
+#include <sstream>
 #include <filesystem>
 #include "external/md5.hpp"
 

@@ -5,9 +5,9 @@ std::unordered_set<void*> _keyHandlers;
 
 void SendKeyEvent(EngineAPI::KeyButtonEvent& event)
 {
-    typedef bool(__thiscall* HandleKeyEventProto)(void*, EngineAPI::KeyButtonEvent&);
+    typedef bool (__thiscall* KeyEventProto)(void*, EngineAPI::KeyButtonEvent&);
 
-    HandleKeyEventProto callback = (HandleKeyEventProto)HookManager::GetOriginalFunction("Engine.dll", EngineAPI::EAPI_NAME_HANDLE_KEY_EVENT);
+    KeyEventProto callback = (KeyEventProto)HookManager::GetOriginalFunction("Engine.dll", EngineAPI::EAPI_NAME_HANDLE_KEY_EVENT);
     if (callback)
     {
         for (void* handler : _keyHandlers)
@@ -19,9 +19,9 @@ void SendKeyEvent(EngineAPI::KeyButtonEvent& event)
 
 bool HandleKeyEvent(void* _this, EngineAPI::KeyButtonEvent& event)
 {
-    typedef bool(__thiscall* HandleKeyEventProto)(void*, EngineAPI::KeyButtonEvent&);
+    typedef bool (__thiscall* KeyEventProto)(void*, EngineAPI::KeyButtonEvent&);
 
-    HandleKeyEventProto callback = (HandleKeyEventProto)HookManager::GetOriginalFunction("Engine.dll", EngineAPI::EAPI_NAME_HANDLE_KEY_EVENT);
+    KeyEventProto callback = (KeyEventProto)HookManager::GetOriginalFunction("Engine.dll", EngineAPI::EAPI_NAME_HANDLE_KEY_EVENT);
     if (callback)
     {
         Client& client = Client::GetInstance();
@@ -36,7 +36,6 @@ bool HandleKeyEvent(void* _this, EngineAPI::KeyButtonEvent& event)
             if ((client.IsParticipatingInSeason()) && (event._keyCode == EngineAPI::KEY_ENTER) && (!EngineAPI::IsMultiplayer()) && (event._keyState == EngineAPI::KEY_STATE_DOWN))
             {
                 EngineAPI::UI::ChatWindow& chatWindow = EngineAPI::UI::ChatWindow::GetInstance();
-
                 if ((chatWindow.IsToggleInitialized()) && (!chatWindow.IsVisible()))
                 {
                     chatWindow.ToggleDisplay();
@@ -44,12 +43,12 @@ bool HandleKeyEvent(void* _this, EngineAPI::KeyButtonEvent& event)
             }
         }
 
-        //if ((client.IsParticipatingInSeason()) && (event._keyCode == EngineAPI::KEY_TILDE))
+        if ((client.IsParticipatingInSeason()) && (event._keyCode == EngineAPI::KEY_TILDE))
         {
             // Disable the tilde key to prevent console access
-            //return true;
+            return true;
         }
-        //else
+        else
         {
             return callback(_this, event);
         }

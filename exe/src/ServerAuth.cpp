@@ -5,143 +5,9 @@
 #include "Date.h"
 #include "JSONObject.h"
 #include "URI.h"
-#include "Version.h"
 #include "Log.h"
 
-std::string GetLauncherVersion(const URI& gameURL)
-{
-    URI endpoint = gameURL / "File" / "launcher";
-    web::http::client::http_client httpClient((utility::string_t)endpoint);
-    web::http::http_request request(web::http::methods::GET);
-
-    try
-    {
-        web::http::http_response response = httpClient.request(request).get();
-        switch (response.status_code())
-        {
-        case web::http::status_codes::OK:
-        {
-            web::json::value responseBody = response.extract_json().get();
-            web::json::value version = responseBody[U("version")];
-
-            std::string versionString = JSONString(version.serialize());
-            return versionString;
-        }
-        default:
-        {
-            throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-        }
-        }
-    }
-    catch (const std::exception& ex)
-    {
-        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve launcher version: %", ex.what());
-    }
-    return {};
-}
-
-bool GetChatAPI(const URI& gameURL, ClientData& data)
-{
-    URI endpoint = gameURL / "Admin" / "chat-url";
-    web::http::client::http_client httpClient((utility::string_t)endpoint);
-    web::http::http_request request(web::http::methods::GET);
-
-    std::string bearerToken = "Bearer " + data._authToken;
-    request.headers().add(U("Authorization"), bearerToken.c_str());
-
-    try
-    {
-        web::http::http_response response = httpClient.request(request).get();
-        switch (response.status_code())
-        {
-            case web::http::status_codes::OK:
-            {
-                //Logger::LogMessage(LOG_LEVEL_DEBUG, "DEBUG wtf bro %", response.extract_utf8string().get());
-                //web::json::value responseBody = response.extract_json().get();
-                data._chatURL = response.extract_utf8string().get();// JSONString(responseBody.as_string());
-                return true;
-            }
-            default:
-            {
-                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-            }
-        }
-    }
-    catch (const std::exception& ex)
-    {
-        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve chat API: %", ex.what());
-    }
-    return false;
-}
-
-bool GetSeasonData(const URI& gameURL, ClientData& data)
-{
-    URI endpoint = gameURL / "Season" / "latest";
-    web::http::client::http_client httpClient((utility::string_t)endpoint);
-    web::http::http_request request(web::http::methods::GET);
-
-    try
-    {
-        web::http::http_response response = httpClient.request(request).get();
-        switch (response.status_code())
-        {
-            case web::http::status_codes::OK:
-            {
-                web::json::value responseBody = response.extract_json().get();
-                web::json::array seasonsList = responseBody.as_array();
-                for (auto it = seasonsList.begin(); it != seasonsList.end(); ++it)
-                {
-                    std::string startDate = JSONString(it->at(U("startDate")).serialize());
-                    std::string endDate = JSONString(it->at(U("endDate")).serialize());
-
-                    std::time_t startDateTime = Date(startDate);
-                    std::time_t endDateTime = Date(endDate);
-                    std::time_t currentDateTime = Date();
-
-                    if ((data._role == "admin") || (data._role == "tester") || ((currentDateTime >= startDateTime) && (currentDateTime <= endDateTime)))
-                    {
-                        SeasonInfo seasonInfo;
-                        seasonInfo._seasonID = it->at(U("seasonId")).as_integer();
-                        seasonInfo._seasonType = it->at(U("seasonTypeId")).as_integer();
-
-                        std::string modName = JSONString(it->at(U("modName")).serialize());
-                        std::string displayName = JSONString(it->at(U("displayName")).serialize());
-                        std::string participationToken = JSONString(it->at(U("participationTag")).serialize());
-
-                        // Trim quotes from serializing the string
-                        if ((modName.front() == '"') && (modName.back() == '"'))
-                            modName = std::string(modName.begin() + 1, modName.end() - 1);
-                        if ((displayName.front() == '"') && (displayName.back() == '"'))
-                            displayName = std::string(displayName.begin() + 1, displayName.end() - 1);
-                        if ((participationToken.front() == '"') && (participationToken.back() == '"'))
-                            participationToken = std::string(participationToken.begin() + 1, participationToken.end() - 1);
-
-                        for (char& c : participationToken)
-                            c = std::tolower(c);
-
-                        seasonInfo._modName = modName;
-                        seasonInfo._displayName = displayName;
-                        seasonInfo._participationToken = participationToken;
-
-                        data._seasons.push_back(seasonInfo);
-                    }
-                }
-                return (data._seasons.size() > 0);
-            }
-            default:
-            {
-                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-            }
-        }
-    }
-    catch (const std::exception& ex)
-    {
-        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve season data: %", ex.what());
-    }
-    return false;
-}
-
-ServerAuthResult ServerAuthenticate(ClientData& data, const std::string& password, ServerAuthCallback callback)
+ServerAuthResult ServerAuthenticate(ClientData& data, ServerAuthCallback callback)
 {
     URI gameURL = data._gameURL;
     URI endpoint = gameURL / "Account" / "login";
@@ -149,7 +15,7 @@ ServerAuthResult ServerAuthenticate(ClientData& data, const std::string& passwor
 
     web::json::value requestBody;
     requestBody[U("username")] = JSONString(data._username);
-    requestBody[U("password")] = JSONString(password);
+    requestBody[U("password")] = JSONString(data._password);
 
     web::http::http_request request(web::http::methods::POST);
     request.set_body(requestBody);
@@ -187,18 +53,6 @@ ServerAuthResult ServerAuthenticate(ClientData& data, const std::string& passwor
             callback(SERVER_AUTH_TIMEOUT, data);
         return SERVER_AUTH_TIMEOUT;
     }
-
-    if (!GetChatAPI(gameURL, data))
-        Logger::LogMessage(LOG_LEVEL_WARN, "Could not retrieve chat API information from the server. In-game chat functionality will not work correctly!");
-
-    if (!GetSeasonData(gameURL, data))
-    {
-        if (callback)
-            callback(SERVER_AUTH_INVALID_SEASONS, data);
-        return SERVER_AUTH_INVALID_SEASONS;
-    }
-
-    data._updateFlag = (GetLauncherVersion(gameURL) != std::string(GDCL_VERSION));
 
     if (callback)
         callback(SERVER_AUTH_OK, data);

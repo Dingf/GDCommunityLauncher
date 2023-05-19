@@ -20,6 +20,7 @@ package-lock.json
 *.ico
 
 # Generated files
+dll/res/CraftingDatabase.txt
 dll/res/ItemDatabase.txt
 dll/res/DungeonDatabase.txt
 common/include/Version.h

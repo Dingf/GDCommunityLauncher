@@ -1,6 +1,7 @@
 #include <iostream>
 #include <filesystem>
 #include "ItemDBR.h"
+#include "CraftingDBR.h"
 #include "ARZExtractor.h"
 #include "ARCExtractor.h"
 #include "Log.h"
@@ -76,24 +77,34 @@ int main(int argc, char** argv)
         {
             std::cout << "Extracting Grim Dawn records..." << std::endl;
             ARZExtractor::Extract(inputPath / "database" / "database.arz", outputPath);
+            std::cout << "Extracting Grim Dawn text..." << std::endl;
+            ARCExtractor::Extract(inputPath / "resources" / "Text_EN.arc", outputPath);
             std::cout << "Extracting Grim Dawn items..." << std::endl;
             ARCExtractor::Extract(inputPath / "resources" / "Items.arc", outputPath);
             std::cout << "Extracting Ashes of Malmouth records..." << std::endl;
             ARZExtractor::Extract(inputPath / "gdx1" / "database" / "GDX1.arz", outputPath);
+            std::cout << "Extracting Ashes of Malmouth text..." << std::endl;
+            ARCExtractor::Extract(inputPath / "gdx1" / "resources" / "Text_EN.arc", outputPath);
             std::cout << "Extracting Ashes of Malmouth items..." << std::endl;
             ARCExtractor::Extract(inputPath / "gdx1" / "resources" / "Items.arc", outputPath);
             std::cout << "Extracting Forgotten Gods records..." << std::endl;
             ARZExtractor::Extract(inputPath / "gdx2" / "database" / "GDX2.arz", outputPath);
+            std::cout << "Extracting Forgotten Gods text..." << std::endl;
+            ARCExtractor::Extract(inputPath / "gdx2" / "resources" / "Text_EN.arc", outputPath);
             std::cout << "Extracting Forgotten Gods items..." << std::endl;
             ARCExtractor::Extract(inputPath / "gdx2" / "resources" / "Items.arc", outputPath);
             std::cout << "Extracting GrimLeague records..." << std::endl;
             ARZExtractor::Extract(inputPath / "mods" / modName / "database" / (modName + ".arz"), outputPath);
+            std::cout << "Extracting GrimLeague text..." << std::endl;
+            ARCExtractor::Extract(inputPath / "mods" / modName / "resources" / "Text_EN.arc", outputPath);
             std::cout << "Extracting GrimLeague items..." << std::endl;
             ARCExtractor::Extract(inputPath / "mods" / modName / "resources" / "Items.arc", outputPath);
         }
 
         std::cout << "Generating item DB..." << std::endl;
         ItemDBR::BuildItemDB(outputPath, outputPath);
+        std::cout << "Generating crafting tables..." << std::endl;
+        CraftingDBR::BuildCraftingDB(outputPath, outputPath);
         std::cout << "Done!" << std::endl;
     }
     catch (std::runtime_error& err)

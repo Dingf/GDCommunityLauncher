@@ -22,19 +22,21 @@ Item::Item(const web::json::value& obj)
     _itemUnk2 = 0;
     _itemStackCount = obj.at(U("stackCount")).as_integer();
 
-    _itemWidth = 1;
-    _itemHeight = 1;
     if (!_itemName.empty())
     {
-        try
+        ItemDatabase& database = ItemDatabase::GetInstance();
+        if (database.HasEntry(_itemName))
         {
-            ItemDatabase& database = ItemDatabase::GetInstance();
-            const ItemDatabase::ItemDBEntry& entry = database.GetEntryByName(_itemName);
+            const ItemDatabase::ItemDBEntry& entry = database.GetEntry(_itemName);
+            _itemType = entry._type;
             _itemWidth = entry._width;
             _itemHeight = entry._height;
         }
-        catch (std::out_of_range&)
+        else
         {
+            _itemType = ITEM_TYPE_OTHER;
+            _itemWidth = 1;
+            _itemHeight = 1;
             Logger::LogMessage(LOG_LEVEL_WARN, "Item \"%\" does not exist in item database. Using default width/height of 1.", _itemName);
         }
     }
@@ -59,6 +61,7 @@ Item& Item::operator=(const Item& item)
     _itemUnk2 = item._itemUnk2;
     _itemStackCount = item._itemStackCount;
 
+    _itemType = item._itemType;
     _itemWidth = item._itemWidth;
     _itemHeight = item._itemHeight;
 
@@ -83,19 +86,21 @@ void Item::Read(EncodedFileReader* reader)
     _itemUnk2 = reader->ReadInt32();
     _itemStackCount = reader->ReadInt32();
 
-    _itemWidth = 1;
-    _itemHeight = 1;
     if (!_itemName.empty())
     {
-        try
+        ItemDatabase& database = ItemDatabase::GetInstance();
+        if (database.HasEntry(_itemName))
         {
-            ItemDatabase& database = ItemDatabase::GetInstance();
-            const ItemDatabase::ItemDBEntry& entry = database.GetEntryByName(_itemName);
+            const ItemDatabase::ItemDBEntry& entry = database.GetEntry(_itemName);
+            _itemType = entry._type;
             _itemWidth = entry._width;
             _itemHeight = entry._height;
         }
-        catch (std::out_of_range&)
+        else
         {
+            _itemType = ITEM_TYPE_OTHER;
+            _itemWidth = 1;
+            _itemHeight = 1;
             Logger::LogMessage(LOG_LEVEL_WARN, "Item \"%\" does not exist in item database. Using default width/height of 1.", _itemName);
         }
     }

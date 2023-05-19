@@ -5,6 +5,7 @@
 #include <string>
 #include "FileData.h"
 #include "JSONObject.h"
+#include "ItemType.h"
 
 struct Item : public FileData, public JSONObject
 {
@@ -40,6 +41,7 @@ struct Item : public FileData, public JSONObject
         uint32_t _itemUnk2;
         uint32_t _itemStackCount;
 
+        ItemType _itemType;
         uint32_t _itemWidth;
         uint32_t _itemHeight;
 };

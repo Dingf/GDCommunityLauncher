@@ -1,233 +1,44 @@
 #include <filesystem>
 #include <thread>
+#include <mutex>
 #include <cpprest/http_client.h>
 #include "ClientHandlers.h"
+#include "ServerSync.h"
 #include "SharedStash.h"
 #include "URI.h"
-#include "MD5.h"
 
-std::filesystem::path GetTransferStashPath(const char* modName, bool hardcore, bool backup)
+std::mutex& GetTransferMutex()
 {
-    std::string baseFolder = GameAPI::GetBaseFolder();
-    if (baseFolder.empty())
-    {
-        Logger::LogMessage(LOG_LEVEL_ERROR, "Could not determine the base Grim Dawn save location");
-        return {};
-    }
-
-    std::filesystem::path stashPath = std::filesystem::path(baseFolder) / "save";
-    if (modName)
-        stashPath /= modName;
-
-    if (backup)
-    {
-        if (hardcore)
-            stashPath /= "transfer.h00";
-        else
-            stashPath /= "transfer.t00";
-    }
-    else
-    {
-        if (hardcore)
-            stashPath /= "transfer.gsh";
-        else
-            stashPath /= "transfer.gst";
-    }
-
-    if (!std::filesystem::exists(stashPath))
-        return {};
-
-    return stashPath;
-}
-
-void PostTransferStashUpload()
-{
-    Client& client = Client::GetInstance();
-    if (client.IsParticipatingInSeason())
-    {
-        const char* modName = EngineAPI::GetModName();
-        PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
-
-        std::filesystem::path stashPath = GetTransferStashPath(modName, GameAPI::IsPlayerHardcore(mainPlayer), false);
-        if (stashPath.empty())
-        {
-            Logger::LogMessage(LOG_LEVEL_ERROR, "Could not determine shared stash path for mod \"%\"", modName);
-            return;
-        }
-
-        SharedStash stashData;
-        if (!stashData.ReadFromFile(stashPath))
-        {
-            Logger::LogMessage(LOG_LEVEL_ERROR, "Could not load shared stash data from file");
-            return;
-        }
-
-        auto tab = stashData.GetStashTab(0);
-        auto itemlist = tab->GetItemList();
-        for (auto pair : itemlist)
-        {
-            pair.first->_itemSeed = 0xAAAAAAAA;
-            pair.first->_itemComponentSeed = 0xBBBBBBBB;
-            pair.first->_itemUnk1 = 0xCCCCCCCC;
-            pair.first->_itemAugmentSeed = 0xDDDDDDDD;
-            pair.first->_itemUnk2 = 0xEEEEEEEE;
-
-            pair.first->_itemModifier = "modifier";
-            pair.first->_itemIllusion = "illusion";
-            pair.first->_itemCompletion = "completion";
-
-
-            /*std::string _itemName;
-            std::string _itemPrefix;
-            std::string _itemSuffix;
-            std::string _itemModifier;
-            std::string _itemIllusion;
-            std::string _itemComponent;
-            std::string _itemCompletion;
-            std::string _itemAugment;*/
-        }
-        stashData.WriteToFile(stashPath);
-
-        web::json::value stashJSON = stashData.ToJSON();
-        web::json::array stashTabs = stashJSON[U("Tabs")].as_array();
-        if (stashTabs.size() >= 6)
-        {
-            web::json::array transferItems = stashTabs[5][U("Items")].as_array();
-            if (transferItems.size() > 0)
-            {
-                uint32_t index = 0;
-                web::json::value requestBody = web::json::value::array();
-                for (auto it = transferItems.begin(); it != transferItems.end(); ++it)
-                {
-                    requestBody[index] = *it;
-                    requestBody[index].erase(U("unknown1"));
-                    requestBody[index].erase(U("unknown2"));
-                    requestBody[index].erase(U("X"));
-                    requestBody[index].erase(U("Y"));
-                    index++;
-                }
-
-                try
-                {
-                    URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "stash";
-
-                    web::http::client::http_client httpClient((utility::string_t)endpoint);
-                    web::http::http_request request(web::http::methods::POST);
-                    request.set_body(requestBody);
-
-                    std::string bearerToken = "Bearer " + client.GetAuthToken();
-                    request.headers().add(U("Authorization"), bearerToken.c_str());
-
-                    web::http::http_response response = httpClient.request(request).get();
-                    if (response.status_code() == web::http::status_codes::OK)
-                    {
-                        Stash::StashTab* stashTab = stashData.GetStashTab(5);
-                        if (stashTab)
-                        {
-                            // TODO: Possibly check the data returned by the response in case not all of the items could be stored
-                            stashTab->GetItemList().clear();
-                            stashData.WriteToFile(stashPath);
-                            GameAPI::DisplayUINotification("tagGDLeagueStorageSuccess");
-                        }
-                        else
-                        {
-                            throw std::runtime_error("Could not retrieve stash tab data from save file");
-                        }
-                    }
-                    else if (response.status_code() == web::http::status_codes::BadRequest)
-                    {
-                        GameAPI::DisplayUINotification("tagGDLeagueStorageFull");
-                    }
-                    else
-                    {
-                        throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-                    }
-                }
-                catch (const std::exception& ex)
-                {
-                    GameAPI::DisplayUINotification("tagGDLeagueStorageFailure");
-                    Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload shared stash items: %", ex.what());
-                }
-            }
-        }
-    }
-}
-
-void PostTransferStashChecksums(const std::string& prevChecksum)
-{
-    Client& client = Client::GetInstance();
-    if (client.IsParticipatingInSeason())
-    {
-        const char* modName = EngineAPI::GetModName();
-        PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
-
-        std::filesystem::path stashPath = GetTransferStashPath(modName, GameAPI::IsPlayerHardcore(mainPlayer), false);
-        std::filesystem::path backupPath = GetTransferStashPath(modName, GameAPI::IsPlayerHardcore(mainPlayer), true);
-
-        web::json::value requestBody;
-        requestBody[U("lastChecksum")] = JSONString(prevChecksum);
-        requestBody[U("sharedStashChecksum")] = JSONString(GenerateFileMD5(stashPath));
-        requestBody[U("externalToolUsed")] = std::filesystem::is_regular_file(backupPath);
-
-        pplx::create_task([requestBody]()
-        {
-            try
-            {
-                Client& client = Client::GetInstance();
-                URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "shared-stash";
-
-                web::http::client::http_client httpClient((utility::string_t)endpoint);
-                web::http::http_request request(web::http::methods::POST);
-                request.set_body(requestBody);
-
-                std::string bearerToken = "Bearer " + client.GetAuthToken();
-                request.headers().add(U("Authorization"), bearerToken.c_str());
-
-                web::http::http_response response = httpClient.request(request).get();
-                if (response.status_code() != web::http::status_codes::OK)
-                {
-                    throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-                }
-            }
-            catch (const std::exception& ex)
-            {
-                Logger::LogMessage(LOG_LEVEL_WARN, "Failed to update shared stash times: %", ex.what());
-            }
-        });
-    }
+    static std::mutex transferMutex;
+    return transferMutex;
 }
 
 void HandleSaveTransferStash(void* _this)
 {
-    typedef void(__thiscall* SaveTransferStashProto)(void*);
+    typedef void (__thiscall* SaveTransferStashProto)(void*);
 
     SaveTransferStashProto callback = (SaveTransferStashProto)HookManager::GetOriginalFunction("Game.dll", GameAPI::GAPI_NAME_SAVE_TRANSFER_STASH);
     if (callback)
     {
-        std::string prevChecksum;
-
         Client& client = Client::GetInstance();
-        //TODO: Change me back
-        //if ((client.IsParticipatingInSeason()) && (client.GetTransferMutex().try_lock()))
+        if ((client.IsParticipatingInSeason()) && (GetTransferMutex().try_lock()))
         {
-            const char* modName = EngineAPI::GetModName();
-            PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
-            std::filesystem::path stashPath = GetTransferStashPath(modName, GameAPI::IsPlayerHardcore(mainPlayer), false);
-            prevChecksum = GenerateFileMD5(stashPath);
+            std::string modName = EngineAPI::GetModName();
+            void* mainPlayer = GameAPI::GetMainPlayer();
+            ServerSync::SnapshotStashMetadata(modName, GameAPI::IsPlayerHardcore(mainPlayer));
 
             callback(_this);
 
-            pplx::create_task([prevChecksum]()
+            pplx::create_task([]()
             {
                 Client& client = Client::GetInstance();
-                PostTransferStashUpload();
-                PostTransferStashChecksums(prevChecksum);
-                client.GetTransferMutex().unlock();
+                ServerSync::UploadStashData();
+                GetTransferMutex().unlock();
             });
         }
-        //else
+        else
         {
-            //callback(_this);
+            callback(_this);
         }
     }
 }
@@ -247,6 +58,7 @@ void PostPullTransferItems(const std::vector<Item*>& items)
         {
             Client& client = Client::GetInstance();
             URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "pull-items";
+            endpoint.AddParam("branch", client.GetBranch());
 
             web::http::client::http_client httpClient((utility::string_t)endpoint);
             web::http::http_request request(web::http::methods::POST);
@@ -270,20 +82,30 @@ void PostPullTransferItems(const std::vector<Item*>& items)
 
 void HandleLoadTransferStash(void* _this)
 {
-    typedef void(__thiscall* LoadPlayerTransferProto)(void*);
+    typedef void (__thiscall* LoadPlayerTransferProto)(void*);
     LoadPlayerTransferProto callback = (LoadPlayerTransferProto)HookManager::GetOriginalFunction("Game.dll", GameAPI::GAPI_NAME_LOAD_TRANSFER_STASH);
 
     if (callback)
     {
         Client& client = Client::GetInstance();
-        if ((client.IsParticipatingInSeason()) && (client.GetTransferMutex().try_lock()))
+        if ((client.IsParticipatingInSeason()) && (GetTransferMutex().try_lock()))
         {
             try
             {
-                const char* modName = EngineAPI::GetModName();
-                PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
+                std::string modName = EngineAPI::GetModName();
+                void* mainPlayer = GameAPI::GetMainPlayer();
+                bool hardcore = GameAPI::IsPlayerHardcore(mainPlayer);
+                uint32_t participantID = client.GetParticipantID();
 
-                URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "transfer-queue";
+                std::filesystem::path stashPath = GameAPI::GetTransferStashPath(modName, hardcore);
+                if (stashPath.empty())
+                    throw std::runtime_error("Could not determine shared stash path for mod \"" + std::string(modName) + "\"");
+
+                ServerSync::SyncStashData(stashPath, hardcore);
+
+                URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(participantID) / "transfer-queue";
+                endpoint.AddParam("branch", client.GetBranch());
+
                 web::http::client::http_client httpClient((utility::string_t)endpoint);
                 web::http::http_request request(web::http::methods::GET);
 
@@ -300,10 +122,6 @@ void HandleLoadTransferStash(void* _this)
                         itemList.emplace_back(*it);
                     }
 
-                    std::filesystem::path stashPath = GetTransferStashPath(modName, GameAPI::IsPlayerHardcore(mainPlayer), false);
-                    if (stashPath.empty())
-                        throw std::runtime_error("Could not determine shared stash path for mod \"" + std::string(modName) + "\"");
-
                     SharedStash stashData;
                     if (!stashData.ReadFromFile(stashPath))
                         throw std::runtime_error("Could not load shared stash data from file");
@@ -316,6 +134,7 @@ void HandleLoadTransferStash(void* _this)
                             std::vector<Item*> pullItemList = transferTab->AddItemList(itemList);
                             stashData.WriteToFile(stashPath);
                             PostPullTransferItems(pullItemList);
+                            ServerSync::RefreshStashMetadata(modName, hardcore, participantID);
                         }
                         else
                         {
@@ -332,8 +151,7 @@ void HandleLoadTransferStash(void* _this)
             {
                 Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve transfer queue items: %", ex.what());
             }
-
-            client.GetTransferMutex().unlock();
+            GetTransferMutex().unlock();
         }
 
         callback(_this);
@@ -342,14 +160,16 @@ void HandleLoadTransferStash(void* _this)
 
 void HandleSetTransferOpen(void* _this, uint32_t unk1, bool unk2, bool unk3)
 {
-    Client& client = Client::GetInstance();
+    typedef void (__thiscall* SetTransferOpenProto)(void*, uint32_t, bool, bool);
 
-    typedef void(__thiscall* SetTransferOpenProto)(void*, uint32_t, bool, bool);
+    Client& client = Client::GetInstance();
+    if((client.IsInActiveSeason()) && (!client.IsParticipatingInSeason()))
+        return;
 
     SetTransferOpenProto callback = (SetTransferOpenProto)HookManager::GetOriginalFunction("Game.dll", GameAPI::GAPI_NAME_ON_CARAVAN_INTERACT);
-    if ((callback) && (client.GetTransferMutex().try_lock()))
+    if ((callback) && (GetTransferMutex().try_lock()))
     {
-        client.GetTransferMutex().unlock();
+        GetTransferMutex().unlock();
         callback(_this, unk1, unk2, unk3);
     }
 }

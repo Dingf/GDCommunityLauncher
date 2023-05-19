@@ -39,8 +39,11 @@ struct ClientData
     uint32_t    _participantID;
     std::string _role;
     std::string _username;
+    std::string _password;
     std::string _authToken;
     std::string _refreshToken;
+    std::string _seasonName;
+    std::string _branch;
     URI         _gameURL;
     URI         _chatURL;
     std::vector<SeasonInfo> _seasons;

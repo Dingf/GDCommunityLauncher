@@ -174,7 +174,7 @@ bool HandleChatGlobalCommand(ChatClient* chatClient, std::wstring& name, std::ws
         {
             Client& client = Client::GetInstance();
             name = std::wstring(client.GetUsername().begin(), client.GetUsername().end());
-            chatClient->SendMessage(EngineAPI::UI::CHAT_TYPE_GLOBAL, name, message, item);
+            chatClient->SendChatMessage(EngineAPI::UI::CHAT_TYPE_GLOBAL, name, message, item);
             return false;
         }
     }
@@ -295,7 +295,7 @@ bool HandleChatTradeCommand(ChatClient* chatClient, std::wstring& name, std::wst
         {
             Client& client = Client::GetInstance();
             name = std::wstring(client.GetUsername().begin(), client.GetUsername().end());
-            chatClient->SendMessage(EngineAPI::UI::CHAT_TYPE_TRADE, name, message, item);
+            chatClient->SendChatMessage(EngineAPI::UI::CHAT_TYPE_TRADE, name, message, item);
             return false;
         }
     }
@@ -562,8 +562,8 @@ bool HandleChatChallengesCommand(ChatClient* chatClient, std::wstring& name, std
     return false;
 }
 
-typedef bool(*ChatCommandHandler)(ChatClient*, std::wstring&, std::wstring&, uint32_t&, uint8_t&, void*);
-const std::unordered_map<std::wstring, ChatCommandHandler> chatCommandLookup =
+typedef bool (*ChatCommandHandler)(ChatClient*, std::wstring&, std::wstring&, uint32_t&, uint8_t&, void*);
+const std::unordered_map<std::wstring, ChatCommandHandler> chatCommandHandlers =
 {
     { L"help",       HandleChatHelpCommand },
     { L"h",          HandleChatHelpCommand },
@@ -595,9 +595,9 @@ bool ChatClient::ProcessChatCommand(std::wstring& name, std::wstring& message, u
         }
         catch (std::exception&) {}
 
-        if (chatCommandLookup.count(command) > 0)
+        if (chatCommandHandlers.count(command) > 0)
         {
-            ChatCommandHandler handler = chatCommandLookup.at(command);
+            ChatCommandHandler handler = chatCommandHandlers.at(command);
             if (!handler(this, name, message, channel, type, item))
                 return false;
         }
@@ -607,9 +607,9 @@ bool ChatClient::ProcessChatCommand(std::wstring& name, std::wstring& message, u
 
 void HandleSendChatMessage(void* _this, const std::wstring& name, const std::wstring& message, uint8_t type, std::vector<uint32_t> targets, uint32_t itemID)
 {
-    typedef void(__thiscall* HandleSendChatMessageProto)(void*, const std::wstring&, const std::wstring&, uint8_t, std::vector<uint32_t>, uint32_t);
+    typedef void (__thiscall* SendChatMessageProto)(void*, const std::wstring&, const std::wstring&, uint8_t, std::vector<uint32_t>, uint32_t);
 
-    HandleSendChatMessageProto callback = (HandleSendChatMessageProto)HookManager::GetOriginalFunction("Game.dll", GameAPI::GAPI_NAME_SEND_CHAT_MESSAGE);
+    SendChatMessageProto callback = (SendChatMessageProto)HookManager::GetOriginalFunction("Game.dll", GameAPI::GAPI_NAME_SEND_CHAT_MESSAGE);
     if (callback)
     {
         // The "actual" name and message that are used for the final SendChatMessage() call
@@ -623,10 +623,14 @@ void HandleSendChatMessage(void* _this, const std::wstring& name, const std::wst
             EngineAPI::UI::ChatWindow& chatWindow = EngineAPI::UI::ChatWindow::GetInstance();
             chatWindow.SetChatPrefix({});
 
-            // If handling an interrupting chat command, return false so we don't print the message
+            // If an item is linked, load the saved chat window text from before the window was closed
+            if (itemID != 0)
+                realMessage = chatWindow.GetSavedText();
+
+            // If handling an interrupting chat command, return so we don't print the message
             ChatClient& chatClient = ChatClient::GetInstance();
-            // TODO: Figure out a way to get the item ref (void*) from the itemID (uint32_t) so we can pass it here
-            if (!chatClient.ProcessChatCommand(realName, realMessage, type, nullptr))
+            void* item = EngineAPI::FindObjectByID(itemID);
+            if (!chatClient.ProcessChatCommand(realName, realMessage, type, item))
                 return;
         }
 

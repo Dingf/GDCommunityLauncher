@@ -80,10 +80,12 @@ bool WriteSeasonsToPipe(HANDLE pipe, const std::vector<SeasonInfo>& seasons)
 bool Client::WriteDataToPipe(HANDLE pipe) const
 {
     if (!WriteStringToPipe(pipe, _data._username) ||
+        !WriteStringToPipe(pipe, _data._password) ||
         !WriteStringToPipe(pipe, _data._authToken) ||
         !WriteStringToPipe(pipe, _data._refreshToken) ||
         !WriteStringToPipe(pipe, _data._gameURL) ||
         !WriteStringToPipe(pipe, _data._chatURL) ||
+        !WriteStringToPipe(pipe, _data._branch) ||
         !WriteInt32ToPipe(pipe, _data._updateFlag) ||
         !WriteSeasonsToPipe(pipe, _data._seasons))
     {

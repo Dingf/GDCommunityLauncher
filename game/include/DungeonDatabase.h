@@ -13,7 +13,7 @@ class DungeonDatabase
             uint32_t _level;
         };
 
-        typedef void(__thiscall* DungeonDBUpdateCallback)(std::map<std::string, DungeonDBEntry>&);
+        typedef void (__thiscall* DungeonDBUpdateCallback)(std::map<std::string, DungeonDBEntry>&);
 
         static DungeonDatabase& GetInstance();
 
@@ -21,15 +21,17 @@ class DungeonDatabase
 
         bool IsDungeonZone(const std::string& zone) const { return ((_zoneData.count(zone) > 0) && (_dungeonData.count(_zoneData.at(zone)) > 0)); }
 
+        const DungeonDBEntry& GetEntryByName(const std::string& name) const { return _dungeonData.at(name); }
+        const DungeonDBEntry& GetEntryByZone(const std::string& zone) const { return _dungeonData.at(_zoneData.at(zone)); }
+
         void Load(const char* buffer, size_t size, DungeonDBUpdateCallback callback);
 
         void Update() { if (_callback != nullptr) _callback(_dungeonData); }
 
-        const DungeonDBEntry& GetEntryByName(const std::string& name) const { return _dungeonData.at(name); }
-        const DungeonDBEntry& GetEntryByZone(const std::string& zone) const { return _dungeonData.at(_zoneData.at(zone)); }
-
     private:
         DungeonDatabase() { _callback = nullptr; }
+        DungeonDatabase(DungeonDatabase&) = delete;
+        void operator=(const DungeonDatabase&) = delete;
 
         DungeonDBUpdateCallback _callback;
         std::map<std::string, std::string> _zoneData;

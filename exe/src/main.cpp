@@ -2,6 +2,7 @@
 #include <windows.h>
 #include "Configuration.h"
 #include "LoginDialog.h"
+#include "SelectorDialog.h"
 #include "UpdateDialog.h"
 #include "GameLauncher.h"
 
@@ -34,7 +35,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
     else
     {
         // If the file doesn't exist, create it using some default values
-        config.SetValue("Login", "hostname", "https://www.grimleague.com/");
+        config.SetValue("Login", "hostname", "https://gdcl-api.azurewebsites.net/");
         config.SetValue("Login", "username", "");
         config.SetValue("Login", "password", "");
         config.SetValue("Login", "autologin", false);

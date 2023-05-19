@@ -73,7 +73,7 @@ bool DBRecord::Load(const std::filesystem::path& path)
             if ((c == ';') || (c == ','))
             {
                 std::string val(&buffer[dataStart + 1], dataCurrent - dataStart - 1);
-                _variables[key].push_back(Value::Parse(val));
+                LoadValue(key, Value::Parse(val));
                 dataStart = dataCurrent++;
             }
             else
@@ -85,4 +85,9 @@ bool DBRecord::Load(const std::filesystem::path& path)
     }
 
     return true;
+}
+
+void DBRecord::LoadValue(std::string key, std::unique_ptr<Value> value)
+{
+    _variables[key].push_back(std::move(value));
 }

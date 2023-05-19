@@ -2,18 +2,18 @@
 #include "ClientHandlers.h"
 #include "Quest.h"
 
-bool HasParticipationTokenFromAPI(PULONG_PTR mainPlayer, const SeasonInfo* seasonInfo)
+bool HasParticipationTokenFromAPI(void* mainPlayer, const SeasonInfo* seasonInfo)
 {
     for (auto difficulty : GameAPI::GAME_DIFFICULTIES)
     {
         const std::vector<GameAPI::TriggerToken>& tokens = GameAPI::GetPlayerTokens(mainPlayer, difficulty);
         for (size_t i = 0; i < tokens.size(); ++i)
         {
-            std::string tokenString = tokens[i];
-            for (char& c : tokenString)
+            std::string token = tokens[i];
+            for (char& c : token)
                 c = std::tolower(c);
 
-            if (tokenString == seasonInfo->_participationToken)
+            if (token == seasonInfo->_participationToken)
                 return true;
         }
     }
@@ -22,9 +22,7 @@ bool HasParticipationTokenFromAPI(PULONG_PTR mainPlayer, const SeasonInfo* seaso
 
 bool HasParticipationTokenFromFile(const std::wstring& playerName, const SeasonInfo* seasonInfo)
 {
-    std::filesystem::path characterPath = std::filesystem::path(GameAPI::GetBaseFolder()) / "save" / "user" / "_";
-    characterPath += playerName;
-
+    std::filesystem::path characterPath = GameAPI::GetPlayerFolder(playerName);
     if (std::filesystem::is_directory(characterPath))
     {
         for (const auto& it : std::filesystem::recursive_directory_iterator(characterPath))
@@ -54,7 +52,7 @@ bool HasParticipationTokenFromFile(const std::wstring& playerName, const SeasonI
 
 void HandleSetMainPlayer(void* _this, uint32_t unk1)
 {
-    typedef void(__thiscall* SetMainPlayerProto)(void*, uint32_t);
+    typedef void (__thiscall* SetMainPlayerProto)(void*, uint32_t);
 
     SetMainPlayerProto callback = (SetMainPlayerProto)HookManager::GetOriginalFunction("Game.dll", GameAPI::GAPI_NAME_SET_MAIN_PLAYER);
     if (callback)
@@ -62,13 +60,13 @@ void HandleSetMainPlayer(void* _this, uint32_t unk1)
         callback(_this, unk1);
 
         Client& client = Client::GetInstance();
-        PULONG_PTR mainPlayer = GameAPI::GetMainPlayer();
+        void* mainPlayer = GameAPI::GetMainPlayer();
         const SeasonInfo* seasonInfo = client.GetActiveSeason();
 
         if ((mainPlayer) && (seasonInfo))
         {
             std::wstring playerName = GameAPI::GetPlayerName(mainPlayer);
-            bool hasParticipationToken = GameAPI::HasToken(mainPlayer, seasonInfo->_participationToken) ||
+            bool hasParticipationToken = GameAPI::PlayerHasToken(mainPlayer, seasonInfo->_participationToken) ||
                                          HasParticipationTokenFromAPI(mainPlayer, seasonInfo) || 
                                          HasParticipationTokenFromFile(playerName, seasonInfo);
 
@@ -77,9 +75,7 @@ void HandleSetMainPlayer(void* _this, uint32_t unk1)
             {
                 // Initialize the chat window
                 EngineAPI::UI::ChatWindow::GetInstance(true);
-
-                if (client.IsParticipatingInSeason())
-                    ChatClient::GetInstance().DisplayWelcomeMessage();
+                ChatClient::GetInstance().DisplayWelcomeMessage();
             });
         }
     }

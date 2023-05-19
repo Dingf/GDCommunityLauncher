@@ -12,8 +12,8 @@ void DungeonDatabase::Load(const char* buffer, size_t size, DungeonDBUpdateCallb
 {
     if ((_zoneData.empty()) && (_dungeonData.empty()) && (_callback == nullptr))
     {
-        std::string buffer(buffer, size);
-        std::stringstream ss(buffer);
+        std::string str(buffer, size);
+        std::stringstream ss(str);
 
         std::string zone;
         std::string name;

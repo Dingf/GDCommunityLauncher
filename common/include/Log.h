@@ -126,6 +126,9 @@ class Logger
             _format = "[$L] [$Y/$M/$D $h:$m:$s] $A";
         }
 
+        Logger(Logger&) = delete;
+        void operator=(const Logger&) = delete;
+
         template <typename T, typename... Ts>
         static void BuildFormattedMessage(std::stringstream& result, const char* format, T val0, Ts... vals)
         {

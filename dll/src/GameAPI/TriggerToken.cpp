@@ -1,4 +1,5 @@
-#include "GameAPI.h"
+#include <Windows.h>
+#include "GameAPI/TriggerToken.h"
 
 namespace GameAPI
 {
@@ -6,7 +7,7 @@ namespace GameAPI
 // Dummy vector to be returned in the event of failure
 std::vector<TriggerToken> dummy;
 
-const std::vector<TriggerToken>& GetPlayerTokens(PULONG_PTR player, Difficulty difficulty)
+const std::vector<TriggerToken>& GetPlayerTokens(void* player, Difficulty difficulty)
 {
     typedef const std::vector<GameAPI::TriggerToken>& (__thiscall* GetPlayerTokensProto)(void*, GameAPI::Difficulty);
 

@@ -4,7 +4,6 @@
 #include <stdint.h>
 #include <string>
 #include <vector>
-#include <Windows.h>
 #include "GameAPI/Difficulty.h"
 
 namespace GameAPI
@@ -26,7 +25,7 @@ struct TriggerToken
     std::string _token;         // The token string value
 };
 
-const std::vector<TriggerToken>& GetPlayerTokens(PULONG_PTR player, Difficulty difficulty);
+const std::vector<TriggerToken>& GetPlayerTokens(void* player, Difficulty difficulty);
 
 }
 

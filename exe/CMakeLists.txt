@@ -1,17 +1,8 @@
-add_executable(exe WIN32
-include/Client.h
-include/GameLauncher.h
-include/ServerAuth.h
-include/LoginDialog.h
-include/UpdateDialog.h
-res/LoginDialog.rc
-res/UpdateDialog.rc
-src/Client.cpp
-src/GameLauncher.cpp
-src/ServerAuth.cpp
-src/LoginDialog.cpp
-src/UpdateDialog.cpp
-src/main.cpp)
+file(GLOB_RECURSE INCLUDE "include/*.h")
+file(GLOB_RECURSE RESOURCE "res/*.rc")
+file(GLOB_RECURSE SOURCE "src/*.cpp")
+
+add_executable(exe WIN32 ${INCLUDE} ${RESOURCE} ${SOURCE})
 
 target_include_directories(exe PRIVATE include)
 target_link_libraries(exe PRIVATE cpprestsdk::cpprest)

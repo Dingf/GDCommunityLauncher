@@ -4,8 +4,9 @@
 #include "ChatClient.h"
 #include "ClientHandlers.h"
 #include "DatabaseValues.h"
-#include "DungeonDatabase.h"
 #include "ItemDatabase.h"
+#include "DungeonDatabase.h"
+#include "CraftingDatabase.h"
 #include "EventManager.h"
 #include "Configuration.h"
 #include "URI.h"
@@ -87,25 +88,46 @@ void LoadDatabaseValues()
             FreeResource(handle);
         }
     }
+
+    CraftingDatabase& craftingDB = CraftingDatabase::GetInstance();
+    if (!craftingDB.IsLoaded())
+    {
+        HINSTANCE launcherDLL = GetModuleHandle(TEXT("GDCommunityLauncher.dll"));
+        HRSRC res = FindResource(launcherDLL, MAKEINTRESOURCE(IDR_CRAFTINGDB), RT_RCDATA);
+        if (!res)
+        {
+            Logger::LogMessage(LOG_LEVEL_WARN, "Failed to load crafting database from DLL. Item crafting will not function properly!");
+        }
+        else
+        {
+            HGLOBAL handle = LoadResource(launcherDLL, res);
+            DWORD size = SizeofResource(launcherDLL, res);
+            char* data = (char*)LockResource(handle);
+            craftingDB.Load(data, size);
+            FreeResource(handle);
+        }
+    }
 }
 
 bool HandleLoadWorld(void* _this, const char* mapName, bool unk1, bool modded)
 {
-    typedef bool(__thiscall* LoadWorldProto)(void*, const char*, bool, bool);
+    typedef bool (__thiscall* LoadWorldProto)(void*, const char*, bool, bool);
 
     LoadWorldProto callback = (LoadWorldProto)HookManager::GetOriginalFunction("Engine.dll", EngineAPI::EAPI_NAME_LOAD_WORLD);
     if (callback)
     {
+        EventManager::Publish(GDCL_EVENT_WORLD_PRE_LOAD, (void*)mapName);
+
         bool result = callback(_this, mapName, unk1, modded);
         if (result)
         {
             Client& client = Client::GetInstance();
-            const char* modName = EngineAPI::GetModName();
+            std::string modName = EngineAPI::GetModName();
 
-            client.SetActiveSeason(modName, EngineAPI::GetHardcore());
+            client.SetActiveSeason(modName, EngineAPI::IsHardcore());
 
             // Check the map name to make sure that we are not in the main menu when setting the active season
-            if ((modName) && (mapName) && (std::string(mapName) != "levels/mainmenu/mainmenu.map"))
+            if ((!modName.empty()) && (mapName) && (std::string(mapName) != "levels/mainmenu/mainmenu.map"))
             {
                 ChatClient& chatClient = ChatClient::GetInstance();
 
@@ -125,7 +147,6 @@ bool HandleLoadWorld(void* _this, const char* mapName, bool unk1, bool modded)
                         web::http::http_response response = httpClient.request(request).get();
                         if (response.status_code() == web::http::status_codes::OK)
                         {
-
                             web::json::value responseBody = response.extract_json().get();
                             web::json::value participantID = responseBody[U("seasonParticipantId")];
                             client.SetParticipantID(participantID.as_integer());
@@ -141,8 +162,8 @@ bool HandleLoadWorld(void* _this, const char* mapName, bool unk1, bool modded)
                         Logger::LogMessage(LOG_LEVEL_WARN, "Failed to register for season %: %", seasonInfo->_seasonID, ex.what());
                     }
 
-                    EventManager::Publish(GDCL_EVENT_WORLD_LOAD);
                     LuaAPI::Initialize();
+                    EventManager::Publish(GDCL_EVENT_WORLD_POST_LOAD, (void*)mapName);
                 }
             }
             else
@@ -157,7 +178,7 @@ bool HandleLoadWorld(void* _this, const char* mapName, bool unk1, bool modded)
 
 void HandleSetRegionOfNote(void* _this, void* region)
 {
-    typedef void(__thiscall* SetRegionOfNoteProto)(void*, void*);
+    typedef void (__thiscall* SetRegionOfNoteProto)(void*, void*);
 
     SetRegionOfNoteProto callback = (SetRegionOfNoteProto)HookManager::GetOriginalFunction("Engine.dll", EngineAPI::EAPI_NAME_SET_REGION_OF_NOTE);
     if (callback)
@@ -175,11 +196,12 @@ void HandleSetRegionOfNote(void* _this, void* region)
 
 void HandleUnloadWorld(void* _this)
 {
-    typedef void(__thiscall* UnloadWorldProto)(void*);
+    typedef void (__thiscall* UnloadWorldProto)(void*);
 
     UnloadWorldProto callback = (UnloadWorldProto)HookManager::GetOriginalFunction("Game.dll", GameAPI::GAPI_NAME_UNLOAD_WORLD);
     if (callback)
     {
+        EventManager::Publish(GDCL_EVENT_WORLD_PRE_UNLOAD);
         callback(_this);
 
         Client& client = Client::GetInstance();
@@ -187,8 +209,9 @@ void HandleUnloadWorld(void* _this)
         if ((!EngineAPI::IsMultiplayer()) && (client.IsParticipatingInSeason()) && (!characterName.empty()) && (client.IsOnline()))
         {
             client.SetActiveCharacter({}, false);
-            EventManager::Publish(GDCL_EVENT_WORLD_UNLOAD);
             LuaAPI::Cleanup();
         }
+
+        EventManager::Publish(GDCL_EVENT_WORLD_POST_UNLOAD);
     }
 }

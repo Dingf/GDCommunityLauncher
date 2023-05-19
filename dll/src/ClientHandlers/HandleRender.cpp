@@ -4,7 +4,7 @@
 
 void HandleRender(void* _this)
 {
-    typedef void(__thiscall* RenderProto)(void*);
+    typedef void (__thiscall* RenderProto)(void*);
 
     RenderProto callback = (RenderProto)HookManager::GetOriginalFunction("Engine.dll", EngineAPI::EAPI_NAME_RENDER);
     if (callback)
@@ -19,9 +19,9 @@ void HandleRender(void* _this)
     }
 }
 
-void HandleRenderStyledText2D(void* _this, const EngineAPI::Rect& rect, const wchar_t* text, const std::string& style, float unk1, EngineAPI::GraphicsXAlign xAlign, EngineAPI::GraphicsYAlign yAlign, int layout)
+void HandleRenderStyledText2D(void* _this, const EngineAPI::Rect& rect, const wchar_t* text, const std::string& style, float unk1, EngineAPI::UI::GraphicsXAlign xAlign, EngineAPI::UI::GraphicsYAlign yAlign, int layout)
 {
-    typedef void(__thiscall* RenderTextStyled2DProto)(void*, const EngineAPI::Rect&, const wchar_t*, const std::string&, float, EngineAPI::GraphicsXAlign, EngineAPI::GraphicsYAlign, int);
+    typedef void (__thiscall* RenderTextStyled2DProto)(void*, const EngineAPI::Rect&, const wchar_t*, const std::string&, float, EngineAPI::UI::GraphicsXAlign, EngineAPI::UI::GraphicsYAlign, int);
 
     RenderTextStyled2DProto callback = (RenderTextStyled2DProto)HookManager::GetOriginalFunction("Engine.dll", EngineAPI::EAPI_NAME_RENDER_STYLED_TEXT_2D);
     if (callback)
@@ -29,8 +29,8 @@ void HandleRenderStyledText2D(void* _this, const EngineAPI::Rect& rect, const wc
         Client& client = Client::GetInstance();
 
         std::wstring textString(text);
-        const char* areaTag = EngineAPI::GetAreaNameTag();
-        std::wstring areaName = EngineAPI::Localize(areaTag);
+        std::string areaTag = EngineAPI::GetRegionNameTag();
+        std::wstring areaName = EngineAPI::UI::Localize(areaTag.c_str());
 
         // If the player is in-game on the season mod, append the league info to the difficulty text in the upper left corner
         // We modify the text instead of creating new text because that way it preserves the Z-order and doesn't conflict with the loading screen/pause overlay/etc.
