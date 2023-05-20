@@ -509,7 +509,7 @@ bool Client::Initialize()
 
     // Initialize threads to handle refreshing the server token/connection status
     ThreadManager::CreatePeriodicThread("refresh_token", 60000, 900000, 0, &Client::UpdateRefreshToken);
-    ThreadManager::CreatePeriodicThread("connection_status", 10000, 10000, 0, &Client::UpdateConnectionStatus);
+    ThreadManager::CreatePeriodicThread("connection_status", 30000, 30000, 0, &Client::UpdateConnectionStatus);
 
     CreatePlayMenu();
     UpdateVersionInfoText();

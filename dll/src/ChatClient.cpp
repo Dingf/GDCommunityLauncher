@@ -110,37 +110,6 @@ inline bool LogExceptionPointer(const std::exception_ptr& exception, const std::
     return false;
 }
 
-void ChatClient::OnConnectEvent(void* data)
-{
-    ChatClient& chatClient = ChatClient::GetInstance();
-    chatClient._connection->start([](std::exception_ptr ex)
-    {
-        ChatClient& chatClient = ChatClient::GetInstance();
-        if (!LogExceptionPointer(ex, "Failed to connect chat client: %"))
-        {
-            chatClient._connection->invoke("GetConnectionId", std::vector<signalr::value>(), [](const signalr::value& value, std::exception_ptr ex2)
-            {
-                LogExceptionPointer(ex2, "Failed to retrieve connection ID: %");
-            });
-        }
-    });
-}
-
-void ChatClient::OnDisconnectEvent(void* data)
-{
-    Client& client = Client::GetInstance();
-    if (client.GetActiveSeason() != nullptr)
-    {
-        GameAPI::AddChatMessage(L"Server", L"Disconnected from chat server.", EngineAPI::UI::CHAT_TYPE_NORMAL);
-    }
-
-    ChatClient& chatClient = ChatClient::GetInstance();
-    chatClient._connection->stop([](std::exception_ptr ex)
-    {
-        LogExceptionPointer(ex, "Failed to disconnect chat client: %");
-    });
-}
-
 void ChatClient::OnWorldLoadEvent(void* data)
 {
     ChatClient& chatClient = ChatClient::GetInstance();
@@ -265,8 +234,6 @@ ChatClient::ChatClient()
     _connection->on("JoinedChannel", OnJoinedChannel);
     _connection->on("Banned", OnBanned);
 
-    EventManager::Subscribe(GDCL_EVENT_CONNECT, &ChatClient::OnConnectEvent);
-    EventManager::Subscribe(GDCL_EVENT_DISCONNECT, &ChatClient::OnDisconnectEvent);
     EventManager::Subscribe(GDCL_EVENT_WORLD_PRE_LOAD, &ChatClient::OnWorldLoadEvent);
 
     _channels = 0;
@@ -274,8 +241,6 @@ ChatClient::ChatClient()
 
 ChatClient::~ChatClient()
 {
-    EventManager::Unsubscribe(GDCL_EVENT_CONNECT, &ChatClient::OnConnectEvent);
-    EventManager::Unsubscribe(GDCL_EVENT_DISCONNECT, &ChatClient::OnDisconnectEvent);
     EventManager::Unsubscribe(GDCL_EVENT_WORLD_PRE_LOAD, &ChatClient::OnWorldLoadEvent);
 
     _connection->stop([](std::exception_ptr ex)

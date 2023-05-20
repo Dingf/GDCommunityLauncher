@@ -99,4 +99,9 @@
 - Added support for in-game item crafting using special items that can only be obtained during the season.
 - Added support for character and shared stash sync with the game server.
 - Removed the ability to join multiplayer games while playing through the launcher.
-- The launcher now saves character data in a separate folder based on the current active season
+- The launcher now saves character data in a separate folder based on the current active season.
+
+## 1.2.1 (2023-05-20)
+
+- Fixed a recurring connection issue with the chat service.
+- Reduced the frequency at which the launcher polls the server for its online status.

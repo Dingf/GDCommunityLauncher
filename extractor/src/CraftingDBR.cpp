@@ -21,6 +21,7 @@ std::vector<std::regex> craftingBlacklist =
     std::regex("nodrop"),
     std::regex("common"),
     std::regex("ghost_visuals"),
+    std::regex("_broken"),
     std::regex("illidan"),
     std::regex("hands_lesaunt"),
     std::regex("\\/[a-z][0-9]00_[A-Za-z0-9_-]+\\.dbr$"),
