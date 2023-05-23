@@ -18,6 +18,17 @@ FileReader::FileReader(const std::filesystem::path& filename)
     in.close();
 }
 
+FileReader::FileReader(uint8_t* buffer, int64_t size)
+{
+    if (size > 0)
+    {
+        _bufferPos = 0;
+        _bufferSize = size;
+        _buffer = new uint8_t[size];
+        memcpy(_buffer, buffer, size);
+    }
+}
+
 float FileReader::ReadFloat()
 {
     if (_bufferPos + 4 <= _bufferSize)
@@ -100,6 +111,22 @@ std::wstring FileReader::ReadWideString()
 }
 
 EncodedFileReader::EncodedFileReader(const std::filesystem::path& path) : FileReader(path)
+{
+    if (_bufferPos + 4 <= _bufferSize)
+    {
+        uint32_t val = (uint32_t)_buffer[_bufferPos] | ((uint32_t)_buffer[_bufferPos + 1] << 8) | ((uint32_t)_buffer[_bufferPos + 2] << 16) | ((uint32_t)_buffer[_bufferPos + 3] << 24);
+
+        _bufferPos += 4;
+        _key = (val ^= 0x55555555);
+        for (uint32_t i = 0; i < 256; ++i)
+        {
+            val = ((val >> 1) | (val << 31)) * 39916801;
+            _table[i] = val;
+        }
+    }
+}
+
+EncodedFileReader::EncodedFileReader(uint8_t* buffer, int64_t size) : FileReader(buffer, size)
 {
     if (_bufferPos + 4 <= _bufferSize)
     {

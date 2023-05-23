@@ -105,3 +105,8 @@
 
 - Fixed a recurring connection issue with the chat service.
 - Reduced the frequency at which the launcher polls the server for its online status.
+
+## 1.2.2 (2023-05-22)
+
+- Fixed a crash that would occur when using the /challenges command.
+- Fixed a bug where new characters that were created with multiplayer and/or cloud saving enabled did not receive the season participation token.

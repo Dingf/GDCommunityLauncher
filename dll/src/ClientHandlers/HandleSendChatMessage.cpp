@@ -506,7 +506,7 @@ bool HandleChatChallengesCommand(ChatClient* chatClient, std::wstring& name, std
                 {
                     web::json::value challengeData = challengeList[i];
                     std::wstring challengeName = challengeData[U("challengeName")].as_string();
-                    std::wstring challengeDifficulty = challengeData[U("maxDifficulty")].as_string();
+                    std::wstring challengeDifficulty = challengeData[U("difficulties")].as_string();
                     std::string challengeCategory = JSONString(challengeData[U("categoryName")].serialize());
 
                     auto it = challengeCategoryMap.find(challengeCategory);

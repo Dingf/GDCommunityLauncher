@@ -11,13 +11,19 @@ bool HandleParticipationToken(const std::string& tokenString)
     const SeasonInfo* seasonInfo = client.GetActiveSeason();
     if (tokenString == seasonInfo->_participationToken)
     {
-        if (!EngineAPI::IsMultiplayer())
+        if (EngineAPI::IsMultiplayer())
         {
-            // If this is a new character, set the character as the active character so that they can participate in the season
-            void* mainPlayer = GameAPI::GetMainPlayer();
-            std::wstring playerName = GameAPI::GetPlayerName(mainPlayer);
-            client.SetActiveCharacter(playerName, true);
+            // TODO: Display a popup to the user here
         }
+        else if (GameAPI::IsCloudStorageEnabled())
+        {
+            // TODO: Display a popup to the user here
+        }
+
+        // If this is a new character, set the character as the active character so that they can participate in the season
+        void* mainPlayer = GameAPI::GetMainPlayer();
+        std::wstring playerName = GameAPI::GetPlayerName(mainPlayer);
+        client.SetActiveCharacter(playerName, true);
         return true;
     }
     return false;
@@ -109,7 +115,7 @@ void HandleBestowToken(void* _this, const GameAPI::TriggerToken& token)
                 c = std::tolower(c);
 
             // Prevent tokens from being updated in multiplayer season games (except for starting item token, to avoid receiving the starting items multiple times)
-            if (((EngineAPI::IsMultiplayer()) || (GameAPI::IsCloudStorageEnabled())) && (tokenString != "received_start_items"))
+            if (((EngineAPI::IsMultiplayer()) || (GameAPI::IsCloudStorageEnabled())) && (tokenString != "received_start_items") && (tokenString != seasonInfo->_participationToken))
                 return;
 
             for (size_t i = 0; i < tokenHandlers.size(); ++i)
