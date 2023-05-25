@@ -108,5 +108,10 @@
 
 ## 1.2.2 (2023-05-22)
 
-- Fixed a crash that would occur when using the /challenges command.
+- Fixed a crash that would occur when using the `/challenges` command.
 - Fixed a bug where new characters that were created with multiplayer and/or cloud saving enabled did not receive the season participation token.
+
+## 1.2.3 (2023-05-25)
+
+- Essence of Attak Seru can now be used on relics.
+- Reduced the lag that would occur when using essences after the first time.

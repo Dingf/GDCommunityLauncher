@@ -25,6 +25,7 @@ const std::unordered_map<ItemType, CraftingTemplate> templates =
     { ITEM_TYPE_RANGED_2H, { "records/items/loottables/weapons/tdyn_gun2h_a07.dbr",            1.58f, 0.43f } },
     { ITEM_TYPE_SHIELD,    { "records/items/loottables/weapons/tdyn_shield_a06.dbr",           1.52f, 0.86f } },
     { ITEM_TYPE_OFFHAND,   { "records/items/loottables/weapons/tdyn_focus_a05.dbr",            1.81f, 2.18f } },
+    { ITEM_TYPE_RELIC,     { "",                                                               0.00f, 0.00f } },
 };
 
 const CraftingTemplate& CraftingTemplate::GetTemplate(ItemType type)

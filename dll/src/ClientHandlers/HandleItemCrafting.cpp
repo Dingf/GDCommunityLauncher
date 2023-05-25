@@ -6,6 +6,9 @@
 #include "ItemDatabase.h"
 #include "ServerSync.h"
 
+typedef std::unordered_map<void*, bool> CanUseItemFilterCache;
+std::unordered_map<std::string, CanUseItemFilterCache> _filterCaches;
+
 std::unordered_map<std::string, uint32_t> _imprintTypeMap =
 {
     { "grimleague/items/enchants/r201_imprint_helm.dbr",      ITEM_TYPE_FLAG_HEAD },
@@ -32,6 +35,8 @@ const std::regex vaalRegex("^grimleague/items/lootaffixes/ultos_prefix(\\d{2}).d
 
 void* _lastEnchantUsedOn = nullptr;
 void* _lastEquipment = nullptr;
+void* _lastEnchant = nullptr;
+GameAPI::ItemReplicaInfo _lastEnchantInfo;
 
 uint32_t GenerateItemSeed()
 {
@@ -118,22 +123,22 @@ bool CanRerollItemSeed(void* item, void* enchant, uint32_t itemLevel, ItemType i
 
 bool CanRerollItemAffix(void* item, void* enchant, uint32_t itemLevel, ItemType itemType, GameAPI::ItemClassification itemRarity)
 {
-    return (!HasVaalAffix(item) && (itemRarity <= GameAPI::ITEM_CLASSIFICATION_RARE));
+    return (!HasVaalAffix(item) && (itemRarity <= GameAPI::ITEM_CLASSIFICATION_RARE)) && (itemType < ITEM_TYPE_RELIC);
 }
 
 bool CanRerollItemAffixLowLevel(void* item, void* enchant, uint32_t itemLevel, ItemType itemType, GameAPI::ItemClassification itemRarity)
 {
-    return (!HasVaalAffix(item) && (itemRarity <= GameAPI::ITEM_CLASSIFICATION_RARE) && (itemLevel <= 70));
+    return (!HasVaalAffix(item) && (itemRarity <= GameAPI::ITEM_CLASSIFICATION_RARE) && (itemLevel <= 70)) && (itemType < ITEM_TYPE_RELIC);
 }
 
 bool CanRerollEpicAffix(void* item, void* enchant, uint32_t itemLevel, ItemType itemType, GameAPI::ItemClassification itemRarity)
 {
-    return (!HasVaalAffix(item) && (itemRarity == GameAPI::ITEM_CLASSIFICATION_EPIC));
+    return (!HasVaalAffix(item) && (itemRarity == GameAPI::ITEM_CLASSIFICATION_EPIC)) && (itemType < ITEM_TYPE_RELIC);
 }
 
 bool CanRerollVaal(void* item, void* enchant, uint32_t itemLevel, ItemType itemType, GameAPI::ItemClassification itemRarity)
 {
-    return ((itemRarity == GameAPI::ITEM_CLASSIFICATION_EPIC) || (itemRarity == GameAPI::ITEM_CLASSIFICATION_LEGEND));
+    return ((itemRarity == GameAPI::ITEM_CLASSIFICATION_EPIC) || (itemRarity == GameAPI::ITEM_CLASSIFICATION_LEGEND)) && (itemType < ITEM_TYPE_RELIC);
 }
 
 bool CanGenerateItemPrefix(ItemType itemType, uint32_t itemLevel)
@@ -160,7 +165,7 @@ bool CanGenerateItemSuffix(ItemType itemType, uint32_t itemLevel)
 
 bool CanUpgradeItemBase(void* item, void* enchant, uint32_t itemLevel, ItemType itemType, GameAPI::ItemClassification itemRarity)
 {
-    if (HasVaalAffix(item))
+    if (HasVaalAffix(item) || (itemType == ITEM_TYPE_RELIC))
         return false;
 
     GameAPI::ItemReplicaInfo itemInfo;
@@ -191,7 +196,7 @@ bool CanCreateTransferAugment(void* item, void* enchant, uint32_t itemLevel, Ite
 {
     GameAPI::ItemReplicaInfo itemInfo;
     GameAPI::GetItemReplicaInfo(item, itemInfo);
-    return (!HasVaalAffix(item) && (itemRarity < GameAPI::ITEM_CLASSIFICATION_LEGEND) && (!itemInfo._itemPrefix.empty() || !itemInfo._itemSuffix.empty()));
+    return (!HasVaalAffix(item) && (itemRarity < GameAPI::ITEM_CLASSIFICATION_LEGEND) && (itemType < ITEM_TYPE_RELIC) && (!itemInfo._itemPrefix.empty() || !itemInfo._itemSuffix.empty()));
 }
 
 bool CanUseTransferAugment(void* item, void* enchant, uint32_t itemLevel, ItemType itemType, GameAPI::ItemClassification itemRarity)
@@ -206,7 +211,7 @@ bool CanUseTransferAugment(void* item, void* enchant, uint32_t itemLevel, ItemTy
     GameAPI::GetItemReplicaInfo(enchant, enchantInfo);
 
     // Prevent transfers on legendary items and on epic items if the augment has both a prefix and a suffix
-    if ((itemRarity >= GameAPI::ITEM_CLASSIFICATION_LEGEND) || ((itemRarity == GameAPI::ITEM_CLASSIFICATION_EPIC) && (!enchantInfo._itemPrefix.empty()) && (!enchantInfo._itemSuffix.empty())))
+    if ((itemType == ITEM_TYPE_RELIC) || (itemRarity >= GameAPI::ITEM_CLASSIFICATION_LEGEND) || ((itemRarity == GameAPI::ITEM_CLASSIFICATION_EPIC) && (!enchantInfo._itemPrefix.empty()) && (!enchantInfo._itemSuffix.empty())))
         return false;
 
     std::string enchantName = enchantInfo._itemName;
@@ -531,10 +536,12 @@ bool HandleUseItemEnchantment(void* _this, void* item, bool unk1, bool& unk2)
             ItemCraftingHandler handler = itemCraftingHandlers.at(enchantName);
             if (handler(item, _this, itemInfo))
             {
-                std::string itemName = GameAPI::GetItemNameTag(item);
                 if (ModifyItem(item, itemInfo))
                 {
-                    Client& client = Client::GetInstance();
+                    CanUseItemFilterCache& cache = _filterCaches[enchantName];
+                    if (cache.count(item) > 0)
+                        cache.erase(item);
+
                     ModifyEnchant(_this, enchantInfo);
                     GameAPI::SaveGame();
                 }
@@ -555,42 +562,58 @@ bool HandleCanEnchantBeUsedOn(void* _this, void* item, bool unk1, bool& unk2)
     {
         bool result = callback(_this, item, unk1, unk2);
 
-        GameAPI::ItemReplicaInfo enchantInfo;
-        GameAPI::GetItemReplicaInfo(_this, enchantInfo);
-
-        if (canUseItemFilters.count(enchantInfo._itemName) > 0)
+        if (_this != _lastEnchant)
         {
-            // Prevent crafting on items that are already equipped
-            // Use the cached equipment data if this is the same enchant as before
-            void* equipment = _lastEquipment;
-            if ((!equipment) || (_this != _lastEnchantUsedOn))
-            {
-                void* mainPlayer = GameAPI::GetMainPlayer();
-                equipment = GameAPI::GetPlayerEquipment(mainPlayer);
-                _lastEnchantUsedOn = _this;
-            }
+            _lastEnchant = _this;
+            GameAPI::GetItemReplicaInfo(_this, _lastEnchantInfo);
+        }
 
-            uint32_t itemID = EngineAPI::GetObjectID(item);
-            if (GameAPI::IsItemEquipped(equipment, itemID))
+        std::string enchantName = _lastEnchantInfo._itemName;
+        if (canUseItemFilters.count(enchantName) > 0)
+        {
+            CanUseItemFilterCache& cache = _filterCaches[enchantName];
+            if (cache.count(item) > 0)
+            {
+                return cache.at(item);
+            }
+            else
+            {
+                // Prevent crafting on items that are already equipped
+                // Use the cached equipment data if this is the same enchant as before
+                void* equipment = _lastEquipment;
+                if ((!equipment) || (_this != _lastEnchantUsedOn))
+                {
+                    void* mainPlayer = GameAPI::GetMainPlayer();
+                    equipment = GameAPI::GetPlayerEquipment(mainPlayer);
+                    _lastEnchantUsedOn = _this;
+                }
+
+                uint32_t itemID = EngineAPI::GetObjectID(item);
+                if (GameAPI::IsItemEquipped(equipment, itemID))
+                    return false;
+
+                CanUseItemFilter filter = canUseItemFilters.at(enchantName);
+
+                ItemDatabase& itemDB = ItemDatabase::GetInstance();
+                GameAPI::ItemReplicaInfo itemInfo;
+                GameAPI::GetItemReplicaInfo(item, itemInfo);
+
+                std::string itemName = itemInfo._itemName;
+                if (itemDB.HasEntry(itemName))
+                {
+                    uint32_t itemLevel = GameAPI::GetItemLevel(item);
+                    ItemType itemType = itemDB.GetEntry(itemInfo._itemName)._type;
+                    GameAPI::ItemClassification itemRarity = GameAPI::GetItemClassification(item);
+
+                    if (itemType != ITEM_TYPE_OTHER)
+                    {
+                        cache[item] = filter(item, _this, itemLevel, itemType, itemRarity);
+                        return cache[item];
+                    }
+                }
+                cache[item] = false;
                 return false;
-
-            CanUseItemFilter filter = canUseItemFilters.at(enchantInfo._itemName);
-
-            ItemDatabase& itemDB = ItemDatabase::GetInstance();
-            GameAPI::ItemReplicaInfo itemInfo;
-            GameAPI::GetItemReplicaInfo(item, itemInfo);
-
-            std::string itemName = itemInfo._itemName;
-            if (itemDB.HasEntry(itemName))
-            {
-                uint32_t itemLevel = GameAPI::GetItemLevel(item);
-                ItemType itemType = itemDB.GetEntry(itemInfo._itemName)._type;
-                GameAPI::ItemClassification itemRarity = GameAPI::GetItemClassification(item);
-
-                if (itemType != ITEM_TYPE_OTHER)
-                    return filter(item, _this, itemLevel, itemType, itemRarity);
             }
-            return false;
         }
 
         return result;

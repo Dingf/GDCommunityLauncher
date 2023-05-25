@@ -9,9 +9,6 @@
 #include "ItemType.h"
 #include "Log.h"
 
-// TODO: Delete me
-#include <iostream>
-
 const std::regex craftingEntryRegex("^(randomizer|prefixTable|rarePrefixTable|suffixTable|rareSuffixTable)([A-Za-z]+)(\\d+)$");
 
 std::vector<std::regex> craftingBlacklist =
@@ -58,8 +55,10 @@ void CraftingDBR::BuildCraftingDB(const std::filesystem::path& dataPath, const s
     for (uint32_t i = 1; i < MAX_ITEM_TYPES; ++i)
     {
         const CraftingTemplate& craftTemplate = CraftingTemplate::GetTemplate((ItemType)i);
-        CraftingDBR templateDBR(dataPath / craftTemplate._recordName);
+        if (craftTemplate._recordName.empty())
+            continue;
 
+        CraftingDBR templateDBR(dataPath / craftTemplate._recordName);
         for (const auto& tablePair : templateDBR._prefixes)
         {
             CraftingDBEntry table = tablePair.second;

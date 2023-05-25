@@ -28,7 +28,8 @@ enum ItemType : uint32_t
     ITEM_TYPE_RANGED_2H = 20,
     ITEM_TYPE_SHIELD = 21,
     ITEM_TYPE_OFFHAND = 22,
-    MAX_ITEM_TYPES = 23,
+    ITEM_TYPE_RELIC = 23,
+    MAX_ITEM_TYPES = 24,
 };
 
 enum ItemTypeFlag : uint32_t
@@ -56,6 +57,7 @@ enum ItemTypeFlag : uint32_t
     ITEM_TYPE_FLAG_RANGED_2H = 1 << 19,
     ITEM_TYPE_FLAG_SHIELD = 1 << 20,
     ITEM_TYPE_FLAG_OFFHAND = 1 << 21,
+    ITEM_TYPE_FLAG_RELIC = 1 << 22,
 };
 
 #endif//INC_GDCL_GAME_ITEM_TYPE_H

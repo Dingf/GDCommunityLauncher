@@ -52,6 +52,7 @@ const std::map<std::string, ItemType> itemTypes =
     { "WeaponHunting_Ranged2h",    ITEM_TYPE_RANGED_2H },
     { "WeaponArmor_Shield",        ITEM_TYPE_SHIELD },
     { "WeaponArmor_Offhand",       ITEM_TYPE_OFFHAND },
+    { "ItemArtifact",              ITEM_TYPE_RELIC }
 };
 
 void ItemDBR::BuildItemDB(const std::filesystem::path& dataPath, const std::filesystem::path& outPath)
