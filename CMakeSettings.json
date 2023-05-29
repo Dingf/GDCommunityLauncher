@@ -16,27 +16,37 @@
                     "name": "VCPKG_TARGET_TRIPLET",
                     "value": "x64-windows-static",
                     "type": "STRING"
+                },
+                {
+                  "name": "VCPKG_HOST_TRIPLET",
+                  "value": "x64-windows-static",
+                  "type": "STRING"
                 }
             ]
         },
-        {
-            "name": "x64-Release",
-            "generator": "Ninja",
-            "configurationType": "Release",
-            "buildRoot": "${projectDir}\\out\\build\\${name}",
-            "installRoot": "${projectDir}\\out\\install\\${name}",
-            "cmakeCommandArgs": "",
-            "buildCommandArgs": "",
-            "ctestCommandArgs": "",
-            "cmakeToolchain": "C:/ProgramData/vcpkg/scripts/buildsystems/vcpkg.cmake",
-            "inheritEnvironments": [ "msvc_x64_x64" ],
-            "variables": [
-                {
-                    "name": "VCPKG_TARGET_TRIPLET",
-                    "value": "x64-windows-static",
-                    "type": "STRING"
-                }
-            ]
-        }
+      {
+        "name": "x64-Release",
+        "generator": "Ninja",
+        "configurationType": "Release",
+        "buildRoot": "${projectDir}\\out\\build\\${name}",
+        "installRoot": "${projectDir}\\out\\install\\${name}",
+        "cmakeCommandArgs": "",
+        "buildCommandArgs": "",
+        "ctestCommandArgs": "",
+        "cmakeToolchain": "C:/ProgramData/vcpkg/scripts/buildsystems/vcpkg.cmake",
+        "inheritEnvironments": [ "msvc_x64_x64" ],
+        "variables": [
+          {
+            "name": "VCPKG_TARGET_TRIPLET",
+            "value": "x64-windows-static",
+            "type": "STRING"
+          },
+          {
+            "name": "VCPKG_HOST_TRIPLET",
+            "value": "x64-windows-static",
+            "type": "STRING"
+          }
+        ]
+      }
     ]
 }
