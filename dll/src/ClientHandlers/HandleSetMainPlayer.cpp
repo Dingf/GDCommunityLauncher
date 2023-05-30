@@ -71,7 +71,7 @@ void HandleSetMainPlayer(void* _this, uint32_t unk1)
                                          HasParticipationTokenFromFile(playerName, seasonInfo);
 
             client.SetActiveCharacter(playerName, hasParticipationToken);
-            pplx::create_task([&client]()
+            pplx::create_task([&client]() // pplx might be oay, needs testing
             {
                 // Initialize the chat window
                 EngineAPI::UI::ChatWindow::GetInstance(true);

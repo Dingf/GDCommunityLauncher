@@ -29,12 +29,14 @@ void HandleSaveTransferStash(void* _this)
 
             callback(_this);
 
-            pplx::create_task([]()
+            // this needs to be a thread or we have to untangle all the continuations inside
+            std::thread stashUploader([]()
             {
                 Client& client = Client::GetInstance();
                 ServerSync::UploadStashData();
                 GetTransferMutex().unlock();
             });
+            stashUploader.detach();
         }
         else
         {

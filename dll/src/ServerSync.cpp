@@ -262,7 +262,6 @@ void ServerSync::SnapshotCharacterMetadata(const std::wstring& playerName)
 {
     ServerSync& sync = ServerSync::GetInstance();
     FileMetadata metadata(GameAPI::GetPlayerSaveFile(playerName));
-
     if (sync._characterMetadata.IsEmpty())
         sync._characterMetadata = metadata;
 
@@ -528,7 +527,7 @@ void ServerSync::PostCloudStashUpload()
 
                 try
                 {
-                     URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "stash";
+                    URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "stash";
                     endpoint.AddParam("branch", client.GetBranch());
                     endpoint.AddParam("clientTrusted", IsClientTrusted());
 

@@ -3,6 +3,7 @@
 #include "GameAPI/TriggerToken.h"
 #include "ChatClient.h"
 #include "ClientHandlers.h"
+#include "ServerSync.h"
 #include "URI.h"
 
 bool HandleParticipationToken(const std::string& tokenString)
@@ -47,42 +48,42 @@ bool HandleSeasonPointToken(const std::string& tokenString)
     Client& client = Client::GetInstance();
     if ((tokenString.find("gdl_", 0) == 0) && (client.IsParticipatingInSeason()))
     {
-        pplx::create_task([tokenString]()
+        try
         {
-            try
-            {
-                Client& client = Client::GetInstance();
-                void* mainPlayer = GameAPI::GetMainPlayer();
+            Client& client = Client::GetInstance();
+            void* mainPlayer = GameAPI::GetMainPlayer();
 
-                // Otherwise if it's a season token, pass it along to the server and update the points/rank
-                URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "quest-tag" / tokenString;
+            // Otherwise if it's a season token, pass it along to the server and update the points/rank
+            URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "quest-tag" / tokenString;
+            web::http::http_request request(web::http::methods::POST);
+
+            web::json::value requestBody;
+            requestBody[U("level")] = EngineAPI::GetPlayerLevel();
+            requestBody[U("currentDifficulty")] = GameAPI::GetGameDifficulty();
+            requestBody[U("maxDifficulty")] = GameAPI::GetPlayerMaxDifficulty(mainPlayer);
+            request.set_body(requestBody);
+
+            std::string bearerToken = "Bearer " + client.GetAuthToken();
+            request.headers().add(U("Authorization"), bearerToken.c_str());
+
+            ServerSync::ScheduleTask([endpoint, request]() {
                 web::http::client::http_client httpClient((utility::string_t)endpoint);
-                web::http::http_request request(web::http::methods::POST);
-
-                web::json::value requestBody;
-                requestBody[U("level")] = EngineAPI::GetPlayerLevel();
-                requestBody[U("currentDifficulty")] = GameAPI::GetGameDifficulty();
-                requestBody[U("maxDifficulty")] = GameAPI::GetPlayerMaxDifficulty(mainPlayer);
-                request.set_body(requestBody);
-
-                std::string bearerToken = "Bearer " + client.GetAuthToken();
-                request.headers().add(U("Authorization"), bearerToken.c_str());
-
-                web::http::http_response response = httpClient.request(request).get();
-                if (response.status_code() == web::http::status_codes::OK)
-                {
-                    client.UpdateSeasonStanding();
-                }
-                else
-                {
-                    throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-                }
-            }
-            catch (const std::exception& ex)
-            {
-                Logger::LogMessage(LOG_LEVEL_WARN, "Failed to update quest tag: %", ex.what());
-            }
-        });
+                return httpClient.request(request).then([](web::http::http_response response) {
+                    if (response.status_code() == web::http::status_codes::OK)
+                    {
+                        Client::GetInstance().UpdateSeasonStanding();
+                    }
+                    else
+                    {
+                        Logger::LogMessage(LOG_LEVEL_WARN, "While updating quest tag: Server responded with status code " + std::to_string(response.status_code()));
+                    }
+                });
+            });
+        }
+        catch (const std::exception& ex)
+        {
+            Logger::LogMessage(LOG_LEVEL_WARN, "Failed to update quest tag: %", ex.what());
+        }
         return true;
     }
     return false;

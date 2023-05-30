@@ -10,6 +10,7 @@
 #include "ClientHandlers.h"
 #include "ChatClient.h"
 #include "Character.h"
+#include "ServerSync.h"
 #include "JSONObject.h"
 #include "URI.h"
 
@@ -309,43 +310,51 @@ bool HandleChatTradeCommand(ChatClient* chatClient, std::wstring& name, std::wst
 
 bool HandleChatOnlineCommand(ChatClient* chatClient, std::wstring& name, std::wstring& message, uint32_t& channel, uint8_t& type, void* item)
 {
-    pplx::create_task([]()
+    try
     {
-        try
-        {
-            Client& client = Client::GetInstance();
-            URI endpoint = client.GetServerChatURL() / "chat" / "connected-clients";
+        Client& client = Client::GetInstance();
+        URI endpoint = client.GetServerChatURL() / "chat" / "connected-clients";
 
+        web::http::http_request request(web::http::methods::GET);
+
+        std::string bearerToken = "Bearer " + client.GetAuthToken();
+        request.headers().add(U("Authorization"), bearerToken.c_str());
+
+        // don't need to use ServerSync task group here since it's not critical that chat messages get synced on shutdown
+        pplx::create_task([endpoint, request]() // pplx okay here, no blocking calls inside
+        {
             web::http::client::http_client httpClient((utility::string_t)endpoint);
-            web::http::http_request request(web::http::methods::GET);
+            return httpClient.request(request).then([](web::http::http_response response) {
+                if (response.status_code() == web::http::status_codes::OK)
+                    return response.extract_json();
+                else
+                    throw std::runtime_error("Server responded with status code %" + std::to_string(response.status_code()));
+            }).then([](concurrency::task<web::json::value> extractedJson) {
+                try
+                {
+                    // can use get here since taking the task as continuation parameter ensures it is finished
+                    web::json::value responseBody = extractedJson.get(); 
+                    web::json::array usersArray = responseBody.as_array();
 
-            std::string bearerToken = "Bearer " + client.GetAuthToken();
-            request.headers().add(U("Authorization"), bearerToken.c_str());
+                    std::wstring message = L"There are " + std::to_wstring(usersArray.size()) + L" users currently online.";
+                    GameAPI::SendChatMessage(L"Server", message, EngineAPI::UI::CHAT_TYPE_NORMAL);
+                }
+                catch (std::exception& ex)
+                {
+                    Logger::LogMessage(LOG_LEVEL_WARN, "While processing chat online command: %", ex.what());
+                }
+            });
+        });
+    }
+    catch (const std::exception& ex)
+    {
+        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve online users: %", ex.what());
+    }
 
-            web::http::http_response response = httpClient.request(request).get();
-            if (response.status_code() == web::http::status_codes::OK)
-            {
-                web::json::value responseBody = response.extract_json().get();
-                web::json::array usersArray = responseBody.as_array();
-
-                std::wstring message = L"There are " + std::to_wstring(usersArray.size()) + L" users currently online.";
-                GameAPI::SendChatMessage(L"Server", message, EngineAPI::UI::CHAT_TYPE_NORMAL);
-            }
-            else
-            {
-                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-            }
-        }
-        catch (const std::exception& ex)
-        {
-            Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve online users: %", ex.what());
-        }
-    });
-
-   return false;
+    return false;
 }
 
-web::json::value GetSeasonChallenges()
+pplx::task<web::json::value> GetSeasonChallenges()
 {
     try
     {
@@ -360,15 +369,18 @@ web::json::value GetSeasonChallenges()
             std::string bearerToken = "Bearer " + client.GetAuthToken();
             request.headers().add(U("Authorization"), bearerToken.c_str());
 
-            web::http::http_response response = httpClient.request(request).get();
-            if (response.status_code() == web::http::status_codes::OK)
-            {
-                return response.extract_json().get();
-            }
-            else
-            {
-                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-            }
+            return httpClient.request(request).then([](web::http::http_response response) {
+                if (response.status_code() == web::http::status_codes::OK)
+                {
+                    return response.extract_json();
+                }
+                else
+                {
+                    throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+                }
+            }).then([](pplx::task<web::json::value> extractedJson) {
+                return extractedJson.get();
+            });
         }
     }
     catch (const std::exception& ex)
@@ -376,12 +388,12 @@ web::json::value GetSeasonChallenges()
         Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve challenge list: %", ex.what());
     }
 
-    return web::json::value::null();
+    return pplx::task_from_result(web::json::value::null());
 }
 
-std::unordered_set<uint32_t> GetCompletedChallengeIDs()
+pplx::task<std::unordered_set<uint32_t>> GetCompletedChallengeIDs()
 {
-    std::unordered_set<uint32_t> challengeIDs;
+
     try
     {
         Client& client = Client::GetInstance();
@@ -395,170 +407,180 @@ std::unordered_set<uint32_t> GetCompletedChallengeIDs()
             std::string bearerToken = "Bearer " + client.GetAuthToken();
             request.headers().add(U("Authorization"), bearerToken.c_str());
 
-            web::http::http_response response = httpClient.request(request).get();
-            if (response.status_code() == web::http::status_codes::OK)
-            {
-                web::json::value responseBody = response.extract_json().get();
-                web::json::array completedChallenges = responseBody.as_array();
-
-                for (size_t i = 0; i < completedChallenges.size(); ++i)
+            return httpClient.request(request).then([](web::http::http_response response) {
+                if (response.status_code() == web::http::status_codes::OK)
+                    return response.extract_json();
+                else
+                    throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+            }).then([](pplx::task<web::json::value> extractedJson) {
+                std::unordered_set<uint32_t> challengeIDs;
+                try
                 {
-                    web::json::value challengeData = completedChallenges[i];
-                    uint32_t challengeID = challengeData[U("seasonChallengeId")].as_integer();
-                    challengeIDs.insert(challengeID);
+                    web::json::array completedChallenges = extractedJson.get().as_array();
+
+                    for (size_t i = 0; i < completedChallenges.size(); ++i)
+                    {
+                        web::json::value challengeData = completedChallenges[i];
+                        uint32_t challengeID = challengeData[U("seasonChallengeId")].as_integer();
+                        challengeIDs.insert(challengeID);
+                    }
                 }
-            }
-            else
-            {
-                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-            }
+                catch (std::exception& ex)
+                {
+                    Logger::LogMessage(LOG_LEVEL_WARN, "While retrieving completed challenges: %s", ex.what());
+                }
+
+                return challengeIDs;
+            });
         }
     }
     catch (const std::exception& ex)
     {
         Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve completed challenges: %", ex.what());
+        return pplx::task_from_exception<std::unordered_set<uint32_t>>(ex);
     }
-    return challengeIDs;
+
+    std::unordered_set<uint32_t> challengeIDs;
+    return pplx::task_from_result(challengeIDs);
 }
 
 bool HandleChatChallengesCommand(ChatClient* chatClient, std::wstring& name, std::wstring& message, uint32_t& channel, uint8_t& type, void* item)
 {
-    pplx::create_task([channel]()
+    Client& client = Client::GetInstance();
+    EngineAPI::UI::ChatWindow& chatWindow = EngineAPI::UI::ChatWindow::GetInstance();
+
+    // decided to just make this a completely blocking call for now, since people likely don't check challenges every few minutes
+    // if performance ingame is too janky, will have to revise
+
+    web::json::value challenges = GetSeasonChallenges().get();
+    std::unordered_set<uint32_t>& challengeIDs = GetCompletedChallengeIDs().get();
+
+    if (!challenges.is_null())
     {
-        Client& client = Client::GetInstance();
-        EngineAPI::UI::ChatWindow& chatWindow = EngineAPI::UI::ChatWindow::GetInstance();
-
-        web::json::value challenges = GetSeasonChallenges();
-        std::unordered_set<uint32_t>& challengeIDs = GetCompletedChallengeIDs();
-
-        if (!challenges.is_null())
+        web::json::array challengeList = challenges.as_array();
+        if (channel == 0)
         {
-            web::json::array challengeList = challenges.as_array();
-            if (channel == 0)
             {
-                {
-                    std::wstring message = L"Challenge overview for ";
-                    message += std::wstring(client.GetUsername().begin(), client.GetUsername().end());
-                    message += L": ";
-                    GameAPI::SendChatMessage(L"Server", message, EngineAPI::UI::CHAT_TYPE_NORMAL);
-                }
-
-                std::unordered_map<uint32_t, uint32_t> challengeCount;
-                std::unordered_map<uint32_t, uint32_t> completedCount;
-                for (size_t i = 0; i < challengeList.size(); ++i)
-                {
-                    web::json::value challengeData = challengeList[i];
-                    std::string challengeCategory = JSONString(challengeData[U("categoryName")].serialize());
-                    uint32_t challengeID = challengeData[U("seasonChallengeId")].as_integer();
-
-                    auto it = challengeCategoryMap.find(challengeCategory);
-                    if (it != challengeCategoryMap.end())
-                    {
-                        uint32_t categoryNumber = it->second;
-                        challengeCount[categoryNumber]++;
-
-                        if (challengeIDs.count(challengeID) > 0)
-                            completedCount[categoryNumber]++;
-                    }
-                }
-
-                for (size_t i = 1; i <= challengeCount.size(); ++i)
-                {
-                    auto it = std::find_if(challengeCategoryMap.begin(), challengeCategoryMap.end(), [&i](const std::pair<std::string, uint32_t>& p) { return p.second == i; });
-                    if (it != challengeCategoryMap.end())
-                    {
-                        std::wstring message = L"    ";
-                        message += std::to_wstring(i);
-                        message += L" - ";
-
-                        message += std::wstring(it->first.begin(), it->first.end());
-                        message += L" (";
-                        message += std::to_wstring(completedCount[i]);
-                        message += L"/";
-                        message += std::to_wstring(challengeCount[i]);
-                        message += L")";
-
-                        EngineAPI::UI::ChatType chatType = (completedCount[i] == challengeCount[i]) ? EngineAPI::UI::CHAT_TYPE_TRADE : EngineAPI::UI::CHAT_TYPE_NORMAL;
-                        GameAPI::SendChatMessage(L"Server", message, chatType);
-                    }
-                }
+                std::wstring message = L"Challenge overview for ";
+                message += std::wstring(client.GetUsername().begin(), client.GetUsername().end());
+                message += L": ";
+                GameAPI::SendChatMessage(L"Server", message, EngineAPI::UI::CHAT_TYPE_NORMAL);
             }
-            else
+
+            std::unordered_map<uint32_t, uint32_t> challengeCount;
+            std::unordered_map<uint32_t, uint32_t> completedCount;
+            for (size_t i = 0; i < challengeList.size(); ++i)
             {
-                auto it = std::find_if(challengeCategoryMap.begin(), challengeCategoryMap.end(), [&channel](const std::pair<std::string, uint32_t>& p) { return p.second == channel; });
+                web::json::value challengeData = challengeList[i];
+                std::string challengeCategory = JSONString(challengeData[U("categoryName")].serialize());
+                uint32_t challengeID = challengeData[U("seasonChallengeId")].as_integer();
+
+                auto it = challengeCategoryMap.find(challengeCategory);
                 if (it != challengeCategoryMap.end())
                 {
-                    std::wstring message = std::wstring(it->first.begin(), it->first.end());
-                    message += L" Challenges for ";
-                    message += std::wstring(client.GetUsername().begin(), client.GetUsername().end());
-                    message += L": ";
-                    GameAPI::SendChatMessage(L"Server", message, EngineAPI::UI::CHAT_TYPE_NORMAL);
+                    uint32_t categoryNumber = it->second;
+                    challengeCount[categoryNumber]++;
+
+                    if (challengeIDs.count(challengeID) > 0)
+                        completedCount[categoryNumber]++;
                 }
-                else
+            }
+
+            for (size_t i = 1; i <= challengeCount.size(); ++i)
+            {
+                auto it = std::find_if(challengeCategoryMap.begin(), challengeCategoryMap.end(), [&i](const std::pair<std::string, uint32_t>& p) { return p.second == i; });
+                if (it != challengeCategoryMap.end())
                 {
-                    std::wstring message = std::to_wstring(channel);
-                    message += L" is not a valid challenge category.";
-                    GameAPI::SendChatMessage(L"Server", message, EngineAPI::UI::CHAT_TYPE_NORMAL);
-                    return;
-                }
+                    std::wstring message = L"    ";
+                    message += std::to_wstring(i);
+                    message += L" - ";
 
-                for (size_t i = 0; i < challengeList.size(); ++i)
-                {
-                    web::json::value challengeData = challengeList[i];
-                    std::wstring challengeName = challengeData[U("challengeName")].as_string();
-                    std::wstring challengeDifficulty = challengeData[U("difficulties")].as_string();
-                    std::string challengeCategory = JSONString(challengeData[U("categoryName")].serialize());
+                    message += std::wstring(it->first.begin(), it->first.end());
+                    message += L" (";
+                    message += std::to_wstring(completedCount[i]);
+                    message += L"/";
+                    message += std::to_wstring(challengeCount[i]);
+                    message += L")";
 
-                    auto it = challengeCategoryMap.find(challengeCategory);
-                    if ((it != challengeCategoryMap.end()) && (it->second == channel))
-                    {
-                        uint32_t challengeLevel = 0;
-                        web::json::value maxLevelValue = challengeData[U("maxLevel")];
-                        if (!maxLevelValue.is_null())
-                            challengeLevel = maxLevelValue.as_integer();
-                        uint32_t challengePoints = challengeData[U("pointValue")].as_integer();
-                        uint32_t challengeID = challengeData[U("seasonChallengeId")].as_integer();
-
-                        bool complete = (challengeIDs.count(challengeID) > 0);
-
-                        std::wstring message = L"  [";
-                        if (complete)
-                            message += L"X";
-                        else
-                            message += L"  ";
-                        message += L"]  ";
-                        message += challengeName;
-                        message += L" ";
-
-                        // Avoid repeating the level/difficulty suffix for challenges which already have the suffix in their name
-                        std::wstring suffix = L"(";
-                        if (challengeLevel > 0)
-                        {
-                            suffix += L"Lv";
-                            suffix += std::to_wstring(challengeLevel);
-                            suffix += L" ";
-                        }
-                        suffix += challengeDifficulty;
-                        suffix += L")";
-
-                        if ((challengeName.size() < suffix.size()) || (challengeName.compare(challengeName.size() - suffix.size(), suffix.size(), suffix) != 0))
-                        {
-                            message += suffix;
-                            message += L" ";
-                        }
-                    
-                        message += L"~ ";
-                        message += std::to_wstring(challengePoints);
-                        message += L" points";
-
-                        EngineAPI::UI::ChatType chatType = complete ? EngineAPI::UI::CHAT_TYPE_TRADE : EngineAPI::UI::CHAT_TYPE_NORMAL;
-                        GameAPI::SendChatMessage(L"Server", message, chatType);
-                    }
+                    EngineAPI::UI::ChatType chatType = (completedCount[i] == challengeCount[i]) ? EngineAPI::UI::CHAT_TYPE_TRADE : EngineAPI::UI::CHAT_TYPE_NORMAL;
+                    GameAPI::SendChatMessage(L"Server", message, chatType);
                 }
             }
         }
-    });
+        else
+        {
+            auto it = std::find_if(challengeCategoryMap.begin(), challengeCategoryMap.end(), [&channel](const std::pair<std::string, uint32_t>& p) { return p.second == channel; });
+            if (it != challengeCategoryMap.end())
+            {
+                std::wstring message = std::wstring(it->first.begin(), it->first.end());
+                message += L" Challenges for ";
+                message += std::wstring(client.GetUsername().begin(), client.GetUsername().end());
+                message += L": ";
+                GameAPI::SendChatMessage(L"Server", message, EngineAPI::UI::CHAT_TYPE_NORMAL);
+            }
+            else
+            {
+                std::wstring message = std::to_wstring(channel);
+                message += L" is not a valid challenge category.";
+                GameAPI::SendChatMessage(L"Server", message, EngineAPI::UI::CHAT_TYPE_NORMAL);
+                return false;
+            }
 
+            for (size_t i = 0; i < challengeList.size(); ++i)
+            {
+                web::json::value challengeData = challengeList[i];
+                std::wstring challengeName = challengeData[U("challengeName")].as_string();
+                std::wstring challengeDifficulty = challengeData[U("difficulties")].as_string();
+                std::string challengeCategory = JSONString(challengeData[U("categoryName")].serialize());
+
+                auto it = challengeCategoryMap.find(challengeCategory);
+                if ((it != challengeCategoryMap.end()) && (it->second == channel))
+                {
+                    uint32_t challengeLevel = 0;
+                    web::json::value maxLevelValue = challengeData[U("maxLevel")];
+                    if (!maxLevelValue.is_null())
+                        challengeLevel = maxLevelValue.as_integer();
+                    uint32_t challengePoints = challengeData[U("pointValue")].as_integer();
+                    uint32_t challengeID = challengeData[U("seasonChallengeId")].as_integer();
+
+                    bool complete = (challengeIDs.count(challengeID) > 0);
+
+                    std::wstring message = L"  [";
+                    if (complete)
+                        message += L"X";
+                    else
+                        message += L"  ";
+                    message += L"]  ";
+                    message += challengeName;
+                    message += L" ";
+
+                    // Avoid repeating the level/difficulty suffix for challenges which already have the suffix in their name
+                    std::wstring suffix = L"(";
+                    if (challengeLevel > 0)
+                    {
+                        suffix += L"Lv";
+                        suffix += std::to_wstring(challengeLevel);
+                        suffix += L" ";
+                    }
+                    suffix += challengeDifficulty;
+                    suffix += L")";
+
+                    if ((challengeName.size() < suffix.size()) || (challengeName.compare(challengeName.size() - suffix.size(), suffix.size(), suffix) != 0))
+                    {
+                        message += suffix;
+                        message += L" ";
+                    }
+                    
+                    message += L"~ ";
+                    message += std::to_wstring(challengePoints);
+                    message += L" points";
+
+                    EngineAPI::UI::ChatType chatType = complete ? EngineAPI::UI::CHAT_TYPE_TRADE : EngineAPI::UI::CHAT_TYPE_NORMAL;
+                    GameAPI::SendChatMessage(L"Server", message, chatType);
+                }
+            }
+        }
+    }
     return false;
 }
 

@@ -31,6 +31,14 @@ class ServerSync
 
         static void WaitBackgroundComplete();
 
+        // need to include function definition here because of template
+        template<typename TaskFunc>
+        static void ScheduleTask(TaskFunc task)
+        {
+            ServerSync::GetInstance()._backgroundTasks.run(task);
+        }
+
+
     private:
         struct CharacterIDRef
         {

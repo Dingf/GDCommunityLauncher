@@ -212,45 +212,44 @@ void Client::ReadDataFromPipe()
     }
 }
 
+// this function usually runs in its own periodic thread so no pplx necessary here
 bool Client::UpdateRefreshToken()
 {
-    pplx::create_task([]()
+    try
     {
-        try
+        Client& client = Client::GetInstance();
+        URI endpoint = client.GetServerGameURL() / "Account" / "login";
+
+        web::json::value requestBody;
+        requestBody[U("username")] = JSONString(client._data._username);
+        requestBody[U("password")] = JSONString(client._data._password);
+
+        web::http::http_request request(web::http::methods::POST);
+        request.set_body(requestBody);
+
+        web::http::client::http_client httpClient((utility::string_t)endpoint);
+        web::http::http_response response = httpClient.request(request).get();
+        if (response.status_code() == web::http::status_codes::OK)
         {
-            Client& client = Client::GetInstance();
-            URI endpoint = client.GetServerGameURL() / "Account" / "login";
-            web::http::client::http_client httpClient((utility::string_t)endpoint);
-
-            web::json::value requestBody;
-            requestBody[U("username")] = JSONString(client._data._username);
-            requestBody[U("password")] = JSONString(client._data._password);
-
-            web::http::http_request request(web::http::methods::POST);
-            request.set_body(requestBody);
-
-            web::http::http_response response = httpClient.request(request).get();
-            if (response.status_code() == web::http::status_codes::OK)
+            web::json::value responseBody = response.extract_json().get();
+            web::json::value authTokenValue = responseBody[U("access_token")];
+            web::json::value refreshTokenValue = responseBody[U("refresh_token")];
+            if ((!authTokenValue.is_null()) && (!refreshTokenValue.is_null()))
             {
-                web::json::value responseBody = response.extract_json().get();
-                web::json::value authTokenValue = responseBody[U("access_token")];
-                web::json::value refreshTokenValue = responseBody[U("refresh_token")];
-                if ((!authTokenValue.is_null()) && (!refreshTokenValue.is_null()))
-                {
-                    client._data._authToken = JSONString(authTokenValue.serialize());
-                    client._data._refreshToken = JSONString(refreshTokenValue.serialize());
-                }
-            }
-            else
-            {
-                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+                Client& client = Client::GetInstance();
+                client._data._authToken = JSONString(authTokenValue.serialize());
+                client._data._refreshToken = JSONString(refreshTokenValue.serialize());
             }
         }
-        catch (const std::exception& ex)
+        else
         {
-            Logger::LogMessage(LOG_LEVEL_WARN, "Failed to refresh token: %", ex.what());
+            Logger::LogMessage(LOG_LEVEL_WARN, "While refreshing token: Server responded with status code " + std::to_string(response.status_code()));
         }
-    });
+    }
+    catch (const std::exception& ex)
+    {
+        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to refresh token: %", ex.what());
+    }
     return true;
 }
 
@@ -380,39 +379,48 @@ void Client::SetActiveCharacter(const std::wstring& name, bool hasToken)
 
 void Client::UpdateSeasonStanding()
 {
-    pplx::create_task([this]()
+    try
     {
-        try
-        {
-            URI endpoint = GetServerGameURL() / "Season" / "participant" / std::to_string(GetParticipantID()) / "standing";
+        URI endpoint = GetServerGameURL() / "Season" / "participant" / std::to_string(GetParticipantID()) / "standing";
+        web::http::http_request request(web::http::methods::GET);
+
+        ServerSync::ScheduleTask([endpoint, request]() {
             web::http::client::http_client httpClient((utility::string_t)endpoint);
-            web::http::http_request request(web::http::methods::GET);
-
-            web::http::http_response response = httpClient.request(request).get();
-            switch (response.status_code())
-            {
-                case web::http::status_codes::OK:
+            httpClient.request(request).then([](web::http::http_response response) {
+                switch (response.status_code())
                 {
-                    web::json::value responseBody = response.extract_json().get();
-                    web::json::value pointTotal = responseBody[U("pointTotal")];
-                    web::json::value rank = responseBody[U("rank")];
+                    case web::http::status_codes::OK:
+                    {
+                        response.extract_json().then([](web::json::value responseBody) {
+                            try
+                            {
+                                web::json::value pointTotal = responseBody[U("pointTotal")];
+                                web::json::value rank = responseBody[U("rank")];
 
-                    _points = pointTotal.as_integer();
-                    _rank = rank.as_integer();
-                    UpdateLeagueInfoText();
-                    break;
+                                Client& client = Client::GetInstance();
+                                client._points = pointTotal.as_integer();
+                                client._rank = rank.as_integer();
+                                client.UpdateLeagueInfoText();
+                            }
+                            catch (const std::exception& ex)
+                            {
+                                Logger::LogMessage(LOG_LEVEL_WARN, "While updating season standing from JSON: %", ex.what());
+                            }
+                        });
+                        break;
+                    }
+                    default:
+                    {
+                        Logger::LogMessage(LOG_LEVEL_WARN, "Server responded with status code " + std::to_string(response.status_code()));
+                    }
                 }
-                default:
-                {
-                    throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-                }
-            }
-        }
-        catch (const std::exception& ex)
-        {
-            Logger::LogMessage(LOG_LEVEL_WARN, "Failed to update season standing: %", ex.what());
-        }
-    });
+            });
+        });
+    }
+    catch (const std::exception& ex)
+    {
+        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to update season standing: %", ex.what());
+    }
 }
 
 void Client::CreatePlayMenu()
@@ -459,10 +467,15 @@ bool Client::Initialize()
     ServerSync::Initialize();
 
     // Initialize the chat client in a separate thread
-    pplx::task<void> task = pplx::create_task([]()
+    std::thread chatStarter([]()
     {
         ChatClient& chatClient = ChatClient::GetInstance();
     });
+
+    // this SHOULD not cause a thread leak on windows (windows kills detached threads on main thread exit)
+    // but according to the standard it's undefined behaviour
+    // we do it anyway because it's the cleanest solution among several dirty ones
+    chatStarter.detach();
 
     // Initialize the game engine hooks
     if (!HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_GET_VERSION, &HandleGetVersion) ||
