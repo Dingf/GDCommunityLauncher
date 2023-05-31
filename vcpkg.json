@@ -1,4 +1,6 @@
 {
+  "name": "gdcommunitylauncher",
+  "version": "1.2.4",
   "dependencies": [
     "minizip",
     "minhook",
