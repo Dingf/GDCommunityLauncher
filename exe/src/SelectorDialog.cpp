@@ -227,7 +227,7 @@ bool SelectorDialog::Select(void* clientData)
         return false;
 
     data = (ClientData*)clientData;
-    if ((HasBetaAccess(data->_role)) && (data->_branch.empty()))
+    if ((HasBetaAccess(data->_role)) && ((data->_branch.empty()) || (GetAsyncKeyState(VK_CONTROL) & (1 << 15))))
     {
         HINSTANCE instance = GetModuleHandle(NULL);
         HWND hwnd = CreateDialogParam(instance, MAKEINTRESOURCE(IDD_DIALOG3), 0, SelectorDialogHandler, 0);

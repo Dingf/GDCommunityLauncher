@@ -43,7 +43,7 @@ bool HandleKeyEvent(void* _this, EngineAPI::KeyButtonEvent& event)
             }
         }
 
-        if ((client.IsParticipatingInSeason()) && (event._keyCode == EngineAPI::KEY_TILDE))
+        if ((client.IsParticipatingInSeason()) && (client.IsInProductionBranch()) && (event._keyCode == EngineAPI::KEY_TILDE))
         {
             // Disable the tilde key to prevent console access
             return true;

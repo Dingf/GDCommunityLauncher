@@ -29,7 +29,7 @@ class Client
         const std::string& GetUsername() const { return _data._username; }
         const std::string& GetRefreshToken() const { return _data._refreshToken; }
         const std::string& GetAuthToken() const { return _data._authToken; }
-        const std::string& GetSeasonName() const { return _data._seasonName; }
+        const std::string  GetSeasonName() const { return IsInProductionBranch() ? _data._seasonName : _data._seasonName + "_" + _data._branch; }
         const std::string& GetBranch() const { return _data._branch; }
 
         const URI& GetServerGameURL() const { return _data._gameURL; }
@@ -41,6 +41,7 @@ class Client
         std::wstring GetActiveCharacterName() const { return _activeCharacter._name; }
         std::string GetActiveModName() const { if (IsInActiveSeason()) return _activeSeason->_modName; else return {}; }
 
+        bool IsInProductionBranch() const { return (_data._branch.empty()) || (_data._branch == "prod"); }
         bool IsInActiveSeason() const { return (_activeSeason != nullptr) && (!_activeSeason->_modName.empty()); }
         bool IsParticipatingInSeason() const { return IsInActiveSeason() && (_activeCharacter._hasToken); }
 

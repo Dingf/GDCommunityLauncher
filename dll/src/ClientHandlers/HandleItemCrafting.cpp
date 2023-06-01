@@ -6,9 +6,6 @@
 #include "ItemDatabase.h"
 #include "ServerSync.h"
 
-typedef std::unordered_map<void*, bool> CanUseItemFilterCache;
-std::unordered_map<std::string, CanUseItemFilterCache> _filterCaches;
-
 std::unordered_map<std::string, uint32_t> _imprintTypeMap =
 {
     { "grimleague/items/enchants/r201_imprint_helm.dbr",      ITEM_TYPE_FLAG_HEAD },
@@ -538,10 +535,6 @@ bool HandleUseItemEnchantment(void* _this, void* item, bool unk1, bool& unk2)
             {
                 if (ModifyItem(item, itemInfo))
                 {
-                    CanUseItemFilterCache& cache = _filterCaches[enchantName];
-                    if (cache.count(item) > 0)
-                        cache.erase(item);
-
                     ModifyEnchant(_this, enchantInfo);
                     GameAPI::SaveGame();
                 }
@@ -571,49 +564,38 @@ bool HandleCanEnchantBeUsedOn(void* _this, void* item, bool unk1, bool& unk2)
         std::string enchantName = _lastEnchantInfo._itemName;
         if (canUseItemFilters.count(enchantName) > 0)
         {
-            CanUseItemFilterCache& cache = _filterCaches[enchantName];
-            if (cache.count(item) > 0)
+            // Prevent crafting on items that are already equipped
+            // Use the cached equipment data if this is the same enchant as before
+            if ((!_lastEquipment) || (_this != _lastEnchantUsedOn))
             {
-                return cache.at(item);
+                void* mainPlayer = GameAPI::GetMainPlayer();
+                _lastEquipment = GameAPI::GetPlayerEquipment(mainPlayer);
+                _lastEnchantUsedOn = _this;
             }
-            else
-            {
-                // Prevent crafting on items that are already equipped
-                // Use the cached equipment data if this is the same enchant as before
-                void* equipment = _lastEquipment;
-                if ((!equipment) || (_this != _lastEnchantUsedOn))
-                {
-                    void* mainPlayer = GameAPI::GetMainPlayer();
-                    equipment = GameAPI::GetPlayerEquipment(mainPlayer);
-                    _lastEnchantUsedOn = _this;
-                }
 
-                uint32_t itemID = EngineAPI::GetObjectID(item);
-                if (GameAPI::IsItemEquipped(equipment, itemID))
-                    return false;
-
-                CanUseItemFilter filter = canUseItemFilters.at(enchantName);
-
-                ItemDatabase& itemDB = ItemDatabase::GetInstance();
-                GameAPI::ItemReplicaInfo itemInfo;
-                GameAPI::GetItemReplicaInfo(item, itemInfo);
-
-                std::string itemName = itemInfo._itemName;
-                if (itemDB.HasEntry(itemName))
-                {
-                    uint32_t itemLevel = GameAPI::GetItemLevel(item);
-                    ItemType itemType = itemDB.GetEntry(itemInfo._itemName)._type;
-                    GameAPI::ItemClassification itemRarity = GameAPI::GetItemClassification(item);
-
-                    if (itemType != ITEM_TYPE_OTHER)
-                    {
-                        cache[item] = filter(item, _this, itemLevel, itemType, itemRarity);
-                        return cache[item];
-                    }
-                }
-                cache[item] = false;
+            uint32_t itemID = EngineAPI::GetObjectID(item);
+            if (GameAPI::IsItemEquipped(_lastEquipment, itemID))
                 return false;
+
+            CanUseItemFilter filter = canUseItemFilters.at(enchantName);
+
+            ItemDatabase& itemDB = ItemDatabase::GetInstance();
+            GameAPI::ItemReplicaInfo itemInfo;
+            GameAPI::GetItemReplicaInfo(item, itemInfo);
+
+            std::string itemName = itemInfo._itemName;
+            if (itemDB.HasEntry(itemName))
+            {
+                uint32_t itemLevel = GameAPI::GetItemLevel(item);
+                ItemType itemType = itemDB.GetEntry(itemInfo._itemName)._type;
+                GameAPI::ItemClassification itemRarity = GameAPI::GetItemClassification(item);
+
+                if (itemType != ITEM_TYPE_OTHER)
+                {
+                    return filter(item, _this, itemLevel, itemType, itemRarity);
+                }
             }
+            return false;
         }
 
         return result;

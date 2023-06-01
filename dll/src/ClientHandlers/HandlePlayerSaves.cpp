@@ -15,7 +15,9 @@ void HandleSaveNewFormatData(void* _this, void* writer)
         if ((client.IsParticipatingInSeason()) && (!EngineAPI::IsMultiplayer()))
         {
             std::wstring playerName = client.GetActiveCharacterName();
-            ServerSync::SnapshotCharacterMetadata(playerName);
+            if (client.IsInProductionBranch())
+                ServerSync::SnapshotCharacterMetadata(playerName);
+
             callback(_this, writer);
             ServerSync::UploadCharacterData(true);
         }

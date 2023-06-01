@@ -204,7 +204,14 @@ void Client::ReadDataFromPipe()
         if (_data._seasons.size() > 0)
         {
             _data._seasonName = _data._seasons[0]._modName;
-            GameAPI::SetRootPrefix(_data._seasonName);
+            std::string rootPrefix = _data._seasonName;
+            if ((!branch.empty()) && (branch != "prod"))
+            {
+                rootPrefix += "_";
+                rootPrefix += branch;
+            }
+
+            GameAPI::SetRootPrefix(rootPrefix);
         }
 
         UpdateLeagueInfoText();

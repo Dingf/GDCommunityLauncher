@@ -858,9 +858,10 @@ void ServerSync::SyncStashData(const std::filesystem::path& filePath, bool hardc
 
 void ServerSync::OnDirectRead(void* data)
 {
+    Client& client = Client::GetInstance();
     ServerSync& sync = ServerSync::GetInstance();
     std::filesystem::path filePath = *(std::string*)data;
-    if (filePath.filename() == "player.gdc")
+    if ((filePath.filename() == "player.gdc") && (client.IsInProductionBranch()))
     {
         SyncCharacterData(filePath);
     }

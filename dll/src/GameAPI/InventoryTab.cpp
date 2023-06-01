@@ -148,9 +148,24 @@ const std::vector<void*>& GetTransferTabs()
     return callback(*gameEngine);
 }
 
+uint32_t GetEquippedItemID(void* equipment, EquipLocation slot)
+{
+    typedef uint32_t (__thiscall* GetEquippedItemIDProto)(void*, EquipLocation);
+
+    HMODULE gameDLL = GetModuleHandle(TEXT("Game.dll"));
+    if (!gameDLL)
+        return 0;
+
+    GetEquippedItemIDProto callback = (GetEquippedItemIDProto)GetProcAddress(gameDLL, GameAPI::GAPI_NAME_GET_EQUIPPED_ITEM);
+    if ((!callback) || (!equipment))
+        return 0;
+
+    return callback(equipment, slot);
+}
+
 bool IsItemEquipped(void* equipment, uint32_t itemID)
 {
-    typedef bool(__thiscall* IsItemEquippedProto)(void*, uint32_t);
+    typedef bool (__thiscall* IsItemEquippedProto)(void*, uint32_t);
 
     HMODULE gameDLL = GetModuleHandle(TEXT("Game.dll"));
     if (!gameDLL)

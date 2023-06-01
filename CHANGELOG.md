@@ -115,3 +115,11 @@
 
 - Essence of Attak Seru can now be used on relics.
 - Reduced the lag that would occur when using essences after the first time.
+
+## 1.2.4 (2023-06-01)
+
+- Fixed a bug where Lokarr's set did not withdraw from the cloud stash properly.
+- Fixed a bug that would sometimes allow essences to be used on invalid items or prevent essences from being used on valid items.
+- Improved launcher stability on Linux/Steam Deck (spumble)
+- The launcher now uses a separate save folder when playing on the internal testing branch.
+- The launcher now displays the branch selection prompt for testers when holding down Ctrl during startup.

@@ -24,6 +24,7 @@ std::string HandleGetRootSavePath()
         {
             result += separator + seasonName;
         }
+
         return result;
     }
     return {};

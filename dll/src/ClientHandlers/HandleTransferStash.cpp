@@ -25,7 +25,8 @@ void HandleSaveTransferStash(void* _this)
         {
             std::string modName = EngineAPI::GetModName();
             void* mainPlayer = GameAPI::GetMainPlayer();
-            ServerSync::SnapshotStashMetadata(modName, GameAPI::IsPlayerHardcore(mainPlayer));
+            if (client.IsInProductionBranch())
+                ServerSync::SnapshotStashMetadata(modName, GameAPI::IsPlayerHardcore(mainPlayer));
 
             callback(_this);
 
@@ -103,7 +104,8 @@ void HandleLoadTransferStash(void* _this)
                 if (stashPath.empty())
                     throw std::runtime_error("Could not determine shared stash path for mod \"" + std::string(modName) + "\"");
 
-                ServerSync::SyncStashData(stashPath, hardcore);
+                if (client.IsInProductionBranch())
+                    ServerSync::SyncStashData(stashPath, hardcore);
 
                 URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(participantID) / "transfer-queue";
                 endpoint.AddParam("branch", client.GetBranch());
