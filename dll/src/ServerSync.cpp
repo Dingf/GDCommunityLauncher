@@ -262,7 +262,6 @@ void ServerSync::SnapshotCharacterMetadata(const std::wstring& playerName)
 {
     ServerSync& sync = ServerSync::GetInstance();
     FileMetadata metadata(GameAPI::GetPlayerSaveFile(playerName));
-
     if (sync._characterMetadata.IsEmpty())
         sync._characterMetadata = metadata;
 
@@ -287,6 +286,7 @@ void ServerSync::PostCharacterUpload(bool newPlayer)
 {
     Client& client = Client::GetInstance();
     ServerSync& sync = ServerSync::GetInstance();
+
     if ((client.IsParticipatingInSeason()) || (newPlayer))
     {
         std::filesystem::path characterPath = GameAPI::GetPlayerFolder(sync._characterName);
@@ -380,44 +380,50 @@ void ServerSync::PostCharacterUpload(bool newPlayer)
         requestBody += GetMultipartFileData("file", characterSavePath);
         requestBody += "--" + GetMultipartBoundary() + "--\r\n";
 
-        pplx::task<void> task = pplx::create_task([requestBody, newPlayer]()
+        try
         {
-            try
-            {
-                Client& client = Client::GetInstance();
-                URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "character";
-                endpoint.AddParam("newCharacter", newPlayer);
+            Client& client = Client::GetInstance();
+            URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "character";
+            endpoint.AddParam("newCharacter", newPlayer);
 
+            web::http::http_request request(web::http::methods::POST);
+
+            request.set_body(requestBody, "multipart/form-data; boundary=" + GetMultipartBoundary());
+
+            std::string bearerToken = "Bearer " + client.GetAuthToken();
+            request.headers().add(U("Authorization"), bearerToken.c_str());
+
+            ServerSync::GetInstance()._backgroundTasks.run([endpoint, request]()
+            {
                 web::http::client::http_client httpClient((utility::string_t)endpoint);
-                web::http::http_request request(web::http::methods::POST);
+                return httpClient.request(request).then([](web::http::http_response response) {
+                    if (response.status_code() == web::http::status_codes::OK)
+                    {
+                        Client::GetInstance().UpdateSeasonStanding();
+                    }
+                    else
+                    {
+                        Logger::LogMessage(LOG_LEVEL_WARN, "While uploading character data: Server responded with status code " + std::to_string(response.status_code()));
+                    }
+                });
+            });
 
-                request.set_body(requestBody, "multipart/form-data; boundary=" + GetMultipartBoundary());
-
-                std::string bearerToken = "Bearer " + client.GetAuthToken();
-                request.headers().add(U("Authorization"), bearerToken.c_str());
-
-                web::http::http_response response = httpClient.request(request).get();
-                if (response.status_code() == web::http::status_codes::OK)
-                {
-                    client.UpdateSeasonStanding();
-                }
-                else
-                {
-                    throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-                }
-            }
-            catch (const std::exception& ex)
-            {
-                Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload character data: %", ex.what());
-            }
-        });
+        }
+        catch (const std::exception& ex)
+        {
+            Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload character data: %", ex.what());
+        }
 
         if (sync._characterTrusted)
         {
             sync._lastTrustedCharacterMetadata = newMetadata;
         }
     }
+
     sync._characterMetadata.Clear();
+  
+
+    return;
 }
 
 void ServerSync::PostStashUpload()
@@ -521,7 +527,7 @@ void ServerSync::PostCloudStashUpload()
 
                 try
                 {
-                     URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "stash";
+                    URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "stash";
                     endpoint.AddParam("branch", client.GetBranch());
                     endpoint.AddParam("clientTrusted", IsClientTrusted());
 
@@ -652,32 +658,34 @@ void ServerSync::RefreshCharacterMetadata(const std::wstring& playerName, uint32
     requestBody += GetMultipartJSONData("character", requestJSON);
     requestBody += "--" + GetMultipartBoundary() + "--\r\n";
 
-    pplx::task<void> task = pplx::create_task([requestBody, participantID]()
+    try
     {
-        try
+        Client& client = Client::GetInstance();
+        URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(participantID) / "character";
+
+        web::http::http_request request(web::http::methods::POST);
+
+        request.set_body(requestBody, "multipart/form-data; boundary=" + GetMultipartBoundary());
+
+        std::string bearerToken = "Bearer " + client.GetAuthToken();
+        request.headers().add(U("Authorization"), bearerToken.c_str());
+
+
+        ServerSync::GetInstance()._backgroundTasks.run([endpoint, request]()
         {
-            Client& client = Client::GetInstance();
-            URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(participantID) / "character";
-
-            web::http::client::http_client httpClient((utility::string_t)endpoint);
-            web::http::http_request request(web::http::methods::POST);
-
-            request.set_body(requestBody, "multipart/form-data; boundary=" + GetMultipartBoundary());
-
-            std::string bearerToken = "Bearer " + client.GetAuthToken();
-            request.headers().add(U("Authorization"), bearerToken.c_str());
-
-            web::http::http_response response = httpClient.request(request).get();
-            if (response.status_code() != web::http::status_codes::OK)
-            {
-                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-            }
-        }
-        catch (const std::exception& ex)
-        {
-            Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload character metadata: %", ex.what());
-        }
-    });
+                web::http::client::http_client httpClient((utility::string_t)endpoint);
+                return httpClient.request(request).then([](web::http::http_response response) {
+                    if (response.status_code() != web::http::status_codes::OK)
+                    {
+                        Logger::LogMessage(LOG_LEVEL_WARN, "While uploading character metadata: Server responded with status code " + std::to_string(response.status_code()));
+                    }
+                });
+        });
+    }
+    catch (const std::exception& ex)
+    {
+        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload character metadata: %", ex.what());
+    }
 }
 
 void ServerSync::SyncCharacterData(const std::filesystem::path& filePath)
@@ -787,37 +795,38 @@ void ServerSync::RefreshStashMetadata(const std::string& modName, bool hardcore,
     requestBody += GetMultipartJSONData("sharedstash", requestJSON);
     requestBody += "--" + GetMultipartBoundary() + "--\r\n";
 
-    pplx::task<void> task = pplx::create_task([requestBody, participantID, saveMetadata]()
+    try
     {
-        try
-        {
-            Client& client = Client::GetInstance();
-            ServerSync& sync = ServerSync::GetInstance();
-            URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(participantID) / "shared-stash";
+        Client& client = Client::GetInstance();
+        URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(participantID) / "shared-stash";
 
+        
+        web::http::http_request request(web::http::methods::POST);
+
+        request.set_body(requestBody, "multipart/form-data; boundary=" + GetMultipartBoundary());
+
+        std::string bearerToken = "Bearer " + client.GetAuthToken();
+        request.headers().add(U("Authorization"), bearerToken.c_str());
+
+        ServerSync::GetInstance()._backgroundTasks.run([endpoint, request, saveMetadata]() {
             web::http::client::http_client httpClient((utility::string_t)endpoint);
-            web::http::http_request request(web::http::methods::POST);
-
-            request.set_body(requestBody, "multipart/form-data; boundary=" + GetMultipartBoundary());
-
-            std::string bearerToken = "Bearer " + client.GetAuthToken();
-            request.headers().add(U("Authorization"), bearerToken.c_str());
-
-            web::http::http_response response = httpClient.request(request).get();
-            if (response.status_code() == web::http::status_codes::OK)
+            return httpClient.request(request).then([saveMetadata](web::http::http_response response)
             {
-                sync._lastTrustedStashMetadata = saveMetadata;
-            }
-            else
-            {
-                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-            }
-        }
-        catch (const std::exception& ex)
-        {
-            Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload shared stash metadata: %", ex.what());
-        }
-    });
+                if (response.status_code() == web::http::status_codes::OK)
+                {
+                    ServerSync::GetInstance()._lastTrustedStashMetadata = saveMetadata;
+                }
+                else
+                {
+                    Logger::LogMessage(LOG_LEVEL_WARN, "While uploading stash metadata: Server responded with status code " + std::to_string(response.status_code()));
+                }
+            });
+        });
+    }
+    catch (const std::exception& ex)
+    {
+        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload shared stash metadata: %", ex.what());
+    }
 }
 
 void ServerSync::SyncStashData(const std::filesystem::path& filePath, bool hardcore)
@@ -878,4 +887,9 @@ void ServerSync::OnWorldUnload(void* data)
 {
     Client& client = Client::GetInstance();
     PostCharacterUpload();
+}
+
+void ServerSync::WaitBackgroundComplete()
+{
+    ServerSync::GetInstance()._backgroundTasks.wait();
 }

@@ -6,6 +6,7 @@
 /build64
 /out
 /work
+/vcpkg_installed
 
 # Node.js intermediate files
 package-lock.json

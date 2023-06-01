@@ -9,6 +9,7 @@ void HandleGameShutdown(void* _this)
     if (callback)
     {
         ServerSync::UploadCharacterData(false);
+        ServerSync::WaitBackgroundComplete();
         callback(_this);
     }
 }

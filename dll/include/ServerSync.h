@@ -5,6 +5,7 @@
 #include <map>
 #include <filesystem>
 #include "FileData.h"
+#include <ppl.h>
 
 class ServerSync
 {
@@ -27,6 +28,16 @@ class ServerSync
 
         static void RefreshCharacterMetadata(const std::wstring& playerName, uint32_t participantID, web::json::value& characterJSON);
         static void RefreshStashMetadata(const std::string& modName, bool hardcore, uint32_t participantID);
+
+        static void WaitBackgroundComplete();
+
+        // need to include function definition here because of template
+        template<typename TaskFunc>
+        static void ScheduleTask(TaskFunc task)
+        {
+            ServerSync::GetInstance()._backgroundTasks.run(task);
+        }
+
 
     private:
         struct CharacterIDRef
@@ -62,6 +73,8 @@ class ServerSync
         static void PostCharacterUpload(bool newPlayer = false);
         static void PostStashUpload();
         static void PostCloudStashUpload();
+
+        concurrency::task_group _backgroundTasks;
 
         bool _characterTrusted;
         bool _stashTrusted;
