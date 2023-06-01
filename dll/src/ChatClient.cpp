@@ -168,15 +168,16 @@ void ChatClient::OnReceiveMessage(const signalr::value& m)
         std::wstring message = RawToWide(values[1].as_string());
         uint8_t type = (uint8_t)values[2].as_double();
 
-        void* item = nullptr;
         if ((values.size() >= 4) && (values[3].as_string().size() > 0))
         {
             web::json::value itemJSON = web::json::value::parse(values[3].as_string());
             GameAPI::ItemReplicaInfo itemInfo = ItemToInfo(Item(itemJSON));
-            item = GameAPI::CreateItem(itemInfo);
+            void* item = GameAPI::CreateItem(itemInfo);
+            GameAPI::AddChatMessage(name, message, type, item);
+            return;
         }
 
-        GameAPI::AddChatMessage(name, message, type, item);
+        GameAPI::AddChatMessage(name, message, type);
     }
 }
 
