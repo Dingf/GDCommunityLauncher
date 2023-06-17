@@ -391,14 +391,17 @@ void Client::UpdateSeasonStanding()
         URI endpoint = GetServerGameURL() / "Season" / "participant" / std::to_string(GetParticipantID()) / "standing";
         web::http::http_request request(web::http::methods::GET);
 
-        ServerSync::ScheduleTask([endpoint, request]() {
+        ServerSync::ScheduleTask([endpoint, request]()
+        {
             web::http::client::http_client httpClient((utility::string_t)endpoint);
-            httpClient.request(request).then([](web::http::http_response response) {
+            httpClient.request(request).then([](web::http::http_response response)
+            {
                 switch (response.status_code())
                 {
                     case web::http::status_codes::OK:
                     {
-                        response.extract_json().then([](web::json::value responseBody) {
+                        response.extract_json().then([](web::json::value responseBody)
+                        {
                             try
                             {
                                 web::json::value pointTotal = responseBody[U("pointTotal")];

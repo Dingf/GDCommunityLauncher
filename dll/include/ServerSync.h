@@ -4,8 +4,9 @@
 #include <string>
 #include <map>
 #include <filesystem>
-#include "FileData.h"
 #include <ppl.h>
+#include "FileData.h"
+#include "Item.h"
 
 class ServerSync
 {
@@ -25,6 +26,7 @@ class ServerSync
 
         static bool DownloadCharacterData(const std::wstring& playerName, uint32_t participantID);
         static bool DownloadStashData(const std::string& modName, bool hardcore, uint32_t participantID);
+        static bool DownloadTransferItems(const std::string& modName, bool hardcore, uint32_t participantID, std::vector<uint8_t>* bytes = nullptr);
 
         static void RefreshCharacterMetadata(const std::wstring& playerName, uint32_t participantID, web::json::value& characterJSON);
         static void RefreshStashMetadata(const std::string& modName, bool hardcore, uint32_t participantID);
@@ -69,12 +71,12 @@ class ServerSync
         static void OnDirectRead(void* data);
         static void OnWorldPreLoad(void* data);
         static void OnWorldUnload(void* data);
+        static void OnSetMainPlayer(void* data);
 
         static void PostCharacterUpload(bool newPlayer = false);
         static void PostStashUpload();
         static void PostCloudStashUpload();
-
-        concurrency::task_group _backgroundTasks;
+        static void PostPullTransferItems(const std::vector<Item*>& items);
 
         bool _characterTrusted;
         bool _stashTrusted;
@@ -83,8 +85,9 @@ class ServerSync
         FileMetadata _lastTrustedCharacterMetadata;
         FileMetadata _stashMetadata;
         FileMetadata _lastTrustedStashMetadata;
-
+        std::map<std::wstring, bool> _characterDownloadStatus;
         std::map<CharacterIDRef, uint32_t> _characterIDCache;
+        concurrency::task_group _backgroundTasks;
 };
 
 

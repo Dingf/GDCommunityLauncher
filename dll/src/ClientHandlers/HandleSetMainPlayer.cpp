@@ -1,5 +1,6 @@
 #include "ChatClient.h"
 #include "ClientHandlers.h"
+#include "EventManager.h"
 #include "Quest.h"
 
 bool HasParticipationTokenFromAPI(void* mainPlayer, const SeasonInfo* seasonInfo)
@@ -62,6 +63,8 @@ void HandleSetMainPlayer(void* _this, uint32_t unk1)
         Client& client = Client::GetInstance();
         void* mainPlayer = GameAPI::GetMainPlayer();
         const SeasonInfo* seasonInfo = client.GetActiveSeason();
+
+        EventManager::Publish(GDCL_EVENT_SET_MAIN_PLAYER, mainPlayer);
 
         if ((mainPlayer) && (seasonInfo))
         {

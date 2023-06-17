@@ -1,5 +1,6 @@
 #include <unordered_map>
 #include <unordered_set>
+#include <set>
 #include <algorithm>
 #include <sstream>
 #include <iomanip>
@@ -56,15 +57,8 @@ const std::unordered_map<std::wstring, EngineAPI::Color> chatColorMap =
     { L"gorstak", EngineAPI::Color(0.871f, 0.680f, 1.000f, 1.000f) }
 };
 
-bool HandleChatHelpCommand(ChatClient* chatClient, std::wstring& name, std::wstring& message, uint32_t& channel, uint8_t& type, void* item)
-{
-    GameAPI::SendChatMessage(L"/g, /global[CHANNEL] [ON/OFF] [COLOR]", L"Sends a message to the current global chat channel. If no arguments are specified, displays the current global chat channel.\n    [CHANNEL] - Switches the current global chat channel.\n    [ON/OFF] - Enables or disables global chat.\n    [COLOR] - Sets the color of global chat to a color alias or a 6-digit hex code.\n ", 0);
-    GameAPI::SendChatMessage(L"/t, /trade[CHANNEL] [ON/OFF] [COLOR]", L"Sends a message to the current trade chat channel. If no arguments are specified, displays the current trade chat channel.\n    [CHANNEL] - Switches the current trade chat channel.\n    [ON/OFF] - Enables or disables trade chat.\n    [COLOR] - Sets the color of trade chat to a color alias or a 6-digit hex code.\n ", 0);
-    GameAPI::SendChatMessage(L"/c, /challenges[CATEGORY]", L"Displays the user's current challenge progress in the season. If no arguments are specified, displays an overview of all challenge categories.\n    [CATEGORY] - Displays challenges for the specified category.\n ", 0);
-    GameAPI::SendChatMessage(L"/o, /online", L"Displays the number of current users online.\n ", 0);
-    GameAPI::SendChatMessage(L"/h, /help", L"Displays this help message. ", 0);
-    return false;
-}
+// Prototype since we need to reference the actual command table, which isn't defined until later
+bool HandleChatHelpCommand(ChatClient* chatClient, std::wstring& name, std::wstring& message, uint32_t& channel, uint8_t& type, void* item);
 
 bool HandleChatGlobalCommand(ChatClient* chatClient, std::wstring& name, std::wstring& message, uint32_t& channel, uint8_t& type, void* item)
 {
@@ -310,82 +304,74 @@ bool HandleChatTradeCommand(ChatClient* chatClient, std::wstring& name, std::wst
 
 bool HandleChatOnlineCommand(ChatClient* chatClient, std::wstring& name, std::wstring& message, uint32_t& channel, uint8_t& type, void* item)
 {
-    try
+    Client& client = Client::GetInstance();
+    URI endpoint = client.GetServerChatURL() / "chat" / "connected-clients";
+
+    web::http::http_request request(web::http::methods::GET);
+
+    std::string bearerToken = "Bearer " + client.GetAuthToken();
+    request.headers().add(U("Authorization"), bearerToken.c_str());
+
+    // don't need to use ServerSync task group here since it's not critical that chat messages get synced on shutdown
+    pplx::create_task([endpoint, request]() // pplx okay here, no blocking calls inside
     {
-        Client& client = Client::GetInstance();
-        URI endpoint = client.GetServerChatURL() / "chat" / "connected-clients";
-
-        web::http::http_request request(web::http::methods::GET);
-
-        std::string bearerToken = "Bearer " + client.GetAuthToken();
-        request.headers().add(U("Authorization"), bearerToken.c_str());
-
-        // don't need to use ServerSync task group here since it's not critical that chat messages get synced on shutdown
-        pplx::create_task([endpoint, request]() // pplx okay here, no blocking calls inside
+        web::http::client::http_client httpClient((utility::string_t)endpoint);
+        httpClient.request(request).then([](web::http::http_response response)
         {
-            web::http::client::http_client httpClient((utility::string_t)endpoint);
-            return httpClient.request(request).then([](web::http::http_response response) {
-                if (response.status_code() == web::http::status_codes::OK)
-                    return response.extract_json();
-                else
-                    throw std::runtime_error("Server responded with status code %" + std::to_string(response.status_code()));
-            }).then([](concurrency::task<web::json::value> extractedJson) {
-                try
-                {
-                    // can use get here since taking the task as continuation parameter ensures it is finished
-                    web::json::value responseBody = extractedJson.get(); 
-                    web::json::array usersArray = responseBody.as_array();
+            if (response.status_code() == web::http::status_codes::OK)
+                return response.extract_json();
+            else
+                throw std::runtime_error("Server responded with status code %" + std::to_string(response.status_code()));
+        })
+        .then([](concurrency::task<web::json::value> task)
+        {
+            try
+            {
+                // can use get here since taking the task as continuation parameter ensures it is finished
+                web::json::value responseBody = task.get(); 
+                web::json::array usersArray = responseBody.as_array();
 
-                    std::wstring message = L"There are " + std::to_wstring(usersArray.size()) + L" users currently online.";
-                    GameAPI::SendChatMessage(L"Server", message, EngineAPI::UI::CHAT_TYPE_NORMAL);
-                }
-                catch (std::exception& ex)
-                {
-                    Logger::LogMessage(LOG_LEVEL_WARN, "While processing chat online command: %", ex.what());
-                }
-            });
+                std::wstring message = L"There are " + std::to_wstring(usersArray.size()) + L" users currently online.";
+                GameAPI::SendChatMessage(L"Server", message, EngineAPI::UI::CHAT_TYPE_NORMAL);
+            }
+            catch (std::exception& ex)
+            {
+                Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve online users: %", ex.what());
+            }
         });
-    }
-    catch (const std::exception& ex)
-    {
-        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve online users: %", ex.what());
-    }
+    });
 
     return false;
 }
 
 pplx::task<web::json::value> GetSeasonChallenges()
 {
-    try
+    Client& client = Client::GetInstance();
+    if (client.IsParticipatingInSeason())
     {
-        Client& client = Client::GetInstance();
-        if (client.IsParticipatingInSeason())
+        URI endpoint = client.GetServerGameURL() / "Admin" / "season" / std::to_string(client.GetActiveSeason()->_seasonID) / "challenges";
+
+        web::http::client::http_client httpClient((utility::string_t)endpoint);
+        web::http::http_request request(web::http::methods::GET);
+
+        std::string bearerToken = "Bearer " + client.GetAuthToken();
+        request.headers().add(U("Authorization"), bearerToken.c_str());
+
+        return httpClient.request(request).then([](web::http::http_response response)
         {
-            URI endpoint = client.GetServerGameURL() / "Admin" / "season" / std::to_string(client.GetActiveSeason()->_seasonID) / "challenges";
-
-            web::http::client::http_client httpClient((utility::string_t)endpoint);
-            web::http::http_request request(web::http::methods::GET);
-
-            std::string bearerToken = "Bearer " + client.GetAuthToken();
-            request.headers().add(U("Authorization"), bearerToken.c_str());
-
-            return httpClient.request(request).then([](web::http::http_response response) {
-                if (response.status_code() == web::http::status_codes::OK)
-                {
-                    return response.extract_json();
-                }
-                else
-                {
-                    throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-                }
-            }).then([](pplx::task<web::json::value> extractedJson) {
-                return extractedJson.get();
-            });
-        }
-    }
-    catch (const std::exception& ex)
-    {
-        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve challenge list: %", ex.what());
+            if (response.status_code() == web::http::status_codes::OK)
+            {
+                return response.extract_json();
+            }
+            else
+            {
+                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+            }
+        })
+        .then([](pplx::task<web::json::value> task)
+        {
+            return task.get();
+        });
     }
 
     return pplx::task_from_result(web::json::value::null());
@@ -393,55 +379,47 @@ pplx::task<web::json::value> GetSeasonChallenges()
 
 pplx::task<std::unordered_set<uint32_t>> GetCompletedChallengeIDs()
 {
-
-    try
+    Client& client = Client::GetInstance();
+    if (client.IsParticipatingInSeason())
     {
-        Client& client = Client::GetInstance();
-        if (client.IsParticipatingInSeason())
+        URI endpoint = client.GetServerGameURL() / "Season" / std::to_string(client.GetActiveSeason()->_seasonID) / "participant-challenges" / std::to_string(client.GetParticipantID());
+
+        web::http::client::http_client httpClient((utility::string_t)endpoint);
+        web::http::http_request request(web::http::methods::GET);
+
+        std::string bearerToken = "Bearer " + client.GetAuthToken();
+        request.headers().add(U("Authorization"), bearerToken.c_str());
+
+        return httpClient.request(request).then([](web::http::http_response response)
         {
-            URI endpoint = client.GetServerGameURL() / "Season" / std::to_string(client.GetActiveSeason()->_seasonID) / "participant-challenges" / std::to_string(client.GetParticipantID());
-
-            web::http::client::http_client httpClient((utility::string_t)endpoint);
-            web::http::http_request request(web::http::methods::GET);
-
-            std::string bearerToken = "Bearer " + client.GetAuthToken();
-            request.headers().add(U("Authorization"), bearerToken.c_str());
-
-            return httpClient.request(request).then([](web::http::http_response response) {
-                if (response.status_code() == web::http::status_codes::OK)
-                    return response.extract_json();
-                else
-                    throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-            }).then([](pplx::task<web::json::value> extractedJson) {
-                std::unordered_set<uint32_t> challengeIDs;
-                try
+            if (response.status_code() == web::http::status_codes::OK)
+                return response.extract_json();
+            else
+                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+        })
+        .then([](pplx::task<web::json::value> task)
+        {
+            std::unordered_set<uint32_t> challengeIDs;
+            try
+            {
+                web::json::array completedChallenges = task.get().as_array();
+                for (size_t i = 0; i < completedChallenges.size(); ++i)
                 {
-                    web::json::array completedChallenges = extractedJson.get().as_array();
-
-                    for (size_t i = 0; i < completedChallenges.size(); ++i)
-                    {
-                        web::json::value challengeData = completedChallenges[i];
-                        uint32_t challengeID = challengeData[U("seasonChallengeId")].as_integer();
-                        challengeIDs.insert(challengeID);
-                    }
+                    web::json::value challengeData = completedChallenges[i];
+                    uint32_t challengeID = challengeData[U("seasonChallengeId")].as_integer();
+                    challengeIDs.insert(challengeID);
                 }
-                catch (std::exception& ex)
-                {
-                    Logger::LogMessage(LOG_LEVEL_WARN, "While retrieving completed challenges: %s", ex.what());
-                }
+            }
+            catch (std::exception& ex)
+            {
+                Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve completed challenges: %s", ex.what());
+            }
 
-                return challengeIDs;
-            });
-        }
-    }
-    catch (const std::exception& ex)
-    {
-        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve completed challenges: %", ex.what());
-        return pplx::task_from_exception<std::unordered_set<uint32_t>>(ex);
+            return challengeIDs;
+        });
     }
 
-    std::unordered_set<uint32_t> challengeIDs;
-    return pplx::task_from_result(challengeIDs);
+    return pplx::task_from_result(std::unordered_set<uint32_t>());
 }
 
 bool HandleChatChallengesCommand(ChatClient* chatClient, std::wstring& name, std::wstring& message, uint32_t& channel, uint8_t& type, void* item)
@@ -451,24 +429,33 @@ bool HandleChatChallengesCommand(ChatClient* chatClient, std::wstring& name, std
     // the dependencies are already tasks so it can be turned into a task if REALLY needed, but it would
     // (for this particular function) make the code much more complicated and harder to follow.
 
-    std::thread challengesInfo([channel]() {
+    std::thread challengesInfo([channel]()
+    {
         Client& client = Client::GetInstance();
         EngineAPI::UI::ChatWindow& chatWindow = EngineAPI::UI::ChatWindow::GetInstance();
 
-        web::json::value challenges = GetSeasonChallenges().get();
-        std::unordered_set<uint32_t>& challengeIDs = GetCompletedChallengeIDs().get();
+        web::json::value challenges = web::json::value::null();
+        std::unordered_set<uint32_t> challengeIDs;
+
+        try
+        {
+            challenges = GetSeasonChallenges().get();
+            challengeIDs = GetCompletedChallengeIDs().get();
+        }
+        catch (std::exception& ex)
+        {
+            Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve season challenge data: %s", ex.what());
+        }
 
         if (!challenges.is_null())
         {
             web::json::array challengeList = challenges.as_array();
             if (channel == 0)
             {
-                {
-                    std::wstring message = L"Challenge overview for ";
-                    message += std::wstring(client.GetUsername().begin(), client.GetUsername().end());
-                    message += L": ";
-                    GameAPI::SendChatMessage(L"Server", message, EngineAPI::UI::CHAT_TYPE_NORMAL);
-                }
+                std::wstring overview = L"Challenge overview for ";
+                overview += std::wstring(client.GetUsername().begin(), client.GetUsername().end());
+                overview += L": ";
+                GameAPI::SendChatMessage(L"Server", overview, EngineAPI::UI::CHAT_TYPE_NORMAL);
 
                 std::unordered_map<uint32_t, uint32_t> challengeCount;
                 std::unordered_map<uint32_t, uint32_t> completedCount;
@@ -526,7 +513,7 @@ bool HandleChatChallengesCommand(ChatClient* chatClient, std::wstring& name, std
                     std::wstring message = std::to_wstring(channel);
                     message += L" is not a valid challenge category.";
                     GameAPI::SendChatMessage(L"Server", message, EngineAPI::UI::CHAT_TYPE_NORMAL);
-                    return false;
+                    return;
                 }
 
                 for (size_t i = 0; i < challengeList.size(); ++i)
@@ -590,7 +577,276 @@ bool HandleChatChallengesCommand(ChatClient* chatClient, std::wstring& name, std
     return false;
 }
 
+bool HandleChatMuteCommand(ChatClient* chatClient, std::wstring& name, std::wstring& message, uint32_t& channel, uint8_t& type, void* item)
+{
+    Client& client = Client::GetInstance();
+    EngineAPI::UI::ChatWindow& chatWindow = EngineAPI::UI::ChatWindow::GetInstance();
+
+    if (message.size() > 0)
+    {
+        std::wstring username = message.substr(0, message.find(L" "));
+        std::string clientUsername = client.GetUsername();
+
+        if (username.size() == clientUsername.size())
+        {
+            bool matches = true;
+            for (size_t i = 0; i < clientUsername.size(); ++i)
+            {
+                if (std::towlower(username[i]) != std::tolower(clientUsername[i]))
+                {
+                    matches = false;
+                    break;
+                }
+            }
+
+            if (matches)
+            {
+                GameAPI::SendChatMessage(L"Server", L"You cannot mute yourself.", EngineAPI::UI::CHAT_TYPE_NORMAL);
+                return false;
+            }
+        }
+
+        pplx::create_task([username]()
+        {
+            Client& client = Client::GetInstance();
+            URI endpoint = client.GetServerChatURL() / "chat" / "mute" / username;
+
+            web::http::client::http_client httpClient((utility::string_t)endpoint);
+            web::http::http_request request(web::http::methods::POST);
+
+            std::string bearerToken = "Bearer " + client.GetAuthToken();
+            request.headers().add(U("Authorization"), bearerToken.c_str());
+
+            web::http::http_response response = httpClient.request(request).get();
+            web::http::status_code status = response.status_code();
+            switch (status)
+            {
+                case web::http::status_codes::OK:
+                case web::http::status_codes::BadRequest:
+                case web::http::status_codes::InternalError:
+                    return status;
+                default:
+                    throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+            }
+        })
+        .then([chatClient, username](pplx::task<web::http::status_code> task)
+        {
+            try
+            {
+                switch (task.get())
+                {
+                    case web::http::status_codes::OK:
+                    {
+                        chatClient->MutePlayer(username);
+                        std::wstring message = username + L" is now muted.";
+                        GameAPI::SendChatMessage(L"Server", message, EngineAPI::UI::CHAT_TYPE_NORMAL);
+                        break;
+                    }
+                    case web::http::status_codes::BadRequest:
+                    {
+                        std::wstring message = username + L" is already muted.";
+                        GameAPI::SendChatMessage(L"Server", message, EngineAPI::UI::CHAT_TYPE_NORMAL);
+                        break;
+                    }
+                    case web::http::status_codes::InternalError:
+                    {
+                        std::wstring message = username + L" was not found on the server.";
+                        GameAPI::SendChatMessage(L"Server", message, EngineAPI::UI::CHAT_TYPE_NORMAL);
+                        break;
+                    }
+                }
+            }
+            catch (std::exception& ex)
+            {
+                Logger::LogMessage(LOG_LEVEL_WARN, "Failed to process chat mute command: %", ex.what());
+            }
+        });
+    }
+    else
+    {
+        const std::unordered_set<std::wstring>& mutedList = chatClient->GetMutedList();
+        if (mutedList.size() == 0)
+        {
+            GameAPI::SendChatMessage(L"Server", L"You have not muted any players.", EngineAPI::UI::CHAT_TYPE_NORMAL);
+        }
+        else
+        {
+            GameAPI::SendChatMessage(L"Server", L"You have muted the following players:", EngineAPI::UI::CHAT_TYPE_NORMAL);
+            for (const std::wstring& playerName : mutedList)
+            {
+                std::wstring message = L"  " + playerName;
+                GameAPI::SendChatMessage(L"Server", message, EngineAPI::UI::CHAT_TYPE_NORMAL);
+            }
+        }
+    }
+
+    return false;
+}
+
+bool HandleChatUnmuteCommand(ChatClient* chatClient, std::wstring& name, std::wstring& message, uint32_t& channel, uint8_t& type, void* item)
+{
+    EngineAPI::UI::ChatWindow& chatWindow = EngineAPI::UI::ChatWindow::GetInstance();
+
+    if (message.size() > 0)
+    {
+        std::wstring username = message.substr(0, message.find(L" "));
+        pplx::create_task([username]()
+        {
+            Client& client = Client::GetInstance();
+            URI endpoint = client.GetServerChatURL() / "chat" / "unmute" / username;
+
+            web::http::client::http_client httpClient((utility::string_t)endpoint);
+            web::http::http_request request(web::http::methods::POST);
+
+            std::string bearerToken = "Bearer " + client.GetAuthToken();
+            request.headers().add(U("Authorization"), bearerToken.c_str());
+
+            web::http::http_response response = httpClient.request(request).get();
+            web::http::status_code status = response.status_code();
+            switch (status)
+            {
+                case web::http::status_codes::OK:
+                case web::http::status_codes::BadRequest:
+                case web::http::status_codes::InternalError:
+                    return status;
+                default:
+                    throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+            }
+        })
+        .then([chatClient, username](pplx::task<web::http::status_code> task)
+        {
+            try
+            {
+                switch (task.get())
+                {
+                    case web::http::status_codes::OK:
+                    {
+                        chatClient->UnmutePlayer(username);
+                        std::wstring message = username + L" is now unmuted.";
+                        GameAPI::SendChatMessage(L"Server", message, EngineAPI::UI::CHAT_TYPE_NORMAL);
+                        break;
+                    }
+                    case web::http::status_codes::BadRequest:
+                    {
+                        std::wstring message = username + L" is already unmuted.";
+                        GameAPI::SendChatMessage(L"Server", message, EngineAPI::UI::CHAT_TYPE_NORMAL);
+                        break;
+                    }
+                    case web::http::status_codes::InternalError:
+                    {
+                        std::wstring message = username + L" was not found on the server.";
+                        GameAPI::SendChatMessage(L"Server", message, EngineAPI::UI::CHAT_TYPE_NORMAL);
+                        break;
+                    }
+                }
+            }
+            catch (std::exception& ex)
+            {
+                Logger::LogMessage(LOG_LEVEL_WARN, "Failed to process chat unmute command: %", ex.what());
+            }
+        });
+    }
+
+    return false;
+}
+
+bool HandleChatWhisperCommand(ChatClient* chatClient, std::wstring& name, std::wstring& message, uint32_t& channel, uint8_t& type, void* item)
+{
+    EngineAPI::UI::ChatWindow& chatWindow = EngineAPI::UI::ChatWindow::GetInstance();
+
+    std::wstring username = message.substr(0, message.find(L" "));
+    std::wstring text = (username.size() == message.size()) ? L"" : message.substr(message.find(L" ") + 1);
+
+    if (!text.empty())
+    {
+        pplx::create_task([username, text]()
+        {
+            Client& client = Client::GetInstance();
+            URI endpoint = client.GetServerChatURL() / "chat" / "user" / username / "direct";
+
+            web::json::value requestBody;
+            requestBody[U("username")] = JSONString(client.GetUsername());
+            requestBody[U("messageBody")] = JSONString(text);
+            requestBody[U("type")] = EngineAPI::UI::CHAT_TYPE_WHISPER;
+
+            web::http::client::http_client httpClient((utility::string_t)endpoint);
+            web::http::http_request request(web::http::methods::POST);
+            request.set_body(requestBody);
+
+            std::string bearerToken = "Bearer " + client.GetAuthToken();
+            request.headers().add(U("Authorization"), bearerToken.c_str());
+
+            web::http::http_response response = httpClient.request(request).get();
+            web::http::status_code status = response.status_code();
+            switch (status)
+            {
+                case web::http::status_codes::OK:
+                case web::http::status_codes::BadRequest:
+                case web::http::status_codes::InternalError:
+                    return status;
+                default:
+                    throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+            }
+        })
+        .then([chatClient, username, text](pplx::task<web::http::status_code> task)
+        {
+            try
+            {
+                switch (task.get())
+                {
+                    case web::http::status_codes::OK:
+                    {
+                        EngineAPI::UI::ChatWindow& chatWindow = EngineAPI::UI::ChatWindow::GetInstance();
+                        std::wstring user = L"[To " + username + L"]";
+                        GameAPI::SendChatMessage(user, text, EngineAPI::UI::CHAT_TYPE_NORMAL);
+                        chatWindow.SetChatPrefix(L"/w " + username + L" ");
+                        break;
+                    }
+                    case web::http::status_codes::BadRequest:
+                    {
+                        std::wstring message = username + L" is not currently online.";
+                        GameAPI::SendChatMessage(L"Server", message, EngineAPI::UI::CHAT_TYPE_NORMAL);
+                        break;
+                    }
+                    case web::http::status_codes::InternalError:
+                    {
+                        std::wstring message = username + L" was not found on the server.";
+                        GameAPI::SendChatMessage(L"Server", message, EngineAPI::UI::CHAT_TYPE_NORMAL);
+                        break;
+                    }
+                }
+            }
+            catch (std::exception& ex)
+            {
+                Logger::LogMessage(LOG_LEVEL_WARN, "Failed to send whisper message: %", ex.what());
+            }
+        });
+    }
+
+    return false;
+}
+
 typedef bool (*ChatCommandHandler)(ChatClient*, std::wstring&, std::wstring&, uint32_t&, uint8_t&, void*);
+
+struct ChatCommandInfo
+{
+    std::wstring              _blurb;
+    std::wstring              _detail;
+};
+
+// TODO: Move these strings into a tags file and get them via Localize()
+const std::unordered_map<ChatCommandHandler, ChatCommandInfo> chatCommandInfo = 
+{
+    { HandleChatChallengesCommand, { L"Displays the list of season challenges.", L"Usage: /c, /challenges[category]\n\nDisplays the user's current challenge progress in the season. If no arguments are specified, displays an overview of all challenge categories.\n\n    [category] - Displays a list of individual challenges for the specified challenge category.\n\n" } },
+    { HandleChatGlobalCommand,     { L"Sends a message to global chat.", L"Usage: /g, /global[channel] [on|off|color] ...\n\nSends a message to the current global chat channel. If no arguments are specified, displays the current global chat channel.\n\n    [channel] - Sets or switches the current global chat channel. Valid values are 1-15.\n\n    [on/off] - Enables or disables global chat.\n\n    [color] - Sets the color of global chat to a color alias or a 6-digit hex code. Type \"/h color\" for a list of color aliases.\n\n" } },
+    { HandleChatHelpCommand,       { L"Displays available commands and their usage.", L"Usage: /h, /help [command]\n\nDisplays a detailed usage message for a chat command. If no arguments are specified, displays all available chat commands.\n\n    [command] - Specifies the command to display help information on.\n\n" } },
+    { HandleChatMuteCommand,       { L"Blocks all incoming messages from a user.", L"Usage: /m, /mute [user]\n\nBlocks all incoming messages from a user. If no arguments are specified, displays the list of users that you have currently muted.\n\n    [user] - Specifies the username to be blocked.\n\n" } },
+    { HandleChatOnlineCommand,     { L"Displays the number of online users.", L"Usage: /o, /online\n\nDisplays the number of concurrent online users.\n\n" } },
+    { HandleChatTradeCommand,      { L"Sends a message to trade chat.", L"Usage: /t, /trade[channel] [on|off|color] ...\n\nSends a message to the current trade chat channel. If no arguments are specified, displays the current trade chat channel.\n\n    [channel] - Sets or switches the current trade chat channel. Valid values are 1-15.\n\n    [on/off] - Enables or disables trade chat.\n\n    [color] - Sets the color of trade chat to a color alias or a 6-digit hex code. Type \"/h color\" for a list of color aliases.\n\n" } },
+    { HandleChatUnmuteCommand,     { L"Unblocks all incoming messages from a user.", L"Usage: /m, /mute <user>\n\nUnblocks a user that was previously blocked, allowing you to see their messages again.\n\n    <user> - Specifies the username to be unblocked.\n\n" } },
+    { HandleChatWhisperCommand,    { L"Sends a direct message to a user.", L"Usage: /w, /whisper <user> ...\n\nSends a direct message to a user.\n\n    <user> - Specifies the username to send a message to.\n\n" } },
+};
+
 const std::unordered_map<std::wstring, ChatCommandHandler> chatCommandHandlers =
 {
     { L"help",       HandleChatHelpCommand },
@@ -603,7 +859,99 @@ const std::unordered_map<std::wstring, ChatCommandHandler> chatCommandHandlers =
     { L"o",          HandleChatOnlineCommand },
     { L"challenges", HandleChatChallengesCommand },
     { L"c",          HandleChatChallengesCommand },
+    { L"mute",       HandleChatMuteCommand },
+    { L"m",          HandleChatMuteCommand },
+    { L"unmute",     HandleChatUnmuteCommand },
+    { L"u",          HandleChatUnmuteCommand },
+    { L"whisper",    HandleChatWhisperCommand },
+    { L"w",          HandleChatWhisperCommand },
 };
+
+bool HandleChatHelpCommand(ChatClient* chatClient, std::wstring& name, std::wstring& message, uint32_t& channel, uint8_t& type, void* item)
+{
+    if (message.size() == 0)
+    {
+        std::map<ChatCommandHandler, std::set<std::wstring>> chatCommandLookup;
+        for (const auto& pair : chatCommandHandlers)
+            chatCommandLookup[pair.second].insert(pair.first);
+
+        std::set<std::wstring> chatCommandStrings;
+        for (const auto& pair : chatCommandLookup)
+        {
+            size_t count = 0;
+            std::wstring commandString = L"    ";
+            for (const std::wstring& command : pair.second)
+            {
+                commandString += L"/" + command;
+                if (++count < pair.second.size())
+                    commandString += L", ";
+            }
+
+            ChatCommandInfo info = chatCommandInfo.at(pair.first);
+            commandString += L" - " + info._blurb;
+
+            chatCommandStrings.insert(commandString);
+        }
+
+        std::wstring message = L"The following chat commands are available:";
+        GameAPI::SendChatMessage(L"Server", message, EngineAPI::UI::CHAT_TYPE_NORMAL);
+
+        for (const std::wstring& command : chatCommandStrings)
+        {
+            GameAPI::SendChatMessage(L"Server", command, EngineAPI::UI::CHAT_TYPE_NORMAL);
+        }
+
+        message = L"Type /help <command> for more information about a specific chat command.";
+        GameAPI::SendChatMessage(L"Server", message, EngineAPI::UI::CHAT_TYPE_NORMAL);
+    }
+    else
+    {
+        std::wstring command = message;
+        if (command[0] == '/')
+            command = command.substr(1);
+
+        if (chatCommandHandlers.count(command) > 0)
+        {
+            ChatCommandHandler handler = chatCommandHandlers.at(command);
+            ChatCommandInfo info = chatCommandInfo.at(handler);
+            GameAPI::SendChatMessage(L"Server", info._detail, EngineAPI::UI::CHAT_TYPE_NORMAL);
+        }
+        else if ((message == L"color") || (message == L"colour"))
+        {
+            std::map<uint32_t, std::set<std::wstring>> chatColorLookup;
+            for (const auto& pair : chatColorMap)
+                chatColorLookup[pair.second.GetColorCode()].insert(pair.first);
+
+            std::set<std::wstring> chatColorStrings;
+            for (const auto& pair : chatColorLookup)
+            {
+                size_t count = 0;
+                std::wstring commandString = L"    ";
+                for (const std::wstring& command : pair.second)
+                {
+                    commandString += command;
+                    if (++count < pair.second.size())
+                        commandString += L", ";
+                }
+                chatColorStrings.insert(commandString);
+            }
+
+            std::wstring message = L"The list of available color aliases are:";
+            GameAPI::SendChatMessage(L"Server", message, EngineAPI::UI::CHAT_TYPE_NORMAL);
+
+            for (const std::wstring& command : chatColorStrings)
+            {
+                GameAPI::SendChatMessage(L"Server", command, EngineAPI::UI::CHAT_TYPE_NORMAL);
+            }
+        }
+        else
+        {
+            std::wstring message = L"Command \"" + command + L"\" was not found.";
+            GameAPI::SendChatMessage(L"Server", message, EngineAPI::UI::CHAT_TYPE_NORMAL);
+        }
+    }
+    return false;
+}
 
 bool ChatClient::ProcessChatCommand(std::wstring& name, std::wstring& message, uint8_t& type, void* item)
 {

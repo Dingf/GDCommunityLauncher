@@ -46,43 +46,6 @@ void HandleSaveTransferStash(void* _this)
     }
 }
 
-void PostPullTransferItems(const std::vector<Item*>& items)
-{
-    Client& client = Client::GetInstance();
-    if (client.IsParticipatingInSeason())
-    {
-        web::json::value requestBody = web::json::value::array();
-        for (uint32_t i = 0; i < items.size(); ++i)
-        {
-            requestBody[i] = items[i]->_itemID;
-        }
-
-        try
-        {
-            Client& client = Client::GetInstance();
-            URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "pull-items";
-            endpoint.AddParam("branch", client.GetBranch());
-
-            web::http::client::http_client httpClient((utility::string_t)endpoint);
-            web::http::http_request request(web::http::methods::POST);
-            request.set_body(requestBody);
-
-            std::string bearerToken = "Bearer " + client.GetAuthToken();
-            request.headers().add(U("Authorization"), bearerToken.c_str());
-
-            web::http::http_response response = httpClient.request(request).get();
-            if (response.status_code() != web::http::status_codes::OK)
-            {
-                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-            }
-        }
-        catch (const std::exception& ex)
-        {
-            Logger::LogMessage(LOG_LEVEL_WARN, "Failed to pull items from transfer queue: %", ex.what());
-        }
-    }
-}
-
 void HandleLoadTransferStash(void* _this)
 {
     typedef void (__thiscall* LoadPlayerTransferProto)(void*);
@@ -106,50 +69,8 @@ void HandleLoadTransferStash(void* _this)
 
                 if (client.IsInProductionBranch())
                     ServerSync::SyncStashData(stashPath, hardcore);
-
-                URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(participantID) / "transfer-queue";
-                endpoint.AddParam("branch", client.GetBranch());
-
-                web::http::client::http_client httpClient((utility::string_t)endpoint);
-                web::http::http_request request(web::http::methods::GET);
-
-                std::string bearerToken = "Bearer " + client.GetAuthToken();
-                request.headers().add(U("Authorization"), bearerToken.c_str());
-
-                web::http::http_response response = httpClient.request(request).get();
-                if (response.status_code() == web::http::status_codes::OK)
-                {
-                    std::vector<Item> itemList;
-                    web::json::array itemsArray = response.extract_json().get().as_array();
-                    for (auto it = itemsArray.begin(); it != itemsArray.end(); ++it)
-                    {
-                        itemList.emplace_back(*it);
-                    }
-
-                    SharedStash stashData;
-                    if (!stashData.ReadFromFile(stashPath))
-                        throw std::runtime_error("Could not load shared stash data from file");
-
-                    if (stashData.GetTabCount() >= 6)
-                    {
-                        Stash::StashTab* transferTab = stashData.GetStashTab(4);
-                        if (transferTab)
-                        {
-                            std::vector<Item*> pullItemList = transferTab->AddItemList(itemList);
-                            stashData.WriteToFile(stashPath);
-                            PostPullTransferItems(pullItemList);
-                            ServerSync::RefreshStashMetadata(modName, hardcore, participantID);
-                        }
-                        else
-                        {
-                            throw std::runtime_error("Could not load transfer tab from shared stash file");
-                        }
-                    }
-                }
                 else
-                {
-                    throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-                }
+                    ServerSync::DownloadTransferItems(modName, hardcore, participantID);
             }
             catch (const std::exception& ex)
             {

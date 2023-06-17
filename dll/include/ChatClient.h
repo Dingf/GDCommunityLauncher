@@ -1,6 +1,7 @@
 #ifndef INC_GDCL_DLL_CHAT_CLIENT_H
 #define INC_GDCL_DLL_CHAT_CLIENT_H
 
+#include <unordered_set>
 #include <string>
 #include <memory>
 #include <signalrclient/hub_connection.h>
@@ -16,6 +17,7 @@ class ChatClient
         uint8_t GetChannel(EngineAPI::UI::ChatType type) const;
 
         const std::string& GetConnectionID() const { return _connectionID; }
+        const std::unordered_set<std::wstring>& GetMutedList() const { return _mutedList; }
 
         void SetChannel(EngineAPI::UI::ChatType type, uint32_t channel);
         void SetChannel(uint32_t channel);
@@ -26,6 +28,10 @@ class ChatClient
 
         void DisplayWelcomeMessage();
         void DisplayNewTradeNotifications();
+
+        bool MutePlayer(std::wstring playerName);
+        bool UnmutePlayer(std::wstring playerName);
+        bool IsPlayerMuted(std::wstring playerName);
 
     private:
         ChatClient();
@@ -46,10 +52,12 @@ class ChatClient
         void LoadConfig();
         void SaveConfig();
 
+        void LoadMutedList();
+
         uint8_t _channels;
         std::string _connectionID;
         std::unique_ptr<signalr::hub_connection> _connection;
-
+        std::unordered_set<std::wstring> _mutedList;
 };
 
 #endif//INC_GDCL_DLL_CHAT_CLIENT_H

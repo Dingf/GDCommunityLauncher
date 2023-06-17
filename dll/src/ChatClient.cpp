@@ -1,4 +1,5 @@
 #include <future>
+#include <cwctype>
 #include <cpprest/http_client.h>
 #include <signalrclient/hub_connection.h>
 #include <signalrclient/hub_connection_builder.h>
@@ -145,6 +146,7 @@ void ChatClient::OnWorldLoadEvent(void* data)
 {
     ChatClient& chatClient = ChatClient::GetInstance();
     chatClient.LoadConfig();
+    chatClient.LoadMutedList();
 }
 
 void ChatClient::OnConnection(const signalr::value& m)
@@ -167,6 +169,12 @@ void ChatClient::OnReceiveMessage(const signalr::value& m)
         std::wstring name = RawToWide(values[0].as_string());
         std::wstring message = RawToWide(values[1].as_string());
         uint8_t type = (uint8_t)values[2].as_double();
+
+        if (chatClient.IsPlayerMuted(name))
+            return;
+
+        if (type == EngineAPI::UI::CHAT_TYPE_WHISPER)
+            name = L"[From " + name + L"]";
 
         void* item = nullptr;
         if ((values.size() >= 4) && (values[3].as_string().size() > 0))
@@ -457,6 +465,40 @@ void ChatClient::DisplayNewTradeNotifications()
     }
 }
 
+bool ChatClient::MutePlayer(std::wstring playerName)
+{
+    std::transform(playerName.begin(), playerName.end(), playerName.begin(), std::towlower);
+    if (_mutedList.count(playerName) == 0)
+    {
+        _mutedList.insert(playerName);
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+bool ChatClient::UnmutePlayer(std::wstring playerName)
+{
+    std::transform(playerName.begin(), playerName.end(), playerName.begin(), std::towlower);
+    if (_mutedList.count(playerName) > 0)
+    {
+        _mutedList.erase(playerName);
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+bool ChatClient::IsPlayerMuted(std::wstring playerName)
+{
+    std::transform(playerName.begin(), playerName.end(), playerName.begin(), std::towlower);
+    return (_mutedList.count(playerName) > 0);
+}
+
 void ChatClient::LoadConfig()
 {
     Configuration config;
@@ -487,5 +529,44 @@ void ChatClient::SaveConfig()
     else
     {
         Logger::LogMessage(LOG_LEVEL_WARN, "Could not open configuration file %", configPath.string());
+    }
+}
+
+void ChatClient::LoadMutedList()
+{
+    Client& client = Client::GetInstance();
+    URI endpoint = client.GetServerChatURL() / "chat" / "mute-list";
+
+    web::http::client::http_client httpClient((utility::string_t)endpoint);
+    web::http::http_request request(web::http::methods::GET);
+
+    std::string bearerToken = "Bearer " + client.GetAuthToken();
+    request.headers().add(U("Authorization"), bearerToken.c_str());
+
+    try
+    {
+        web::http::http_response response = httpClient.request(request).get();
+        if (response.status_code() == web::http::status_codes::OK)
+        {
+            web::json::value responseBody = response.extract_json().get(); 
+            web::json::array mutedList = responseBody.as_array();
+
+            for (size_t i = 0; i < mutedList.size(); ++i)
+            {
+                // Strip quotes and convert to lower-case before adding the player name
+                std::wstring playerName = mutedList[i].serialize();
+                playerName = std::wstring(playerName.begin() + 1, playerName.end() - 1);
+                std::transform(playerName.begin(), playerName.end(), playerName.begin(), std::towlower);
+                _mutedList.insert(playerName);
+            }
+        }
+        else
+        {
+            throw std::runtime_error("Server responded with status code %" + std::to_string(response.status_code()));
+        }
+    }
+    catch (const std::exception& ex)
+    {
+        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve muted list: %", ex.what());
     }
 }

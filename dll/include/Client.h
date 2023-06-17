@@ -51,6 +51,7 @@ class Client
         void SetParticipantID(uint32_t participantID) { _data._participantID = participantID; }
 
         void UpdateSeasonStanding();
+        void UpdateLeagueInfoText();
 
         static bool UpdateRefreshToken();
         static bool UpdateConnectionStatus();
@@ -59,9 +60,8 @@ class Client
         Client() : _activeSeason(nullptr), _online(false) {}
         Client(Client&) = delete;
         void operator=(const Client&) = delete;
-
+        
         void UpdateVersionInfoText();
-        void UpdateLeagueInfoText();
 
         void CreatePlayMenu();
 

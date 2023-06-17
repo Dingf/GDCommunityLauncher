@@ -29,13 +29,28 @@ bool SharedStash::ReadFromFile(const std::filesystem::path& path)
             Read(&reader);
             return true;
         }
-        catch (std::runtime_error&)
+        catch (std::runtime_error& ex)
         {
-            Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to load shared stash file \"%\"", path.string().c_str());
+            Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to load shared stash file \"%\": %", path.string().c_str(), ex.what());
             return false;
         }
     }
     return false;
+}
+
+bool SharedStash::ReadFromBytes(std::vector<uint8_t>& data)
+{
+    try
+    {
+        EncodedFileReader reader(&data[0], data.size());
+        Read(&reader);
+        return true;
+    }
+    catch (std::runtime_error& ex)
+    {
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to load shared stash data: %", ex.what());
+        return false;
+    }
 }
 
 bool SharedStash::WriteToFile(const std::filesystem::path& path)

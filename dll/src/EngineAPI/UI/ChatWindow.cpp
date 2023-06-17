@@ -5,6 +5,7 @@
 #include "EngineAPI.h"
 #include "EngineAPI/UI/ChatWindow.h"
 #include "Configuration.h"
+#include "Log.h"
 
 namespace EngineAPI::UI
 {
@@ -166,6 +167,7 @@ inline bool CheckColorAddress2(uint8_t* buffer, uint64_t offset, uint64_t size)
     return false;
 }
 
+
 void ChatWindow::FindMagicAddresses()
 {
     _visible = nullptr;
@@ -224,9 +226,12 @@ void ChatWindow::FindMagicAddresses()
 
     if (_colors)
     {
-        uint64_t* tradeShortcut = (uint64_t*)(_colors - 0x80);
-        if (*tradeShortcut == 0x000000000074002F)
-            *tradeShortcut = 0x000000650074002F;   // Change /t to /te so that we can bind /t ourselves
+        // Change the in-game command names to avoid conflicts with the launcher chat commands
+        *(std::wstring*)(_colors - 0x120) = L"_Mute";
+        *(std::wstring*)(_colors - 0x100) = L"_Unmute";
+        *(std::wstring*)(_colors - 0x80) = L"_t";
+        *(std::wstring*)(_colors - 0x60) = L"_m";
+        *(std::wstring*)(_colors - 0x40) = L"_u";
     }
 }
 

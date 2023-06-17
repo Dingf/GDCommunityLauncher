@@ -11,6 +11,7 @@ enum ChatType
     CHAT_TYPE_NORMAL = 0,
     CHAT_TYPE_TRADE = 1,
     CHAT_TYPE_GLOBAL = 2,
+    CHAT_TYPE_WHISPER = 3,
 };
 
 static const uint32_t CHAT_CHANNEL_MAX = 15;

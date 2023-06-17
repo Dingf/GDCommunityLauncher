@@ -120,6 +120,17 @@
 
 - Fixed a bug where Lokarr's set did not withdraw from the cloud stash properly.
 - Fixed a bug that would sometimes allow essences to be used on invalid items or prevent essences from being used on valid items.
-- Improved launcher stability on Linux/Steam Deck (spumble)
+- Improved performance and stability on Linux/Steam Deck (spumble)
 - The launcher now uses a separate save folder when playing on the internal testing branch.
 - The launcher now displays the branch selection prompt for testers when holding down Ctrl during startup.
+
+## 1.2.5 (2023-06-17)
+
+- Added a new chat command - `/mute`. This command will blocking all incoming messages from a specific user.
+- Added a new chat command - `/unmute`. This command will unblock a previously blocked user.
+- Added a new chat command - `/whisper`. This command will send a direct message to a specific user.
+- Reworked the `/help` command.
+    - Typing `/help` now displays a list of commands and a brief description of their functionality.
+    - Typing `/help <command>` now displays a detailed usage message for that command.
+    - Added the `/help color` command. This command displays a list of the available color aliases. 
+- Fixed a bug where characters that are not registered on the server would incorrectly have their points and rank displayed as normal.

@@ -8,9 +8,11 @@ namespace EngineAPI::UI
 
 #if _WIN64
 constexpr char EAPI_NAME_GET_LOCALIZATION_MANAGER[] = "?Instance@LocalizationManager@GAME@@SAAEAV12@XZ";
+constexpr char EAPI_NAME_LOAD_LOCALIZATION_MANAGER[] = "?Load@LocalizationManager@GAME@@UEAAXPEBD@Z";
 constexpr char EAPI_NAME_LOCALIZE[] = "?Localize@LocalizationManager@GAME@@QEAAPEBGPEBDZZ";
 #else
 constexpr char EAPI_NAME_GET_LOCALIZATION_MANAGER[] = "?Instance@LocalizationManager@GAME@@SAAAV12@XZ";
+constexpr char EAPI_NAME_LOAD_LOCALIZATION_MANAGER[] = "?Load@LocalizationManager@GAME@@UAEXPBD@Z";
 constexpr char EAPI_NAME_LOCALIZE[] = "?Localize@LocalizationManager@GAME@@QAAPBGPBDZZ";
 #endif
 
