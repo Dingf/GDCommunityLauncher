@@ -25,8 +25,9 @@ class Client
             return *this;
         }
 
-        bool IsValid() const { return _data.IsValid(); }
+        bool IsValid() const { return IsOfflineMode() || _data.IsValid(); }
         bool HasUpdate() const { return _data._updateFlag; }
+        bool IsOfflineMode() const { return _data._branch == "offline"; }
 
         bool WriteDataToPipe(HANDLE pipe) const;
 

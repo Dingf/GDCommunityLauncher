@@ -39,7 +39,7 @@ bool WriteStringToPipe(HANDLE pipe, const std::string& str)
     if (!WriteInt32ToPipe(pipe, length))
         return false;
 
-    if (!WriteFile(pipe, str.c_str(), length, &bytesWritten, NULL) || (bytesWritten != length))
+    if ((length > 0) && (!WriteFile(pipe, str.c_str(), length, &bytesWritten, NULL) || (bytesWritten != length)))
         return false;
 
     return true;

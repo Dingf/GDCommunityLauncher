@@ -28,6 +28,10 @@ void CraftingDatabase::Load(const char* buffer, size_t size)
                 _craftingWeight[table] = weight;
             else
                 _craftingWeight[table] += weight;
+
+            // Automatically generate the downgrade table from the upgrade table
+            if (table == "upgrade")
+                _craftingData["downgrade"].try_emplace(value, value, name, maxLevel, minLevel, weight);
         }
     }
 }

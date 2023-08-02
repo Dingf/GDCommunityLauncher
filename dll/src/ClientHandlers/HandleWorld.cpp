@@ -125,12 +125,11 @@ bool HandleLoadWorld(void* _this, const char* mapName, bool unk1, bool modded)
             std::string modName = EngineAPI::GetModName();
 
             client.SetActiveSeason(modName, EngineAPI::IsHardcore());
+            LuaAPI::Initialize();
 
             // Check the map name to make sure that we are not in the main menu when setting the active season
             if ((!modName.empty()) && (mapName) && (std::string(mapName) != "levels/mainmenu/mainmenu.map"))
             {
-                ChatClient& chatClient = ChatClient::GetInstance();
-
                 // Attempt to register the user for the active season
                 const SeasonInfo* seasonInfo = client.GetActiveSeason();
                 if (seasonInfo)
@@ -162,7 +161,6 @@ bool HandleLoadWorld(void* _this, const char* mapName, bool unk1, bool modded)
                         Logger::LogMessage(LOG_LEVEL_WARN, "Failed to register for season %: %", seasonInfo->_seasonID, ex.what());
                     }
 
-                    LuaAPI::Initialize();
                     EventManager::Publish(GDCL_EVENT_WORLD_POST_LOAD, (void*)mapName);
                 }
             }
@@ -207,11 +205,9 @@ void HandleUnloadWorld(void* _this)
         Client& client = Client::GetInstance();
         const std::wstring& characterName = client.GetActiveCharacterName();
         if ((!EngineAPI::IsMultiplayer()) && (client.IsParticipatingInSeason()) && (!characterName.empty()) && (client.IsOnline()))
-        {
             client.SetActiveCharacter({}, false);
-            LuaAPI::Cleanup();
-        }
 
+        LuaAPI::Cleanup();
         EventManager::Publish(GDCL_EVENT_WORLD_POST_UNLOAD);
     }
 }

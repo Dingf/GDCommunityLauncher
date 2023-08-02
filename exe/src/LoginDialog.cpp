@@ -45,7 +45,7 @@ void SetDialogState(HWND hwnd, BOOL state)
 
 bool InitializeClient(const ClientData& data)
 {
-    if (!SelectorDialog::Select((void*)&data))
+    if ((data._branch != "offline") && (!SelectorDialog::Select((void*)&data)))
         return false;
 
     if ((LoginDialog::_config) && (!data._branch.empty()))
@@ -160,18 +160,14 @@ INT_PTR CALLBACK LoginDialogHandler(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
                 }
                 case IDHELP:
                 {
-                    HINSTANCE launcherEXE = GetModuleHandle(NULL);
-                    HRSRC res = FindResource(launcherEXE, MAKEINTRESOURCE(IDR_ABOUT_MSG), RT_RCDATA);
-                    if (res)
-                    {
-                        HGLOBAL handle = LoadResource(launcherEXE, res);
-                        DWORD size = SizeofResource(launcherEXE, res);
-                        char* data = (char*)LockResource(handle);
+                    ClientData data;
+                    data._branch = "offline";
+                    data._updateFlag = false;
 
-                        std::string title = std::string("Grim Dawn Community League v") + GDCL_VERSION;
-                        MessageBoxA(hwnd, data, title.c_str(), MB_OK);
-                        FreeResource(handle);
-                    }
+                    if (!InitializeClient(data))
+                        return FALSE;
+
+                    SendMessage(LoginDialog::_window, WM_LOGIN_OFFLINE_MODE, NULL, NULL);
                     return TRUE;
                 }
             }
@@ -239,6 +235,11 @@ INT_PTR CALLBACK LoginDialogHandler(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
             DestroyWindow(hwnd);
             return TRUE;
         }
+        case WM_LOGIN_OFFLINE_MODE:
+        {
+            DestroyWindow(hwnd);
+            return TRUE;
+        }
         case WM_LOGIN_INVALID_LOGIN:
         {
             DisplayLoginErrorMessageBox(hwnd, LOGIN_RESULT_INVALID_LOGIN);
@@ -299,7 +300,21 @@ bool LoginDialog::Login(void* configPointer)
         if ((branchValue) && (branchValue->GetType() == VALUE_TYPE_STRING))
             branch = branchValue->ToString();
 
-        if ((!hostName.empty()) && (!username.empty()) && (!password.empty()))
+        if (branch == "offline")
+        {
+            ClientData data;
+            data._branch = "offline";
+            data._updateFlag = false;
+
+            if (!InitializeClient(data))
+            {
+                DisplayLoginErrorMessageBox(NULL, LOGIN_RESULT_OTHER_ERROR);
+                return false;
+            }
+
+            autoLogin = true;
+        }
+        else if ((!hostName.empty()) && (!username.empty()) && (!password.empty()))
         {
             ClientData data;
             data._username = username;
@@ -321,7 +336,6 @@ bool LoginDialog::Login(void* configPointer)
                     DisplayLoginErrorMessageBox(NULL, LOGIN_RESULT_INVALID_SEASONS);
                     return false;
                 }
-
                 autoLogin = true;
             }
             else

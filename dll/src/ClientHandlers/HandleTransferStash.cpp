@@ -54,32 +54,38 @@ void HandleLoadTransferStash(void* _this)
     if (callback)
     {
         Client& client = Client::GetInstance();
-        if ((client.IsParticipatingInSeason()) && (GetTransferMutex().try_lock()))
+        if (client.IsParticipatingInSeason())
         {
-            try
+            if (GetTransferMutex().try_lock())
             {
-                std::string modName = EngineAPI::GetModName();
-                void* mainPlayer = GameAPI::GetMainPlayer();
-                bool hardcore = GameAPI::IsPlayerHardcore(mainPlayer);
-                uint32_t participantID = client.GetParticipantID();
+                try
+                {
+                    std::string modName = EngineAPI::GetModName();
+                    void* mainPlayer = GameAPI::GetMainPlayer();
+                    bool hardcore = GameAPI::IsPlayerHardcore(mainPlayer);
+                    uint32_t participantID = client.GetParticipantID();
 
-                std::filesystem::path stashPath = GameAPI::GetTransferStashPath(modName, hardcore);
-                if (stashPath.empty())
-                    throw std::runtime_error("Could not determine shared stash path for mod \"" + std::string(modName) + "\"");
+                    std::filesystem::path stashPath = GameAPI::GetTransferStashPath(modName, hardcore);
+                    if (stashPath.empty())
+                        throw std::runtime_error("Could not determine shared stash path for mod \"" + std::string(modName) + "\"");
 
-                if (client.IsInProductionBranch())
-                    ServerSync::SyncStashData(stashPath, hardcore);
-                else
-                    ServerSync::DownloadTransferItems(modName, hardcore, participantID);
+                    if (client.IsInProductionBranch())
+                        ServerSync::SyncStashData(stashPath, hardcore);
+                    else
+                        ServerSync::DownloadTransferItems(modName, hardcore, participantID);
+                }
+                catch (const std::exception& ex)
+                {
+                    Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve transfer queue items: %", ex.what());
+                }
+                callback(_this);
+                GetTransferMutex().unlock();
             }
-            catch (const std::exception& ex)
-            {
-                Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve transfer queue items: %", ex.what());
-            }
-            GetTransferMutex().unlock();
         }
-
-        callback(_this);
+        else
+        {
+            callback(_this);
+        }
     }
 }
 

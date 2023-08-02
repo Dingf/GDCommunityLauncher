@@ -106,6 +106,22 @@ std::string UpgradeItemBase(const std::string& itemName)
     return {};
 }
 
+std::string DowngradeItemBase(const std::string& itemName)
+{
+    CraftingDatabase& craftingDB = CraftingDatabase::GetInstance();
+
+    std::string tableName = "downgrade";
+    if (craftingDB.HasTable(tableName))
+    {
+        CraftingDatabase::CraftingDBTable table = craftingDB.GetTable(tableName);
+        if (table.count(itemName) > 0)
+        {
+            return table.at(itemName)._value;
+        }
+    }
+    return {};
+}
+
 bool HasVaalAffix(void* item)
 {
     GameAPI::ItemReplicaInfo itemInfo;
@@ -177,9 +193,31 @@ bool CanUpgradeItemBase(void* item, void* enchant, uint32_t itemLevel, ItemType 
     return false;
 }
 
+bool CanDowngradeItemBase(void* item, void* enchant, uint32_t itemLevel, ItemType itemType, GameAPI::ItemClassification itemRarity)
+{
+    if (HasVaalAffix(item) || (itemType == ITEM_TYPE_RELIC))
+        return false;
+
+    GameAPI::ItemReplicaInfo itemInfo;
+    GameAPI::GetItemReplicaInfo(item, itemInfo);
+    CraftingDatabase& craftingDB = CraftingDatabase::GetInstance();
+
+    std::string tableName = "downgrade";
+    if (craftingDB.HasTable(tableName))
+    {
+        return (craftingDB.GetTable(tableName).count(itemInfo._itemName) > 0);
+    }
+    return false;
+}
+
 bool CanUpgradeItemBase(void* item)
 {
     return (!HasVaalAffix(item) && CanUpgradeItemBase(item, nullptr, 0, ITEM_TYPE_OTHER, GameAPI::ITEM_CLASSIFICATION_NORMAL));
+}
+
+bool CanDowngradeItemBase(void* item)
+{
+    return (!HasVaalAffix(item) && CanDowngradeItemBase(item, nullptr, 0, ITEM_TYPE_OTHER, GameAPI::ITEM_CLASSIFICATION_NORMAL));
 }
 
 bool CanUpgradeItemBaseLowLevel(void* item, void* enchant, uint32_t itemLevel, ItemType itemType, GameAPI::ItemClassification itemRarity)
@@ -284,6 +322,17 @@ bool HandleUpgradeItemBase(void* item, void* enchant, GameAPI::ItemReplicaInfo& 
     if (CanUpgradeItemBase(item))
     {
         itemInfo._itemName = UpgradeItemBase(itemName);
+        return true;
+    }
+    return false;
+}
+
+bool HandleDowngradeItemBase(void* item, void* enchant, GameAPI::ItemReplicaInfo& itemInfo)
+{
+    std::string itemName = itemInfo._itemName;
+    if (CanDowngradeItemBase(item))
+    {
+        itemInfo._itemName = DowngradeItemBase(itemName);
         return true;
     }
     return false;

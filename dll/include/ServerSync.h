@@ -73,7 +73,8 @@ class ServerSync
         static void OnWorldUnload(void* data);
         static void OnSetMainPlayer(void* data);
 
-        static void PostCharacterUpload(bool newPlayer = false);
+        static void PostCharacterQuestData(uint32_t participantID);
+        static void PostCharacterUpload(bool newPlayer = false, uint32_t participantID = 0);
         static void PostStashUpload();
         static void PostCloudStashUpload();
         static void PostPullTransferItems(const std::vector<Item*>& items);

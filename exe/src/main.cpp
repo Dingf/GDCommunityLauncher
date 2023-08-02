@@ -39,6 +39,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
         config.SetValue("Login", "username", "");
         config.SetValue("Login", "password", "");
         config.SetValue("Login", "autologin", false);
+        config.SetValue("Login", "branch", "");
         config.Save(configPath);
     }
 
@@ -47,7 +48,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
         return EXIT_FAILURE;
 
     // Get the list of files from the server and download any files that need to be updated
-    if (!UpdateDialog::Update())
+    Client& client = Client::GetInstance();
+    if ((!client.IsOfflineMode()) && (!UpdateDialog::Update()))
         return EXIT_FAILURE;
 
     config.Save(configPath);

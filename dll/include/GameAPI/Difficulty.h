@@ -2,6 +2,7 @@
 #define INC_GDCL_DLL_GAME_API_DIFFICULTY_H
 
 #include <stdint.h>
+#include <string>
 
 namespace GameAPI
 {
@@ -21,6 +22,7 @@ enum Difficulty : int32_t
 const GameAPI::Difficulty GAME_DIFFICULTIES[] = { GameAPI::GAME_DIFFICULTY_NORMAL, GameAPI::GAME_DIFFICULTY_ELITE, GameAPI::GAME_DIFFICULTY_ULTIMATE };
 
 Difficulty GetGameDifficulty();
+std::string GetGameDifficultyName(Difficulty difficulty);
 
 }
 

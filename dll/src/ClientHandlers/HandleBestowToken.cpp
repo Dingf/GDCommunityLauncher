@@ -66,9 +66,11 @@ bool HandleSeasonPointToken(const std::string& tokenString)
             std::string bearerToken = "Bearer " + client.GetAuthToken();
             request.headers().add(U("Authorization"), bearerToken.c_str());
 
-            ServerSync::ScheduleTask([endpoint, request]() {
+            ServerSync::ScheduleTask([endpoint, request]()
+            {
                 web::http::client::http_client httpClient((utility::string_t)endpoint);
-                return httpClient.request(request).then([](web::http::http_response response) {
+                return httpClient.request(request).then([](web::http::http_response response)
+                {
                     if (response.status_code() == web::http::status_codes::OK)
                     {
                         Client::GetInstance().UpdateSeasonStanding();

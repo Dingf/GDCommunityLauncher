@@ -58,17 +58,20 @@ bool ReadStringFromPipe(HANDLE pipe, std::string& str)
     if (!ReadInt32FromPipe(pipe, length))
         return false;
 
-    char* buffer = new char[length + 1];
-    if (!ReadFile(pipe, (LPVOID)buffer, length, &bytesRead, NULL) || (bytesRead != length))
+    if (length > 0)
     {
+        char* buffer = new char[length + 1];
+        if (!ReadFile(pipe, (LPVOID)buffer, length, &bytesRead, NULL) || (bytesRead != length))
+        {
+            delete[] buffer;
+            return false;
+        }
+
+        buffer[length] = '\0';
+        str = buffer;
+
         delete[] buffer;
-        return false;
     }
-
-    buffer[length] = '\0';
-    str = buffer;
-
-    delete[] buffer;
     return true;
 }
 
@@ -79,20 +82,23 @@ bool ReadWideStringFromPipe(HANDLE pipe, std::wstring& str)
     if (!ReadInt32FromPipe(pipe, length))
         return false;
 
-    wchar_t* buffer = new wchar_t[length + 1];
-    for (size_t i = 0; i < length; ++i)
+    if (length > 0)
     {
-        if (!ReadInt16FromPipe(pipe, (uint16_t&)buffer[i]))
+        wchar_t* buffer = new wchar_t[length + 1];
+        for (size_t i = 0; i < length; ++i)
         {
-            delete[] buffer;
-            return false;
+            if (!ReadInt16FromPipe(pipe, (uint16_t&)buffer[i]))
+            {
+                delete[] buffer;
+                return false;
+            }
         }
+
+        buffer[length] = '\0';
+        str = buffer;
+
+        delete[] buffer;
     }
-
-    buffer[length] = '\0';
-    str = buffer;
-
-    delete[] buffer;
     return true;
 }
 
@@ -310,7 +316,10 @@ void Client::UpdateVersionInfoText()
         _versionInfoText += "\n{^F}GDCL v";
         _versionInfoText += GDCL_VERSION;
         _versionInfoText += " (";
-        _versionInfoText += GetUsername();
+        if (IsOfflineMode())
+            _versionInfoText += "Offline Mode";
+        else
+            _versionInfoText += GetUsername();
         _versionInfoText += ")";
     }
 }
@@ -319,7 +328,14 @@ void Client::UpdateLeagueInfoText()
 {
     _leagueInfoText.clear();
 
-    if (_activeSeason)
+    if (IsOfflineMode())
+    {
+        std::string versionText = GDCL_VERSION;
+        _leagueInfoText += L"\n";
+        _leagueInfoText += L"GDCL v";
+        _leagueInfoText += std::wstring(versionText.begin(), versionText.end());
+    }
+    else if (_activeSeason)
     {
         _leagueInfoText += L"\n";
         _leagueInfoText += std::wstring(_activeSeason->_displayName.begin(), _activeSeason->_displayName.end());
@@ -327,7 +343,11 @@ void Client::UpdateLeagueInfoText()
     _leagueInfoText += L"\n";
     _leagueInfoText += std::wstring(_data._username.begin(), _data._username.end());
 
-    if ((_online) && (_activeSeason))
+    if (IsOfflineMode())
+    {
+        _leagueInfoText += L" {^L}(Offline Mode)";
+    }
+    else if ((_online) && (_activeSeason))
     {
         if (GameAPI::IsCloudStorageEnabled())
         {
@@ -359,7 +379,7 @@ void Client::UpdateLeagueInfoText()
     }
     else
     {
-        _leagueInfoText += L" {^R}(Offline)";
+        _leagueInfoText += L" {^R}(Disconnected)";
     }
 }
 
@@ -473,107 +493,122 @@ bool Client::Initialize()
 {
     Logger::SetMinimumLogLevel(LOG_LEVEL_DEBUG);
 
-    // Initialize the server sync module
-    ServerSync::Initialize();
-
-    // Initialize the chat client in a separate thread
-    std::thread chatStarter([]()
+    if (!IsOfflineMode())
     {
-        ChatClient& chatClient = ChatClient::GetInstance();
-    });
+        // Initialize the server sync module
+        ServerSync::Initialize();
 
-    // this SHOULD not cause a thread leak on windows (windows kills detached threads on main thread exit)
-    // but according to the standard it's undefined behaviour
-    // we do it anyway because it's the cleanest solution among several dirty ones
-    chatStarter.detach();
+        // Initialize the chat client in a separate thread
+        std::thread chatStarter([]()
+        {
+            ChatClient& chatClient = ChatClient::GetInstance();
+        });
 
-    // Initialize the game engine hooks
+        // this SHOULD not cause a thread leak on windows (windows kills detached threads on main thread exit)
+        // but according to the standard it's undefined behaviour
+        // we do it anyway because it's the cleanest solution among several dirty ones
+        chatStarter.detach();
+
+        // Initialize the online game engine hooks
+        if (!HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_DIRECT_READ, &HandleDirectRead) ||
+            !HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_DIRECT_WRITE, &HandleDirectWrite) ||
+            !HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_HANDLE_KEY_EVENT, &HandleKeyEvent) ||
+            !HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_HANDLE_MOUSE_EVENT, &HandleMouseEvent) ||
+            !HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_CREATE_SERVER_CONNECTION, &HandleCreateNewConnection) ||
+            !HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_ADD_NETWORK_SERVER, &HandleAddNetworkServer) ||
+            !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_GAME_ENGINE_SHUTDOWN, &HandleGameShutdown) ||
+            !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_SET_MAIN_PLAYER, &HandleSetMainPlayer) ||
+            !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_ON_CARAVAN_INTERACT, &HandleSetTransferOpen) ||
+            !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_SAVE_NEW_FORMAT_DATA, &HandleSaveNewFormatData) ||
+            !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_LOAD_NEW_FORMAT_DATA, &HandleLoadNewFormatData) ||
+            !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_SAVE_TRANSFER_STASH, &HandleSaveTransferStash) ||
+            !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_LOAD_TRANSFER_STASH, &HandleLoadTransferStash) ||
+            !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_BESTOW_TOKEN, &HandleBestowToken) ||
+            !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_SEND_CHAT_MESSAGE, &HandleSendChatMessage) ||
+            !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_SYNC_DUNGEON_PROGRESS, &HandleSyncDungeonProgress) ||
+            !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_GET_ROOT_SAVE_PATH, &HandleGetRootSavePath) ||
+            !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_GET_BASE_FOLDER, &HandleGetBaseFolder) ||
+            !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_GET_USER_SAVE_FOLDER, &HandleGetUserSaveFolder) ||
+            !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_GET_FULL_SAVE_FOLDER, &HandleGetFullSaveFolder) ||
+            !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_GET_PLAYER_FOLDER_1, &HandleGetPlayerFolder1) ||
+            !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_GET_PLAYER_FOLDER_2, &HandleGetPlayerFolder2) ||
+            !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_GET_MAP_FOLDER, &HandleGetMapFolder, true) ||
+            !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_GET_DIFFICULTY_FOLDER, &HandleGetDifficultyFolder) ||
+            !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_GET_SHARED_SAVE_PATH, &HandleGetSharedSavePath, true))
+        {
+            Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to create one or more game hooks.");
+            return false;
+        }
+
+        // Initialize threads to handle refreshing the server token/connection status
+        ThreadManager::CreatePeriodicThread("refresh_token", 60000, 900000, 0, &Client::UpdateRefreshToken);
+        ThreadManager::CreatePeriodicThread("connection_status", 60000, 60000, 0, &Client::UpdateConnectionStatus);
+
+        CreatePlayMenu();
+    }
+
+    // Initialize the offline game engine hooks
     if (!HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_GET_VERSION, &HandleGetVersion) ||
-        !HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_RENDER, &HandleRender) ||
-        !HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_DIRECT_READ, &HandleDirectRead) ||
-        !HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_DIRECT_WRITE, &HandleDirectWrite) ||
-        !HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_LOAD_WORLD, &HandleLoadWorld) ||
-        !HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_SET_REGION_OF_NOTE, &HandleSetRegionOfNote) ||
-        !HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_HANDLE_KEY_EVENT, &HandleKeyEvent) ||
-        !HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_HANDLE_MOUSE_EVENT, &HandleMouseEvent) ||
         !HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_RENDER_STYLED_TEXT_2D, &HandleRenderStyledText2D) ||
         !HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_LUA_INITIALIZE, &HandleLuaInitialize) ||
-        !HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_CREATE_SERVER_CONNECTION, &HandleCreateNewConnection) ||
-        !HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_ADD_NETWORK_SERVER, &HandleAddNetworkServer) ||
-        !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_GAME_ENGINE_SHUTDOWN, &HandleGameShutdown) ||
-        !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_SET_MAIN_PLAYER, &HandleSetMainPlayer) ||
-        !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_ON_CARAVAN_INTERACT, &HandleSetTransferOpen) ||
-        !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_SAVE_NEW_FORMAT_DATA, &HandleSaveNewFormatData) ||
-        !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_LOAD_NEW_FORMAT_DATA, &HandleLoadNewFormatData) ||
-        !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_SAVE_TRANSFER_STASH, &HandleSaveTransferStash) ||
-        !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_LOAD_TRANSFER_STASH, &HandleLoadTransferStash) ||
-        !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_BESTOW_TOKEN, &HandleBestowToken) ||
+        !HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_LOAD_WORLD, &HandleLoadWorld) ||
+        !HookManager::CreateHook("Engine.dll", EngineAPI::EAPI_NAME_SET_REGION_OF_NOTE, &HandleSetRegionOfNote) ||
         !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_UNLOAD_WORLD, &HandleUnloadWorld) ||
-        !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_SEND_CHAT_MESSAGE, &HandleSendChatMessage) ||
-        !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_SYNC_DUNGEON_PROGRESS, &HandleSyncDungeonProgress) ||
         !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_USE_ITEM_ENCHANTMENT, &HandleUseItemEnchantment) ||
         !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_CAN_ENCHANT_BE_USED_ON, &HandleCanEnchantBeUsedOn) ||
         !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_GET_ITEM_DESCRIPTION, &HandleGetItemDescription) ||
         !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_GET_WEAPON_DESCRIPTION, &HandleGetItemDescriptionWeapon) ||
-        !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_GET_ARMOR_DESCRIPTION, &HandleGetItemDescriptionArmor) ||
-        !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_GET_ROOT_SAVE_PATH, &HandleGetRootSavePath) ||
-        !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_GET_BASE_FOLDER, &HandleGetBaseFolder) ||
-        !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_GET_USER_SAVE_FOLDER, &HandleGetUserSaveFolder) ||
-        !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_GET_FULL_SAVE_FOLDER, &HandleGetFullSaveFolder) ||
-        !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_GET_PLAYER_FOLDER_1, &HandleGetPlayerFolder1) ||
-        !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_GET_PLAYER_FOLDER_2, &HandleGetPlayerFolder2) ||
-        !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_GET_MAP_FOLDER, &HandleGetMapFolder, true) ||
-        !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_GET_DIFFICULTY_FOLDER, &HandleGetDifficultyFolder) ||
-        !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_GET_SHARED_SAVE_PATH, &HandleGetSharedSavePath, true))
+        !HookManager::CreateHook("Game.dll", GameAPI::GAPI_NAME_GET_ARMOR_DESCRIPTION, &HandleGetItemDescriptionArmor))
     {
         Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to create one or more game hooks.");
         return false;
     }
 
-    // Initialize threads to handle refreshing the server token/connection status
-    ThreadManager::CreatePeriodicThread("refresh_token", 60000, 900000, 0, &Client::UpdateRefreshToken);
-    ThreadManager::CreatePeriodicThread("connection_status", 60000, 60000, 0, &Client::UpdateConnectionStatus);
-
-    CreatePlayMenu();
     UpdateVersionInfoText();
-
     return true;
 }
 
 void Client::Cleanup()
 {
+    if (!IsOfflineMode())
+    {
+        HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_DIRECT_READ);
+        HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_DIRECT_WRITE);
+        HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_HANDLE_KEY_EVENT);
+        HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_HANDLE_MOUSE_EVENT);
+        HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_CREATE_SERVER_CONNECTION);
+        HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_ADD_NETWORK_SERVER);
+        HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_GAME_ENGINE_SHUTDOWN);
+        HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_SET_MAIN_PLAYER);
+        HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_ON_CARAVAN_INTERACT);
+        HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_SAVE_NEW_FORMAT_DATA);
+        HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_LOAD_NEW_FORMAT_DATA);
+        HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_SAVE_TRANSFER_STASH);
+        HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_LOAD_TRANSFER_STASH);
+        HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_BESTOW_TOKEN);
+        HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_SEND_CHAT_MESSAGE);
+        HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_SYNC_DUNGEON_PROGRESS);
+        HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_GET_ROOT_SAVE_PATH);
+        HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_GET_BASE_FOLDER);
+        HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_GET_USER_SAVE_FOLDER);
+        HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_GET_FULL_SAVE_FOLDER);
+        HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_GET_PLAYER_FOLDER_1);
+        HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_GET_PLAYER_FOLDER_2);
+        HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_GET_MAP_FOLDER);
+        HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_GET_DIFFICULTY_FOLDER);
+        HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_GET_SHARED_SAVE_PATH);
+    }
+
     HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_GET_VERSION);
     HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_RENDER);
-    HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_DIRECT_READ);
-    HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_DIRECT_WRITE);
-    HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_LOAD_WORLD);
-    HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_SET_REGION_OF_NOTE);
-    HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_HANDLE_KEY_EVENT);
-    HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_HANDLE_MOUSE_EVENT);
     HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_RENDER_STYLED_TEXT_2D);
     HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_LUA_INITIALIZE);
-    HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_GAME_ENGINE_SHUTDOWN);
-    HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_SET_MAIN_PLAYER);
-    HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_ON_CARAVAN_INTERACT);
-    HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_SAVE_NEW_FORMAT_DATA);
-    HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_LOAD_NEW_FORMAT_DATA);
-    HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_SAVE_TRANSFER_STASH);
-    HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_LOAD_TRANSFER_STASH);
-    HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_BESTOW_TOKEN);
+    HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_LOAD_WORLD);
+    HookManager::DeleteHook("Engine.dll", EngineAPI::EAPI_NAME_SET_REGION_OF_NOTE);
     HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_UNLOAD_WORLD);
-    HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_SEND_CHAT_MESSAGE);
-    HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_SYNC_DUNGEON_PROGRESS);
     HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_USE_ITEM_ENCHANTMENT);
     HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_CAN_ENCHANT_BE_USED_ON);
     HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_GET_ITEM_DESCRIPTION);
     HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_GET_WEAPON_DESCRIPTION);
     HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_GET_ARMOR_DESCRIPTION);
-    HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_GET_ROOT_SAVE_PATH);
-    HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_GET_BASE_FOLDER);
-    HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_GET_USER_SAVE_FOLDER);
-    HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_GET_FULL_SAVE_FOLDER);
-    HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_GET_PLAYER_FOLDER_1);
-    HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_GET_PLAYER_FOLDER_2);
-    HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_GET_DIFFICULTY_FOLDER);
-    HookManager::DeleteHook("Game.dll", GameAPI::GAPI_NAME_GET_SHARED_SAVE_PATH);
 }

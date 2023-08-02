@@ -13,7 +13,7 @@ BEGIN
     LTEXT           "Username",IDC_STATIC,64,9,33,8
     LTEXT           "Password",IDC_STATIC,64,25,32,8
     CONTROL         "Remember Me",IDC_CHECK1,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,100,40,61,10
-    PUSHBUTTON      "About",IDHELP,268,21,50,14
+    PUSHBUTTON      "Offline Mode",IDHELP,268,21,50,14
 END
 
 IDR_ABOUT_MSG RCDATA "About.txt"

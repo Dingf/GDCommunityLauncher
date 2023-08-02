@@ -53,35 +53,20 @@ bool SharedStash::ReadFromBytes(std::vector<uint8_t>& data)
     }
 }
 
-bool SharedStash::WriteToFile(const std::filesystem::path& path)
+bool SharedStash::WriteToFile(const std::filesystem::path& path, bool wait)
 {
-    if (std::filesystem::is_regular_file(path))
+    try
     {
-        std::filesystem::path tempPath = path;
-        tempPath += "_tmp";
-
-        try
-        {
-            EncodedFileWriter writer(GetBufferSize());
-            Write(&writer);
-
-            writer.WriteToFile(tempPath);
-
-            std::filesystem::rename(tempPath, path);
-        }
-        catch (std::runtime_error&)
-        {
-            Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to write to shared stash file \"%\"", path.string().c_str());
-            return false;
-        }
-
-        return true;
+        EncodedFileWriter writer(GetBufferSize());
+        Write(&writer);
+        writer.WriteToFile(path);
     }
-    else
+    catch (std::runtime_error&)
     {
-        Logger::LogMessage(LOG_LEVEL_ERROR, "Tried to write shared stash to path \"%\" which is not a file", path.string().c_str());
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to write to shared stash file \"%\"", path.string().c_str());
+        return false;
     }
-    return false;
+    return true;
 }
 
 void SharedStash::Read(EncodedFileReader* reader)

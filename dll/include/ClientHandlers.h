@@ -10,7 +10,6 @@
 #include "Log.h"
 
 const char* HandleGetVersion(void* _this);
-void HandleRender(void* _this);
 bool HandleKeyEvent(void* _this, EngineAPI::KeyButtonEvent& event);
 bool HandleMouseEvent(void* _this, EngineAPI::MouseEvent& event);
 bool HandleDirectRead(void* _this, const std::string& filename, void*& data, uint32_t& size, bool unk1, bool unk2);
@@ -24,7 +23,6 @@ void HandleAddNetworkServer(void* _this, void* server, uint32_t unk1);
 void HandleGameShutdown(void* _this);
 void HandleSetMainPlayer(void* _this, uint32_t unk1);
 void HandleSetTransferOpen(void* _this, uint32_t unk1, bool unk2, bool unk3);
-void HandlePlayerDying(void* _this);
 void HandleSaveNewFormatData(void* _this, void* writer);
 void HandleLoadNewFormatData(void* _this, void* reader);
 void HandleSaveTransferStash(void* _this);

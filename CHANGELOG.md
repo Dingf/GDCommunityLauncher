@@ -134,3 +134,12 @@
     - Typing `/help <command>` now displays a detailed usage message for that command.
     - Added the `/help color` command. This command displays a list of the available color aliases. 
 - Fixed a bug where characters that are not registered on the server would incorrectly have their points and rank displayed as normal.
+
+## 1.2.6 (2023-08-02)
+
+- Added support for offline mode.
+	- To start the launcher in offline mode, select the "Offline Mode" button in the launcher login window.
+    - While playing in offline mode, most season features are disabled except for the following:
+        - Essence crafting
+	    - Boundless Dungeon level display
+	- Additionally, the restrictions on multiplayer games and the in-game console are removed while playing in offline mode.

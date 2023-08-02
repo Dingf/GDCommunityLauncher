@@ -10,6 +10,7 @@
 #include "Log.h"
 
 const std::regex craftingEntryRegex("^(randomizer|prefixTable|rarePrefixTable|suffixTable|rareSuffixTable)([A-Za-z]+)(\\d+)$");
+const std::regex altUpgradeRegex("(\\d+)[Bb]$");
 
 std::vector<std::regex> craftingBlacklist =
 {
@@ -128,6 +129,7 @@ void CraftingDBR::BuildCraftingDB(const std::filesystem::path& dataPath, const s
                 ItemDBR itemDBR(entry.path(), false);
                 const Value* itemLevelValue = itemDBR.GetVariable("itemLevel");
                 const Value* itemNameTagValue = itemDBR.GetVariable("itemNameTag");
+                const Value* itemStyleTagValue = itemDBR.GetVariable("itemStyleTag");
                 if ((itemLevelValue) && (itemNameTagValue))
                 {
                     std::string itemNameTag = itemNameTagValue->ToString();
@@ -143,6 +145,10 @@ void CraftingDBR::BuildCraftingDB(const std::filesystem::path& dataPath, const s
                             break;
                         }
                     }
+
+                    // Normalize the name tag for some items which have slightly different names when upgraded, e.g. "The Final Stop" -> "(Mythical) Final Stop"
+                    if ((itemStyleTagValue) && (std::regex_search(itemNameTag, altUpgradeRegex)))
+                        itemNameTag.pop_back();
 
                     if (!blacklisted)
                         itemBaseMap[itemNameTag].emplace_back((uint32_t)itemLevelValue->ToInt(), itemRecordName);

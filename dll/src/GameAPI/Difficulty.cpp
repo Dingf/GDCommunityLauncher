@@ -23,4 +23,18 @@ Difficulty GetGameDifficulty()
     return callback(*gameEngine);
 }
 
+std::string GetGameDifficultyName(Difficulty difficulty)
+{
+    switch (difficulty)
+    {
+        case GAME_DIFFICULTY_NORMAL:
+            return "Normal";
+        case GAME_DIFFICULTY_ELITE:
+            return "Elite";
+        case GAME_DIFFICULTY_ULTIMATE:
+            return "Ultimate";
+    }
+    return "";
+}
+
 }

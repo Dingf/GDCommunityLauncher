@@ -2,23 +2,6 @@
 #include "ClientHandlers.h"
 #include "DungeonDatabase.h"
 
-void HandleRender(void* _this)
-{
-    typedef void (__thiscall* RenderProto)(void*);
-
-    RenderProto callback = (RenderProto)HookManager::GetOriginalFunction("Engine.dll", EngineAPI::EAPI_NAME_RENDER);
-    if (callback)
-    {
-        callback(_this);
-
-        // Terminate the process immediately if GI is detected
-        if (GetModuleHandle(TEXT("GrimInternalsDll64.dll")))
-        {
-            ExitProcess(EXIT_SUCCESS);
-        }
-    }
-}
-
 void HandleRenderStyledText2D(void* _this, const EngineAPI::Rect& rect, const wchar_t* text, const std::string& style, float unk1, EngineAPI::UI::GraphicsXAlign xAlign, EngineAPI::UI::GraphicsYAlign yAlign, int layout)
 {
     typedef void (__thiscall* RenderTextStyled2DProto)(void*, const EngineAPI::Rect&, const wchar_t*, const std::string&, float, EngineAPI::UI::GraphicsXAlign, EngineAPI::UI::GraphicsYAlign, int);
@@ -51,7 +34,7 @@ void HandleRenderStyledText2D(void* _this, const EngineAPI::Rect& rect, const wc
                 const auto& entry = database.GetEntryByZone(areaTag);
                 if (entry._active)
                 {
-                    textString += L" (Lv";
+                    textString += L"{^O} (Lv";
                     textString += std::to_wstring(entry._level);
                     textString += L")";
                 }

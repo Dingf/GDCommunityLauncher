@@ -73,6 +73,10 @@ struct ItemReplicaInfo
     uint64_t    _unk6;
     uint32_t    _unk7;
     uint32_t    _itemStackCount;
+    uint32_t    _unk8;
+    uint32_t    _unk9;
+    uint32_t    _unk10;
+    uint32_t    _unk11;
 };
 
 void* CreateItem(const ItemReplicaInfo& info);

@@ -15,9 +15,10 @@ class Client
         bool Initialize();
         void Cleanup();
 
-        bool IsValid() const { return _data.IsValid(); }
+        bool IsValid() const { return _data.IsValid() || IsOfflineMode(); }
 
         bool IsOnline() const { return _online; }
+        bool IsOfflineMode() const { return _data._branch == "offline"; }
 
         uint32_t GetPoints() const { return _points; }
         uint32_t GetRank() const { return _rank; }
@@ -43,7 +44,7 @@ class Client
 
         bool IsInProductionBranch() const { return (_data._branch.empty()) || (_data._branch == "prod"); }
         bool IsInActiveSeason() const { return (_activeSeason != nullptr) && (!_activeSeason->_modName.empty()); }
-        bool IsParticipatingInSeason() const { return IsInActiveSeason() && (_activeCharacter._hasToken); }
+        bool IsParticipatingInSeason() const { return IsOfflineMode() || (IsInActiveSeason() && (_activeCharacter._hasToken)); }
 
         void SetActiveSeason(const std::string& modName, bool hardcore);
         void SetActiveCharacter(const std::wstring& name, bool hasToken);
