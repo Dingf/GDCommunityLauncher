@@ -1,5 +1,5 @@
-#ifndef INC_GDCL_EXE_CONFIGURATION_H
-#define INC_GDCL_EXE_CONFIGURATION_H
+#ifndef INC_GDCL_CONFIGURATION_H
+#define INC_GDCL_CONFIGURATION_H
 
 #include <map>
 #include <string>
@@ -52,4 +52,4 @@ class Configuration
         std::map<ConfigKey, std::unique_ptr<Value>> _configValues;
 };
 
-#endif//INC_GDCL_EXE_CONFIGURATION_H
+#endif//INC_GDCL_CONFIGURATION_H

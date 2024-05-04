@@ -1,6 +1,5 @@
 #include <Windows.h>
-#include "EngineAPI/Engine.h"
-#include "EngineAPI/GameInfo.h"
+#include "EngineAPI.h"
 
 namespace EngineAPI
 {
@@ -9,7 +8,7 @@ void* GetGameInfo()
 {
     typedef void* (__thiscall* GetGameInfoProto)(void*);
 
-    HMODULE engineDLL = GetModuleHandle(TEXT("Engine.dll"));
+    HMODULE engineDLL = GetModuleHandle(TEXT(ENGINE_DLL));
     if (!engineDLL)
         return nullptr;
 
@@ -26,7 +25,7 @@ uint32_t GetPlayerLevel()
 {
     typedef uint32_t(__thiscall* GetPlayerLevelProto)(void*);
 
-    HMODULE engineDLL = GetModuleHandle(TEXT("Engine.dll"));
+    HMODULE engineDLL = GetModuleHandle(TEXT(ENGINE_DLL));
     if (!engineDLL)
         return false;
 
@@ -43,7 +42,7 @@ std::wstring GetLevelName()
 {
     typedef void(__thiscall* GetLevelNameProto)(void*, std::wstring&);
 
-    HMODULE engineDLL = GetModuleHandle(TEXT("Engine.dll"));
+    HMODULE engineDLL = GetModuleHandle(TEXT(ENGINE_DLL));
     if (!engineDLL)
         return {};
 
@@ -62,7 +61,7 @@ std::string GetModName()
 {
     typedef std::string* (__thiscall* GetModNameProto)(void*);
 
-    HMODULE engineDLL = GetModuleHandle(TEXT("Engine.dll"));
+    HMODULE engineDLL = GetModuleHandle(TEXT(ENGINE_DLL));
     if (!engineDLL)
         return {};
 
@@ -79,7 +78,7 @@ bool IsHardcore()
 {
     typedef bool(__thiscall* GetIsHardcoreProto)(void*);
 
-    HMODULE engineDLL = GetModuleHandle(TEXT("Engine.dll"));
+    HMODULE engineDLL = GetModuleHandle(TEXT(ENGINE_DLL));
     if (!engineDLL)
         return false;
 
@@ -96,7 +95,7 @@ bool IsMultiplayer()
 {
     typedef bool(__thiscall* GetIsMultiplayerProto)(void*);
 
-    HMODULE engineDLL = GetModuleHandle(TEXT("Engine.dll"));
+    HMODULE engineDLL = GetModuleHandle(TEXT(ENGINE_DLL));
     if (!engineDLL)
         return nullptr;
 
@@ -107,6 +106,18 @@ bool IsMultiplayer()
         return nullptr;
 
     return callback(gameInfo);
+}
+
+bool IsMainCampaign()
+{
+    std::string modName = GetModName();
+    return modName.empty();
+}
+
+bool IsMainCampaignOrCrucible()
+{
+    std::string modName = GetModName();
+    return modName.empty() || modName == "survivalmode";
 }
 
 }

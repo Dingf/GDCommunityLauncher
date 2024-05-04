@@ -6,27 +6,26 @@
 #include "Version.h"
 #include "Log.h"
 
-ClientData* data = nullptr;
-
-bool HasBetaAccess(const std::string& role)
+inline bool HasBetaAccess(const std::string& role)
 {
     return (role == "admin") || (role == "tester");
 }
 
-bool HasOffSeasonAccess(const std::string& role)
+inline bool HasOffSeasonAccess(const std::string& role)
 {
     return (HasBetaAccess(role)) || (role == "patreon_supporter");
 }
 
-std::string GetLauncherVersion(const ClientData& data)
+std::string GetLauncherVersion()
 {
-    URI endpoint = data._gameURL / "File" / "launcher";
-    endpoint.AddParam("branch", data._branch);
+    Client& client = Client::GetInstance();
+    URI endpoint = client.GetServerGameURL() / "File" / "launcher";
+    endpoint.AddParam("branch", client.GetBranchName());
 
     web::http::client::http_client httpClient((utility::string_t)endpoint);
     web::http::http_request request(web::http::methods::GET);
 
-    std::string bearerToken = "Bearer " + data._authToken;
+    std::string bearerToken = "Bearer " + client.GetAuthToken();
     request.headers().add(U("Authorization"), bearerToken.c_str());
 
     try
@@ -55,13 +54,14 @@ std::string GetLauncherVersion(const ClientData& data)
     return {};
 }
 
-bool GetChatAPI(ClientData& data)
+bool GetChatAPI()
 {
-    URI endpoint = data._gameURL / "Admin" / "chat-url";
+    Client& client = Client::GetInstance();
+    URI endpoint = client.GetServerGameURL() / "Admin" / "chat-url";
     web::http::client::http_client httpClient((utility::string_t)endpoint);
     web::http::http_request request(web::http::methods::GET);
 
-    std::string bearerToken = "Bearer " + data._authToken;
+    std::string bearerToken = "Bearer " + client.GetAuthToken();
     request.headers().add(U("Authorization"), bearerToken.c_str());
 
     try
@@ -71,7 +71,7 @@ bool GetChatAPI(ClientData& data)
         {
             case web::http::status_codes::OK:
             {
-                data._chatURL = response.extract_utf8string().get();
+                client.SetChatURL(response.extract_utf8string().get());
                 return true;
             }
             default:
@@ -87,15 +87,48 @@ bool GetChatAPI(ClientData& data)
     return false;
 }
 
-bool GetSeasonData(ClientData& data)
+bool GetSeasonName()
 {
-    URI endpoint = data._gameURL / "Season" / "latest";
-    endpoint.AddParam("branch", data._branch);
+    Client& client = Client::GetInstance();
+    URI endpoint = client.GetServerGameURL() / "Season" / "latest" / "season-name";
+    endpoint.AddParam("branch", client.GetBranchName());
 
     web::http::client::http_client httpClient((utility::string_t)endpoint);
     web::http::http_request request(web::http::methods::GET);
 
-    std::string bearerToken = "Bearer " + data._authToken;
+    try
+    {
+        web::http::http_response response = httpClient.request(request).get();
+        switch (response.status_code())
+        {
+            case web::http::status_codes::OK:
+            {
+                client.SetSeasonName(response.extract_utf8string().get());
+                return true;
+            }
+            default:
+            {
+                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+            }
+        }
+    }
+    catch (const std::exception& ex)
+    {
+        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve season name: %", ex.what());
+    }
+    return false;
+}
+
+bool GetSeasonData()
+{
+    Client& client = Client::GetInstance();
+    URI endpoint = client.GetServerGameURL() / "Season" / "latest";
+    endpoint.AddParam("branch", client.GetBranchName());
+
+    web::http::client::http_client httpClient((utility::string_t)endpoint);
+    web::http::http_request request(web::http::methods::GET);
+
+    std::string bearerToken = "Bearer " + client.GetAuthToken();
     request.headers().add(U("Authorization"), bearerToken.c_str());
 
     try
@@ -116,7 +149,7 @@ bool GetSeasonData(ClientData& data)
                     std::time_t endDateTime = Date(endDate);
                     std::time_t currentDateTime = Date();
 
-                    if ((HasOffSeasonAccess(data._role)) || ((currentDateTime >= startDateTime) && (currentDateTime <= endDateTime)))
+                    if ((HasOffSeasonAccess(client.GetRole())) || ((currentDateTime >= startDateTime) && (currentDateTime <= endDateTime)))
                     {
                         SeasonInfo seasonInfo;
                         seasonInfo._seasonID = it->at(U("seasonId")).as_integer();
@@ -137,11 +170,10 @@ bool GetSeasonData(ClientData& data)
                         for (char& c : participationToken)
                             c = std::tolower(c);
 
-                        seasonInfo._modName = modName;
                         seasonInfo._displayName = displayName;
                         seasonInfo._participationToken = participationToken;
 
-                        data._seasons.push_back(seasonInfo);
+                        client.AddSeasonInfo(seasonInfo);
                     }
                 }
                 return true;
@@ -186,13 +218,12 @@ INT_PTR CALLBACK SelectorDialogHandler(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp
                 }
                 case IDOK:
                 {
-                    if (data != nullptr)
-                    {
-                        if (IsDlgButtonChecked(hwnd, IDC_RADIO1))
-                            data->_branch = "prod";
-                        else if (IsDlgButtonChecked(hwnd, IDC_RADIO2))
-                            data->_branch = "beta";
-                    }
+                    Client& client = Client::GetInstance();
+                    if (IsDlgButtonChecked(hwnd, IDC_RADIO1))
+                        client.SetBranch(SEASON_BRANCH_RELEASE);
+                    else if (IsDlgButtonChecked(hwnd, IDC_RADIO2))
+                        client.SetBranch(SEASON_BRANCH_BETA);
+
                     DestroyWindow(hwnd);
                     return TRUE;
                 }
@@ -221,13 +252,10 @@ INT_PTR CALLBACK SelectorDialogHandler(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp
     return FALSE;
 }
 
-bool SelectorDialog::Select(void* clientData)
+bool SelectorDialog::Select()
 {
-    if (!clientData)
-        return false;
-
-    data = (ClientData*)clientData;
-    if ((HasBetaAccess(data->_role)) && ((data->_branch.empty()) || (GetAsyncKeyState(VK_CONTROL) & (1 << 15))))
+    Client& client = Client::GetInstance();
+    if (HasBetaAccess(client.GetRole()))
     {
         HINSTANCE instance = GetModuleHandle(NULL);
         HWND hwnd = CreateDialogParam(instance, MAKEINTRESOURCE(IDD_DIALOG3), 0, SelectorDialogHandler, 0);
@@ -242,20 +270,29 @@ bool SelectorDialog::Select(void* clientData)
             }
         }
     }
+    else if (client.GetBranch() == SEASON_BRANCH_BETA)
+    {
+        client.SetBranch(SEASON_BRANCH_RELEASE);
+    }
 
-    if (!GetChatAPI(*data))
+    if (!GetChatAPI())
     {
         Logger::LogMessage(LOG_LEVEL_WARN, "Could not retrieve chat API information from the server.");
         return false;
     }
 
-    if (!GetSeasonData(*data))
+    if (!GetSeasonName())
+    {
+        Logger::LogMessage(LOG_LEVEL_WARN, "Could not retrieve mod name from the server.");
+        return false;
+    }
+
+    if (!GetSeasonData())
     {
         Logger::LogMessage(LOG_LEVEL_WARN, "Could not retrieve season information from the server.");
         return false;
     }
     
-    data->_updateFlag = (GetLauncherVersion(*data) != std::string(GDCL_VERSION));
-    
+    client.SetUpdateFlag(GetLauncherVersion() != std::string(GDCL_VERSION));
     return true;
 }

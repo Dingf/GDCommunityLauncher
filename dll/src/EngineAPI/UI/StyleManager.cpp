@@ -1,5 +1,5 @@
 #include <Windows.h>
-#include "EngineAPI/UI/StyleManager.h"
+#include "EngineAPI.h"
 
 namespace EngineAPI::UI
 {
@@ -8,7 +8,7 @@ void* GetStyleManager()
 {
     typedef void* (__thiscall* GetStyleManagerProto)();
 
-    HMODULE engineDLL = GetModuleHandle(TEXT("Engine.dll"));
+    HMODULE engineDLL = GetModuleHandle(TEXT(ENGINE_DLL));
     if (!engineDLL)
         return nullptr;
 
@@ -23,17 +23,17 @@ void* LoadFontDirect(const std::string& fontName)
 {
     typedef void* (__thiscall* LoadFontDirectProto)(void*, const std::string&);
 
-    HMODULE engineDLL = GetModuleHandle(TEXT("Engine.dll"));
+    HMODULE engineDLL = GetModuleHandle(TEXT(ENGINE_DLL));
     if (!engineDLL)
         return nullptr;
 
     LoadFontDirectProto callback = (LoadFontDirectProto)GetProcAddress(engineDLL, EAPI_NAME_LOAD_FONT_DIRECT);
-    void* styleManager = GetStyleManager();
+    void* manager = GetStyleManager();
 
-    if ((!callback) || (!styleManager))
+    if ((!callback) || (!manager))
         return nullptr;
 
-    return callback(styleManager, fontName);
+    return callback(manager, fontName);
 }
 
 }

@@ -12,6 +12,7 @@ class FileWriter : public FileBuffer
 {
     public:
         FileWriter(size_t size);
+        FileWriter(uint8_t* buffer, size_t size);
 
         virtual void BufferFloat(float val);
         virtual void BufferInt8(uint8_t val);
@@ -20,6 +21,8 @@ class FileWriter : public FileBuffer
                 void BufferInt64(uint64_t val);
         virtual void BufferString(const std::string& val);
         virtual void BufferWideString(const std::wstring& val);
+
+        void CopyFromBuffer(uint8_t* buffer, size_t size);
 
         void WriteToFile(const std::filesystem::path& filename);
 };
@@ -42,6 +45,7 @@ class EncodedFileWriter : public FileWriter
         void BufferInt32(uint32_t val) { BufferInt32(val, true); }
 
         void BufferInt64(uint64_t val) = delete;
+        void CopyFromBuffer(uint8_t* buffer, size_t size) = delete;
 
         void BufferString(std::string val);
         void BufferWideString(std::wstring val);

@@ -67,6 +67,15 @@ void Stash::ReadStashTabs(EncodedFileReader* reader, size_t count)
                 throw std::runtime_error(Logger::LogMessage(LOG_LEVEL_ERROR, "Invalid or unsupported item container type \"%\"", containerType));
         }
 
+        // This has been observed but it's unclear what causes it, how to reproduce it, or if the bug still exists
+        // So just keep this here to prevent people from losing all stash data if it happens
+        if ((tabWidth == 0) || (tabHeight == 0))
+        {
+            Logger::LogMessage(LOG_LEVEL_WARN, "Stash tab % has invalid dimensions (width = %, height = %). Using default stash tab dimensions instead.", i, tabWidth, tabHeight);
+            tabWidth = 10;
+            tabHeight = 18;
+        }
+
         std::unique_ptr<StashTab> stashTab(new StashTab(*this, tabWidth, tabHeight));
 
         uint16_t itemX, itemY;

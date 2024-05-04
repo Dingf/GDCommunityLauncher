@@ -1,10 +1,16 @@
 #include "Client.h"
 #include "Log.h"
 
-Client& Client::GetInstance(const ClientData& data)
+Client& Client::GetInstance()
 {
-    static Client instance(data);
+    static Client instance;
     return instance;
+}
+
+bool WriteByteToPipe(HANDLE pipe, uint8_t value)
+{
+    DWORD bytesWritten;
+    return (WriteFile(pipe, &value, 1, &bytesWritten, NULL) && (bytesWritten == 1));
 }
 
 bool WriteInt16ToPipe(HANDLE pipe, wchar_t value)
@@ -69,7 +75,6 @@ bool WriteSeasonsToPipe(HANDLE pipe, const std::vector<SeasonInfo>& seasons)
     {
         if (!WriteInt32ToPipe(pipe, seasons[i]._seasonID) ||
             !WriteInt32ToPipe(pipe, seasons[i]._seasonType) ||
-            !WriteStringToPipe(pipe, seasons[i]._modName) ||
             !WriteStringToPipe(pipe, seasons[i]._displayName) ||
             !WriteStringToPipe(pipe, seasons[i]._participationToken))
             return false;
@@ -79,15 +84,16 @@ bool WriteSeasonsToPipe(HANDLE pipe, const std::vector<SeasonInfo>& seasons)
 
 bool Client::WriteDataToPipe(HANDLE pipe) const
 {
-    if (!WriteStringToPipe(pipe, _data._username) ||
-        !WriteStringToPipe(pipe, _data._password) ||
-        !WriteStringToPipe(pipe, _data._authToken) ||
-        !WriteStringToPipe(pipe, _data._refreshToken) ||
-        !WriteStringToPipe(pipe, _data._gameURL) ||
-        !WriteStringToPipe(pipe, _data._chatURL) ||
-        !WriteStringToPipe(pipe, _data._branch) ||
-        !WriteInt32ToPipe(pipe, _data._updateFlag) ||
-        !WriteSeasonsToPipe(pipe, _data._seasons))
+    if (!WriteStringToPipe(pipe, _username) ||
+        !WriteStringToPipe(pipe, _password) ||
+        !WriteStringToPipe(pipe, _authToken) ||
+        !WriteStringToPipe(pipe, _refreshToken) ||
+        !WriteStringToPipe(pipe, _seasonName) ||
+        !WriteStringToPipe(pipe, _gameURL) ||
+        !WriteStringToPipe(pipe, _chatURL) ||
+        !WriteInt32ToPipe(pipe, _branch) ||
+        !WriteByteToPipe(pipe, (uint8_t)_hasUpdate) ||
+        !WriteSeasonsToPipe(pipe, _seasons))
     {
         Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to write client data to the stdin pipe.");
         return false;

@@ -8,17 +8,30 @@
 
 inline std::string GenerateFileMD5(const std::filesystem::path& path)
 {
-    std::stringstream buffer;
+    std::stringstream stream;
     std::ifstream in(path, std::ifstream::binary | std::ifstream::in);
     if (!in.is_open())
         return {};
 
-    buffer << in.rdbuf();
+    stream << in.rdbuf();
 
     in.close();
 
     // Capitalize the MD5 hash to match the server output
-    std::string result = websocketpp::md5::md5_hash_hex(buffer.str());
+    std::string result = websocketpp::md5::md5_hash_hex(stream.str());
+    for (std::string::iterator it = result.begin(); it != result.end(); ++it)
+        *it = toupper(*it);
+
+    return result;
+}
+
+inline std::string GenerateBufferMD5(uint8_t* buffer, size_t size)
+{
+    std::stringstream stream;
+    stream.write((const char*)buffer, size);
+
+    // Capitalize the MD5 hash to match the server output
+    std::string result = websocketpp::md5::md5_hash_hex(stream.str());
     for (std::string::iterator it = result.begin(); it != result.end(); ++it)
         *it = toupper(*it);
 

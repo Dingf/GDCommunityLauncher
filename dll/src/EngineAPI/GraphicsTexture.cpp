@@ -1,5 +1,5 @@
 #include <Windows.h>
-#include "EngineAPI/GraphicsTexture.h"
+#include "EngineAPI.h"
 
 namespace EngineAPI
 {
@@ -8,7 +8,7 @@ uint32_t GetTextureWidth(void* texture)
 {
     typedef uint32_t (__thiscall* GetTextureWidthProto)(void*);
 
-    HMODULE engineDLL = GetModuleHandle(TEXT("Engine.dll"));
+    HMODULE engineDLL = GetModuleHandle(TEXT(ENGINE_DLL));
     if (!engineDLL)
         return 0;
 
@@ -23,7 +23,7 @@ uint32_t GetTextureHeight(void* texture)
 {
     typedef uint32_t (__thiscall* GetTextureHeightProto)(void*);
 
-    HMODULE engineDLL = GetModuleHandle(TEXT("Engine.dll"));
+    HMODULE engineDLL = GetModuleHandle(TEXT(ENGINE_DLL));
     if (!engineDLL)
         return 0;
 

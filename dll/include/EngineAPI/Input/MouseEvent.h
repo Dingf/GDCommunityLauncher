@@ -2,6 +2,7 @@
 #define INC_GDCL_DLL_ENGINE_API_MOUSE_EVENT_H
 
 #include <stdint.h>
+#include "KeyButtonEvent.h"
 
 namespace EngineAPI
 {
@@ -11,6 +12,9 @@ constexpr char EAPI_NAME_HANDLE_MOUSE_EVENT[] = "?HandleMouseEvent@DisplayWidget
 #else
 constexpr char EAPI_NAME_HANDLE_MOUSE_EVENT[] = "?HandleMouseEvent@DisplayWidget@GAME@@UAE_NABUMouseEvent@InputDevice@2@@Z";
 #endif
+
+namespace Input
+{
 
 enum MouseAction : uint32_t
 {
@@ -44,26 +48,16 @@ enum MouseState : uint64_t
     MOUSE_STATE_BUTTON4 = 0x0001000000000000,
 };
 
-enum MouseModifier : uint32_t
-{
-    MOUSE_MODIFIER_NONE  = 0x00000000,
-    MOUSE_MODIFIER_SHIFT = 0x00000100,
-    MOUSE_MODIFIER_ALT   = 0x00010000,
-    MOUSE_MODIFIER_CTRL  = 0x01000000,
-    MOUSE_MODIFIER_SHIFT_ALT = MOUSE_MODIFIER_SHIFT | MOUSE_MODIFIER_ALT,
-    MOUSE_MODIFIER_SHIFT_CTRL = MOUSE_MODIFIER_SHIFT | MOUSE_MODIFIER_CTRL,
-    MOUSE_MODIFIER_ALT_CTRL = MOUSE_MODIFIER_ALT | MOUSE_MODIFIER_CTRL,
-    MOUSE_MODIFIER_SHIFT_ALT_CTRL = MOUSE_MODIFIER_SHIFT | MOUSE_MODIFIER_ALT | MOUSE_MODIFIER_CTRL,
-};
-
 struct MouseEvent
 {
     MouseAction _action;
     float _x;
     float _y;
     MouseState _state;
-    MouseModifier _modifier;
+    KeyModifier _modifier;
 };
+
+}
 
 };
 

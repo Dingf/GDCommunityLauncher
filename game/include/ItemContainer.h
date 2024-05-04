@@ -23,7 +23,7 @@ class ItemContainer
     public:
         typedef std::map<std::shared_ptr<Item>, uint64_t> ItemList;
 
-        ItemContainer(uint32_t width, uint32_t height, bool ignoreItemSize = false);
+        ItemContainer(uint32_t width, uint32_t height);
         virtual ~ItemContainer() = 0;
 
         uint32_t GetWidth()  const { return _width; }
@@ -41,10 +41,6 @@ class ItemContainer
         const ItemList& GetItemList() const { return _itemList; }
 
     protected:
-        bool CanPlaceItem(const Item& item, uint32_t x, uint32_t y) const;
-
-        const bool _ignoreItemSize;         // If specified, ignore item size when adding items
-
         const uint32_t _width;
         const uint32_t _height;
 

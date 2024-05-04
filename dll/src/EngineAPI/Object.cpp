@@ -1,5 +1,5 @@
 #include <Windows.h>
-#include "EngineAPI/Object.h"
+#include "EngineAPI.h"
 
 namespace EngineAPI
 {
@@ -8,7 +8,7 @@ void* GetObjectManager()
 {
     typedef void* (__thiscall* GetObjectManagerProto)();
 
-    HMODULE engineDLL = GetModuleHandle(TEXT("Engine.dll"));
+    HMODULE engineDLL = GetModuleHandle(TEXT(ENGINE_DLL));
     if (!engineDLL)
         return nullptr;
 
@@ -23,7 +23,7 @@ void GetObjectList(std::vector<void*>& objectList)
 {
     typedef void(__thiscall* GetObjectListProto)(void*, std::vector<void*>&);
 
-    HMODULE engineDLL = GetModuleHandle(TEXT("Engine.dll"));
+    HMODULE engineDLL = GetModuleHandle(TEXT(ENGINE_DLL));
     if (!engineDLL)
         return;
 
@@ -52,7 +52,7 @@ uint32_t GetObjectID(void* object)
 {
     typedef uint32_t(__thiscall* GetObjectIDProto)(void*);
 
-    HMODULE engineDLL = GetModuleHandle(TEXT("Engine.dll"));
+    HMODULE engineDLL = GetModuleHandle(TEXT(ENGINE_DLL));
     if ((!engineDLL) || (!object))
         return 0;
 
@@ -67,7 +67,7 @@ std::string GetObjectName(void* object)
 {
     typedef const char* (__thiscall* GetObjectNameProto)(void*);
 
-    HMODULE engineDLL = GetModuleHandle(TEXT("Engine.dll"));
+    HMODULE engineDLL = GetModuleHandle(TEXT(ENGINE_DLL));
     if ((!engineDLL) || (!object))
         return {};
 
@@ -82,7 +82,7 @@ void DestroyObjectEx(void* object)
 {
     typedef void(__thiscall* DestroyObjectExProto)(void*, void*, const char*, int32_t);
 
-    HMODULE engineDLL = GetModuleHandle(TEXT("Engine.dll"));
+    HMODULE engineDLL = GetModuleHandle(TEXT(ENGINE_DLL));
     void* objectManager = GetObjectManager();
     if ((!engineDLL) || (!objectManager))
         return;
@@ -92,6 +92,22 @@ void DestroyObjectEx(void* object)
         return;
 
     callback(objectManager, object, nullptr, 0);
+}
+
+uint32_t CreateObjectID()
+{
+    typedef uint32_t (__thiscall* CreateObjectIDProto)(void*);
+
+    HMODULE engineDLL = GetModuleHandle(TEXT(ENGINE_DLL));
+    void* objectManager = GetObjectManager();
+    if ((!engineDLL) || (!objectManager))
+        return 0;
+
+    CreateObjectIDProto callback = (CreateObjectIDProto)GetProcAddress(engineDLL, EAPI_NAME_CREATE_OBJECT_ID);
+    if (!callback)
+        return 0;
+
+    return callback(objectManager);
 }
 
 }

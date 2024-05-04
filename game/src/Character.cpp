@@ -81,7 +81,6 @@ bool Character::ReadFromFile(const std::filesystem::path& path)
             ReadUIBlock(&reader);
             ReadTutorialBlock(&reader);
             ReadStatsBlock(&reader);
-
             return true;
         }
         catch (std::runtime_error&)
@@ -95,6 +94,41 @@ bool Character::ReadFromFile(const std::filesystem::path& path)
         Logger::LogMessage(LOG_LEVEL_WARN, "The path \"%\" is not recognized as a file.", path.string());
     }
     return false;
+}
+
+bool Character::ReadFromBuffer(uint8_t* data, size_t size)
+{
+    EncodedFileReader reader(data, size);
+    if (!reader.HasData())
+    {
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to read character data from buffer");
+        return false;
+    }
+
+    try
+    {
+        ReadHeaderBlock(&reader);
+        ReadInfoBlock(&reader);
+        ReadAttributesBlock(&reader);
+        ReadInventoryBlock(&reader);
+        ReadStashBlock(&reader);
+        ReadRespawnBlock(&reader);
+        ReadWaypointBlock(&reader);
+        ReadMarkerBlock(&reader);
+        ReadShrineBlock(&reader);
+        ReadSkillBlock(&reader);
+        ReadNotesBlock(&reader);
+        ReadFactionBlock(&reader);
+        ReadUIBlock(&reader);
+        ReadTutorialBlock(&reader);
+        ReadStatsBlock(&reader);
+        return true;
+    }
+    catch (std::runtime_error&)
+    {
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to load character data from buffer");
+        return false;
+    }
 }
 
 void Character::ReadHeaderBlock(EncodedFileReader* reader)
@@ -443,6 +477,11 @@ void Character::ReadSkillBlock(EncodedFileReader* reader)
         _skillBlock._charItemSkills.emplace_back(reader);
     }
 
+    // Added in version 6
+    // Seems to be 0 on most characters
+    if (_skillBlock.GetBlockVersion() >= 6)
+        _skillBlock._unk1 = reader->ReadInt32();
+
     _skillBlock.ReadBlockEnd(reader);
 }
 
@@ -485,17 +524,20 @@ void Character::ReadUIBlock(EncodedFileReader* reader)
     _UIBlock._unk2 = reader->ReadInt32();
     _UIBlock._unk3 = reader->ReadInt8();
 
-    // Is this always hardcoded at 5? Not sure... it would probably help to know what this actually does
-    _UIBlock._unk4.clear();
-    for (uint32_t i = 0; i < 5; ++i)
+    // Added in version 6, seems to always be 5 of these data structures?
+    if (_UIBlock.GetBlockVersion() >= 6)
     {
-        CharacterUIBlock::CharacterUIUnkData unknown;
-        unknown._unk1 = reader->ReadString();
-        unknown._unk2 = reader->ReadString();
-        unknown._unk3 = reader->ReadInt8();
-        _UIBlock._unk4.push_back(unknown);
+        _UIBlock._unk4.clear();
+        for (uint32_t i = 0; i < 5; ++i)
+        {
+            CharacterUIBlock::CharacterUIUnkData unknown;
+            unknown._unk1 = reader->ReadString();
+            unknown._unk2 = reader->ReadString();
+            unknown._unk3 = reader->ReadInt8();
+            _UIBlock._unk4.push_back(unknown);
+        }
     }
-
+    
     _UIBlock._charUISlots.clear();
     uint32_t numSlots = (_UIBlock.GetBlockVersion() >= 5) ? 46 : 36;
     for (uint32_t i = 0; i < numSlots; ++i)
@@ -518,9 +560,15 @@ void Character::ReadUIBlock(EncodedFileReader* reader)
                 slot._slotBitmapDown = reader->ReadString();
                 slot._slotLabel = reader->ReadWideString();
                 break;
+            // Unknown case, hasn't appeared before 1.2.1.0
+            case 1:
+                reader->ReadInt32();    // Value is "47" on most characters
+                reader->ReadInt32();    // Value is "0" on most characters
+                break;
             // Not sure what these are; they appear to contain no data other than the slot type
             case 2:
             case 3:
+            case 5:     // Seems to be the evade skill?
             case -1:    // Maybe an empty slot?
                 break;
             default:
@@ -528,6 +576,14 @@ void Character::ReadUIBlock(EncodedFileReader* reader)
         }
         _UIBlock._charUISlots.push_back(slot);
     }
+
+    // Added in version 7, value is "-1" on most characters
+    if (_UIBlock.GetBlockVersion() >= 7)
+        _UIBlock._unk6 = reader->ReadInt32();
+
+    // Added in version 6, value is "5" on most characters, probably something to do with the evade/potion buttons or the unknown data above?
+    if (_UIBlock.GetBlockVersion() >= 6)
+        _UIBlock._unk5 = reader->ReadInt32();
 
     _UIBlock._charCameraDistance = reader->ReadFloat();
 

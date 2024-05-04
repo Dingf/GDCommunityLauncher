@@ -1,8 +1,6 @@
 #include <Windows.h>
 #include "EngineAPI.h"
-#include "GameAPI/GameEngine.h"
-#include "GameAPI/Difficulty.h"
-#include "GameAPI/Player.h"
+#include "GameAPI.h"
 
 namespace GameAPI
 {
@@ -11,7 +9,7 @@ void* GetMainPlayer()
 {
     typedef void* (__thiscall* GetMainPlayerProto)(void*);
 
-    HMODULE gameDLL = GetModuleHandle(TEXT("Game.dll"));
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
     if (!gameDLL)
         return nullptr;
 
@@ -29,7 +27,17 @@ void* GetPlayerController(void* player)
     if (!player)
         return nullptr;
 
-    uint32_t controllerID = *(uint32_t*)((uintptr_t)player + 0x1328);
+    uint32_t controllerID = 0;
+    std::string versionString = EngineAPI::GetVersionString();
+
+    // This will likely need to be updated in future versions if the data structure changes again
+    if (versionString.compare("v1.2.0.5") < 0)
+        controllerID = *(uint32_t*)((uintptr_t)player + 0x1328);    // Pre-version 1.2.0.5
+    else if (versionString.compare("v1.2.1.0") < 0)
+        controllerID = *(uint32_t*)((uintptr_t)player + 0x15E0);    // Version 1.2.0.5
+    else
+        controllerID = *(uint32_t*)((uintptr_t)player + 0x15F8);    // Version 1.2.1.0
+
     return EngineAPI::FindObjectByID(controllerID);
 }
 
@@ -37,7 +45,7 @@ const wchar_t* GetPlayerName(void* player)
 {
     typedef const wchar_t* (__thiscall* GetPlayerNameProto)(void*);
 
-    HMODULE gameDLL = GetModuleHandle(TEXT("Game.dll"));
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
     if ((!gameDLL) || (!player))
         return nullptr;
 
@@ -52,7 +60,7 @@ std::string GetPlayerNameInChar(void* player)
 {
     typedef std::string (__thiscall* GetPlayerNameInCharProto)(void*);
 
-    HMODULE gameDLL = GetModuleHandle(TEXT("Game.dll"));
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
     if ((!gameDLL) || (!player))
         return {};
 
@@ -67,7 +75,7 @@ int32_t GetPlayerPartyID(void* player)
 {
     typedef int32_t(__thiscall* GetPlayerPartyIDProto)(void*);
 
-    HMODULE gameDLL = GetModuleHandle(TEXT("Game.dll"));
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
     if ((!gameDLL) || (!player))
         return 0;
 
@@ -82,7 +90,7 @@ bool PlayerHasToken(void* player, std::string token)
 {
     typedef bool(__thiscall* HasTokenProto)(void*, std::string);
 
-    HMODULE gameDLL = GetModuleHandle(TEXT("Game.dll"));
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
     if ((!gameDLL) || (!player))
         return nullptr;
 
@@ -97,11 +105,41 @@ bool IsPlayerHardcore(void* player)
 {
     typedef bool(__thiscall* IsPlayerHardcoreProto)(void*);
 
-    HMODULE gameDLL = GetModuleHandle(TEXT("Game.dll"));
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
     if ((!gameDLL) || (!player))
         return nullptr;
 
-    IsPlayerHardcoreProto callback = (IsPlayerHardcoreProto)GetProcAddress(gameDLL, GAPI_NAME_IS_HARDCORE);
+    IsPlayerHardcoreProto callback = (IsPlayerHardcoreProto)GetProcAddress(gameDLL, GAPI_NAME_IS_PLAYER_HARDCORE);
+    if (!callback)
+        return nullptr;
+
+    return callback((void*)player);
+}
+
+bool IsPlayerInMainQuest(void* player)
+{
+    typedef bool(__thiscall* IsPlayerInMainQuestProto)(void*);
+
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
+    if ((!gameDLL) || (!player))
+        return nullptr;
+
+    IsPlayerInMainQuestProto callback = (IsPlayerInMainQuestProto)GetProcAddress(gameDLL, GAPI_NAME_IS_PLAYER_IN_MAIN_QUEST);
+    if (!callback)
+        return nullptr;
+
+    return callback((void*)player);
+}
+
+bool HasPlayerBeenInGame(void* player)
+{
+    typedef bool(__thiscall* HasPlayerBeenInGameProto)(void*);
+
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
+    if ((!gameDLL) || (!player))
+        return nullptr;
+
+    HasPlayerBeenInGameProto callback = (HasPlayerBeenInGameProto)GetProcAddress(gameDLL, GAPI_NAME_GET_PLAYER_HAS_BEEN_IN_GAME);
     if (!callback)
         return nullptr;
 
@@ -112,7 +150,7 @@ Difficulty GetPlayerMaxDifficulty(void* player)
 {
     typedef Difficulty(__thiscall* GetPlayerMaxDifficultyProto)(void*);
 
-    HMODULE gameDLL = GetModuleHandle(TEXT("Game.dll"));
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
     if ((!gameDLL) || (!player))
         return GAME_DIFFICULTY_NORMAL;
 
@@ -127,7 +165,7 @@ void SetPlayerMaxDifficulty(void* player, Difficulty difficulty)
 {
     typedef void (__thiscall* SetPlayerMaxDifficultyProto)(void*, Difficulty);
 
-    HMODULE gameDLL = GetModuleHandle(TEXT("Game.dll"));
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
     if ((!gameDLL) || (!player))
         return;
 
@@ -136,6 +174,33 @@ void SetPlayerMaxDifficulty(void* player, Difficulty difficulty)
         return;
 
     callback(player, difficulty);
+}
+
+void GiveItemToPlayer(void* player, void* item, bool unk1, bool unk2)
+{
+    typedef void (__thiscall* GiveItemToCharacterProto)(void*, void*, bool, bool);
+
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
+    if (!gameDLL)
+        return;
+
+    GiveItemToCharacterProto callback = (GiveItemToCharacterProto)GetProcAddress(gameDLL, GAPI_NAME_GIVE_ITEM_TO_PLAYER);
+    if ((!callback) || (!player) || (!item))
+        return;
+
+    callback(player, item, unk1, unk2);
+}
+
+void AddOrSubtractMoney(void* player, int32_t amount)
+{
+    if (!player)
+        return;
+
+    uint32_t* moneyAddress = (uint32_t*)((uintptr_t)player + 0x15E4);
+    int64_t moneyAmount = *moneyAddress;
+    moneyAmount += amount;
+    moneyAmount = std::clamp(moneyAmount, (int64_t)0, (int64_t)0xFFFFFFFF);
+    *moneyAddress = (uint32_t)moneyAmount;
 }
 
 }

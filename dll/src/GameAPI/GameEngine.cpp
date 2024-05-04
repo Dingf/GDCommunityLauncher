@@ -1,12 +1,12 @@
 #include <Windows.h>
-#include "GameAPI/GameEngine.h"
+#include "GameAPI.h"
 
 namespace GameAPI
 {
 
 void** GetGameEngineHandle()
 {
-    HMODULE gameDLL = GetModuleHandle(TEXT("Game.dll"));
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
     if (!gameDLL)
         return nullptr;
 

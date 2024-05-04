@@ -43,29 +43,30 @@ void SetDialogState(HWND hwnd, BOOL state)
     EnableWindow(GetDlgItem(hwnd, IDHELP), state);
 }
 
-bool InitializeClient(const ClientData& data)
+bool InitializeClient()
 {
-    if ((data._branch != "offline") && (!SelectorDialog::Select((void*)&data)))
+    Client& client = Client::GetInstance();
+    if (!client.IsOfflineMode() && (!SelectorDialog::Select()))
         return false;
 
-    if ((LoginDialog::_config) && (!data._branch.empty()))
-        LoginDialog::_config->SetValue("Login", "branch", data._branch.c_str());
+    if (LoginDialog::_config)
+        LoginDialog::_config->SetValue("Login", "branch", client.GetBranch());
 
-    Client& client = Client::GetInstance(data);
     return true;
 }
 
-void LoginValidateCallback(ServerAuthResult result, const ClientData& data)
+void LoginValidateCallback(ServerAuthResult result)
 {
     if (LoginDialog::_window)
     {
+        Client& client = Client::GetInstance();
         switch (result)
         {
             case SERVER_AUTH_OK:
             {
-                if (!InitializeClient(data))
+                if (!InitializeClient())
                     SendMessage(LoginDialog::_window, WM_LOGIN_OTHER_ERROR, NULL, NULL);
-                else if (data._seasons.empty())
+                else if (!client.HasSeasons())
                     SendMessage(LoginDialog::_window, WM_LOGIN_INVALID_SEASONS, NULL, NULL);
                 else
                     SendMessage(LoginDialog::_window, WM_LOGIN_OK, NULL, NULL);
@@ -141,13 +142,13 @@ INT_PTR CALLBACK LoginDialogHandler(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
                     const Value* hostValue = LoginDialog::_config->GetValue("Login", "hostname");
                     if ((hostValue) && (hostValue->GetType() == VALUE_TYPE_STRING))
                     {
-                        ClientData data;
-                        
-                        data._username = username;
-                        data._password = password;
-                        data._gameURL = hostValue->ToString();
+                        Client& client = Client::GetInstance();
 
-                        std::thread t(&ServerAuthenticate, data, LoginValidateCallback);
+                        client.SetUsername(username);
+                        client.SetPassword(password);
+                        client.SetGameURL(hostValue->ToString());
+
+                        std::thread t(&ServerAuthenticate, LoginValidateCallback);
                         t.detach();
 
                         SetDialogState(hwnd, FALSE);
@@ -160,11 +161,11 @@ INT_PTR CALLBACK LoginDialogHandler(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
                 }
                 case IDHELP:
                 {
-                    ClientData data;
-                    data._branch = "offline";
-                    data._updateFlag = false;
+                    Client& client = Client::GetInstance();
+                    client.SetBranch(SEASON_BRANCH_OFFLINE);
+                    client.SetUpdateFlag(false);
 
-                    if (!InitializeClient(data))
+                    if (!InitializeClient())
                         return FALSE;
 
                     SendMessage(LoginDialog::_window, WM_LOGIN_OFFLINE_MODE, NULL, NULL);
@@ -276,75 +277,84 @@ bool LoginDialog::Login(void* configPointer)
     _config = (Configuration*)configPointer;
 
     // Try to autologin if enabled, otherwise display the login prompt
+    // Skip autologin if user is holding down the CTRL key
     bool autoLogin = false;
-    const Value* autoLoginValue = _config->GetValue("Login", "autologin");
-    if ((autoLoginValue) && (autoLoginValue->GetType() == VALUE_TYPE_BOOL) && (autoLoginValue->ToBool()))
+    if ((GetAsyncKeyState(VK_CONTROL) & (1 << 15)) == 0)
     {
-        std::string hostName;
-        const Value* hostValue = _config->GetValue("Login", "hostname");
-        if ((hostValue) && (hostValue->GetType() == VALUE_TYPE_STRING))
-            hostName = hostValue->ToString();
-
-        std::string username;
-        const  Value* usernameValue = _config->GetValue("Login", "username");
-        if ((usernameValue) && (usernameValue->GetType() == VALUE_TYPE_STRING))
-            username = usernameValue->ToString();
-
-        std::string password;
-        const Value* passwordValue = _config->GetValue("Login", "password");
-        if ((passwordValue) && (passwordValue->GetType() == VALUE_TYPE_STRING))
-            password = passwordValue->ToString();
-
-        std::string branch;
-        const Value* branchValue = _config->GetValue("Login", "branch");
-        if ((branchValue) && (branchValue->GetType() == VALUE_TYPE_STRING))
-            branch = branchValue->ToString();
-
-        if (branch == "offline")
+        const Value* autoLoginValue = _config->GetValue("Login", "autologin");
+        if ((autoLoginValue) && (autoLoginValue->GetType() == VALUE_TYPE_BOOL) && (autoLoginValue->ToBool()))
         {
-            ClientData data;
-            data._branch = "offline";
-            data._updateFlag = false;
+            Client& client = Client::GetInstance();
 
-            if (!InitializeClient(data))
+            std::string hostName;
+            const Value* hostValue = _config->GetValue("Login", "hostname");
+            if ((hostValue) && (hostValue->GetType() == VALUE_TYPE_STRING))
+                hostName = hostValue->ToString();
+
+            std::string username;
+            const  Value* usernameValue = _config->GetValue("Login", "username");
+            if ((usernameValue) && (usernameValue->GetType() == VALUE_TYPE_STRING))
+                username = usernameValue->ToString();
+
+            std::string password;
+            const Value* passwordValue = _config->GetValue("Login", "password");
+            if ((passwordValue) && (passwordValue->GetType() == VALUE_TYPE_STRING))
+                password = passwordValue->ToString();
+
+            SeasonBranch branch = SEASON_BRANCH_RELEASE;
+            const Value* branchValue = _config->GetValue("Login", "branch");
+            if ((branchValue) && (branchValue->GetType() == VALUE_TYPE_INT))
+                branch = static_cast<SeasonBranch>(branchValue->ToInt());
+
+            // In case the user modifies the config with an invalid branch ID
+            if ((branch < SEASON_BRANCH_OFFLINE) || (branch > SEASON_BRANCH_BETA))
+                branch = SEASON_BRANCH_RELEASE;
+
+            if (branch == SEASON_BRANCH_OFFLINE)
             {
-                DisplayLoginErrorMessageBox(NULL, LOGIN_RESULT_OTHER_ERROR);
-                return false;
-            }
+                client.SetBranch(SEASON_BRANCH_OFFLINE);
+                client.SetUpdateFlag(false);
 
-            autoLogin = true;
-        }
-        else if ((!hostName.empty()) && (!username.empty()) && (!password.empty()))
-        {
-            ClientData data;
-            data._username = username;
-            data._password = password;
-            data._gameURL = hostName;
-            data._branch = branch;
-
-            std::future<ServerAuthResult> future = std::async(&ServerAuthenticate, std::ref(data), nullptr);
-            ServerAuthResult loginResult = future.get();
-            if (loginResult == SERVER_AUTH_OK)
-            {
-                if (!InitializeClient(data))
+                if (!InitializeClient())
                 {
                     DisplayLoginErrorMessageBox(NULL, LOGIN_RESULT_OTHER_ERROR);
                     return false;
                 }
-                else if (data._seasons.empty())
-                {
-                    DisplayLoginErrorMessageBox(NULL, LOGIN_RESULT_INVALID_SEASONS);
-                    return false;
-                }
+
                 autoLogin = true;
             }
-            else
+            else if ((!hostName.empty()) && (!username.empty()) && (!password.empty()))
             {
-                DisplayLoginErrorMessageBox(NULL, (LoginResult)loginResult);
-                if (loginResult != SERVER_AUTH_INVALID_LOGIN)
-                    return false;
+                client.SetUsername(username);
+                client.SetPassword(password);
+                client.SetGameURL(hostName);
+                client.SetBranch(branch);
+
+                std::future<ServerAuthResult> future = std::async(&ServerAuthenticate, nullptr);
+                ServerAuthResult loginResult = future.get();
+                if (loginResult == SERVER_AUTH_OK)
+                {
+                    if (!InitializeClient())
+                    {
+                        DisplayLoginErrorMessageBox(NULL, LOGIN_RESULT_OTHER_ERROR);
+                        return false;
+                    }
+                    else if (!client.HasSeasons())
+                    {
+                        DisplayLoginErrorMessageBox(NULL, LOGIN_RESULT_INVALID_SEASONS);
+                        return false;
+                    }
+                    autoLogin = true;
+                }
+                else
+                {
+                    DisplayLoginErrorMessageBox(NULL, (LoginResult)loginResult);
+                    if (loginResult != SERVER_AUTH_INVALID_LOGIN)
+                        return false;
+                }
             }
         }
+
     }
 
     if (autoLogin)
@@ -367,7 +377,7 @@ bool LoginDialog::Login(void* configPointer)
         }
 
         Client& client = Client::GetInstance();
-        if (!client.IsValid())
+        if ((!client.IsInitialized()) && (!client.IsOfflineMode()))
         {
             MessageBox(NULL, TEXT("Failed to retrieve data from the server."), NULL, MB_OK | MB_ICONERROR);
             return FALSE;

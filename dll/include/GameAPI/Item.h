@@ -3,7 +3,9 @@
 
 #include <stdint.h>
 #include <string>
+#include "ItemType.h"
 
+struct Item;
 namespace GameAPI
 {
 
@@ -80,16 +82,21 @@ struct ItemReplicaInfo
 };
 
 void* CreateItem(const ItemReplicaInfo& info);
-void GetItemReplicaInfo(void* item, ItemReplicaInfo& info);
+uint32_t GenerateItemSeed(uint32_t max = 0xFFFFFFFF);
+ItemReplicaInfo GetItemReplicaInfo(void* item);
 void SetItemReplicaInfo(void* item, const ItemReplicaInfo& info);
 uint32_t GetItemLevel(void* item);
 ItemClassification GetItemClassification(void* item);
 void* GetItemBitmap(void* item);
 uint32_t GetItemWidth(void* item);
 uint32_t GetItemHeight(void* item);
+ItemType GetItemType(void* item);
+WeaponType GetWeaponType(void* item);
 std::string GetItemNameTag(void* item);
 std::string GetItemPrefixTag(void* item);
 std::string GetItemSuffixTag(void* item);
+ItemReplicaInfo ItemToInfo(const Item& item);
+Item InfoToItem(const GameAPI::ItemReplicaInfo& info);
 
 }
 

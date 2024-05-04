@@ -92,6 +92,7 @@ class Character : public JSONObject
         Character(const std::filesystem::path& path) { ReadFromFile(path); }
 
         bool ReadFromFile(const std::filesystem::path& path);
+        bool ReadFromBuffer(uint8_t* data, size_t size);
 
         web::json::value ToJSON() const;
 
@@ -206,7 +207,7 @@ class Character : public JSONObject
             class CharacterEquipped : public ItemContainer
             {
                 public:
-                    CharacterEquipped() : ItemContainer(1, MAX_CHAR_INV_SLOT, true) {}
+                    CharacterEquipped() : ItemContainer(1, MAX_CHAR_INV_SLOT) {}
 
                     size_t GetBufferSize() const;
 
@@ -305,10 +306,10 @@ class Character : public JSONObject
         }
         _shrineBlock;
 
-        // Skills Block, ID = 8, Version = 5
+        // Skills Block, ID = 8, Version = 5,6
         struct CharacterSkillBlock : public GDDataBlock
         {
-            CharacterSkillBlock() : GDDataBlock(0x08, 0x10) {}
+            CharacterSkillBlock() : GDDataBlock(0x08, 0x30) {}
 
             web::json::value ToJSON() const;
 
@@ -317,6 +318,7 @@ class Character : public JSONObject
             uint32_t           _charDevotionReclaimed;
             std::vector<ClassSkill> _charClassSkills;
             std::vector<ItemSkill>  _charItemSkills;
+            uint32_t           _unk1;
         }
         _skillBlock;
 
@@ -343,10 +345,10 @@ class Character : public JSONObject
         }
         _factionBlock;
 
-        // UI Settings Block, ID = 14, Version = 4,5
+        // UI Settings Block, ID = 14, Version = 4,5,6,7
         struct CharacterUIBlock : public GDDataBlock
         {
-            CharacterUIBlock() : GDDataBlock(0x0E, 0x18) {}
+            CharacterUIBlock() : GDDataBlock(0x0E, 0x78) {}
 
             web::json::value ToJSON() const;
 
@@ -376,6 +378,8 @@ class Character : public JSONObject
             uint8_t            _unk1;
             uint32_t           _unk2;
             uint8_t            _unk3;
+            uint32_t           _unk5;
+            int32_t            _unk6;
             float              _charCameraDistance;
             std::vector<CharacterUIUnkData> _unk4;
             std::vector<CharacterUISlot>    _charUISlots;

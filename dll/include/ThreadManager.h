@@ -87,7 +87,7 @@ class ThreadManager
             return true;
         }
 
-        static void RemoveThread(const std::string& name);
+        static void StopThread(const std::string& name);
 
     private:
         enum ThreadType

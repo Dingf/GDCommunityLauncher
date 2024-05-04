@@ -11,7 +11,7 @@ class FileReader : public FileBuffer
 {
     public:
         FileReader(const std::filesystem::path& filename);
-        FileReader(uint8_t* buffer, int64_t size);
+        FileReader(uint8_t* buffer, size_t size);
 
         bool HasData() const { return (_bufferSize > 0); }
 
@@ -28,7 +28,7 @@ class EncodedFileReader : public FileReader
 {
     public:
         EncodedFileReader(const std::filesystem::path& filename);
-        EncodedFileReader(uint8_t* buffer, int64_t size);
+        EncodedFileReader(uint8_t* buffer, size_t size);
 
         float ReadFloat(bool update);
         float ReadFloat() { return ReadFloat(true); }

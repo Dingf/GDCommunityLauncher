@@ -20,7 +20,6 @@ std::vector<std::regex> craftingBlacklist =
     std::regex("common"),
     std::regex("ghost_visuals"),
     std::regex("_broken"),
-    std::regex("illidan"),
     std::regex("hands_lesaunt"),
     std::regex("\\/[a-z][0-9]00_[A-Za-z0-9_-]+\\.dbr$"),
     std::regex("\\/a[0-9]+_[A-Za-z0-9_-]+\\.dbr$"),
@@ -55,9 +54,11 @@ void CraftingDBR::BuildCraftingDB(const std::filesystem::path& dataPath, const s
     if (!out.is_open())
         throw std::runtime_error(Logger::LogMessage(LOG_LEVEL_ERROR, "Could not open file % for writing", outFilePath.string().c_str()));
 
-    for (uint32_t i = 1; i < MAX_ITEM_TYPES; ++i)
+    for (auto pair : CraftingTemplate::GetTemplates())
     {
-        const CraftingTemplate& craftTemplate = CraftingTemplate::GetTemplate((ItemType)i);
+        ItemType itemType = (ItemType)((pair.first >> 32) & 0xFFFFFFFF);
+        WeaponType weaponType = (WeaponType)(pair.first & 0xFFFFFFFF);
+        const CraftingTemplate& craftTemplate = pair.second;
         if (craftTemplate._recordName.empty())
             continue;
 
@@ -79,7 +80,7 @@ void CraftingDBR::BuildCraftingDB(const std::filesystem::path& dataPath, const s
 
                 if ((adjustedWeight > 0) && (adjustedMinLevel <= adjustedMaxLevel))
                 {
-                    out << "\"prefix" << i << "\" "
+                    out << "\"prefix" << itemType << "_" << weaponType << "\" "
                         << "\"" << entry._name << "\" "
                         << "\"\" "
                         << adjustedMinLevel << " "
@@ -106,7 +107,7 @@ void CraftingDBR::BuildCraftingDB(const std::filesystem::path& dataPath, const s
 
                 if ((adjustedWeight > 0) && (adjustedMinLevel <= adjustedMaxLevel))
                 {
-                    out << "\"suffix" << i << "\" "
+                    out << "\"suffix" << itemType << "_" << weaponType << "\" "
                         << "\"" << entry._name << "\" "
                         << "\"\" "
                         << adjustedMinLevel << " "

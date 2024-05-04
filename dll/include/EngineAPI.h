@@ -4,6 +4,7 @@
 #include "EngineAPI/Engine.h"
 #include "EngineAPI/Color.h"
 #include "EngineAPI/Connection.h"
+#include "EngineAPI/FileSystem.h"
 #include "EngineAPI/GameInfo.h"
 #include "EngineAPI/GraphicsTexture.h"
 #include "EngineAPI/Lua.h"
@@ -21,5 +22,7 @@
 #include "EngineAPI/UI/GraphicsAlign.h"
 #include "EngineAPI/UI/Localize.h"
 #include "EngineAPI/UI/StyleManager.h"
+
+constexpr char ENGINE_DLL[] = "Engine.dll";
 
 #endif//INC_GDCL_DLL_ENGINE_API_H

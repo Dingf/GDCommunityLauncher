@@ -1,7 +1,7 @@
 #include <Windows.h>
-#include "GameAPI/GameEngine.h"
-#include "GameAPI/GameFolder.h"
-#include "GameAPI/Player.h"
+#include "EngineAPI/Engine.h"
+#include "EngineAPI/GameInfo.h"
+#include "GameAPI.h"
 
 namespace GameAPI
 {
@@ -13,11 +13,16 @@ void SetRootPrefix(const std::string& prefix)
     _prefix = prefix;
 }
 
+const std::string& GetRootPrefix()
+{
+    return _prefix;
+}
+
 std::filesystem::path GetBaseFolder()
 {
     typedef std::string (__thiscall* GetBaseFolderProto)(void*);
 
-    HMODULE gameDLL = GetModuleHandle(TEXT("Game.dll"));
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
     if (!gameDLL)
         return {};
 
@@ -40,14 +45,14 @@ std::filesystem::path GetUserSaveFolder()
 
 std::filesystem::path GetPlayerFolder(const std::wstring& playerName)
 {
-    std::filesystem::path result = GetUserSaveFolder() / "user" / "_";
+    std::filesystem::path result = GetUserSaveFolder() / (EngineAPI::IsMainCampaignOrCrucible() ? "main" : "user") / "_";
     result += playerName;
     return result;
 }
 
 std::filesystem::path GetPlayerFolder(void* player)
 {
-    std::filesystem::path result = GetUserSaveFolder() / "user" / "_";
+    std::filesystem::path result = GetUserSaveFolder() / (EngineAPI::IsMainCampaignOrCrucible() ? "main" : "user") / "_";
     result += GetPlayerName(player);
     return result;
 }
@@ -62,18 +67,32 @@ std::filesystem::path GetPlayerSaveFile(void* player)
     return GetPlayerFolder(player) / "player.gdc";
 }
 
-std::filesystem::path GetTransferStashPath(const std::string& modName, bool hardcore)
+std::filesystem::path GetSharedSavePath(GameAPI::SharedSaveType type)
 {
-    std::filesystem::path stashPath = GameAPI::GetUserSaveFolder();
-    if (!modName.empty())
-        stashPath /= modName;
+    typedef void (__thiscall* GetSharedSavePathProto)(void*, GameAPI::SharedSaveType, std::string&, bool, bool, bool, bool);
 
-    if (hardcore)
-        stashPath /= "transfer.gsh";
-    else
-        stashPath /= "transfer.gst";
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
+    if (!gameDLL)
+        return {};
 
-    return stashPath;
+    GetSharedSavePathProto callback = (GetSharedSavePathProto)GetProcAddress(gameDLL, GAPI_NAME_GET_SHARED_SAVE_PATH);
+    void** gameEngine = GetGameEngineHandle();
+
+    if ((!callback) || (!gameEngine))
+        return {};
+
+    std::string modName = EngineAPI::GetModName();
+    if (modName == "survivalmode")
+        modName.clear();
+
+    std::string result;
+    callback(*gameEngine, type, result, !modName.empty(), 0, 0, 0);
+    return result;
+}
+
+std::filesystem::path GetTransferStashPath()
+{
+    return GetSharedSavePath(SHARED_SAVE_TRANSFER);
 }
 
 }

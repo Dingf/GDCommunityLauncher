@@ -2,20 +2,22 @@
 #include <filesystem>
 #include <cpprest/http_client.h>
 #include "ServerAuth.h"
+#include "Client.h"
 #include "Date.h"
 #include "JSONObject.h"
 #include "URI.h"
 #include "Log.h"
 
-ServerAuthResult ServerAuthenticate(ClientData& data, ServerAuthCallback callback)
+ServerAuthResult ServerAuthenticate(ServerAuthCallback callback)
 {
-    URI gameURL = data._gameURL;
+    Client& client = Client::GetInstance();
+    URI gameURL = client.GetServerGameURL();
     URI endpoint = gameURL / "Account" / "login";
     web::http::client::http_client httpClient((utility::string_t)endpoint);
 
     web::json::value requestBody;
-    requestBody[U("username")] = JSONString(data._username);
-    requestBody[U("password")] = JSONString(data._password);
+    requestBody[U("username")] = JSONString(client._username);
+    requestBody[U("password")] = JSONString(client._password);
 
     web::http::http_request request(web::http::methods::POST);
     request.set_body(requestBody);
@@ -31,18 +33,18 @@ ServerAuthResult ServerAuthenticate(ClientData& data, ServerAuthCallback callbac
             web::json::value roleValue = responseBody[U("role")];
             if ((!authTokenValue.is_null()) && (!refreshTokenValue.is_null()))
             {
-                data._authToken = JSONString(authTokenValue.serialize());
-                data._refreshToken = JSONString(refreshTokenValue.serialize());
+                client._authToken = JSONString(authTokenValue.serialize());
+                client._refreshToken = JSONString(refreshTokenValue.serialize());
             }
             if (!roleValue.is_null())
             {
-                data._role = JSONString(roleValue.serialize());
+                client._role = JSONString(roleValue.serialize());
             }
         }
         else
         {
             if (callback)
-                callback(SERVER_AUTH_INVALID_LOGIN, data);
+                callback(SERVER_AUTH_INVALID_LOGIN);
             return SERVER_AUTH_INVALID_LOGIN;
         }
     }
@@ -50,12 +52,12 @@ ServerAuthResult ServerAuthenticate(ClientData& data, ServerAuthCallback callbac
     {
         Logger::LogMessage(LOG_LEVEL_WARN, "Failed to authenticate credentials: %", ex.what());
         if (callback)
-            callback(SERVER_AUTH_TIMEOUT, data);
+            callback(SERVER_AUTH_TIMEOUT);
         return SERVER_AUTH_TIMEOUT;
     }
 
     if (callback)
-        callback(SERVER_AUTH_OK, data);
+        callback(SERVER_AUTH_OK);
 
     return SERVER_AUTH_OK;
 }

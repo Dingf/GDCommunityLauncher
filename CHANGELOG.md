@@ -138,8 +138,21 @@
 ## 1.2.6 (2023-08-02)
 
 - Added support for offline mode.
-	- To start the launcher in offline mode, select the "Offline Mode" button in the launcher login window.
+    - To start the launcher in offline mode, select the "Offline Mode" button in the launcher login window.
     - While playing in offline mode, most season features are disabled except for the following:
         - Essence crafting
-	    - Boundless Dungeon level display
-	- Additionally, the restrictions on multiplayer games and the in-game console are removed while playing in offline mode.
+        - Boundless Dungeon level display
+    - Additionally, the restrictions on multiplayer games and the in-game console are removed while playing in offline mode.
+	
+## 1.3.0 (2024-05-03)
+
+- Added main campaign integration.
+    - Season content is now accessible directly through the "Season 6" main menu option, instead of through "Custom Games" as in previous seasons.
+    - The launcher now displays season items on characters while in the main menu.
+    - While playing online through the launcher, custom games will be disabled.
+- Added Crucible support. Players who own the Crucible DLC can enter with season characters using the main menu option, similar to the base game.
+- Added two new essences, Lesser Essence of Ishtak and Essence of Ralyoth.
+- Increased chat message length to 255 characters.
+- Added an in-game warning message when attempting to play a season character on multiplayer or while cloud saving is enabled.
+- The launcher now transfers items to and from the shared stash asynchronously.
+- The launcher now downloads season characters and stash data from the server if they do not currently exist in the user's save directory.

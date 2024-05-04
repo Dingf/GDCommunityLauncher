@@ -3,7 +3,6 @@
 
 #include <string>
 #include <unordered_map>
-#include "ItemType.h"
 
 class CraftingDatabase
 {

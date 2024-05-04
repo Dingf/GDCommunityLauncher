@@ -10,7 +10,7 @@ struct CraftingTemplate
     float _prefixAdjustment;
     float _suffixAdjustment;
 
-    static const CraftingTemplate& GetTemplate(ItemType type);
+    static const std::unordered_map<uint64_t, CraftingTemplate>& GetTemplates();
 };
 
 #endif//INC_GDCL_EXTRACTOR_CRAFTING_TEMPLATE_H

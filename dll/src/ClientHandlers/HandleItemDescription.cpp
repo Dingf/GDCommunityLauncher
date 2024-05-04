@@ -1,5 +1,5 @@
 #include <regex>
-#include "ClientHandlers.h"
+#include "ClientHandler.h"
 
 void TransformTransferAugment(const GameAPI::ItemReplicaInfo& info, std::vector<GameAPI::GameTextLine>& lines)
 {
@@ -33,7 +33,7 @@ void TransformTransferAugment(const GameAPI::ItemReplicaInfo& info, std::vector<
 
 void TransformVaalAffix(const GameAPI::ItemReplicaInfo& info, std::vector<GameAPI::GameTextLine>& lines)
 {
-    const static std::regex vaalRegex("^grimleague/items/lootaffixes/ultos_prefix(\\d{2}).dbr$");
+    const static std::regex vaalRegex("^grimleague/items/lootaffixes/ultos/ultos_affix(\\d{2}[a-z]).dbr$");
     const static std::wregex colorRegex(L"\\^[A-Za-z]");
 
     bool hasPrefix = std::regex_match(info._itemPrefix, vaalRegex);
@@ -45,51 +45,72 @@ void TransformVaalAffix(const GameAPI::ItemReplicaInfo& info, std::vector<GameAP
     }
 }
 
+void TransformSmithAffix(const GameAPI::ItemReplicaInfo& info, std::vector<GameAPI::GameTextLine>& lines)
+{
+    const static std::regex smithRegex("^grimleague/items/lootaffixes/ultos/ultos_smith(\\d{2}[a-z]).dbr$");
+    const static std::wregex colorRegex(L"\\^[A-Za-z]");
+
+    bool hasModifier = std::regex_match(info._itemModifier, smithRegex);
+    if (hasModifier)
+    {
+        std::wstring result = lines[0]._text;
+        lines[0]._text = L"{^F}" + std::regex_replace(result, colorRegex, L"");
+    }
+}
+
 void HandleGetItemDescription(void* _this, std::vector<GameAPI::GameTextLine>& lines)
 {
     typedef void(__thiscall* GetItemDescriptionProto)(void*, std::vector<GameAPI::GameTextLine>&);
 
-    GetItemDescriptionProto callback = (GetItemDescriptionProto)HookManager::GetOriginalFunction("Game.dll", GameAPI::GAPI_NAME_GET_ITEM_DESCRIPTION);
+    GetItemDescriptionProto callback = (GetItemDescriptionProto)HookManager::GetOriginalFunction(GAME_DLL, GameAPI::GAPI_NAME_GET_ITEM_DESCRIPTION);
     if (callback)
     {
         callback(_this, lines);
 
-        GameAPI::ItemReplicaInfo info;
-        GameAPI::GetItemReplicaInfo(_this, info);
-
-        TransformTransferAugment(info, lines);
-        TransformVaalAffix(info, lines);
+        GameAPI::ItemReplicaInfo itemInfo = GameAPI::GetItemReplicaInfo(_this);
+        TransformTransferAugment(itemInfo, lines);
+        TransformVaalAffix(itemInfo, lines);
+        TransformSmithAffix(itemInfo, lines);
     }
 }
 
-void HandleGetItemDescriptionWeapon(void* _this, std::vector<GameAPI::GameTextLine>& lines)
+uint32_t GetWeaponType(void* item)
+{
+    typedef uint32_t (__thiscall* GetItemTypeProto)();
+
+    GetItemTypeProto callback = *(GetItemTypeProto*)(*((uintptr_t*)item) + 0x650);
+    if (callback)
+        return callback();
+
+    return 0;
+}
+
+void HandleGetWeaponDescription(void* _this, std::vector<GameAPI::GameTextLine>& lines)
 {
     typedef void(__thiscall* GetItemDescriptionProto)(void*, std::vector<GameAPI::GameTextLine>&);
 
-    GetItemDescriptionProto callback = (GetItemDescriptionProto)HookManager::GetOriginalFunction("Game.dll", GameAPI::GAPI_NAME_GET_WEAPON_DESCRIPTION);
+    GetItemDescriptionProto callback = (GetItemDescriptionProto)HookManager::GetOriginalFunction(GAME_DLL, GameAPI::GAPI_NAME_GET_WEAPON_DESCRIPTION);
     if (callback)
     {
         callback(_this, lines);
 
-        GameAPI::ItemReplicaInfo info;
-        GameAPI::GetItemReplicaInfo(_this, info);
-
-        TransformVaalAffix(info, lines);
+        GameAPI::ItemReplicaInfo itemInfo = GameAPI::GetItemReplicaInfo(_this);
+        TransformVaalAffix(itemInfo, lines);
+        TransformSmithAffix(itemInfo, lines);
     }
 }
 
-void HandleGetItemDescriptionArmor(void* _this, std::vector<GameAPI::GameTextLine>& lines)
+void HandleGetArmorDescription(void* _this, std::vector<GameAPI::GameTextLine>& lines)
 {
     typedef void(__thiscall* GetItemDescriptionProto)(void*, std::vector<GameAPI::GameTextLine>&);
 
-    GetItemDescriptionProto callback = (GetItemDescriptionProto)HookManager::GetOriginalFunction("Game.dll", GameAPI::GAPI_NAME_GET_ARMOR_DESCRIPTION);
+    GetItemDescriptionProto callback = (GetItemDescriptionProto)HookManager::GetOriginalFunction(GAME_DLL, GameAPI::GAPI_NAME_GET_ARMOR_DESCRIPTION);
     if (callback)
     {
         callback(_this, lines);
 
-        GameAPI::ItemReplicaInfo info;
-        GameAPI::GetItemReplicaInfo(_this, info);
-
-        TransformVaalAffix(info, lines);
+        GameAPI::ItemReplicaInfo itemInfo = GameAPI::GetItemReplicaInfo(_this);
+        TransformVaalAffix(itemInfo, lines);
+        TransformSmithAffix(itemInfo, lines);
     }
 }

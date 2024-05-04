@@ -18,7 +18,7 @@ FileReader::FileReader(const std::filesystem::path& filename)
     in.close();
 }
 
-FileReader::FileReader(uint8_t* buffer, int64_t size)
+FileReader::FileReader(uint8_t* buffer, size_t size)
 {
     if (size > 0)
     {
@@ -126,7 +126,7 @@ EncodedFileReader::EncodedFileReader(const std::filesystem::path& path) : FileRe
     }
 }
 
-EncodedFileReader::EncodedFileReader(uint8_t* buffer, int64_t size) : FileReader(buffer, size)
+EncodedFileReader::EncodedFileReader(uint8_t* buffer, size_t size) : FileReader(buffer, size)
 {
     if (_bufferPos + 4 <= _bufferSize)
     {

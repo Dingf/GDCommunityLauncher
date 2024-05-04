@@ -2,6 +2,7 @@
 #define INC_GDCL_DLL_GAME_API_H
 
 #include "GameAPI/GameEngine.h"
+#include "GameAPI/Dialog.h"
 #include "GameAPI/Difficulty.h"
 #include "GameAPI/EndlessDungeon.h"
 #include "GameAPI/Game.h"
@@ -11,5 +12,7 @@
 #include "GameAPI/Item.h"
 #include "GameAPI/Player.h"
 #include "GameAPI/TriggerToken.h"
+
+constexpr char GAME_DLL[] = "Game.dll";
 
 #endif//INC_GDCL_DLL_GAME_API_H

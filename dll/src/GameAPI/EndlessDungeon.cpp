@@ -1,8 +1,6 @@
 #include <Windows.h>
 #include "EngineAPI/Region.h"
-#include "GameAPI/GameEngine.h"
-#include "GameAPI/EndlessDungeon.h"
-#include "GameAPI/Player.h"
+#include "GameAPI.h"
 
 namespace GameAPI
 {
@@ -11,7 +9,7 @@ void* GetDungeonGenerator()
 {
     typedef void* (__thiscall* GetDungeonGeneratorProto)(void*);
 
-    HMODULE gameDLL = GetModuleHandle(TEXT("Game.dll"));
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
     if (!gameDLL)
         return false;
 
@@ -28,7 +26,7 @@ bool IsBossChunk()
 {
     typedef bool(__thiscall* IsBossRegionProto)(void*, void*);
 
-    HMODULE gameDLL = GetModuleHandle(TEXT("Game.dll"));
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
     if (!gameDLL)
         return false;
 
@@ -48,7 +46,7 @@ int32_t GetCurrentChunk()
 {
     typedef int32_t(__thiscall* GetFloorNumberProto)(void*, void*);
 
-    HMODULE gameDLL = GetModuleHandle(TEXT("Game.dll"));
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
     if (!gameDLL)
         return 0;
 
@@ -69,7 +67,7 @@ uint32_t GetCurrentShard()
     float result = 0.0f;
     typedef bool(__thiscall* ResolveEquationVarProto)(void*, const char*, float*);
 
-    HMODULE gameDLL = GetModuleHandle(TEXT("Game.dll"));
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
     if (!gameDLL)
         return 0;
 

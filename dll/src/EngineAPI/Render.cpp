@@ -1,6 +1,5 @@
 #include <Windows.h>
-#include "EngineAPI/Engine.h"
-#include "EngineAPI/Render.h"
+#include "EngineAPI.h"
 
 namespace EngineAPI
 {
@@ -9,7 +8,7 @@ void* GetGraphicsEngine()
 {
     typedef void* (__thiscall* GetGraphicsEngineProto)(void*);
 
-    HMODULE engineDLL = GetModuleHandle(TEXT("Engine.dll"));
+    HMODULE engineDLL = GetModuleHandle(TEXT(ENGINE_DLL));
     if (!engineDLL)
         return nullptr;
 
@@ -26,7 +25,7 @@ void* GetCanvas()
 {
     typedef void* (__thiscall* GetCanvasProto)(void*);
 
-    HMODULE engineDLL = GetModuleHandle(TEXT("Engine.dll"));
+    HMODULE engineDLL = GetModuleHandle(TEXT(ENGINE_DLL));
     if (!engineDLL)
         return nullptr;
 
@@ -43,7 +42,7 @@ void RenderText2D(int x, int y, const Color& color, const wchar_t* text, void* f
 {
     typedef void (__thiscall* RenderText2DProto)(void*, int, int, const Color&, const void*, void*, int, int, int, int, int);
 
-    HMODULE engineDLL = GetModuleHandle(TEXT("Engine.dll"));
+    HMODULE engineDLL = GetModuleHandle(TEXT(ENGINE_DLL));
     if (!engineDLL)
         return;
 

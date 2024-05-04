@@ -11,6 +11,7 @@
 #include "EventManager.h"
 #include "Configuration.h"
 #include "Item.h"
+#include "StringConvert.h"
 #include "URI.h"
 #include "Log.h"
 
@@ -22,77 +23,6 @@ class ChatClientLogger : public signalr::log_writer
         Logger::LogMessage(LOG_LEVEL_INFO, entry);
     }
 };
-
-GameAPI::ItemReplicaInfo ItemToInfo(const Item& item)
-{
-    GameAPI::ItemReplicaInfo info;
-    info._itemName = item._itemName;
-    info._itemPrefix = item._itemPrefix;
-    info._itemSuffix = item._itemSuffix;
-    info._itemModifier = item._itemModifier;
-    info._itemIllusion = item._itemIllusion;
-    info._itemComponent = item._itemComponent;
-    info._itemCompletion = item._itemCompletion;
-    info._itemAugment = item._itemAugment;
-    info._itemSeed = item._itemSeed;
-    info._itemComponentSeed = item._itemComponentSeed;
-    info._unk3 = item._itemUnk1;
-    info._itemAugmentSeed = item._itemAugmentSeed;
-    info._unk4 = item._itemUnk2;
-    info._itemStackCount = item._itemStackCount;
-    return info;
-}
-
-Item InfoToItem(const GameAPI::ItemReplicaInfo& info)
-{
-    Item item;
-    item._itemName = info._itemName;
-    item._itemPrefix = info._itemPrefix;
-    item._itemSuffix = info._itemSuffix;
-    item._itemModifier = info._itemModifier;
-    item._itemIllusion = info._itemIllusion;
-    item._itemComponent = info._itemComponent;
-    item._itemCompletion = info._itemCompletion;
-    item._itemAugment = info._itemAugment;
-    item._itemSeed = info._itemSeed;
-    item._itemComponentSeed = info._itemComponentSeed;
-    item._itemUnk1 = info._unk3;
-    item._itemAugmentSeed = info._itemAugmentSeed;
-    item._itemUnk2 = info._unk4;
-    item._itemStackCount = info._itemStackCount;
-    return item;
-}
-
-std::wstring RawToWide(const std::string& str)
-{
-    std::wstring result;
-    for (size_t i = 0; (i + 1) < str.size(); i += 2)
-    {
-        result.push_back((((wchar_t)str[i]) << 8) | ((wchar_t)str[i+1]));
-    }
-    return result;
-}
-
-std::string WideToRaw(const std::wstring& str)
-{
-    std::string result;
-    for (size_t i = 0; i < str.size(); ++i)
-    {
-        result.push_back((char)((str[i] >> 8) & 0xFF));
-        result.push_back((char)(str[i] & 0xFF));
-    }
-    return result;
-}
-
-std::wstring CharToWide(const std::string& str)
-{
-    std::wstring result;
-    for (size_t i = 0; i < str.size(); ++i)
-    {
-        result.push_back((wchar_t)str[i]);
-    }
-    return result;
-}
 
 inline bool LogExceptionPointer(const std::exception_ptr& exception, const std::string& message)
 {
@@ -111,7 +41,7 @@ inline bool LogExceptionPointer(const std::exception_ptr& exception, const std::
     return false;
 }
 
-void ChatClient::OnConnectEvent(void* data)
+void ChatClient::OnConnectEvent()
 {
     ChatClient& chatClient = ChatClient::GetInstance();
     chatClient._connection->start([](std::exception_ptr ex)
@@ -127,10 +57,10 @@ void ChatClient::OnConnectEvent(void* data)
     });
 }
 
-void ChatClient::OnDisconnectEvent(void* data)
+void ChatClient::OnDisconnectEvent()
 {
     Client& client = Client::GetInstance();
-    if (client.GetActiveSeason() != nullptr)
+    if (client.GetActiveSeason())
     {
         GameAPI::AddChatMessage(L"Server", L"Disconnected from chat server.", EngineAPI::UI::CHAT_TYPE_NORMAL);
     }
@@ -142,7 +72,7 @@ void ChatClient::OnDisconnectEvent(void* data)
     });
 }
 
-void ChatClient::OnWorldLoadEvent(void* data)
+void ChatClient::OnWorldPreLoadEvent(std::string mapName, bool modded)
 {
     ChatClient& chatClient = ChatClient::GetInstance();
     chatClient.LoadConfig();
@@ -180,7 +110,8 @@ void ChatClient::OnReceiveMessage(const signalr::value& m)
         if ((values.size() >= 4) && (values[3].as_string().size() > 0))
         {
             web::json::value itemJSON = web::json::value::parse(values[3].as_string());
-            GameAPI::ItemReplicaInfo itemInfo = ItemToInfo(Item(itemJSON));
+            GameAPI::ItemReplicaInfo itemInfo = GameAPI::ItemToInfo(Item(itemJSON));
+            itemInfo._itemID = EngineAPI::CreateObjectID();
             item = GameAPI::CreateItem(itemInfo);
         }
 
@@ -275,7 +206,7 @@ ChatClient::ChatClient()
 
     EventManager::Subscribe(GDCL_EVENT_CONNECT, &ChatClient::OnConnectEvent);
     //EventManager::Subscribe(GDCL_EVENT_DISCONNECT, &ChatClient::OnDisconnectEvent);
-    EventManager::Subscribe(GDCL_EVENT_WORLD_PRE_LOAD, &ChatClient::OnWorldLoadEvent);
+    EventManager::Subscribe(GDCL_EVENT_WORLD_PRE_LOAD, &ChatClient::OnWorldPreLoadEvent);
 
     _channels = 0;
 }
@@ -284,7 +215,7 @@ ChatClient::~ChatClient()
 {
     EventManager::Unsubscribe(GDCL_EVENT_CONNECT, &ChatClient::OnConnectEvent);
     //EventManager::Unsubscribe(GDCL_EVENT_DISCONNECT, &ChatClient::OnDisconnectEvent);
-    EventManager::Unsubscribe(GDCL_EVENT_WORLD_PRE_LOAD, &ChatClient::OnWorldLoadEvent);
+    EventManager::Unsubscribe(GDCL_EVENT_WORLD_PRE_LOAD, &ChatClient::OnWorldPreLoadEvent);
 
     _connection->stop([](std::exception_ptr ex)
     {
@@ -372,10 +303,9 @@ std::vector<signalr::value> BuildSendMessageArgs(EngineAPI::UI::ChatType type, c
             break;
     }
 
-    if (item != nullptr)
+    if (item)
     {
-        GameAPI::ItemReplicaInfo itemInfo;
-        GameAPI::GetItemReplicaInfo(item, itemInfo);
+        GameAPI::ItemReplicaInfo itemInfo = GameAPI::GetItemReplicaInfo(item);
         Item item = InfoToItem(itemInfo);
         std::string itemJSON = JSONString(item.ToJSON().serialize());
         args.push_back(itemJSON);
@@ -426,7 +356,7 @@ void ChatClient::DisplayNewTradeNotifications()
 {
     Client& client = Client::GetInstance();
     URI endpoint = client.GetServerGameURL() / "Trade" / "participant" / std::to_string(client.GetParticipantID()) / "trade-notifications" / "new";
-    endpoint.AddParam("branch", client.GetBranch());
+    endpoint.AddParam("branch", client.GetBranchName());
 
     web::http::client::http_client httpClient((utility::string_t)endpoint);
     web::http::http_request request(web::http::methods::GET);

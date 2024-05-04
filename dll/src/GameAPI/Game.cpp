@@ -1,9 +1,6 @@
 #include <vector>
 #include <Windows.h>
-#include "GameAPI/GameEngine.h"
-#include "GameAPI/Difficulty.h"
-#include "GameAPI/Game.h"
-#include "GameAPI/Player.h"
+#include "GameAPI.h"
 
 namespace GameAPI
 {
@@ -12,7 +9,7 @@ bool IsCloudStorageEnabled()
 {
     typedef bool(__thiscall* IsCloudStorageEnabledProto)(void*);
 
-    HMODULE gameDLL = GetModuleHandle(TEXT("Game.dll"));
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
     if (!gameDLL)
         return nullptr;
 
@@ -29,7 +26,7 @@ bool IsGameLoading()
 {
     typedef bool(__thiscall* IsGameLoadingProto)(void*);
 
-    HMODULE gameDLL = GetModuleHandle(TEXT("Game.dll"));
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
     if (!gameDLL)
         return false;
 
@@ -46,7 +43,7 @@ void SaveGame()
 {
     typedef void(__thiscall* SaveGameProto)(void*);
 
-    HMODULE gameDLL = GetModuleHandle(TEXT("Game.dll"));
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
     if (!gameDLL)
         return;
 
@@ -59,11 +56,86 @@ void SaveGame()
     return callback(*gameEngine);
 }
 
+void SaveTransferStash()
+{
+    typedef void (__thiscall* SaveTransferStashProto)(void*);
+
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
+    if (!gameDLL)
+        return;
+
+    SaveTransferStashProto callback = (SaveTransferStashProto)GetProcAddress(gameDLL, GameAPI::GAPI_NAME_SAVE_TRANSFER_STASH);
+    void** gameEngine = GetGameEngineHandle();
+
+    if ((!callback) || (!gameEngine))
+        return;
+
+    callback(*gameEngine);
+}
+
+void LoadTransferStash()
+{
+    typedef void (__thiscall* LoadTransferStashProto)(void*);
+
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
+    if (!gameDLL)
+        return;
+
+    LoadTransferStashProto callback = (LoadTransferStashProto)GetProcAddress(gameDLL, GameAPI::GAPI_NAME_LOAD_TRANSFER_STASH);
+    void** gameEngine = GetGameEngineHandle();
+
+    if ((!callback) || (!gameEngine))
+        return;
+
+    callback(*gameEngine);
+}
+
+void SetNumberOfTransferTabs(uint32_t amount)
+{
+    typedef void (__thiscall* SetNumberOfTransferTabsProto)(void*, uint32_t);
+
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
+    if (!gameDLL)
+        return;
+
+    SetNumberOfTransferTabsProto callback = (SetNumberOfTransferTabsProto)GetProcAddress(gameDLL, GameAPI::GAPI_NAME_RESTORE_NUMBER_OF_TRANSFER_SACKS);
+    void** gameEngine = GetGameEngineHandle();
+
+    if ((!callback) || (!gameEngine))
+        return;
+
+    callback(*gameEngine, amount);
+}
+
+void DisplayCaravanWindow(uint32_t caravanID)
+{
+    typedef void (__thiscall* DisplayCaravanWindowProto)(void*, uint32_t);
+
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
+    if (!gameDLL)
+        return;
+
+    DisplayCaravanWindowProto callback = (DisplayCaravanWindowProto)GetProcAddress(gameDLL, GameAPI::GAPI_NAME_DISPLAY_CARAVAN_WINDOW);
+    void** gameEngine = GetGameEngineHandle();
+
+    if ((!callback) || (!gameEngine) || (IsCaravanWindowOpen()))
+        return;
+
+    callback(*gameEngine, caravanID);
+}
+
+bool IsCaravanWindowOpen()
+{
+    void** gameEngine = GetGameEngineHandle();
+    uint32_t caravanID = *(uint32_t*)((uintptr_t)(*gameEngine) + 0x35B08);
+    return (caravanID != 0);
+}
+
 void DisplayUINotification(const std::string& tag)
 {
     typedef void(__thiscall* DisplayUINotificationProto)(void*, const std::string&);
 
-    HMODULE gameDLL = GetModuleHandle(TEXT("Game.dll"));
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
     if (!gameDLL)
         return;
 
@@ -81,7 +153,7 @@ void SendChatMessage(const std::wstring& name, const std::wstring& message, uint
     typedef void(__thiscall* SendChatMessageProto)(void*, const std::wstring&, const std::wstring&, uint8_t, std::vector<uint32_t>, uint32_t);
 
     void* mainPlayer = GameAPI::GetMainPlayer();
-    HMODULE gameDLL = GetModuleHandle(TEXT("Game.dll"));
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
     if ((!gameDLL) || (!mainPlayer))
         return;
 
@@ -100,7 +172,7 @@ void AddChatMessage(const std::wstring& name, const std::wstring& message, uint8
 {
     typedef void(__thiscall* AddChatMessageProto)(void*, const std::wstring&, const std::wstring&, uint8_t, void*);
 
-    HMODULE gameDLL = GetModuleHandle(TEXT("Game.dll"));
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
     if (!gameDLL)
         return;
 

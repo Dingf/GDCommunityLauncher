@@ -13,12 +13,14 @@ constexpr char EAPI_NAME_GET_OBJECT_ID[] = "?GetObjectId@Object@GAME@@QEBAIXZ";
 constexpr char EAPI_NAME_GET_OBJECT_NAME[] = "?GetObjectName@Object@GAME@@QEBAPEBDXZ";
 constexpr char EAPI_NAME_GET_OBJECT_LIST[] = "?GetObjectList@ObjectManager@GAME@@QEBAXAEAV?$vector@PEBVObject@GAME@@@mem@@@Z";
 constexpr char EAPI_NAME_DESTROY_OBJECT_EX[] = "?DestroyObjectEx@ObjectManager@GAME@@QEAAXPEAVObject@2@PEBDH@Z";
+constexpr char EAPI_NAME_CREATE_OBJECT_ID[] = "?CreateObjectID@ObjectManager@GAME@@QEAAIXZ";
 #else
 constexpr char EAPI_NAME_GET_OBJECT_MANAGER[] = "?Get@?$Singleton@VObjectManager@GAME@@@GAME@@SAPAVObjectManager@2@XZ";
 constexpr char EAPI_NAME_GET_OBJECT_ID[] = "?GetObjectId@Object@GAME@@QBEIXZ";
 constexpr char EAPI_NAME_GET_OBJECT_NAME[] = "?GetObjectName@Object@GAME@@QBEPBDXZ";
 constexpr char EAPI_NAME_GET_OBJECT_LIST[] = "?GetObjectList@ObjectManager@GAME@@QBEXAAV?$vector@PBVObject@GAME@@@mem@@@Z";
 constexpr char EAPI_NAME_DESTROY_OBJECT_EX[] = "?DestroyObjectEx@ObjectManager@GAME@@QAEXPAVObject@2@PBDH@Z";
+constexpr char EAPI_NAME_CREATE_OBJECT_ID[] = "?CreateObjectID@ObjectManager@GAME@@QAEIXZ";
 #endif
 
 void* GetObjectManager();
@@ -27,6 +29,7 @@ void* FindObjectByID(uint32_t objectID);
 uint32_t GetObjectID(void* object);
 std::string GetObjectName(void* object);
 void DestroyObjectEx(void* object);
+uint32_t CreateObjectID();
 
 }
 

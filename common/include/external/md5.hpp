@@ -365,7 +365,7 @@ namespace websocketpp {
                 return;
 
             /* Update the message length. */
-            pms->count[1] += nbytes >> 29;
+            pms->count[1] += (md5_word_t)nbytes >> 29;
             pms->count[0] += nbits;
             if (pms->count[0] < nbits)
                 pms->count[1]++;

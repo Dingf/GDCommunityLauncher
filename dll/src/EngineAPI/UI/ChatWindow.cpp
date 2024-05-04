@@ -4,11 +4,12 @@
 #include <Windows.h>
 #include "EngineAPI.h"
 #include "EngineAPI/UI/ChatWindow.h"
+#include "ThreadManager.h"
 #include "Configuration.h"
-#include "Log.h"
 
 namespace EngineAPI::UI
 {
+
 
 ChatWindow& ChatWindow::GetInstance(bool init)
 {
@@ -70,10 +71,175 @@ bool ChatWindow::SetChatColor(ChatType type, uint32_t color, bool save)
     return false;
 }
 
+// Special paste handler, since regular paste won't exceed the chat window length
+bool HandlePasteEvent(std::wstring& text, uint32_t& carat, uint32_t& selectStart, uint32_t& selectEnd)
+{
+    if (OpenClipboard(nullptr))
+    {
+        if (HANDLE data = GetClipboardData(CF_TEXT))
+        {
+            if (char* charData = (char*)GlobalLock(data))
+            {
+                int32_t select = (selectEnd >= selectStart) ? selectEnd - selectStart : 0;
+                size_t length = text.size() - select;
+                std::wstring pasteText;
+                while ((*charData != '\0') && (length < MAX_CHAT_SIZE))
+                {
+                    pasteText.push_back(*charData);
+                    charData++;
+                    length++;
+                }
+
+                if (select > 0)
+                {
+                    text.erase(selectStart, select);
+                    carat = selectStart;
+                    selectStart = 0;
+                    selectEnd = 0;
+                }
+
+                text.insert(carat, pasteText);
+                carat += (uint32_t)pasteText.size();
+
+                GlobalUnlock(data);
+                CloseClipboard();
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+void ChatWindow::HoldKeyUpdate()
+{
+    ChatWindow& chatWindow = GetInstance();
+    if (chatWindow._holdEvent._key != EngineAPI::Input::KEY_NONE)
+    {
+        if (!chatWindow._holdLock)
+            chatWindow.HandleKeyPress(chatWindow._holdEvent);
+    }
+}
+
+typedef bool (*ControlKeyHandler)(std::wstring&, uint32_t&, uint32_t&, uint32_t&);
+const std::map<EngineAPI::Input::KeyCode, ControlKeyHandler> controlKeyHandlers =
+{
+    { EngineAPI::Input::KEY_V, &HandlePasteEvent },
+};
+
+
+bool ChatWindow::HandleKeyPress(EngineAPI::Input::KeyButtonEvent& event)
+{
+    std::wstring& text = *(std::wstring*)(_visible + 0xB0);
+    uint32_t& carat = GetCaratPosition();
+    uint32_t& selectStart = GetSelectStartPosition();
+    uint32_t& selectEnd = GetSelectEndPosition();
+
+    switch (event._key)
+    {
+        case EngineAPI::Input::KEY_ESC:
+            // ESC produces output for some reason, but let the main program handle it
+            return false;
+        case EngineAPI::Input::KEY_BACKSPACE:
+            if (IsVisible())
+            {
+                int32_t select = selectEnd - selectStart;
+                if (select > 0)
+                {
+                    text.erase(selectStart, select);
+                    carat = selectStart;
+                    selectStart = 0;
+                    selectEnd = 0;
+                }
+                else if (carat > 0)
+                {
+                    text.erase(--carat, 1);
+                }
+                return true;
+            }
+            return false;
+        case EngineAPI::Input::KEY_ENTER:
+            // Only handle the initial toggle behavior; when sending a message, let the main program handle it
+            if ((IsToggleInitialized()) && (!IsVisible()))
+            {
+                ToggleDisplay();
+                return true;
+            }
+            return false;
+        default:
+        {
+            if ((IsVisible()) && (event._output != 0) && (text.size() < MAX_CHAT_SIZE))
+            {
+                // Ctrl + key usually has output, but shouldn't actually print a character to the window
+                // Most of the time, just let the main program handle it
+                if (event._modifier & EngineAPI::Input::KEY_MODIFIER_CTRL)
+                {
+                    auto pair = controlKeyHandlers.find(event._key);
+                    if (pair != controlKeyHandlers.end())
+                    {
+                        ControlKeyHandler handler = pair->second;
+                        return handler(text, carat, selectStart, selectEnd);
+                    }
+                    return false;
+                }
+
+                int32_t select = selectEnd - selectStart;
+                if (select > 0)
+                {
+                    text.erase(selectStart, select);
+                    carat = selectStart;
+                    selectStart = 0;
+                    selectEnd = 0;
+                }
+
+                text.insert(carat, 1, (wchar_t)event._output);
+                carat++;
+                return true;
+            }
+            return false;
+        }
+    }
+    return false;
+}
+
+bool ChatWindow::HandleKeyEvent(EngineAPI::Input::KeyButtonEvent& event)
+{
+    bool result = false;
+    if (event._state == EngineAPI::Input::KEY_STATE_DOWN)
+    {
+        _holdLock = true;
+        _holdEvent = event;
+        ThreadManager::CreatePeriodicThread("chat_window_hold", 50, 1, 500, &ChatWindow::HoldKeyUpdate);
+        result = HandleKeyPress(event);
+        _holdLock = false;
+    }
+    else
+    {
+        _holdEvent._key = EngineAPI::Input::KEY_NONE;
+        ThreadManager::StopThread("chat_window_hold");
+    }
+    return result;
+}
+
+void ChatWindow::SetCaratPosition(uint32_t position)
+{
+    *(uint32_t*)(_visible + 0x160) = position;
+}
+
+void ChatWindow::SetSelectStartPosition(uint32_t position)
+{
+    *(uint32_t*)(_visible + 0x164) = position;
+}
+
+void ChatWindow::SetSelectEndPosition(uint32_t position)
+{
+    *(uint32_t*)(_visible + 0x168) = position;
+}
+
 void ChatWindow::SetBufferText(const std::wstring& text)
 {
-    *(std::wstring*)(_visible + 0xB0) = text;
-    *(_visible + 0x160) = (text.size() > 0xFF) ? 0xFF : (uint8_t)text.size();  // Text caret position
+    std::wstring bufferText = (text.size() >= MAX_CHAT_SIZE) ? text.substr(0, MAX_CHAT_SIZE) : text;
+    *(std::wstring*)(_visible + 0xB0) = bufferText;
+    SetCaratPosition((uint32_t)bufferText.size());
 }
 
 void ChatWindow::ToggleDisplay()

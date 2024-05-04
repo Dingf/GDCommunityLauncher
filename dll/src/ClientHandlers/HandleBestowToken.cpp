@@ -2,29 +2,28 @@
 #include <cpprest/http_client.h>
 #include "GameAPI/TriggerToken.h"
 #include "ChatClient.h"
-#include "ClientHandlers.h"
-#include "ServerSync.h"
+#include "ClientHandler.h"
 #include "URI.h"
 
 bool HandleParticipationToken(const std::string& tokenString)
 {
     Client& client = Client::GetInstance();
     const SeasonInfo* seasonInfo = client.GetActiveSeason();
+
     if (tokenString == seasonInfo->_participationToken)
     {
         if (EngineAPI::IsMultiplayer())
         {
-            // TODO: Display a popup to the user here
+            GameAPI::AddDialog(GameAPI::DIALOG_OKAY, true, 0, "tagGDLeagueMultiplayerWarning", true, true);
         }
         else if (GameAPI::IsCloudStorageEnabled())
         {
-            // TODO: Display a popup to the user here
+            GameAPI::AddDialog(GameAPI::DIALOG_OKAY, true, 0, "tagGDLeagueCloudWarning", true, true);
         }
 
         // If this is a new character, set the character as the active character so that they can participate in the season
         void* mainPlayer = GameAPI::GetMainPlayer();
-        std::wstring playerName = GameAPI::GetPlayerName(mainPlayer);
-        client.SetActiveCharacter(playerName, true);
+        client.SetActiveCharacter(GameAPI::GetPlayerName(mainPlayer));
         return true;
     }
     return false;
@@ -33,7 +32,7 @@ bool HandleParticipationToken(const std::string& tokenString)
 bool HandleUnlockToken(const std::string& tokenString)
 {
     Client& client = Client::GetInstance();
-    if ((tokenString == "unlock_all_diff") && (client.IsParticipatingInSeason()))
+    if ((tokenString == "unlock_all_diff") && (client.IsPlayingSeason()))
     {
         // Unlock all difficulties after obtaining the unlock token
         void* mainPlayer = GameAPI::GetMainPlayer();
@@ -46,46 +45,39 @@ bool HandleUnlockToken(const std::string& tokenString)
 bool HandleSeasonPointToken(const std::string& tokenString)
 {
     Client& client = Client::GetInstance();
-    if ((tokenString.find("gdl_", 0) == 0) && (client.IsParticipatingInSeason()))
+    if ((tokenString.find("gdl_", 0) == 0) && (client.IsPlayingSeason()))
     {
-        try
+        Client& client = Client::GetInstance();
+        void* mainPlayer = GameAPI::GetMainPlayer();
+
+        // Otherwise if it's a season token, pass it along to the server and update the points/rank
+        URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "quest-tag" / tokenString;
+        web::http::http_request request(web::http::methods::POST);
+
+        web::json::value requestBody;
+        requestBody[U("level")] = EngineAPI::GetPlayerLevel();
+        requestBody[U("currentDifficulty")] = GameAPI::GetGameDifficulty();
+        requestBody[U("maxDifficulty")] = GameAPI::GetPlayerMaxDifficulty(mainPlayer);
+        request.set_body(requestBody);
+
+        std::string bearerToken = "Bearer " + client.GetAuthToken();
+        request.headers().add(U("Authorization"), bearerToken.c_str());
+
+        pplx::create_task([endpoint, request]()
         {
-            Client& client = Client::GetInstance();
-            void* mainPlayer = GameAPI::GetMainPlayer();
-
-            // Otherwise if it's a season token, pass it along to the server and update the points/rank
-            URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "quest-tag" / tokenString;
-            web::http::http_request request(web::http::methods::POST);
-
-            web::json::value requestBody;
-            requestBody[U("level")] = EngineAPI::GetPlayerLevel();
-            requestBody[U("currentDifficulty")] = GameAPI::GetGameDifficulty();
-            requestBody[U("maxDifficulty")] = GameAPI::GetPlayerMaxDifficulty(mainPlayer);
-            request.set_body(requestBody);
-
-            std::string bearerToken = "Bearer " + client.GetAuthToken();
-            request.headers().add(U("Authorization"), bearerToken.c_str());
-
-            ServerSync::ScheduleTask([endpoint, request]()
+            web::http::client::http_client httpClient((utility::string_t)endpoint);
+            return httpClient.request(request).then([](web::http::http_response response)
             {
-                web::http::client::http_client httpClient((utility::string_t)endpoint);
-                return httpClient.request(request).then([](web::http::http_response response)
+                if (response.status_code() == web::http::status_codes::OK)
                 {
-                    if (response.status_code() == web::http::status_codes::OK)
-                    {
-                        Client::GetInstance().UpdateSeasonStanding();
-                    }
-                    else
-                    {
-                        Logger::LogMessage(LOG_LEVEL_WARN, "While updating quest tag: Server responded with status code " + std::to_string(response.status_code()));
-                    }
-                });
+                    Client::GetInstance().UpdateSeasonStanding();
+                }
+                else
+                {
+                    Logger::LogMessage(LOG_LEVEL_WARN, "Failed to update quest tag: Server responded with status code %", response.status_code());
+                }
             });
-        }
-        catch (const std::exception& ex)
-        {
-            Logger::LogMessage(LOG_LEVEL_WARN, "Failed to update quest tag: %", ex.what());
-        }
+        });
         return true;
     }
     return false;
@@ -95,7 +87,7 @@ typedef bool (*TokenHandler)(const std::string&);
 std::vector<TokenHandler> tokenHandlers =
 {
     HandleParticipationToken,
-    HandleUnlockToken,
+    //HandleUnlockToken,
     HandleSeasonPointToken,
 };
 
@@ -103,7 +95,7 @@ void HandleBestowToken(void* _this, const GameAPI::TriggerToken& token)
 {
     typedef void (__thiscall* BestowTokenProto)(void*, const GameAPI::TriggerToken&);
 
-    BestowTokenProto callback = (BestowTokenProto)HookManager::GetOriginalFunction("Game.dll", GameAPI::GAPI_NAME_BESTOW_TOKEN);
+    BestowTokenProto callback = (BestowTokenProto)HookManager::GetOriginalFunction(GAME_DLL, GameAPI::GAPI_NAME_BESTOW_TOKEN);
     if (callback)
     {
         Client& client = Client::GetInstance();
@@ -111,7 +103,7 @@ void HandleBestowToken(void* _this, const GameAPI::TriggerToken& token)
         void* mainPlayer = GameAPI::GetMainPlayer();
         const SeasonInfo* seasonInfo = client.GetActiveSeason();
 
-        if ((!modName.empty()) && (mainPlayer) && (seasonInfo))
+        if ((modName.empty()) && (mainPlayer) && (seasonInfo))
         {
             std::string tokenString = token;
             for (char& c : tokenString)

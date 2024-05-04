@@ -1,5 +1,5 @@
 #include <Windows.h>
-#include "GameAPI/TriggerToken.h"
+#include "GameAPI.h"
 
 namespace GameAPI
 {
@@ -11,7 +11,7 @@ const std::vector<TriggerToken>& GetPlayerTokens(void* player, Difficulty diffic
 {
     typedef const std::vector<GameAPI::TriggerToken>& (__thiscall* GetPlayerTokensProto)(void*, GameAPI::Difficulty);
 
-    HMODULE gameDLL = GetModuleHandle(TEXT("Game.dll"));
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
     if ((!gameDLL) || (!player))
         return dummy;
 

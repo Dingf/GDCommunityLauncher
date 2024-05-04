@@ -1,6 +1,7 @@
 #include <filesystem>
 #include <windows.h>
 #include "Client.h"
+#include "ClientHandler.h"
 
 BOOL APIENTRY DllMain(HINSTANCE hInstDLL, DWORD fdwReason, LPVOID lpReserved)
 {
@@ -16,9 +17,10 @@ BOOL APIENTRY DllMain(HINSTANCE hInstDLL, DWORD fdwReason, LPVOID lpReserved)
         {
             case DLL_PROCESS_ATTACH:
                 client.Initialize();
+                ClientHandler::CreateHooks();
                 break;
             case DLL_PROCESS_DETACH:
-                client.Cleanup();
+                ClientHandler::DeleteHooks();
                 break;
             case DLL_THREAD_ATTACH:
                 break;

@@ -83,10 +83,15 @@ void Quest::QuestTask::Read(EncodedFileReader* reader)
     _objectives.clear();
 
     int32_t numObjects = ((int32_t)questTaskBlock.GetBlockLength() - 5) / 4;
+
     for (int32_t i = 0; i < numObjects; ++i)
     {
-        _objectives.emplace_back(reader->ReadInt32());
+        int32_t asdf = reader->ReadInt32();
+        _objectives.emplace_back(asdf);
     }
+
+    // Added in 1.2.1, some sort of boolean value?
+    _unk1 = reader->ReadInt8();
 
     questTaskBlock.ReadBlockEnd(reader);
 }
@@ -118,6 +123,7 @@ web::json::value Quest::QuestTask::ToJSON() const
     obj[U("ID2")] = _id2.ToJSON();
     obj[U("State")] = _state;
     obj[U("InProgress")] = _isInProgress;
+    obj[U("Unk1")] = _unk1;
 
     web::json::value objectives = web::json::value::array();
     for (uint32_t i = 0; i < _objectives.size(); ++i)

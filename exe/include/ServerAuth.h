@@ -2,7 +2,6 @@
 #define INC_GDCL_EXE_SERVER_AUTH_H
 
 #include <string>
-#include "ClientBase.h"
 
 enum ServerAuthResult
 {
@@ -12,8 +11,8 @@ enum ServerAuthResult
     SERVER_AUTH_TIMEOUT = 2,
 };
 
-typedef void (*ServerAuthCallback)(ServerAuthResult, const ClientData&);
+typedef void (*ServerAuthCallback)(ServerAuthResult);
 
-ServerAuthResult ServerAuthenticate(ClientData& data, ServerAuthCallback callback);
+ServerAuthResult ServerAuthenticate(ServerAuthCallback callback);
 
 #endif//INC_GDCL_EXE_SERVER_AUTH_H

@@ -11,7 +11,7 @@ ThreadManager& ThreadManager::GetInstance()
     return instance;
 }
 
-void ThreadManager::RemoveThread(const std::string& name)
+void ThreadManager::StopThread(const std::string& name)
 {
     ThreadManager& manager = GetInstance();
     if (manager._threads.count(name) > 0)

@@ -8,7 +8,7 @@
 
 namespace SelectorDialog
 {
-    bool Select(void* clientData);
+    bool Select();
 };
 
 #endif//INC_GDCL_EXE_SELECTOR_DIALOG_H

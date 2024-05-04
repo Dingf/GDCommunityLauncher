@@ -1,6 +1,5 @@
 #include <Windows.h>
-#include "EngineAPI/Engine.h"
-#include "EngineAPI/Region.h"
+#include "EngineAPI.h"
 
 namespace EngineAPI
 {
@@ -9,7 +8,7 @@ void* GetEntityRegion(void* entity)
 {
     typedef void* (__thiscall* GetEntityRegionProto)(void*);
 
-    HMODULE engineDLL = GetModuleHandle(TEXT("Engine.dll"));
+    HMODULE engineDLL = GetModuleHandle(TEXT(ENGINE_DLL));
     if (!engineDLL)
         return nullptr;
 
@@ -24,7 +23,7 @@ void* GetRegionID(void* region)
 {
     typedef void* (__thiscall* GetRegionIDProto)(void*);
 
-    HMODULE engineDLL = GetModuleHandle(TEXT("Engine.dll"));
+    HMODULE engineDLL = GetModuleHandle(TEXT(ENGINE_DLL));
     if (!engineDLL)
         return nullptr;
 
@@ -39,7 +38,7 @@ std::string GetRegionName(void* region)
 {
     typedef std::string* (__thiscall* GetRegionNameProto)(void*);
 
-    HMODULE engineDLL = GetModuleHandle(TEXT("Engine.dll"));
+    HMODULE engineDLL = GetModuleHandle(TEXT(ENGINE_DLL));
     if (!engineDLL)
         return {};
 
@@ -54,7 +53,7 @@ std::string GetRegionNameTag()
 {
     typedef std::string* (__thiscall* GetRegionNameTagProto)(void*);
 
-    HMODULE engineDLL = GetModuleHandle(TEXT("Engine.dll"));
+    HMODULE engineDLL = GetModuleHandle(TEXT(ENGINE_DLL));
     if (!engineDLL)
         return {};
 

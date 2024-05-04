@@ -38,11 +38,11 @@ bool SharedStash::ReadFromFile(const std::filesystem::path& path)
     return false;
 }
 
-bool SharedStash::ReadFromBytes(std::vector<uint8_t>& data)
+bool SharedStash::ReadFromBuffer(uint8_t* data, size_t size)
 {
     try
     {
-        EncodedFileReader reader(&data[0], data.size());
+        EncodedFileReader reader(data, size);
         Read(&reader);
         return true;
     }
@@ -53,7 +53,7 @@ bool SharedStash::ReadFromBytes(std::vector<uint8_t>& data)
     }
 }
 
-bool SharedStash::WriteToFile(const std::filesystem::path& path, bool wait)
+bool SharedStash::WriteToFile(const std::filesystem::path& path)
 {
     try
     {
@@ -61,9 +61,25 @@ bool SharedStash::WriteToFile(const std::filesystem::path& path, bool wait)
         Write(&writer);
         writer.WriteToFile(path);
     }
-    catch (std::runtime_error&)
+    catch (std::runtime_error& ex)
     {
-        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to write to shared stash file \"%\"", path.string().c_str());
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to write to shared stash file \"%\": %", path.string().c_str(), ex.what());
+        return false;
+    }
+    return true;
+}
+
+bool SharedStash::WriteToBuffer(uint8_t* data, size_t size)
+{
+    try
+    {
+        EncodedFileWriter writer(GetBufferSize());
+        Write(&writer);
+        memcpy(data, writer.GetBuffer(), std::min(size, GetBufferSize()));
+    }
+    catch (std::runtime_error& ex)
+    {
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to write shared stash data: %", ex.what());
         return false;
     }
     return true;

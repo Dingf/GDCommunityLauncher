@@ -1,7 +1,5 @@
 #include <Windows.h>
-#include "GameAPI/GameEngine.h"
-#include "GameAPI/InventoryTab.h"
-#include "GameAPI/Player.h"
+#include "GameAPI.h"
 
 namespace GameAPI
 {
@@ -11,24 +9,39 @@ std::vector<void*> defaultTabs;
 
 bool AddItemToTab(void* tab, const EngineAPI::Vec2& position, void* item, bool unk1)
 {
-    typedef bool(__thiscall* AddItemToTabProto)(void*, const EngineAPI::Vec2&, void*, bool);
+    typedef bool (__thiscall* AddItemToTabProto)(void*, const EngineAPI::Vec2&, void*, bool);
 
-    HMODULE gameDLL = GetModuleHandle(TEXT("Game.dll"));
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
     if (!gameDLL)
         return false;
 
-    AddItemToTabProto callback = (AddItemToTabProto)GetProcAddress(gameDLL, GameAPI::GAPI_NAME_TAB_ADD_ITEM);
+    AddItemToTabProto callback = (AddItemToTabProto)GetProcAddress(gameDLL, GameAPI::GAPI_NAME_TAB_ADD_ITEM_1);
     if ((!callback) || (!tab))
         return false;
 
     return callback(tab, position, item, unk1);
 }
 
+bool AddItemToTab(void* tab, void* item, bool unk1, bool unk2)
+{
+    typedef bool (__thiscall* AddItemToTabProto)(void*, void*, bool, bool);
+
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
+    if (!gameDLL)
+        return false;
+
+    AddItemToTabProto callback = (AddItemToTabProto)GetProcAddress(gameDLL, GameAPI::GAPI_NAME_TAB_ADD_ITEM_2);
+    if ((!callback) || (!tab))
+        return false;
+
+    return callback(tab, item, unk1, unk2);
+}
+
 bool RemoveItemFromTab(void* tab, uint32_t itemID)
 {
-    typedef bool(__thiscall* RemoveItemFromTabProto)(void*, uint32_t);
+    typedef bool (__thiscall* RemoveItemFromTabProto)(void*, uint32_t);
 
-    HMODULE gameDLL = GetModuleHandle(TEXT("Game.dll"));
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
     if (!gameDLL)
         return false;
 
@@ -39,11 +52,26 @@ bool RemoveItemFromTab(void* tab, uint32_t itemID)
     return callback(tab, itemID);
 }
 
+void RemoveAllItemsFromTab(void* tab)
+{
+    typedef void (__thiscall* RemoveAllItemsFromTabProto)(void*);
+
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
+    if (!gameDLL)
+        return;
+
+    RemoveAllItemsFromTabProto callback = (RemoveAllItemsFromTabProto)GetProcAddress(gameDLL, GameAPI::GAPI_NAME_TAB_REMOVE_ALL_ITEMS);
+    if ((!callback) || (!tab))
+        return;
+
+    callback(tab);
+}
+
 const std::map<uint32_t, EngineAPI::Rect>& GetItemsInTab(void* tab)
 {
     typedef const std::map<uint32_t, EngineAPI::Rect>& (__thiscall* GetItemsInTabProto)(void*);
 
-    HMODULE gameDLL = GetModuleHandle(TEXT("Game.dll"));
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
     if (!gameDLL)
         return defaultItemMap;
 
@@ -54,11 +82,43 @@ const std::map<uint32_t, EngineAPI::Rect>& GetItemsInTab(void* tab)
     return callback(tab);
 }
 
+bool AddItemToTransfer(uint32_t tab, const EngineAPI::Vec2& position, uint32_t itemID, bool unk1)
+{
+    typedef bool (__thiscall* AddItemToTransferProto)(void*, uint32_t, const EngineAPI::Vec2&, uint32_t, bool);
+
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
+    if (!gameDLL)
+        return false;
+
+    AddItemToTransferProto callback = (AddItemToTransferProto)GetProcAddress(gameDLL, GameAPI::GAPI_NAME_TRANSFER_ADD_ITEM_1);
+    void** gameEngine = GetGameEngineHandle();
+    if ((!callback) || (!gameEngine))
+        return false;
+
+    return callback(*gameEngine, tab, position, itemID, unk1);
+}
+
+bool AddItemToTransfer(uint32_t itemID, uint32_t tab, bool unk1)
+{
+    typedef bool (__thiscall* AddItemToTransferProto)(void*, uint32_t, uint32_t, bool);
+
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
+    if (!gameDLL)
+        return false;
+
+    AddItemToTransferProto callback = (AddItemToTransferProto)GetProcAddress(gameDLL, GameAPI::GAPI_NAME_TRANSFER_ADD_ITEM_2);
+    void** gameEngine = GetGameEngineHandle();
+    if ((!callback) || (!gameEngine))
+        return false;
+
+    return callback(*gameEngine, itemID, tab, unk1);
+}
+
 void* GetPlayerInventory(void* player)
 {
     typedef void* (__thiscall* GetPlayerInventoryProto)(void*);
 
-    HMODULE gameDLL = GetModuleHandle(TEXT("Game.dll"));
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
     if (!gameDLL)
         return nullptr;
 
@@ -74,12 +134,30 @@ void* GetPlayerEquipment(void* player)
 {
     typedef void* (__thiscall* GetPlayerEquipmentProto)(void*);
 
-    HMODULE gameDLL = GetModuleHandle(TEXT("Game.dll"));
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
     if (!gameDLL)
         return nullptr;
 
     GetPlayerEquipmentProto callback = (GetPlayerEquipmentProto)GetProcAddress(gameDLL, GameAPI::GAPI_NAME_GET_PLAYER_EQUIPMENT);
     void* playerController = GetPlayerController(player);
+
+    if ((!callback) || (!playerController))
+        return nullptr;
+
+    return callback(playerController);
+}
+
+void* GetTransferStash(void* player)
+{
+    typedef void* (__thiscall* GetPlayerEquipmentProto)(void*);
+
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
+    if (!gameDLL)
+        return nullptr;
+
+    GetPlayerEquipmentProto callback = (GetPlayerEquipmentProto)GetProcAddress(gameDLL, GameAPI::GAPI_NAME_GET_PLAYER_EQUIPMENT);
+    void* playerController = GetPlayerController(player);
+
     if ((!callback) || (!playerController))
         return nullptr;
 
@@ -90,7 +168,7 @@ void* GetInventoryTab(void* inventory, int32_t index)
 {
     typedef void* (__thiscall* GetInventoryTabProto)(void*, int32_t);
 
-    HMODULE gameDLL = GetModuleHandle(TEXT("Game.dll"));
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
     if (!gameDLL)
         return nullptr;
 
@@ -105,7 +183,7 @@ uint32_t GetInventoryTabCount(void* inventory)
 {
     typedef uint32_t(__thiscall* GetInventoryTabCountProto)(void*);
 
-    HMODULE gameDLL = GetModuleHandle(TEXT("Game.dll"));
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
     if (!gameDLL)
         return 0;
 
@@ -120,7 +198,7 @@ const std::vector<void*>& GetPersonalTabs(void* player)
 {
     typedef const std::vector<void*>& (__thiscall* GetPersonalTabsProto)(void*);
 
-    HMODULE gameDLL = GetModuleHandle(TEXT("Game.dll"));
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
     if (!gameDLL)
         return defaultTabs;
 
@@ -135,7 +213,7 @@ const std::vector<void*>& GetTransferTabs()
 {
     typedef const std::vector<void*>& (__thiscall* GetTransferTabsProto)(void*);
 
-    HMODULE gameDLL = GetModuleHandle(TEXT("Game.dll"));
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
     if (!gameDLL)
         return defaultTabs;
 
@@ -152,7 +230,7 @@ uint32_t GetEquippedItemID(void* equipment, EquipLocation slot)
 {
     typedef uint32_t (__thiscall* GetEquippedItemIDProto)(void*, EquipLocation);
 
-    HMODULE gameDLL = GetModuleHandle(TEXT("Game.dll"));
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
     if (!gameDLL)
         return 0;
 
@@ -167,7 +245,7 @@ bool IsItemEquipped(void* equipment, uint32_t itemID)
 {
     typedef bool (__thiscall* IsItemEquippedProto)(void*, uint32_t);
 
-    HMODULE gameDLL = GetModuleHandle(TEXT("Game.dll"));
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
     if (!gameDLL)
         return 0;
 

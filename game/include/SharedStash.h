@@ -16,8 +16,9 @@ class SharedStash : public Stash
         size_t GetBufferSize() const;
 
         bool ReadFromFile(const std::filesystem::path& path);
-        bool ReadFromBytes(std::vector<uint8_t>& data);
-        bool WriteToFile(const std::filesystem::path& path, bool wait = false);
+        bool ReadFromBuffer(uint8_t* data, size_t size);
+        bool WriteToFile(const std::filesystem::path& path);
+        bool WriteToBuffer(uint8_t* data, size_t size);
 
         ItemContainerType GetContainerType() const { return ITEM_CONTAINER_SHARED_STASH; }
 

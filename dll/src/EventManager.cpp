@@ -6,22 +6,13 @@ EventManager& EventManager::GetInstance()
     return instance;
 }
 
-void EventManager::Publish(GDCLEvent event, void* data)
-{
-    EventManager& manager = EventManager::GetInstance();
-    for (EventHandler handler: manager._handlers[event])
-    {
-        handler(data);
-    }
-}
-
-void EventManager::Subscribe(GDCLEvent event, EventHandler handler)
+void EventManager::Subscribe(GDCLEvent event, void* handler)
 {
     EventManager& manager = EventManager::GetInstance();
     manager._handlers[event].insert(handler);
 }
 
-void EventManager::Unsubscribe(GDCLEvent event, EventHandler handler)
+void EventManager::Unsubscribe(GDCLEvent event, void* handler)
 {
     EventManager& manager = EventManager::GetInstance();
     manager._handlers[event].erase(handler);

@@ -1,7 +1,5 @@
 #include <Windows.h>
-#include "GameAPI/GameEngine.h"
-#include "GameAPI/Difficulty.h"
-#include "GameAPI/Game.h"
+#include "GameAPI.h"
 
 namespace GameAPI
 {
@@ -10,7 +8,7 @@ Difficulty GetGameDifficulty()
 {
     typedef Difficulty (__thiscall* GetGameDifficultyProto)(void*);
 
-    HMODULE gameDLL = GetModuleHandle(TEXT("Game.dll"));
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
     if (!gameDLL)
         return {};
 

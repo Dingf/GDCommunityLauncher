@@ -2,6 +2,8 @@
 #include <iomanip>
 #include "CraftingDatabase.h"
 
+#include "Log.h"
+
 CraftingDatabase& CraftingDatabase::GetInstance()
 {
     static CraftingDatabase instance;

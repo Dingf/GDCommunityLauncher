@@ -57,35 +57,7 @@ LPVOID BuildEnvironmentVariables()
             TEXT("SteamUser=username"),
             TEXT("STEAMID=00000000000000000"),
             TEXT("SESSIONNAME=Console"),
-            /*TEXT("EnableConfiguratorSupport=0"),
-            TEXT("SDL_GAMECONTROLLER_ALLOW_STEAM_VIRTUAL_GAMEPAD=1"),
-            TEXT("SDL_JOYSTICK_HIDAPI_STEAMXBOX=0"),
-            TEXT("SteamStreamingHardwareEncodingNVIDIA=1"),
-            TEXT("SteamStreamingHardwareEncodingAMD=1"),
-            TEXT("SteamStreamingHardwareEncodingIntel=1"),
-            TEXT("MESA_GLSL_CACHE_MAX_SIZE=5G"),
-            TEXT("__GL_SHADER_DISK_CACHE_APP_NAME=steamapp_shader_cache"),
-            TEXT("__GL_SHADER_DISK_CACHE_READ_ONLY_APP_NAME=steam_shader_cache;steamapp_merged_shader_cache"),
-            TEXT("__GL_SHADER_DISK_CACHE_SKIP_CLEANUP=1"),
-            TEXT("AMD_VK_PIPELINE_CACHE_FILENAME=steamapp_shader_cache"),
-            TEXT("AMD_VK_USE_PIPELINE_CACHE=1"),
-            TEXT("ENABLE_VK_LAYER_VALVE_steam_overlay_1=1"),
-            TEXT("ENABLE_VK_LAYER_VALVE_steam_fossilize_1=1"),
-            TEXT("MESA_DISK_CACHE_SINGLE_FILE=1"),
-            TEXT("MESA_DISK_CACHE_READ_ONLY_FOZ_DBS=steam_cache"),*/
         };
-
-        /*env.push_back(TEXT("INSTALLDIR=") + installDir);
-        env.push_back(TEXT("ValvePlatformMutex=") + (steamDir / "steam.exe"));
-        env.push_back(TEXT("MESA_GLSL_CACHE_DIR=") + (steamappsDir / "shadercache" / "219990"));
-        env.push_back(TEXT("__GL_SHADER_DISK_CACHE_PATH=") + (steamappsDir / "shadercache" / "219990" / "nvidiav1"));
-        env.push_back(TEXT("AMD_VK_PIPELINE_CACHE_PATH=") + (steamappsDir / "shadercache" / "219990" / "AMDv1"));
-        env.push_back(TEXT("STEAM_FOSSILIZE_DUMP_PATH=") + (steamappsDir / "shadercache" / "219990" / "fozpipelinesv5" / "steamapprun_pipeline_cache"));
-        env.push_back(TEXT("STEAM_FOSSILIZE_DUMP_PATH_READ_ONLY=") + (steamappsDir / "shadercache" / "219990" / "fozpipelinesv5" / "steam_pipeline_cache.foz"));
-        env.push_back(TEXT("FOSSILIZE_APPLICATION_INFO_FILTER_PATH=") + (steamDir / "fossilize_engine_filters.json"));
-        env.push_back(TEXT("STEAM_COMPAT_MEDIA_PATH=") + (steamappsDir / "shadercache" / "219990" / "fozmediav1"));
-        env.push_back(TEXT("STEAM_COMPAT_TRANSCODED_MEDIA_PATH=") + (steamappsDir / "shadercache" / "219990" / "swarm"));
-        env.push_back(TEXT("DXVK_STATE_CACHE_PATH=") + (steamappsDir / "shadercache" / "219990" / "DXVK_state_cache"));*/
 
         // Also make sure to preserve the current environment variables
         uint32_t start = 0;
@@ -181,7 +153,7 @@ HANDLE GameLauncher::LaunchProcess(const std::filesystem::path& exePath, const s
     if (client.HasUpdate() && !ExtractZIPUpdate())
     {
         Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to update GDCommunityLauncher.dll");
-        return false;
+        return NULL;
     }
 
     HANDLE pipeRead, pipeWrite;

@@ -1,4 +1,4 @@
-#include "ClientHandlers.h"
+#include "ClientHandler.h"
 
 #if _WIN32
 const std::string separator = "\\";
@@ -13,16 +13,16 @@ std::string HandleGetRootSavePath()
 {
     typedef std::string (__thiscall* TestProto)();
 
-    TestProto callback = (TestProto)HookManager::GetOriginalFunction("Game.dll", GameAPI::GAPI_NAME_GET_ROOT_SAVE_PATH);
+    TestProto callback = (TestProto)HookManager::GetOriginalFunction(GAME_DLL, GameAPI::GAPI_NAME_GET_ROOT_SAVE_PATH);
     if (callback)
     {
         std::string result = callback();
 
         Client& client = Client::GetInstance();
-        const std::string& seasonName = client.GetSeasonName();
-        if (!seasonName.empty())
+        const std::string& prefix = GameAPI::GetRootPrefix();
+        if (!prefix.empty())
         {
-            result += separator + seasonName;
+            result += separator + prefix;
         }
 
         return result;
@@ -34,7 +34,7 @@ std::string HandleGetBaseFolder(void* _this)
 {
     typedef std::string (__thiscall* GetBaseFolderProto)(void*);
 
-    GetBaseFolderProto callback = (GetBaseFolderProto)HookManager::GetOriginalFunction("Game.dll", GameAPI::GAPI_NAME_GET_BASE_FOLDER);
+    GetBaseFolderProto callback = (GetBaseFolderProto)HookManager::GetOriginalFunction(GAME_DLL, GameAPI::GAPI_NAME_GET_BASE_FOLDER);
     if (callback)
     {
         std::string result = callback(_this);
@@ -47,19 +47,20 @@ std::string& HandleGetUserSaveFolder(void* _this, void* unk1)
 {
     typedef std::string& (__thiscall* GetUserSaveFolderProto)(void*, void*);
 
-    GetUserSaveFolderProto callback = (GetUserSaveFolderProto)HookManager::GetOriginalFunction("Game.dll", GameAPI::GAPI_NAME_GET_USER_SAVE_FOLDER);
+    GetUserSaveFolderProto callback = (GetUserSaveFolderProto)HookManager::GetOriginalFunction(GAME_DLL, GameAPI::GAPI_NAME_GET_USER_SAVE_FOLDER);
     if (callback)
     {
         std::string& result = callback(_this, unk1);
 
         Client& client = Client::GetInstance();
-        const std::string& seasonName = client.GetSeasonName();
-        if (!seasonName.empty())
+        const std::string& prefix = GameAPI::GetRootPrefix();
+
+        if (!prefix.empty())
         {
             size_t index = result.find("save");
             if (index != std::string::npos)
             {
-                result.insert(index, seasonName + separator);
+                result.insert(index, prefix + separator);
             }
         }
         return result;
@@ -71,7 +72,7 @@ std::string& HandleGetFullSaveFolder(void* _this, void* unk1, void* player)
 {
     typedef std::string& (__thiscall* GetFullSaveFolderProto)(void*, void*, void*);
 
-    GetFullSaveFolderProto callback = (GetFullSaveFolderProto)HookManager::GetOriginalFunction("Game.dll", GameAPI::GAPI_NAME_GET_FULL_SAVE_FOLDER);
+    GetFullSaveFolderProto callback = (GetFullSaveFolderProto)HookManager::GetOriginalFunction(GAME_DLL, GameAPI::GAPI_NAME_GET_FULL_SAVE_FOLDER);
     if (callback)
     {
         std::string& result = callback(_this, unk1, player);
@@ -84,19 +85,20 @@ std::string& HandleGetPlayerFolder1(void* _this, void* unk1, const std::string& 
 {
     typedef std::string& (__thiscall* GetPlayerFolderProto)(void*, void*, const std::string&, bool, bool);
 
-    GetPlayerFolderProto callback = (GetPlayerFolderProto)HookManager::GetOriginalFunction("Game.dll", GameAPI::GAPI_NAME_GET_PLAYER_FOLDER_1);
+    GetPlayerFolderProto callback = (GetPlayerFolderProto)HookManager::GetOriginalFunction(GAME_DLL, GameAPI::GAPI_NAME_GET_PLAYER_FOLDER_1);
     if (callback)
     {
         std::string& result = callback(_this, unk1, playerName, unk2, unk3);
 
         Client& client = Client::GetInstance();
-        const std::string& seasonName = client.GetSeasonName();
-        if (!seasonName.empty())
+        const std::string& prefix = GameAPI::GetRootPrefix();
+
+        if (!prefix.empty())
         {
-            size_t index = result.find("save" + separator + "user");
+            size_t index = result.find("save" + separator);
             if (index != std::string::npos)
             {
-                result.insert(index, seasonName + separator);
+                result.insert(index, prefix + separator);
             }
         }
         return result;
@@ -108,19 +110,20 @@ std::string& HandleGetPlayerFolder2(void* _this, void* unk1, void* player)
 {
     typedef std::string& (__thiscall* GetPlayerFolderProto)(void*, void*, void*);
 
-    GetPlayerFolderProto callback = (GetPlayerFolderProto)HookManager::GetOriginalFunction("Game.dll", GameAPI::GAPI_NAME_GET_PLAYER_FOLDER_2);
+    GetPlayerFolderProto callback = (GetPlayerFolderProto)HookManager::GetOriginalFunction(GAME_DLL, GameAPI::GAPI_NAME_GET_PLAYER_FOLDER_2);
     if (callback)
     {
         std::string& result = callback(_this, unk1, player);
 
         Client& client = Client::GetInstance();
-        const std::string& seasonName = client.GetSeasonName();
-        if (!seasonName.empty())
+        const std::string& prefix = GameAPI::GetRootPrefix();
+
+        if (!prefix.empty())
         {
-            size_t index = result.find("save" + separator + "user");
+            size_t index = result.find("save" + separator);
             if (index != std::string::npos)
             {
-                result.insert(index, seasonName + separator);
+                result.insert(index, prefix + separator);
             }
         }
         return result;
@@ -132,19 +135,20 @@ std::string& HandleGetMapFolder(void* _this, void* unk1, const std::string& name
 {
     typedef std::string& (__thiscall* GetMapFolderProto)(void*, void*, const std::string&, void*);
 
-    GetMapFolderProto callback = (GetMapFolderProto)HookManager::GetOriginalFunction("Game.dll", GameAPI::GAPI_NAME_GET_MAP_FOLDER);
+    GetMapFolderProto callback = (GetMapFolderProto)HookManager::GetOriginalFunction(GAME_DLL, GameAPI::GAPI_NAME_GET_MAP_FOLDER);
     if (callback)
     {
         std::string& result = callback(_this, unk1, name, player);
 
         Client& client = Client::GetInstance();
-        const std::string& seasonName = client.GetSeasonName();
-        if (!seasonName.empty())
+        const std::string& prefix = GameAPI::GetRootPrefix();
+
+        if (!prefix.empty())
         {
-            size_t index = result.find("save" + separator + "user");
+            size_t index = result.find("save" + separator);
             if (index != std::string::npos)
             {
-                result.insert(index, seasonName + separator);
+                result.insert(index, prefix + separator);
             }
         }
         return result;
@@ -156,7 +160,7 @@ std::string& HandleGetDifficultyFolder(void* _this, void* unk1, GameAPI::Difficu
 {
     typedef std::string& (__thiscall* GetDifficultyFolderProto)(void*, void*, GameAPI::Difficulty, const std::string&, void*);
 
-    GetDifficultyFolderProto callback = (GetDifficultyFolderProto)HookManager::GetOriginalFunction("Game.dll", GameAPI::GAPI_NAME_GET_DIFFICULTY_FOLDER);
+    GetDifficultyFolderProto callback = (GetDifficultyFolderProto)HookManager::GetOriginalFunction(GAME_DLL, GameAPI::GAPI_NAME_GET_DIFFICULTY_FOLDER);
     if (callback)
     {
         std::string& result = callback(_this, unk1, difficulty, mapName, player);
@@ -165,24 +169,33 @@ std::string& HandleGetDifficultyFolder(void* _this, void* unk1, GameAPI::Difficu
     return empty;
 }
 
-void HandleGetSharedSavePath(void* _this, uint32_t type, std::string& path, bool unk1, bool unk2, bool unk3)
+void HandleGetSharedSavePath(void* _this, GameAPI::SharedSaveType type, std::string& path, bool unk1, bool unk2, bool unk3, bool unk4)
 {
-    typedef void (__thiscall* GetSharedSavePathProto)(void*, uint32_t, std::string&, bool, bool, bool);
+    typedef void (__thiscall* GetSharedSavePathProto)(void*, GameAPI::SharedSaveType, std::string&, bool, bool, bool, bool);
 
-    GetSharedSavePathProto callback = (GetSharedSavePathProto)HookManager::GetOriginalFunction("Game.dll", GameAPI::GAPI_NAME_GET_SHARED_SAVE_PATH);
+    GetSharedSavePathProto callback = (GetSharedSavePathProto)HookManager::GetOriginalFunction(GAME_DLL, GameAPI::GAPI_NAME_GET_SHARED_SAVE_PATH);
     if (callback)
     {
-        callback(_this, type, path, unk1, unk2, unk3);
+        callback(_this, type, path, unk1, unk2, unk3, unk4);
 
         Client& client = Client::GetInstance();
-        const std::string& seasonName = client.GetSeasonName();
-        if (!seasonName.empty())
+        const std::string& prefix = GameAPI::GetRootPrefix();
+
+        if (!prefix.empty())
         {
             size_t index = path.find("Grim Dawn" + separator + "save");
             if (index != std::string::npos)
             {
-                path.insert(index + 10, seasonName + separator);
+                path.insert(index + 10, prefix + separator);
             }
+        }
+
+        // TODO: This is a bit of a hack to keep filenames consistent; change when we figure out how the game determines which save file to use
+        std::filesystem::path filePath(path);
+        if ((filePath.extension() == ".bst") || (filePath.extension() == ".cst") || (filePath.extension() == ".dst"))
+        {
+            filePath.replace_extension(".gst");
+            path = filePath.u8string();
         }
     }
 }

@@ -1,5 +1,5 @@
 #include "ChatClient.h"
-#include "ClientHandlers.h"
+#include "ClientHandler.h"
 #include "EventManager.h"
 #include "Quest.h"
 
@@ -48,6 +48,10 @@ bool HasParticipationTokenFromFile(const std::wstring& playerName, const SeasonI
             }
         }
     }
+    else
+    {
+        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to find character data at \"%\"", characterPath);
+    }
     return false;
 }
 
@@ -55,7 +59,7 @@ void HandleSetMainPlayer(void* _this, uint32_t unk1)
 {
     typedef void (__thiscall* SetMainPlayerProto)(void*, uint32_t);
 
-    SetMainPlayerProto callback = (SetMainPlayerProto)HookManager::GetOriginalFunction("Game.dll", GameAPI::GAPI_NAME_SET_MAIN_PLAYER);
+    SetMainPlayerProto callback = (SetMainPlayerProto)HookManager::GetOriginalFunction(GAME_DLL, GameAPI::GAPI_NAME_SET_MAIN_PLAYER);
     if (callback)
     {
         callback(_this, unk1);
@@ -63,9 +67,17 @@ void HandleSetMainPlayer(void* _this, uint32_t unk1)
         Client& client = Client::GetInstance();
         void* mainPlayer = GameAPI::GetMainPlayer();
         const SeasonInfo* seasonInfo = client.GetActiveSeason();
+        //std::string modName = EngineAPI::GetModName();
 
         EventManager::Publish(GDCL_EVENT_SET_MAIN_PLAYER, mainPlayer);
 
+        /*if ((client.IsOfflineMode()) && (modName.empty()))
+        {
+            GameAPI::SendChatMessage(L"Server", L"Welcome to the Grim Dawn Community League!", EngineAPI::UI::CHAT_TYPE_NORMAL);
+            GameAPI::SendChatMessage(L"Server", L"You are currently playing in offline mode. Some features such as chat and cloud stash will not work properly.", EngineAPI::UI::CHAT_TYPE_NORMAL);
+            GameAPI::SendChatMessage(L"Server", L"You can play online during a season or by becoming a patron at https://www.patreon.com/bePatron?u=46741640.", EngineAPI::UI::CHAT_TYPE_NORMAL);
+        }
+        else*/
         if ((mainPlayer) && (seasonInfo))
         {
             std::wstring playerName = GameAPI::GetPlayerName(mainPlayer);
@@ -73,7 +85,9 @@ void HandleSetMainPlayer(void* _this, uint32_t unk1)
                                          HasParticipationTokenFromAPI(mainPlayer, seasonInfo) || 
                                          HasParticipationTokenFromFile(playerName, seasonInfo);
 
-            client.SetActiveCharacter(playerName, hasParticipationToken);
+            if (hasParticipationToken)
+                client.SetActiveCharacter(playerName);
+
             pplx::create_task([&client]() // pplx might be oay, needs testing
             {
                 // Initialize the chat window

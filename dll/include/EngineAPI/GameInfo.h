@@ -28,6 +28,8 @@ std::wstring GetLevelName();
 std::string GetModName();
 bool IsHardcore();
 bool IsMultiplayer();
+bool IsMainCampaign();
+bool IsMainCampaignOrCrucible();
 
 }
 

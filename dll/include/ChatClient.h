@@ -38,9 +38,9 @@ class ChatClient
         ChatClient(ChatClient&) = delete;
         void operator=(const ChatClient&) = delete;
 
-        static void OnConnectEvent(void* data);
-        static void OnDisconnectEvent(void* data);
-        static void OnWorldLoadEvent(void* data);
+        static void OnConnectEvent();
+        static void OnDisconnectEvent();
+        static void OnWorldPreLoadEvent(std::string mapName, bool modded);
 
         static void OnConnection(const signalr::value& m);
         static void OnReceiveMessage(const signalr::value& m);

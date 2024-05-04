@@ -12,6 +12,9 @@ constexpr char EAPI_NAME_HANDLE_KEY_EVENT[] = "?HandleKeyEvent@DisplayWidget@GAM
 constexpr char EAPI_NAME_HANDLE_KEY_EVENT[] = "?HandleKeyEvent@DisplayWidget@GAME@@UAE_NABVButtonEvent@InputDevice@2@@Z";
 #endif
 
+namespace Input
+{
+
 enum KeyCode : uint32_t
 {
     KEY_NONE = 0,
@@ -125,12 +128,28 @@ enum KeyState : uint32_t
     KEY_STATE_UP = 1,
 };
 
+enum KeyModifier : uint32_t
+{
+    KEY_MODIFIER_NONE  = 0x00000000,
+    KEY_MODIFIER_SHIFT = 0x00000100,
+    KEY_MODIFIER_ALT   = 0x00010000,
+    KEY_MODIFIER_CTRL  = 0x01000000,
+    KEY_MODIFIER_ALT_SHIFT      = KEY_MODIFIER_ALT  | KEY_MODIFIER_SHIFT,
+    KEY_MODIFIER_CTRL_SHIFT     = KEY_MODIFIER_CTRL | KEY_MODIFIER_SHIFT,
+    KEY_MODIFIER_CTRL_ALT       = KEY_MODIFIER_CTRL | KEY_MODIFIER_ALT,
+    KEY_MODIFIER_CTRL_ALT_SHIFT = KEY_MODIFIER_CTRL | KEY_MODIFIER_ALT | KEY_MODIFIER_SHIFT,
+};
+
 struct KeyButtonEvent
 {
     uint64_t _unk1;    // A pointer to some API function, always constant
-    KeyCode  _keyCode;
-    KeyState _keyState;
+    KeyCode  _key;
+    KeyState _state;
+    KeyModifier _modifier;
+    uint32_t _output;  // The character that would be produced by this key event
 };
+
+}
 
 }
 

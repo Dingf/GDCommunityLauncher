@@ -20,7 +20,8 @@ class FileBuffer
 
         void SetPosition(int64_t position) { _bufferPos = position; }
 
-        const uint8_t* GetBuffer() { return _buffer; }
+        const uint8_t* GetBuffer() const { return _buffer; }
+              uint8_t* GetBuffer()       { return _buffer; }
 
     protected:
         uint8_t* _buffer;

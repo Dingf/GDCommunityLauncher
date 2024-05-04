@@ -8,11 +8,11 @@
 #include <cwctype>
 #include <filesystem>
 #include <cpprest/http_client.h>
-#include "ClientHandlers.h"
+#include "ClientHandler.h"
 #include "ChatClient.h"
 #include "Character.h"
-#include "ServerSync.h"
 #include "JSONObject.h"
+#include "StringConvert.h"
 #include "URI.h"
 
 const std::unordered_map<std::string, uint32_t> challengeCategoryMap =
@@ -347,7 +347,7 @@ bool HandleChatOnlineCommand(ChatClient* chatClient, std::wstring& name, std::ws
 pplx::task<web::json::value> GetSeasonChallenges()
 {
     Client& client = Client::GetInstance();
-    if (client.IsParticipatingInSeason())
+    if (client.IsPlayingSeason())
     {
         URI endpoint = client.GetServerGameURL() / "Admin" / "season" / std::to_string(client.GetActiveSeason()->_seasonID) / "challenges";
 
@@ -380,7 +380,7 @@ pplx::task<web::json::value> GetSeasonChallenges()
 pplx::task<std::unordered_set<uint32_t>> GetCompletedChallengeIDs()
 {
     Client& client = Client::GetInstance();
-    if (client.IsParticipatingInSeason())
+    if (client.IsPlayingSeason())
     {
         URI endpoint = client.GetServerGameURL() / "Season" / std::to_string(client.GetActiveSeason()->_seasonID) / "participant-challenges" / std::to_string(client.GetParticipantID());
 
@@ -826,10 +826,112 @@ bool HandleChatWhisperCommand(ChatClient* chatClient, std::wstring& name, std::w
     return false;
 }
 
+bool IsBetaBranch()
+{
+    Client& client = Client::GetInstance();
+    return (client.GetBranch() == SEASON_BRANCH_BETA);
+}
+
+bool HandleBetaAddItemCommand(ChatClient* chatClient, std::wstring& name, std::wstring& message, uint32_t& channel, uint8_t& type, void* item)
+{
+    if (IsBetaBranch())
+    {
+        std::wstring subcommand = message.substr(0, message.find(L" "));
+        std::wstring args = (subcommand.size() == message.size()) ? L"" : message.substr(message.find(L" ") + 1);
+
+        int32_t stackCount = 1;
+        try
+        {
+            stackCount = std::stoi(args);
+            if (stackCount <= 0)
+                stackCount = 1;
+        }
+        catch (std::exception&) {}
+
+        GameAPI::ItemReplicaInfo itemInfo;
+        itemInfo._itemID = EngineAPI::CreateObjectID();
+        itemInfo._itemName = WideToChar(subcommand);
+        itemInfo._itemStackCount = stackCount;
+        itemInfo._itemSeed = GameAPI::GenerateItemSeed();
+
+        if (void* newItem = GameAPI::CreateItem(itemInfo))
+        {
+            void* mainPlayer = GameAPI::GetMainPlayer();
+            GameAPI::GiveItemToPlayer(mainPlayer, newItem, true, true);
+        }
+        return false;
+    }
+    return true;
+}
+
+bool HandleBetaAddMoneyCommand(ChatClient* chatClient, std::wstring& name, std::wstring& message, uint32_t& channel, uint8_t& type, void* item)
+{
+    if (IsBetaBranch())
+    {
+        std::wstring subcommand = message.substr(0, message.find(L" "));
+
+        int32_t amount = 0;
+        try
+        {
+            amount = std::stoi(subcommand);
+        }
+        catch (std::exception&) {}
+
+        void* mainPlayer = GameAPI::GetMainPlayer();
+        GameAPI::AddOrSubtractMoney(mainPlayer, amount);
+        return false;
+    }
+    return true;
+}
+
+bool HandleBetaDumpTagsCommand(ChatClient* chatClient, std::wstring& name, std::wstring& message, uint32_t& channel, uint8_t& type, void* item)
+{
+    if (IsBetaBranch())
+    {
+        void* mainPlayer = GameAPI::GetMainPlayer();
+        if (mainPlayer != nullptr)
+        {
+            std::wstring playerName = GameAPI::GetPlayerName(mainPlayer);
+            std::string filename = "tags_" + WideToChar(playerName) + ".txt";
+            std::ofstream out(filename, std::ofstream::out);
+            for (auto difficulty : GameAPI::GAME_DIFFICULTIES)
+            {
+                const std::vector<GameAPI::TriggerToken>& tokens = GameAPI::GetPlayerTokens(mainPlayer, difficulty);
+                for (size_t i = 0, index = 0; i < tokens.size(); ++i)
+                {
+                    std::string tokenString = tokens[i];
+
+                    switch (difficulty)
+                    {
+                        case GameAPI::GAME_DIFFICULTY_NORMAL:
+                            out << "[N] ";
+                            break;
+                        case GameAPI::GAME_DIFFICULTY_ELITE:
+                            out << "[E] ";
+                            break;
+                        case GameAPI::GAME_DIFFICULTY_ULTIMATE:
+                            out << "[U] ";
+                            break;
+                    }
+                    out << tokenString << std::endl;
+                }
+            }
+            out.close();
+
+            GameAPI::SendChatMessage(L"Server", std::wstring(L"Tags successfully written to ") + std::wstring(filename.begin(), filename.end()), EngineAPI::UI::CHAT_TYPE_NORMAL);
+        }
+
+        return false;
+    }
+    return true;
+}
+
+typedef bool (*ChatCommandInfoFilter)();
 typedef bool (*ChatCommandHandler)(ChatClient*, std::wstring&, std::wstring&, uint32_t&, uint8_t&, void*);
 
 struct ChatCommandInfo
 {
+    ChatCommandInfoFilter     _filter;
     std::wstring              _blurb;
     std::wstring              _detail;
 };
@@ -837,14 +939,19 @@ struct ChatCommandInfo
 // TODO: Move these strings into a tags file and get them via Localize()
 const std::unordered_map<ChatCommandHandler, ChatCommandInfo> chatCommandInfo = 
 {
-    { HandleChatChallengesCommand, { L"Displays the list of season challenges.", L"Usage: /c, /challenges[category]\n\nDisplays the user's current challenge progress in the season. If no arguments are specified, displays an overview of all challenge categories.\n\n    [category] - Displays a list of individual challenges for the specified challenge category.\n\n" } },
-    { HandleChatGlobalCommand,     { L"Sends a message to global chat.", L"Usage: /g, /global[channel] [on|off|color] ...\n\nSends a message to the current global chat channel. If no arguments are specified, displays the current global chat channel.\n\n    [channel] - Sets or switches the current global chat channel. Valid values are 1-15.\n\n    [on/off] - Enables or disables global chat.\n\n    [color] - Sets the color of global chat to a color alias or a 6-digit hex code. Type \"/h color\" for a list of color aliases.\n\n" } },
-    { HandleChatHelpCommand,       { L"Displays available commands and their usage.", L"Usage: /h, /help [command]\n\nDisplays a detailed usage message for a chat command. If no arguments are specified, displays all available chat commands.\n\n    [command] - Specifies the command to display help information on.\n\n" } },
-    { HandleChatMuteCommand,       { L"Blocks all incoming messages from a user.", L"Usage: /m, /mute [user]\n\nBlocks all incoming messages from a user. If no arguments are specified, displays the list of users that you have currently muted.\n\n    [user] - Specifies the username to be blocked.\n\n" } },
-    { HandleChatOnlineCommand,     { L"Displays the number of online users.", L"Usage: /o, /online\n\nDisplays the number of concurrent online users.\n\n" } },
-    { HandleChatTradeCommand,      { L"Sends a message to trade chat.", L"Usage: /t, /trade[channel] [on|off|color] ...\n\nSends a message to the current trade chat channel. If no arguments are specified, displays the current trade chat channel.\n\n    [channel] - Sets or switches the current trade chat channel. Valid values are 1-15.\n\n    [on/off] - Enables or disables trade chat.\n\n    [color] - Sets the color of trade chat to a color alias or a 6-digit hex code. Type \"/h color\" for a list of color aliases.\n\n" } },
-    { HandleChatUnmuteCommand,     { L"Unblocks all incoming messages from a user.", L"Usage: /m, /mute <user>\n\nUnblocks a user that was previously blocked, allowing you to see their messages again.\n\n    <user> - Specifies the username to be unblocked.\n\n" } },
-    { HandleChatWhisperCommand,    { L"Sends a direct message to a user.", L"Usage: /w, /whisper <user> ...\n\nSends a direct message to a user.\n\n    <user> - Specifies the username to send a message to.\n\n" } },
+    { HandleChatChallengesCommand, { nullptr,      L"Displays the list of season challenges.", L"Usage: /c, /challenges[category]\n\nDisplays the user's current challenge progress in the season. If no arguments are specified, displays an overview of all challenge categories.\n\n    [category] - Displays a list of individual challenges for the specified challenge category.\n\n" } },
+    { HandleChatGlobalCommand,     { nullptr,      L"Sends a message to global chat.", L"Usage: /g, /global[channel] [on|off|color] ...\n\nSends a message to the current global chat channel. If no arguments are specified, displays the current global chat channel.\n\n    [channel] - Sets or switches the current global chat channel. Valid values are 1-15.\n\n    [on/off] - Enables or disables global chat.\n\n    [color] - Sets the color of global chat to a color alias or a 6-digit hex code. Type \"/h color\" for a list of color aliases.\n\n" } },
+    { HandleChatHelpCommand,       { nullptr,      L"Displays available commands and their usage.", L"Usage: /h, /help [command]\n\nDisplays a detailed usage message for a chat command. If no arguments are specified, displays all available chat commands.\n\n    [command] - Specifies the command to display help information on.\n\n" } },
+    { HandleChatMuteCommand,       { nullptr,      L"Blocks all incoming messages from a user.", L"Usage: /m, /mute [user]\n\nBlocks all incoming messages from a user. If no arguments are specified, displays the list of users that you have currently muted.\n\n    [user] - Specifies the username to be blocked.\n\n" } },
+    { HandleChatOnlineCommand,     { nullptr,      L"Displays the number of online users.", L"Usage: /o, /online\n\nDisplays the number of concurrent online users.\n\n" } },
+    { HandleChatTradeCommand,      { nullptr,      L"Sends a message to trade chat.", L"Usage: /t, /trade[channel] [on|off|color] ...\n\nSends a message to the current trade chat channel. If no arguments are specified, displays the current trade chat channel.\n\n    [channel] - Sets or switches the current trade chat channel. Valid values are 1-15.\n\n    [on/off] - Enables or disables trade chat.\n\n    [color] - Sets the color of trade chat to a color alias or a 6-digit hex code. Type \"/h color\" for a list of color aliases.\n\n" } },
+    { HandleChatUnmuteCommand,     { nullptr,      L"Unblocks all incoming messages from a user.", L"Usage: /m, /mute <user>\n\nUnblocks a user that was previously blocked, allowing you to see their messages again.\n\n    <user> - Specifies the username to be unblocked.\n\n" } },
+    { HandleChatWhisperCommand,    { nullptr,      L"Sends a direct message to a user.", L"Usage: /w, /whisper <user> ...\n\nSends a direct message to a user.\n\n    <user> - Specifies the username to send a message to.\n\n" } },
+    
+    // Beta testing commands
+    { HandleBetaAddItemCommand,    { IsBetaBranch, L"Adds an item directly into the user's inventory.", L"Usage: /item <dbr_name> <stack_count>\n\nAdds an item directly into the user's inventory.\n\n    <dbr_name> - The full path of the item DBR to add.\n\n    <stack_count> - The stack count of the item. If not specified, this value will be 1.\n\n" } },
+    { HandleBetaAddMoneyCommand,   { IsBetaBranch, L"Adds or removes iron bits from the user's inventory.", L"Usage: /money <amount>\n\nAdds or removes iron bits from the user's inventory.\n\n    <amount> - Specifies the amount of iron bits to add. If this value is negative, the amount will be removed instead.\n\n" } },
+    { HandleBetaDumpTagsCommand,   { IsBetaBranch, L"Saves character quest tags.", L"Usage: /tags\n\nSaves all quest tags for the current character to a text file.\n\n" } },
 };
 
 const std::unordered_map<std::wstring, ChatCommandHandler> chatCommandHandlers =
@@ -865,6 +972,11 @@ const std::unordered_map<std::wstring, ChatCommandHandler> chatCommandHandlers =
     { L"u",          HandleChatUnmuteCommand },
     { L"whisper",    HandleChatWhisperCommand },
     { L"w",          HandleChatWhisperCommand },
+
+    // Beta testing commands
+    { L"item",       HandleBetaAddItemCommand },
+    { L"money",      HandleBetaAddMoneyCommand },
+    { L"tags",       HandleBetaDumpTagsCommand },
 };
 
 bool HandleChatHelpCommand(ChatClient* chatClient, std::wstring& name, std::wstring& message, uint32_t& channel, uint8_t& type, void* item)
@@ -887,10 +999,16 @@ bool HandleChatHelpCommand(ChatClient* chatClient, std::wstring& name, std::wstr
                     commandString += L", ";
             }
 
-            ChatCommandInfo info = chatCommandInfo.at(pair.first);
-            commandString += L" - " + info._blurb;
-
-            chatCommandStrings.insert(commandString);
+            auto it = chatCommandInfo.find(pair.first);
+            if (it != chatCommandInfo.end())
+            {
+                const ChatCommandInfo& info = it->second;
+                if ((info._filter == nullptr) || (info._filter()))
+                {
+                    commandString += L" - " + info._blurb;
+                    chatCommandStrings.insert(commandString);
+                }
+            }
         }
 
         std::wstring message = L"The following chat commands are available:";
@@ -985,7 +1103,7 @@ void HandleSendChatMessage(void* _this, const std::wstring& name, const std::wst
 {
     typedef void (__thiscall* SendChatMessageProto)(void*, const std::wstring&, const std::wstring&, uint8_t, std::vector<uint32_t>, uint32_t);
 
-    SendChatMessageProto callback = (SendChatMessageProto)HookManager::GetOriginalFunction("Game.dll", GameAPI::GAPI_NAME_SEND_CHAT_MESSAGE);
+    SendChatMessageProto callback = (SendChatMessageProto)HookManager::GetOriginalFunction(GAME_DLL, GameAPI::GAPI_NAME_SEND_CHAT_MESSAGE);
     if (callback)
     {
         // The "actual" name and message that are used for the final SendChatMessage() call
@@ -994,7 +1112,7 @@ void HandleSendChatMessage(void* _this, const std::wstring& name, const std::wst
         std::wstring realMessage = message;
 
         Client& client = Client::GetInstance();
-        if (client.IsParticipatingInSeason())
+        if (client.IsPlayingSeason())
         {
             EngineAPI::UI::ChatWindow& chatWindow = EngineAPI::UI::ChatWindow::GetInstance();
             chatWindow.SetChatPrefix({});

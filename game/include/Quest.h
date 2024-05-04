@@ -24,6 +24,7 @@ class Quest : public JSONObject
             UID16    _id2;
             uint32_t _state;
             uint8_t  _isInProgress;
+            uint8_t  _unk1;
             std::vector<uint32_t> _objectives;
         };
 
@@ -66,10 +67,10 @@ class Quest : public JSONObject
         }
         _tokensBlock;
 
-        // Quest data block, ID = 11, Version = 3
+        // Quest data block, ID = 11, Version = 3,4
         struct QuestDataBlock : public GDDataBlock
         {
-            QuestDataBlock() : GDDataBlock(0x0B, 0x04) {}
+            QuestDataBlock() : GDDataBlock(0x0B, 0x0C) {}
 
             web::json::value ToJSON() const;
 

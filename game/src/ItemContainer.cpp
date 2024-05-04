@@ -1,6 +1,8 @@
 #include "ItemContainer.h"
 
-ItemContainer::ItemContainer(uint32_t width, uint32_t height, bool ignoreItemSize) : _width(width), _height(height), _ignoreItemSize(ignoreItemSize)
+#include "Log.h"
+
+ItemContainer::ItemContainer(uint32_t width, uint32_t height) : _width(width), _height(height)
 {
     for (uint32_t i = 0; i < width * height; ++i)
     {
@@ -46,61 +48,13 @@ bool ItemContainer::AddItem(const Item& item, uint32_t x, uint32_t y)
     if ((x >= _width) || (y >= _height))
         return false;
 
-    if (_ignoreItemSize)
+    uint32_t index = (y  * _width) + x;
+    if (_grid[index]._item == nullptr)
     {
-        uint32_t index = (y  * _width) + x;
-        if (_grid[index]._item == nullptr)
-        {
-            std::shared_ptr<Item> itemCopy = std::make_shared<Item>(item);
-            _itemList[itemCopy] = ((uint64_t)x << 32) | y;
-            _grid[index]._item = itemCopy.get();
-            _grid[index]._real = true;
-            return true;
-        }
-    }
-    else if (CanPlaceItem(item, x, y))
-    {
-        uint32_t itemWidth = item._itemWidth;
-        uint32_t itemHeight = item._itemHeight;
-
         std::shared_ptr<Item> itemCopy = std::make_shared<Item>(item);
         _itemList[itemCopy] = ((uint64_t)x << 32) | y;
-
-        for (uint32_t i = 0; i < itemHeight; i++)
-        {
-            for (uint32_t j = 0; j < itemWidth; j++)
-            {
-                uint32_t index = ((y + i) * _width) + (x + j);
-                _grid[index]._item  = itemCopy.get();
-                _grid[index]._down  = -1;
-                _grid[index]._right = -1;
-                _grid[index]._real  = ((i == 0) && (j == 0));
-            }
-        }
-
-        for (uint32_t i = 0; i < itemHeight; ++i)
-        {
-            for (int32_t j = x - 1; j >= 0; j--)
-            {
-                uint32_t index = ((y + i) * _width) + j;
-                if (_grid[index]._item == nullptr)
-                    _grid[index]._right = x;
-                else
-                    break;
-            }
-        }
-
-        for (uint32_t i = 0; i < itemWidth; ++i)
-        {
-            for (int32_t j = y - 1; j >= 0; j--)
-            {
-                uint32_t index = (j * _width) + (x + i);
-                if (_grid[index]._item == nullptr)
-                    _grid[index]._down = y;
-                else
-                    break;
-            }
-        }
+        _grid[index]._item = itemCopy.get();
+        _grid[index]._real = true;
         return true;
     }
     return false;
@@ -135,21 +89,4 @@ std::vector<Item*> ItemContainer::AddItemList(const std::vector<Item>& items)
         }
     }
     return result;
-}
-
-bool ItemContainer::CanPlaceItem(const Item& item, uint32_t x, uint32_t y) const
-{
-    uint32_t itemWidth = item._itemWidth;
-    uint32_t itemHeight = item._itemHeight;
-
-    if ((x + itemWidth > _width) || (y + itemHeight > _height))
-        return false;
-
-    for (uint32_t i = 0; i < itemWidth && i < itemHeight; i++)
-    {
-        uint32_t index = ((y + i) * _width) + (x + i);
-        if ((_grid[index]._item != nullptr) || (_grid[index]._right <= 0) || (_grid[index]._down <= 0) || (_grid[index]._right < (x + itemWidth)) || (_grid[index]._down < (y + itemHeight)))
-            return false;
-    }
-    return true;
 }

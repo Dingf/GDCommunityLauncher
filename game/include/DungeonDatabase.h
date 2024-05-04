@@ -26,7 +26,7 @@ class DungeonDatabase
 
         void Load(const char* buffer, size_t size, DungeonDBUpdateCallback callback);
 
-        void Update() { if (_callback != nullptr) _callback(_dungeonData); }
+        void Update() { if (_callback) _callback(_dungeonData); }
 
     private:
         DungeonDatabase() { _callback = nullptr; }

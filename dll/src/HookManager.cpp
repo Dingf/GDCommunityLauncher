@@ -19,6 +19,11 @@ HookManager::~HookManager()
     MH_Uninitialize();
 }
 
+LPVOID HookManager::GetOriginalFunction(const Hook& hook)
+{
+    return GetOriginalFunction(hook.moduleName, hook.functionName);
+}
+
 LPVOID HookManager::GetOriginalFunction(LPCSTR moduleName, LPCSTR functionName)
 {
     HookManager& instance = GetInstance();
@@ -30,7 +35,12 @@ LPVOID HookManager::GetOriginalFunction(LPCSTR moduleName, LPCSTR functionName)
     return NULL;
 }
 
-LPVOID HookManager::CreateHook(LPCSTR moduleName, LPCSTR functionName, PVOID function, bool forceMinHook)
+LPVOID HookManager::CreateHook(const Hook& hook)
+{
+    return CreateHook(hook.moduleName, hook.functionName, hook.function, hook.forceMinHook);
+}
+
+LPVOID HookManager::CreateHook(LPCSTR moduleName, LPCSTR functionName, LPVOID function, bool forceMinHook)
 {
     HookManager& instance = GetInstance();
     ExportKey key(moduleName, functionName);
@@ -96,6 +106,12 @@ LPVOID HookManager::CreateHook(LPCSTR moduleName, LPCSTR functionName, PVOID fun
 
     instance._originalFunctions[key] = trampoline;
     return trampoline;
+}
+
+
+BOOL HookManager::DeleteHook(const Hook& hook)
+{
+    return DeleteHook(hook.moduleName, hook.functionName);
 }
 
 BOOL HookManager::DeleteHook(LPCSTR moduleName, LPCSTR functionName)

@@ -28,10 +28,10 @@ namespace UpdateDialog
 
 typedef void (*DownloadValueCallback)(size_t);
 
-std::string GetSeasonModName(const URI& gameURL, const std::string& authToken, const std::string& branch)
+std::string GetSeasonModName(const URI& gameURL, const std::string& authToken, const std::string& branchName)
 {
     URI endpoint = gameURL / "Season" / "latest";
-    endpoint.AddParam("branch", branch);
+    endpoint.AddParam("branch", branchName);
 
     web::http::client::http_client httpClient((utility::string_t)endpoint);
     web::http::http_request request(web::http::methods::GET);
@@ -422,8 +422,8 @@ bool UpdateDialog::Update()
         Client& client = Client::GetInstance();
         URI gameURL = client.GetServerGameURL();
         std::string authToken = client.GetAuthToken();
-        std::string branch = client.GetBranch();
-        std::string modName = GetSeasonModName(gameURL, authToken, branch);
+        std::string branchName = client.GetBranchName();
+        std::string modName = GetSeasonModName(gameURL, authToken, branchName);
         if (modName.empty())
         {
             SendMessage(UpdateDialog::_window, WM_UPDATE_NO_SEASON, NULL, NULL);
@@ -438,13 +438,13 @@ bool UpdateDialog::Update()
         }
 
         std::unordered_map<std::wstring, std::string> downloadList;
-        if (!GetDownloadList(gameURL, modName, authToken, branch, downloadList))
+        if (!GetDownloadList(gameURL, modName, authToken, branchName, downloadList))
         {
             SendMessage(UpdateDialog::_window, WM_UPDATE_FAIL, NULL, NULL);
             return;
         }
 
-        if ((client.HasUpdate()) && (!GetLauncherUpdate(gameURL, authToken, branch, downloadList)))
+        if (client.HasUpdate() && !GetLauncherUpdate(gameURL, authToken, branchName, downloadList))
         {
             SendMessage(UpdateDialog::_window, WM_UPDATE_FAIL, NULL, NULL);
             return;

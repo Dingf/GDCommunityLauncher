@@ -15,7 +15,7 @@ class ItemDBR : public DBRecord
 
         static void BuildItemDB(const std::filesystem::path& dataPath, const std::filesystem::path& outPath);
 
-        ItemType GetType() const { return _type; }
+        ItemTypePair GetType() const { return _type; }
         uint32_t GetWidth() const { return _width; }
         uint32_t GetHeight() const { return _height; }
 
@@ -23,7 +23,7 @@ class ItemDBR : public DBRecord
         static const std::vector<std::string> _bitmapVariables;
         static const std::vector<std::string> _searchPaths;
 
-        ItemType _type;
+        ItemTypePair _type;
         uint32_t _width;
         uint32_t _height;
 };

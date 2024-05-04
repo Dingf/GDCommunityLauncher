@@ -17,8 +17,11 @@ class FileData
 
 struct FileMetadata
 {
-    FileMetadata() {}
-    FileMetadata(const std::filesystem::path& path) { Load(path); }
+    FileMetadata() : _modifiedTime(0) {}
+    FileMetadata(const std::filesystem::path& path, bool useModifiedTime = false) : _modifiedTime(0)
+    {
+        Load(path, useModifiedTime);
+    }
 
     bool operator==(const FileMetadata& rhs)
     {
@@ -32,12 +35,13 @@ struct FileMetadata
 
     bool IsEmpty() const { return (_checksum.empty() && (_modifiedTime == 0)); }
 
-    void Load(const std::filesystem::path& path)
+    void Load(const std::filesystem::path& path, bool useModifiedTime)
     {
         if (std::filesystem::is_regular_file(path))
         {
             _checksum = GenerateFileMD5(path);
-            _modifiedTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::filesystem::last_write_time(path).time_since_epoch()).count();
+            if (useModifiedTime)
+                _modifiedTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::filesystem::last_write_time(path).time_since_epoch()).count();
         }
     }
 

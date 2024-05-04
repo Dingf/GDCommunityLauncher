@@ -2,6 +2,7 @@
 #define INC_GDCL_DLL_ENGINE_API_UI_CHAT_WINDOW_H
 
 #include <stdint.h>
+#include "EngineAPI/Input/KeyButtonEvent.h"
 
 namespace EngineAPI::UI
 {
@@ -15,6 +16,7 @@ enum ChatType
 };
 
 static const uint32_t CHAT_CHANNEL_MAX = 15;
+static const uint32_t MAX_CHAT_SIZE = 255;
 
 class ChatWindow
 {
@@ -26,12 +28,11 @@ class ChatWindow
         uint32_t GetChatColor(ChatType type) const;
         bool SetChatColor(ChatType type, uint32_t color, bool save = true);
 
+        bool HandleKeyEvent(EngineAPI::Input::KeyButtonEvent& event);
+
         const std::wstring& GetBufferText() const { return *(std::wstring*)(_visible + 0xB0); }
         const std::wstring& GetSavedText() const { return _saved; }
-        void SetBufferText(const std::wstring& text);
         void SaveBufferText() { _saved = GetBufferText(); }
-
-        void ToggleDisplay();
 
         bool IsToggleInitialized() const { return (_visible != nullptr); }
         bool IsColorsInitialized() const { return (_colors != nullptr); }
@@ -41,6 +42,21 @@ class ChatWindow
         ChatWindow() : _visible(nullptr), _colors(nullptr) {}
         ChatWindow(ChatWindow&) = delete;
         void operator=(const ChatWindow&) = delete;
+
+        uint32_t& GetCaratPosition() const { return *(uint32_t*)(_visible + 0x160); }
+        uint32_t& GetSelectStartPosition() const { return *(uint32_t*)(_visible + 0x164); }
+        uint32_t& GetSelectEndPosition() const { return *(uint32_t*)(_visible + 0x168); }
+
+        static void HoldKeyUpdate();
+
+        bool HandleKeyPress(EngineAPI::Input::KeyButtonEvent& event);
+
+        void SetCaratPosition(uint32_t position);
+        void SetSelectStartPosition(uint32_t position);
+        void SetSelectEndPosition(uint32_t position);
+        void SetBufferText(const std::wstring& text);
+
+        void ToggleDisplay();
 
         void FindMagicAddresses();
         void LoadConfig();
@@ -53,6 +69,8 @@ class ChatWindow
         uint32_t _globalColor;  // Color used for global chat
         uint32_t _tradeColor;   // Color used for trade chat
 
+        bool _holdLock;         // Lock used to prevent the hold thread from interfering with regular input
+        EngineAPI::Input::KeyButtonEvent _holdEvent;    // Last key event that was held down, used for repeated inputs
 };
 
 }

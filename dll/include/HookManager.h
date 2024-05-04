@@ -8,12 +8,23 @@
 class HookManager
 {
     public:
+        struct Hook
+        {
+            LPCSTR moduleName;
+            LPCSTR functionName;
+            LPVOID function;
+            bool forceMinHook;
+        };
+
         ~HookManager();
 
+        static LPVOID GetOriginalFunction(const Hook& hook);
         static LPVOID GetOriginalFunction(LPCSTR moduleName, LPCSTR functionName);
 
+        static LPVOID CreateHook(const Hook& hook);
         static LPVOID CreateHook(LPCSTR moduleName, LPCSTR functionName, LPVOID function, bool forceMinHook = false);
 
+        static BOOL DeleteHook(const Hook& hook);
         static BOOL DeleteHook(LPCSTR moduleName, LPCSTR functionName);
 
     private:

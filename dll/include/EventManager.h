@@ -8,13 +8,23 @@ enum GDCLEvent
 {
     GDCL_EVENT_CONNECT,
     GDCL_EVENT_DISCONNECT,
+    GDCL_EVENT_SHUTDOWN,
     GDCL_EVENT_WORLD_PRE_LOAD,
     GDCL_EVENT_WORLD_POST_LOAD,
     GDCL_EVENT_WORLD_PRE_UNLOAD,
     GDCL_EVENT_WORLD_POST_UNLOAD,
     GDCL_EVENT_DIRECT_FILE_READ,
     GDCL_EVENT_DIRECT_FILE_WRITE,
+    GDCL_EVENT_ADD_SAVE_JOB,
     GDCL_EVENT_SET_MAIN_PLAYER,
+    GDCL_EVENT_TRANSFER_PRE_LOAD,
+    GDCL_EVENT_TRANSFER_POST_LOAD,
+    GDCL_EVENT_TRANSFER_PRE_SAVE,
+    GDCL_EVENT_TRANSFER_POST_SAVE,
+    GDCL_EVENT_CHARACTER_PRE_LOAD,
+    GDCL_EVENT_CHARACTER_POST_LOAD,
+    GDCL_EVENT_CHARACTER_PRE_SAVE,
+    GDCL_EVENT_CHARACTER_POST_SAVE,
 };
 
 class EventManager
@@ -22,9 +32,18 @@ class EventManager
     public:
         typedef void (*EventHandler)(void*);
 
-        static void Publish(GDCLEvent event, void* data = nullptr);
-        static void Subscribe(GDCLEvent event, EventHandler handler);
-        static void Unsubscribe(GDCLEvent event, EventHandler handler);
+        template <typename... Ts>
+        static void Publish(GDCLEvent event, Ts... args)
+        {
+            typedef bool (__thiscall* EventHandlerProto)(Ts...);
+            for (void* handler : GetInstance()._handlers[event])
+            {
+                ((EventHandlerProto)handler)(args...);
+            }
+        }
+
+        static void Subscribe(GDCLEvent event, void* handler);
+        static void Unsubscribe(GDCLEvent event, void* handler);
 
     private:
         EventManager() {};
@@ -33,7 +52,7 @@ class EventManager
 
         static EventManager& GetInstance();
 
-        std::map<GDCLEvent, std::unordered_set<EventHandler>> _handlers;
+        std::map<GDCLEvent, std::unordered_set<void*>> _handlers;
 };
 
 #endif//INC_GDCL_DLL_EVENT_MANAGER_H

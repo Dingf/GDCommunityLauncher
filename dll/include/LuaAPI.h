@@ -3,6 +3,8 @@
 
 #include <cstddef>
 
+constexpr char LUA_DLL[] = "lua51.dll";
+
 namespace LuaAPI
 {
 
