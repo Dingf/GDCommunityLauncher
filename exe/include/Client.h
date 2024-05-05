@@ -7,6 +7,8 @@
 #include "ClientBase.h"
 #include "ServerAuth.h"
 
+constexpr char OFFLINE_SEASON_NAME[] = "GrimLeagueS06";
+
 class Client : public ClientBase
 {
     public:

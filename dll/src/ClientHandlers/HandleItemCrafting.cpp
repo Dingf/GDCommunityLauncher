@@ -34,7 +34,7 @@ std::unordered_map<std::string, ImprintFlags> _imprintTypeMap =
     { "grimleague/items/enchants/r210_imprint_amulet.dbr",    { (1 << ITEM_TYPE_AMULET),    0 } },
     { "grimleague/items/enchants/r211_imprint_1h.dbr",        { (1 << ITEM_TYPE_WEAPON),    (1 << WEAPON_TYPE_SWORD_1H) | (1 << WEAPON_TYPE_AXE_1H) | (1 << WEAPON_TYPE_MACE_1H) | (1 << WEAPON_TYPE_RANGED_1H) } },
     { "grimleague/items/enchants/r212_imprint_1hcaster.dbr",  { (1 << ITEM_TYPE_WEAPON),    (1 << WEAPON_TYPE_DAGGER)   | (1 << WEAPON_TYPE_SCEPTER) } },
-    { "grimleague/items/enchants/r211_imprint_2h.dbr",        { (1 << ITEM_TYPE_WEAPON),    (1 << WEAPON_TYPE_SWORD_2H) | (1 << WEAPON_TYPE_AXE_2H) | (1 << WEAPON_TYPE_MACE_2H) | (1 << WEAPON_TYPE_RANGED_2H) } },
+    { "grimleague/items/enchants/r213_imprint_2h.dbr",        { (1 << ITEM_TYPE_WEAPON),    (1 << WEAPON_TYPE_SWORD_2H) | (1 << WEAPON_TYPE_AXE_2H) | (1 << WEAPON_TYPE_MACE_2H) | (1 << WEAPON_TYPE_RANGED_2H) } },
     { "grimleague/items/enchants/r214_imprint_shield.dbr",    { (1 << ITEM_TYPE_OFFHAND),   (1 << WEAPON_TYPE_SHIELD) } },
     { "grimleague/items/enchants/r215_imprint_offhand.dbr",   { (1 << ITEM_TYPE_OFFHAND),   (1 << WEAPON_TYPE_CASTER_OH) } },
 };
@@ -361,7 +361,7 @@ bool CanUseTransferAugment(void* item, void* enchant, uint32_t itemLevel, const 
     std::string enchantName = enchantInfo._itemName;
     if (_imprintTypeMap.count(enchantName) > 0)
     {
-        WeaponType weaponType = GameAPI::GetWeaponType(item);
+        WeaponType weaponType = IsWeaponType(itemType) ? GameAPI::GetWeaponType(item) : WEAPON_TYPE_DEFAULT;
         return _imprintTypeMap.at(enchantName).Matches(itemType, weaponType);
     }
     return false;
@@ -527,7 +527,7 @@ bool HandleCreateTransferAugment(void* item, void* enchant, GameAPI::ItemReplica
     if ((!itemInfo._itemPrefix.empty() || !itemInfo._itemSuffix.empty()))
     {
         ItemType itemType = GameAPI::GetItemType(item);
-        WeaponType weaponType = GameAPI::GetWeaponType(item);
+        WeaponType weaponType = IsWeaponType(itemType) ? GameAPI::GetWeaponType(item) : WEAPON_TYPE_DEFAULT;
         if (((1 << itemType) & 0xE3FE) != 0)
         {
             for (const auto& pair : _imprintTypeMap)

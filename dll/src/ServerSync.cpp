@@ -1161,39 +1161,55 @@ void ServerSync::OnAddSaveJob(std::string filename, void* data, size_t size)
 
 void ServerSync::OnWorldPreLoadEvent(std::string mapName, bool unk1, bool modded)
 {
-    ServerSync& sync = ServerSync::GetInstance();
-    if (mapName.substr(0, 16) == "levels/mainmenu/")
+    Client& client = Client::GetInstance();
+    if (!client.IsOfflineMode())
     {
-        if (uint32_t softcoreID = sync.GetParticipantID(false))
-            sync.DownloadCharacterList(softcoreID);
+        ServerSync& sync = ServerSync::GetInstance();
+        if (mapName.substr(0, 16) == "levels/mainmenu/")
+        {
+            if (uint32_t softcoreID = sync.GetParticipantID(false))
+                sync.DownloadCharacterList(softcoreID);
 
-        if (uint32_t hardcoreID = sync.GetParticipantID(true))
-            sync.DownloadCharacterList(hardcoreID);
+            if (uint32_t hardcoreID = sync.GetParticipantID(true))
+                sync.DownloadCharacterList(hardcoreID);
+        }
     }
 }
 
 void ServerSync::OnWorldPostLoadEvent(std::string mapName, bool unk1, bool modded)
 {
-    ServerSync& sync = ServerSync::GetInstance();
-    if (EngineAPI::IsMainCampaignOrCrucible())
+    Client& client = Client::GetInstance();
+    if (!client.IsOfflineMode())
     {
-        sync.RegisterSeasonParticipant(EngineAPI::IsHardcore());
+        ServerSync& sync = ServerSync::GetInstance();
+        if (EngineAPI::IsMainCampaignOrCrucible())
+        {
+            sync.RegisterSeasonParticipant(EngineAPI::IsHardcore());
+        }
     }
 }
 
 void ServerSync::OnWorldPreUnloadEvent()
 {
-    ServerSync& sync = ServerSync::GetInstance();
-    sync.UploadCharacter();
-    sync.UploadCachedStashBuffer();
-    sync.SetCurrentCharacterName({});
-    sync.ResetStashSynced();
+    Client& client = Client::GetInstance();
+    if (!client.IsOfflineMode())
+    {
+        ServerSync& sync = ServerSync::GetInstance();
+        sync.UploadCharacter();
+        sync.UploadCachedStashBuffer();
+        sync.SetCurrentCharacterName({});
+        sync.ResetStashSynced();
+    }
 }
 
 void ServerSync::OnSetMainPlayerEvent(void* player)
 {
-    ServerSync& sync = ServerSync::GetInstance();
-    sync.SetCurrentCharacterName(GameAPI::GetPlayerName(player));
+    Client& client = Client::GetInstance();
+    if (!client.IsOfflineMode())
+    {
+        ServerSync& sync = ServerSync::GetInstance();
+        sync.SetCurrentCharacterName(GameAPI::GetPlayerName(player));
+    }
 }
 
 void ServerSync::OnTransferPostLoadEvent()

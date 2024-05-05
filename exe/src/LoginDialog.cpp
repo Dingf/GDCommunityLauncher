@@ -164,6 +164,7 @@ INT_PTR CALLBACK LoginDialogHandler(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
                     Client& client = Client::GetInstance();
                     client.SetBranch(SEASON_BRANCH_OFFLINE);
                     client.SetUpdateFlag(false);
+                    client.SetSeasonName(OFFLINE_SEASON_NAME);
 
                     if (!InitializeClient())
                         return FALSE;
@@ -314,6 +315,7 @@ bool LoginDialog::Login(void* configPointer)
             {
                 client.SetBranch(SEASON_BRANCH_OFFLINE);
                 client.SetUpdateFlag(false);
+                client.SetSeasonName(OFFLINE_SEASON_NAME);
 
                 if (!InitializeClient())
                 {

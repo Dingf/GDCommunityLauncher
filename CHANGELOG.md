@@ -156,3 +156,9 @@
 - Added an in-game warning message when attempting to play a season character on multiplayer or while cloud saving is enabled.
 - The launcher now transfers items to and from the shared stash asynchronously.
 - The launcher now downloads season characters and stash data from the server if they do not currently exist in the user's save directory.
+
+## 1.3.1 (2024-05-05)
+
+- Improved the chat window detection algorithm.
+- Fixed a bug that would sometimes prevent players from entering keyboard inputs.
+- Fixed a bug where the launcher would not load season assets while playing in offline mode.

@@ -34,8 +34,7 @@ class ChatWindow
         const std::wstring& GetSavedText() const { return _saved; }
         void SaveBufferText() { _saved = GetBufferText(); }
 
-        bool IsToggleInitialized() const { return (_visible != nullptr); }
-        bool IsColorsInitialized() const { return (_colors != nullptr); }
+        bool IsInitialized() const { return ((_visible != nullptr) && (_colors != nullptr)); }
         bool IsVisible() const;
 
     private:

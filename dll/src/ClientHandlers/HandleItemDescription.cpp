@@ -41,7 +41,7 @@ void TransformVaalAffix(const GameAPI::ItemReplicaInfo& info, std::vector<GameAP
     if (hasPrefix || hasSuffix)
     {
         std::wstring result = lines[0]._text;
-        lines[0]._text = L"{^R}" + std::regex_replace(result, colorRegex, L"");
+        lines[0]._text = L"{^O}" + std::regex_replace(result, colorRegex, L"");
     }
 }
 
@@ -54,7 +54,7 @@ void TransformSmithAffix(const GameAPI::ItemReplicaInfo& info, std::vector<GameA
     if (hasModifier)
     {
         std::wstring result = lines[0]._text;
-        lines[0]._text = L"{^F}" + std::regex_replace(result, colorRegex, L"");
+        lines[0]._text = L"{^R}" + std::regex_replace(result, colorRegex, L"");
     }
 }
 

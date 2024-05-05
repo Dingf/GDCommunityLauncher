@@ -4,12 +4,12 @@
 #include <Windows.h>
 #include "EngineAPI.h"
 #include "EngineAPI/UI/ChatWindow.h"
+#include "GameAPI/GameEngine.h"
 #include "ThreadManager.h"
 #include "Configuration.h"
 
 namespace EngineAPI::UI
 {
-
 
 ChatWindow& ChatWindow::GetInstance(bool init)
 {
@@ -37,7 +37,7 @@ uint32_t ChatWindow::GetChatColor(ChatType type) const
 
 bool ChatWindow::SetChatColor(ChatType type, uint32_t color, bool save)
 {
-    if (IsColorsInitialized())
+    if (IsInitialized())
     {
         float* baseAddress = nullptr;
 
@@ -136,8 +136,8 @@ bool ChatWindow::HandleKeyPress(EngineAPI::Input::KeyButtonEvent& event)
 
     switch (event._key)
     {
+        case EngineAPI::Input::KEY_TAB:
         case EngineAPI::Input::KEY_ESC:
-            // ESC produces output for some reason, but let the main program handle it
             return false;
         case EngineAPI::Input::KEY_BACKSPACE:
             if (IsVisible())
@@ -158,13 +158,14 @@ bool ChatWindow::HandleKeyPress(EngineAPI::Input::KeyButtonEvent& event)
             }
             return false;
         case EngineAPI::Input::KEY_ENTER:
-            // Only handle the initial toggle behavior; when sending a message, let the main program handle it
-            if ((IsToggleInitialized()) && (!IsVisible()))
+        {
+            if (!IsVisible())
             {
                 ToggleDisplay();
                 return true;
             }
             return false;
+        }
         default:
         {
             if ((IsVisible()) && (event._output != 0) && (text.size() < MAX_CHAT_SIZE))
@@ -256,148 +257,32 @@ void ChatWindow::ToggleDisplay()
 
 bool ChatWindow::IsVisible() const
 {
-    if (IsToggleInitialized())
+    if (IsInitialized())
     {
         return (*_visible != 0);
     }
     return false;
 }
 
-inline bool CheckVisibleBitAddress(uint8_t* buffer, uint64_t offset, uint64_t size)
-{
-    if (offset + 0x28 <= size)
-    {
-        return ((*(uint64_t*)(buffer + offset)        & 0x0000FFFF00000000) == 0x0000025800000000) &&
-               ((*(uint64_t*)(buffer + offset + 0x08) & 0x000000000000FFFF) == 0x000000000000C350) &&
-               ((*(uint64_t*)(buffer + offset + 0x18) & 0xFF000000000000FF) == 0x4300000000000000) &&
-               ((*(uint64_t*)(buffer + offset + 0x20) & 0xF0000000000000FF) == 0x4000000000000000);
-    }
-    return false;
-}
-
-inline bool CheckVisibleBitAddress2(uint8_t* buffer, uint64_t offset, uint64_t size)
-{
-    if (offset + 0x50 <= size)
-    {
-        return (*(uint64_t*)(buffer + offset)        == 0x0075006F00720047) &&
-               (*(uint64_t*)(buffer + offset + 0x08) == 0x0000003100200070) &&
-               (*(uint64_t*)(buffer + offset + 0x20) == 0x0075006F00720047) &&
-               (*(uint64_t*)(buffer + offset + 0x28) == 0x0000003200200070) &&
-               (*(uint64_t*)(buffer + offset + 0x40) == 0x0075006F00720047) &&
-               (*(uint64_t*)(buffer + offset + 0x48) == 0x0000003300200070);
-    }
-    return false;
-}
-
-inline bool CheckVisibleBitAddress3(uint8_t* buffer, uint64_t offset, uint64_t size)
-{
-    if (offset + 0x140 <= size)
-    {
-        return (*(buffer + offset) == 0x00) &&
-               (*(buffer + offset + 0xC0) == 0x00) &&
-               (*(buffer + offset + 0xC8) == 0x07) &&
-               (*(buffer + offset + 0xD0) == 0x7C) &&
-               (*(buffer + offset + 0x110) == 0x3A) &&
-               (*(buffer + offset + 0x118) == 0x3F) &&
-               (*(buffer + offset + 0x130) == 0x3A) &&
-               (*(buffer + offset + 0x138) == 0x3F);
-    }
-    return false;
-}
-
-inline bool CheckColorAddress1(uint8_t* buffer, uint64_t offset, uint64_t size)
-{
-    if (offset + 0x68 <= size)
-    {
-        return (*(uint64_t*)(buffer + offset)        == 0x000000000061002F) &&
-               (*(uint64_t*)(buffer + offset + 0x20) == 0x000000000070002F) &&
-               (*(uint64_t*)(buffer + offset + 0x40) == 0x000000000072002F) &&
-               (*(uint64_t*)(buffer + offset + 0x60) == 0x000000000074002F);
-    }
-    return false;
-}
-
-inline bool CheckColorAddress2(uint8_t* buffer, uint64_t offset, uint64_t size)
-{
-    if (offset + 0x40 <= size)
-    {
-        return (*(uint64_t*)(buffer + offset)        == 0x3F80000000000000) &&
-               (*(uint64_t*)(buffer + offset + 0x08) == 0x3F80000000000000) &&
-               (*(uint64_t*)(buffer + offset + 0x10) == 0x3F8000003F800000) &&
-               (*(uint64_t*)(buffer + offset + 0x18) == 0x3F8000003F800000) &&
-               (*(uint64_t*)(buffer + offset + 0x20) == 0x3F3333333F800000) &&
-               (*(uint64_t*)(buffer + offset + 0x28) == 0x3F80000000000000) &&
-               (*(uint64_t*)(buffer + offset + 0x30) == 0x3F80000000000000) &&
-               (*(uint64_t*)(buffer + offset + 0x38) == 0x3F8000003F333333);
-    }
-    return false;
-}
-
-
 void ChatWindow::FindMagicAddresses()
 {
-    _visible = nullptr;
-    _colors = nullptr;
-
-    std::vector<void*> objects;
-    EngineAPI::GetObjectList(objects);
-    if (objects.size() > 0)
+    void* gameEngine = *GameAPI::GetGameEngineHandle();
+    if (gameEngine)
     {
-        void* min = *std::min_element(objects.begin(), objects.end());
-        void* max = *std::max_element(objects.begin(), objects.end());
+        _visible = *(uint8_t**)((uint8_t*)gameEngine + 0x18A0) + 0x45F90;
+        _colors = _visible + 0x2C28;
 
-        uint8_t* start = (uint8_t*)min;
-        uint64_t magic = 0x41c0000044008000;
-        HANDLE process = GetCurrentProcess();
-        MEMORY_BASIC_INFORMATION info;
-
-        while (start < max)
-        {
-            if (VirtualQueryEx(process, start, &info, sizeof(info)) != sizeof(info))
-                break;
-
-            if ((info.RegionSize <= 0x1000000) && (info.AllocationProtect & PAGE_READWRITE) && ((!_colors) || (!_visible)))
-            {
-                uint8_t* buffer = new uint8_t[info.RegionSize];
-                ReadProcessMemory(process, info.BaseAddress, buffer, info.RegionSize, NULL);
-
-                for (uint64_t offset = 0; (offset + sizeof(uint64_t)) <= info.RegionSize; offset += sizeof(uint64_t))
-                {
-                    if (!_visible)
-                    {
-                        if (CheckVisibleBitAddress(buffer, offset, info.RegionSize))
-                            _visible = (uint8_t*)info.BaseAddress + offset - 0x80;
-                        else if (CheckVisibleBitAddress2(buffer, offset, info.RegionSize))
-                            _visible = (uint8_t*)info.BaseAddress + offset + 0xAF8;
-                        else if (CheckVisibleBitAddress3(buffer, offset, info.RegionSize))
-                            _visible = (uint8_t*)info.BaseAddress + offset;
-
-                        // The visible bit should be 0 initially, so if it's not then reset the address
-                        if ((_visible) && (*_visible != 0))
-                            _visible = nullptr;
-                    }
-                    if (!_colors)
-                    {
-                        if (CheckColorAddress1(buffer, offset, info.RegionSize))
-                            _colors = (uint8_t*)info.BaseAddress + offset + 0xE0;
-                        else if (CheckColorAddress2(buffer, offset, info.RegionSize))
-                            _colors = (uint8_t*)info.BaseAddress + offset;
-                    }
-                }
-                delete[] buffer;
-            }
-            start += info.RegionSize;
-        }
-    }
-
-    if (_colors)
-    {
         // Change the in-game command names to avoid conflicts with the launcher chat commands
         *(std::wstring*)(_colors - 0x120) = L"_Mute";
         *(std::wstring*)(_colors - 0x100) = L"_Unmute";
         *(std::wstring*)(_colors - 0x80) = L"_t";
         *(std::wstring*)(_colors - 0x60) = L"_m";
         *(std::wstring*)(_colors - 0x40) = L"_u";
+    }
+    else
+    {
+        _visible = nullptr;
+        _colors = nullptr;
     }
 }
 
@@ -415,7 +300,7 @@ void ChatWindow::LoadConfig()
         const Value* tradeColorValue = config.GetValue("Chat", "trade_color");
         _tradeColor = (tradeColorValue) ? tradeColorValue->ToInt() : EngineAPI::Color::GREEN.GetColorCode();
 
-        if (IsColorsInitialized())
+        if (IsInitialized())
         {
             SetChatColor(CHAT_TYPE_GLOBAL, _globalColor, false);
             SetChatColor(CHAT_TYPE_TRADE, _tradeColor, false);
