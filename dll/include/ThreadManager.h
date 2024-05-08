@@ -110,7 +110,7 @@ class ThreadManager
 
             std::string _name;
             std::function<void()> _callback;
-            std::thread _thread;
+            std::unique_ptr<std::thread> _thread;
         };
 
         struct PeriodicThread : public BaseThread

@@ -857,6 +857,7 @@ bool HandleBetaAddItemCommand(ChatClient* chatClient, std::wstring& name, std::w
         if (void* newItem = GameAPI::CreateItem(itemInfo))
         {
             void* mainPlayer = GameAPI::GetMainPlayer();
+            GameAPI::SetItemVisiblePlayer(newItem, EngineAPI::GetObjectID(mainPlayer));
             GameAPI::GiveItemToPlayer(mainPlayer, newItem, true, true);
         }
         return false;

@@ -11,15 +11,20 @@
 namespace EngineAPI::UI
 {
 
-ChatWindow& ChatWindow::GetInstance(bool init)
+ChatWindow& ChatWindow::GetInstance()
 {
     static ChatWindow instance;
-    if (init)
+    if (!instance.IsInitialized())
     {
-        instance.FindMagicAddresses();
-        instance.LoadConfig();
+        instance.Initialize();
     }
     return instance;
+}
+
+void ChatWindow::Initialize()
+{
+    FindMagicAddresses();
+    LoadConfig();
 }
 
 uint32_t ChatWindow::GetChatColor(ChatType type) const

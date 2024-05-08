@@ -21,7 +21,9 @@ static const uint32_t MAX_CHAT_SIZE = 255;
 class ChatWindow
 {
     public:
-        static ChatWindow& GetInstance(bool init = false);
+        static ChatWindow& GetInstance();
+
+        void Initialize();
 
         void SetChatPrefix(const std::wstring& prefix) { _prefix = prefix; }
 

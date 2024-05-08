@@ -162,3 +162,8 @@
 - Improved the chat window detection algorithm.
 - Fixed a bug that would sometimes prevent players from entering keyboard inputs.
 - Fixed a bug where the launcher would not load season assets while playing in offline mode.
+
+## 1.3.2 (2024-05-08)
+
+- Fixed a performance issue that would occur when running on Linux.
+- Fixed a bug where items that were transferred from the cloud stash would disappear after being dropped.

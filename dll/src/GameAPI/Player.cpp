@@ -27,17 +27,19 @@ void* GetPlayerController(void* player)
     if (!player)
         return nullptr;
 
-    uint32_t controllerID = 0;
-    std::string versionString = EngineAPI::GetVersionString();
+    typedef uint32_t (__thiscall* GetControllerIDProto)(void*);
 
-    // This will likely need to be updated in future versions if the data structure changes again
-    if (versionString.compare("v1.2.0.5") < 0)
-        controllerID = *(uint32_t*)((uintptr_t)player + 0x1328);    // Pre-version 1.2.0.5
-    else if (versionString.compare("v1.2.1.0") < 0)
-        controllerID = *(uint32_t*)((uintptr_t)player + 0x15E0);    // Version 1.2.0.5
-    else
-        controllerID = *(uint32_t*)((uintptr_t)player + 0x15F8);    // Version 1.2.1.0
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
+    if (!gameDLL)
+        return nullptr;
 
+    GetControllerIDProto callback = (GetControllerIDProto)GetProcAddress(gameDLL, GAPI_NAME_GET_CONTROLLER_ID);
+    void** gameEngine = GetGameEngineHandle();
+
+    if ((!callback) || (!gameEngine))
+        return nullptr;
+
+    uint32_t controllerID = callback(player);
     return EngineAPI::FindObjectByID(controllerID);
 }
 

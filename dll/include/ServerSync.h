@@ -60,8 +60,6 @@ class ServerSync
         void IncrementStashLock() { _stashLock.fetch_add(1); }
         void DecrementStashLock() { _stashLock.fetch_sub(1); }
 
-        void SetCurrentCharacterName(const std::wstring& playerName) { _characterName = playerName; }
-
         void SetStashSynced(StashSyncFlag flag) { _stashSynced.fetch_or(flag); }
         void ResetStashSynced() { _stashSynced.store(0); }
 
@@ -82,20 +80,21 @@ class ServerSync
         static void OnWorldPreLoadEvent(std::string mapName, bool unk1, bool modded);
         static void OnWorldPostLoadEvent(std::string mapName, bool unk1, bool modded);
         static void OnWorldPreUnloadEvent();
-        static void OnSetMainPlayerEvent(void* player);
         static void OnTransferPostLoadEvent();
         static void OnTransferPreSaveEvent();
+        static void OnTransferPostSaveEvent();
         static void OnCharacterPreSaveEvent(void* player);
         static void OnCharacterPostSaveEvent(void* player);
         static void OnDelayedCharacterUpload();
 
         void RegisterSeasonParticipant(bool hardcore);
-        void UploadCharacterQuestData(uint32_t participantID);
-        void UploadCharacter(uint32_t participantID = 0);
+        void UploadCharacterQuestData(uint32_t participantID, const std::wstring& characterName);
         void UploadCloudStash();
         void UploadNewCharacterBuffer(const std::string& filename, void* buffer, size_t size);
         void UploadStashBuffer(const std::string& filename, void* buffer, size_t size);
+        void CacheCharacterBuffer(const std::string& filename, void* buffer, size_t size);
         void UploadCachedStashBuffer();
+        void UploadCachedCharacterBuffer();
         void PullTransferItems(const std::vector<std::shared_ptr<Item>>& items);
 
         static void WaitBackgroundComplete();
@@ -103,9 +102,10 @@ class ServerSync
         void*        _newPlayer;
         std::atomic_int32_t _stashSynced;   // Bit flag used to indicate whether the stash was successfully synced with the server data
         std::atomic_int32_t _stashLock;     // Lock used to prevent the user from opening the stash during stash operations
-        std::wstring _characterName;
         std::map<CharacterIDRef, uint32_t> _characterIDCache;
         std::unique_ptr<FileWriter> _cachedStashBuffer;
+        std::unique_ptr<FileWriter> _cachedCharacterBuffer;
+        std::unique_ptr<web::json::value> _cachedQuestData;
         concurrency::task_group _backgroundTasks;
 };
 

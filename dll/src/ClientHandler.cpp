@@ -44,6 +44,8 @@ bool HandleCanEnchantBeUsedOn(void* _this, void* item, bool unk1, bool& unk2);
 void HandleGetItemDescription(void* _this, std::vector<GameAPI::GameTextLine>& lines);
 void HandleGetWeaponDescription(void* _this, std::vector<GameAPI::GameTextLine>& lines);
 void HandleGetArmorDescription(void* _this, std::vector<GameAPI::GameTextLine>& lines);
+void HandleSetGod(void* _this, bool state);
+void HandleSetInvincible(void* _this, bool state);
 
 namespace ClientHandler
 {
@@ -75,6 +77,8 @@ const std::vector<HookManager::Hook> _onlineHooks =
     { GAME_DLL,   GameAPI::GAPI_NAME_GET_MAP_FOLDER,             &HandleGetMapFolder,         true  },
     { GAME_DLL,   GameAPI::GAPI_NAME_GET_DIFFICULTY_FOLDER,      &HandleGetDifficultyFolder,  false },
     { GAME_DLL,   GameAPI::GAPI_NAME_GET_SHARED_SAVE_PATH,       &HandleGetSharedSavePath,    true  },
+    { GAME_DLL,   GameAPI::GAPI_NAME_SET_INVINCIBLE,             &HandleSetInvincible,        true  },
+    { GAME_DLL,   GameAPI::GAPI_NAME_SET_GOD,                    &HandleSetGod,               true  },
 };
 
 const std::vector<HookManager::Hook> _offlineHooks =

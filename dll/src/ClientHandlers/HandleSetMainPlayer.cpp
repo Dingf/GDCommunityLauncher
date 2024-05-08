@@ -67,7 +67,6 @@ void HandleSetMainPlayer(void* _this, uint32_t unk1)
         Client& client = Client::GetInstance();
         void* mainPlayer = GameAPI::GetMainPlayer();
         const SeasonInfo* seasonInfo = client.GetActiveSeason();
-        //std::string modName = EngineAPI::GetModName();
 
         EventManager::Publish(GDCL_EVENT_SET_MAIN_PLAYER, mainPlayer);
 
@@ -88,12 +87,9 @@ void HandleSetMainPlayer(void* _this, uint32_t unk1)
             if (hasParticipationToken)
                 client.SetActiveCharacter(playerName);
 
-            pplx::create_task([&client]() // pplx might be oay, needs testing
-            {
-                // Initialize the chat window
-                EngineAPI::UI::ChatWindow::GetInstance(true);
-                ChatClient::GetInstance().DisplayWelcomeMessage();
-            });
+            // Initialize the chat window
+            EngineAPI::UI::ChatWindow::GetInstance().Initialize();
+            ChatClient::GetInstance().DisplayWelcomeMessage();
         }
     }
 }

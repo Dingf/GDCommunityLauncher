@@ -475,16 +475,8 @@ bool Client::Initialize()
         // Initialize the server sync module
         ServerSync::Initialize();
 
-        // Initialize the chat client in a separate thread
-        std::thread chatStarter([]()
-        {
-            ChatClient& chatClient = ChatClient::GetInstance();
-        });
-
-        // this SHOULD not cause a thread leak on windows (windows kills detached threads on main thread exit)
-        // but according to the standard it's undefined behaviour
-        // we do it anyway because it's the cleanest solution among several dirty ones
-        chatStarter.detach();
+        // Initialize the chat client
+        ChatClient::GetInstance();
 
         // Initialize threads to handle refreshing the server token/connection status
         ThreadManager::CreatePeriodicThread("refresh_token", 60000, 900000, 0, &Client::UpdateRefreshToken);

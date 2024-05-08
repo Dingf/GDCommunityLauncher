@@ -9,6 +9,7 @@ namespace GameAPI
 {
 #if _WIN64
 constexpr char GAPI_NAME_GET_MAIN_PLAYER[] = "?GetMainPlayer@GameEngine@GAME@@QEBAPEAVPlayer@2@XZ";
+constexpr char GAPI_NAME_GET_CONTROLLER_ID[] = "?GetControllerId@Character@GAME@@QEBA?BIXZ";
 constexpr char GAPI_NAME_GET_PLAYER_NAME[] = "?GetPlayerName@Player@GAME@@QEBAPEBGXZ";
 constexpr char GAPI_NAME_GET_PLAYER_NAME_IN_CHAR[] = "?GetPlayerNameInChar@Player@GAME@@QEBA?AV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@XZ";
 constexpr char GAPI_NAME_GET_PLAYER_PARTY_ID[] = "?GetPartyId@Player@GAME@@QEBAHXZ";
@@ -21,8 +22,11 @@ constexpr char GAPI_NAME_IS_PLAYER_HARDCORE[] = "?IsHardcore@Player@GAME@@QEBA_N
 constexpr char GAPI_NAME_IS_PLAYER_IN_MAIN_QUEST[] = "?IsInMainQuest@Player@GAME@@QEBA_NXZ";
 constexpr char GAPI_NAME_SET_MAIN_PLAYER[] = "?SetMainPlayer@PlayerManagerClient@GAME@@QEAAXI@Z";
 constexpr char GAPI_NAME_GIVE_ITEM_TO_PLAYER[] = "?GiveItemToCharacter@Player@GAME@@UEAAXPEAVItem@2@_N1@Z";
+constexpr char GAPI_NAME_SET_INVINCIBLE[] = "?SetInvincible@Character@GAME@@QEAAX_N@Z";
+constexpr char GAPI_NAME_SET_GOD[] = "?SetGod@Character@GAME@@QEAAX_N@Z";
 #else
 constexpr char GAPI_NAME_GET_MAIN_PLAYER[] = "?GetMainPlayer@GameEngine@GAME@@QBEPAVPlayer@2@XZ";
+constexpr char GAPI_NAME_GET_CONTROLLER_ID[] = "?GetControllerId@Character@GAME@@QBE?BIXZ";
 constexpr char GAPI_NAME_GET_PLAYER_NAME[] = "?GetPlayerName@Player@GAME@@QBEPBGXZ";
 constexpr char GAPI_NAME_GET_PLAYER_NAME_IN_CHAR[] = "?GetPlayerNameInChar@Player@GAME@@QBE?AV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@XZ";
 constexpr char GAPI_NAME_GET_PLAYER_PARTY_ID[] = "?GetPartyId@Player@GAME@@QBEHXZ";
@@ -35,6 +39,8 @@ constexpr char GAPI_NAME_IS_PLAYER_HARDCORE[] = "?IsHardcore@Player@GAME@@QBE_NX
 constexpr char GAPI_NAME_IS_PLAYER_IN_MAIN_QUEST[] = "?IsInMainQuest@Player@GAME@@QBE_NXZ";
 constexpr char GAPI_NAME_SET_MAIN_PLAYER[] = "?SetMainPlayer@PlayerManagerClient@GAME@@QAEXI@Z";
 constexpr char GAPI_NAME_GIVE_ITEM_TO_PLAYER[] = "?GiveItemToCharacter@Player@GAME@@UAEXPAVItem@2@_N1@Z";
+constexpr char GAPI_NAME_SET_INVINCIBLE[] = "?SetInvincible@Character@GAME@@QAEX_N@Z";
+constexpr char GAPI_NAME_SET_GOD[] = "?SetGod@Character@GAME@@QAEX_N@";
 #endif
 
 void* GetMainPlayer();

@@ -38,8 +38,8 @@ ThreadManager::BaseThread::BaseThread()
 
 void ThreadManager::BaseThread::Start()
 {
-    _thread = std::thread(&BaseThread::Callback, this);
-    _thread.detach();
+    _thread = std::make_unique<std::thread>(&BaseThread::Callback, this);
+    _thread->detach();
 }
 
 void ThreadManager::BaseThread::Stop()

@@ -42,6 +42,21 @@ void SetItemReplicaInfo(void* item, const ItemReplicaInfo& info)
     callback(item, info);
 }
 
+void SetItemVisiblePlayer(void* item, uint32_t playerID)
+{
+    typedef void (__thiscall* SetItemReplicaInfoProto)(void*, uint32_t);
+
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
+    if ((!gameDLL) || (!item))
+        return;
+
+    SetItemReplicaInfoProto callback = (SetItemReplicaInfoProto)GetProcAddress(gameDLL, GAPI_NAME_SET_ITEM_VISIBLE_PLAYER);
+    if (!callback)
+        return;
+
+    callback(item, playerID);
+}
+
 void* CreateItem(const ItemReplicaInfo& info)
 {
     typedef void* (__thiscall* CreateItemProto)(const ItemReplicaInfo&);

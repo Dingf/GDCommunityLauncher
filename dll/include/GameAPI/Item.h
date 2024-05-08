@@ -13,6 +13,7 @@ namespace GameAPI
 constexpr char GAPI_NAME_CREATE_ITEM[] = "?CreateItem@Item@GAME@@SAPEAV12@AEBUItemReplicaInfo@2@@Z";
 constexpr char GAPI_NAME_GET_ITEM_REPLICA_INFO[] = "?GetItemReplicaInfo@Item@GAME@@UEBAXAEAUItemReplicaInfo@2@@Z";
 constexpr char GAPI_NAME_SET_ITEM_REPLICA_INFO[] = "?SetItemReplicaInfo@Item@GAME@@QEAAXAEBUItemReplicaInfo@2@@Z";
+constexpr char GAPI_NAME_SET_ITEM_VISIBLE_PLAYER[] = "?SetVisiblePlayer@Item@GAME@@QEAAXI@Z";
 constexpr char GAPI_NAME_GET_ITEM_LEVEL[] = "?GetItemLevel@Item@GAME@@QEBAIXZ";
 constexpr char GAPI_NAME_USE_ITEM_ENCHANTMENT[] = "?UseOn@ItemEnchantment@GAME@@UEAA_NPEAVEntity@2@_NAEA_N@Z";
 constexpr char GAPI_NAME_CAN_ENCHANT_BE_USED_ON[] = "?CanBeUsedOn@ItemEnchantment@GAME@@UEBA_NPEAVEntity@2@_NAEA_N@Z";
@@ -25,6 +26,7 @@ constexpr char GAPI_NAME_GET_ITEM_BITMAP[] = "?GetBitmap@Item@GAME@@UEBAPEBVGrap
 constexpr char GAPI_NAME_CREATE_ITEM[] = "?CreateItem@Item@GAME@@SAPAV12@ABUItemReplicaInfo@2@@Z";
 constexpr char GAPI_NAME_GET_ITEM_REPLICA_INFO[] = "?GetItemReplicaInfo@Item@GAME@@UBEXAAUItemReplicaInfo@2@@Z";
 constexpr char GAPI_NAME_SET_ITEM_REPLICA_INFO[] = "?SetItemReplicaInfo@Item@GAME@@QAEXABUItemReplicaInfo@2@@Z";
+constexpr char GAPI_NAME_SET_ITEM_VISIBLE_PLAYER[] = "?SetVisiblePlayer@Item@GAME@@QAEXI@Z";
 constexpr char GAPI_NAME_GET_ITEM_LEVEL[] = "?GetItemLevel@Item@GAME@@QBEIXZ";
 constexpr char GAPI_NAME_USE_ITEM_ENCHANTMENT[] = "?UseOn@ItemEnchantment@GAME@@UAE_NPAVEntity@2@_NAA_N@Z";
 constexpr char GAPI_NAME_CAN_ENCHANT_BE_USED_ON[] = "?CanBeUsedOn@ItemEnchantment@GAME@@UBE_NPAVEntity@2@_NAA_N@Z";
@@ -85,6 +87,7 @@ void* CreateItem(const ItemReplicaInfo& info);
 uint32_t GenerateItemSeed(uint32_t max = 0xFFFFFFFF);
 ItemReplicaInfo GetItemReplicaInfo(void* item);
 void SetItemReplicaInfo(void* item, const ItemReplicaInfo& info);
+void SetItemVisiblePlayer(void* item, uint32_t playerID);
 uint32_t GetItemLevel(void* item);
 ItemClassification GetItemClassification(void* item);
 void* GetItemBitmap(void* item);
