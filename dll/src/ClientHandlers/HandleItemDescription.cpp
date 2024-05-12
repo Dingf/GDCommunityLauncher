@@ -68,6 +68,7 @@ void HandleGetItemDescription(void* _this, std::vector<GameAPI::GameTextLine>& l
         callback(_this, lines);
 
         GameAPI::ItemReplicaInfo itemInfo = GameAPI::GetItemReplicaInfo(_this);
+
         TransformTransferAugment(itemInfo, lines);
         TransformVaalAffix(itemInfo, lines);
         TransformSmithAffix(itemInfo, lines);

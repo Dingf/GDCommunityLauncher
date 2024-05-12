@@ -23,6 +23,7 @@ const GameAPI::Difficulty GAME_DIFFICULTIES[] = { GameAPI::GAME_DIFFICULTY_NORMA
 
 Difficulty GetGameDifficulty();
 std::string GetGameDifficultyName(Difficulty difficulty);
+std::string GetGameDifficultyName();
 
 }
 

@@ -1,6 +1,6 @@
 #include <Windows.h>
 #include "EngineAPI/Engine.h"
-#include "EngineAPI/GraphicsTexture.h"
+#include "EngineAPI/Graphics.h"
 #include "GameAPI.h"
 #include "Item.h"
 
@@ -25,6 +25,21 @@ ItemReplicaInfo GetItemReplicaInfo(void* item)
 
     callback(item, info);
     return info;
+}
+
+void GetItemReplicaInfo(void* item, ItemReplicaInfo& info)
+{
+    typedef void (__thiscall* GetItemReplicaInfoProto)(void*, ItemReplicaInfo&);
+
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
+    if ((!gameDLL) || (!item))
+        return;
+
+    GetItemReplicaInfoProto callback = (GetItemReplicaInfoProto)GetProcAddress(gameDLL, GAPI_NAME_GET_ITEM_REPLICA_INFO);
+    if (!callback)
+        return;
+
+    callback(item, info);
 }
 
 void SetItemReplicaInfo(void* item, const ItemReplicaInfo& info)
@@ -150,9 +165,9 @@ ItemType GetItemType(void* item)
 
 WeaponType GetWeaponType(void* item)
 {
-    typedef WeaponType (__thiscall* GetItemTypeProto)();
+    typedef WeaponType (__thiscall* GetWeaponTypeProto)();
 
-    GetItemTypeProto callback = *(GetItemTypeProto*)(*((uintptr_t*)item) + 0x650);
+    GetWeaponTypeProto callback = *(GetWeaponTypeProto*)(*((uintptr_t*)item) + 0x658);
     if (callback)
         return callback();
 
@@ -169,10 +184,12 @@ std::string GetItemPrefixTag(void* item)
     std::string versionString = EngineAPI::GetVersionString();
 
     // This will likely need to be updated in future versions if the data structure changes again
-    if (versionString.compare("v1.2.0.5") < 0)
+    if (versionString < "v1.2.0.5")
         return *(std::string*)((uintptr_t)item + 0x778);    // Pre-version 1.2.0.5
-    else// if (versionString.compare("v1.2.1.0") < 0)
+    else if (versionString == "v1.2.0.5")
         return *(std::string*)((uintptr_t)item + 0x790);    // Version 1.2.0.5
+    else //if (versionString <= "v1.2.1.1")
+        return *(std::string*)((uintptr_t)item + 0x790);    // Version 1.2.1.1
 }
 
 std::string GetItemSuffixTag(void* item)
@@ -180,10 +197,13 @@ std::string GetItemSuffixTag(void* item)
     std::string versionString = EngineAPI::GetVersionString();
 
     // This will likely need to be updated in future versions if the data structure changes again
-    if (versionString.compare("v1.2.0.5") < 0)
+    if (versionString < "v1.2.0.5")
         return *(std::string*)((uintptr_t)item + 0x798);    // Pre-version 1.2.0.5
-    else// if (versionString.compare("v1.2.1.0") < 0)
+    else if (versionString == "v1.2.0.5")
         return *(std::string*)((uintptr_t)item + 0x7B0);    // Version 1.2.0.5
+    else //if (versionString <= "v1.2.1.1")
+        return *(std::string*)((uintptr_t)item + 0x7B0);    // Version 1.2.1.1
+
 }
 
 GameAPI::ItemReplicaInfo ItemToInfo(const Item& item)

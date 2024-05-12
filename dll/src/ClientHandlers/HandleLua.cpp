@@ -20,7 +20,7 @@ void HandleLuaInitialize(void* _this, bool unk1, bool unk2)
 
     LuaInitializeProto callback = (LuaInitializeProto)HookManager::GetOriginalFunction(ENGINE_DLL, EngineAPI::EAPI_NAME_LUA_INITIALIZE);
     if (callback)
-    {
+    { 
         callback(_this, unk1, unk2);
 
         EngineAPI::SetLuaManager(_this);

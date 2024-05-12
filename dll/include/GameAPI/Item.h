@@ -86,6 +86,7 @@ struct ItemReplicaInfo
 void* CreateItem(const ItemReplicaInfo& info);
 uint32_t GenerateItemSeed(uint32_t max = 0xFFFFFFFF);
 ItemReplicaInfo GetItemReplicaInfo(void* item);
+void GetItemReplicaInfo(void* item, ItemReplicaInfo& info);
 void SetItemReplicaInfo(void* item, const ItemReplicaInfo& info);
 void SetItemVisiblePlayer(void* item, uint32_t playerID);
 uint32_t GetItemLevel(void* item);

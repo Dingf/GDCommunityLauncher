@@ -6,8 +6,7 @@
 
 enum GDCLEvent
 {
-    GDCL_EVENT_CONNECT,
-    GDCL_EVENT_DISCONNECT,
+    GDCL_EVENT_INITIALIZE,
     GDCL_EVENT_SHUTDOWN,
     GDCL_EVENT_WORLD_PRE_LOAD,
     GDCL_EVENT_WORLD_POST_LOAD,
@@ -25,13 +24,13 @@ enum GDCLEvent
     GDCL_EVENT_CHARACTER_POST_LOAD,
     GDCL_EVENT_CHARACTER_PRE_SAVE,
     GDCL_EVENT_CHARACTER_POST_SAVE,
+    GDCL_EVENT_APPLY_DAMAGE,
+    GDCL_EVENT_DELETE_FILE,
 };
 
 class EventManager
 {
     public:
-        typedef void (*EventHandler)(void*);
-
         template <typename... Ts>
         static void Publish(GDCLEvent event, Ts... args)
         {

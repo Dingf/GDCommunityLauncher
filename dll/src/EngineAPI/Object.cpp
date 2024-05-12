@@ -1,8 +1,11 @@
+#include <unordered_map>
 #include <Windows.h>
 #include "EngineAPI.h"
 
 namespace EngineAPI
 {
+
+std::unordered_map<uint32_t, void*> _objectIDCache;
     
 void* GetObjectManager()
 {
@@ -37,13 +40,26 @@ void GetObjectList(std::vector<void*>& objectList)
 
 void* FindObjectByID(uint32_t objectID)
 {
+    auto it = _objectIDCache.find(objectID);
+    if (it != _objectIDCache.end())
+    {
+        void* object = it->second;
+        if (!IsObjectDeleted(object))
+            return object;
+        else
+            _objectIDCache.erase(it);
+    }
+
     std::vector<void*> objectList;
     GetObjectList(objectList);
 
     for (size_t i = 0; i < objectList.size(); ++i)
     {
         if (GetObjectID(objectList[i]) == objectID)
+        {
+            _objectIDCache[objectID] = objectList[i];
             return objectList[i];
+        }
     }
     return nullptr;
 }
@@ -108,6 +124,22 @@ uint32_t CreateObjectID()
         return 0;
 
     return callback(objectManager);
+}
+
+bool IsObjectDeleted(void* object)
+{
+    typedef uint32_t (__thiscall* IsObjectDeletedProto)(void*, void*);
+
+    HMODULE engineDLL = GetModuleHandle(TEXT(ENGINE_DLL));
+    void* objectManager = GetObjectManager();
+    if ((!engineDLL) || (!objectManager))
+        return false;
+
+    IsObjectDeletedProto callback = (IsObjectDeletedProto)GetProcAddress(engineDLL, EAPI_NAME_IS_OBJECT_DELETED);
+    if (!callback)
+        return false;
+
+    return callback(objectManager, object);
 }
 
 }

@@ -5,6 +5,7 @@
 #include <string>
 #include <cpprest/json.h>
 #include "FileReader.h"
+#include "FileWriter.h"
 
 class UID16
 {
@@ -16,6 +17,8 @@ class UID16
         UID16& operator=(const UID16& id);
 
         char& operator[](uint8_t index) { return _data[index]; }
+
+        void WriteUID16(EncodedFileWriter* writer);
 
         std::string ToString() const;
 

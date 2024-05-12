@@ -8,12 +8,10 @@ EventManager& EventManager::GetInstance()
 
 void EventManager::Subscribe(GDCLEvent event, void* handler)
 {
-    EventManager& manager = EventManager::GetInstance();
-    manager._handlers[event].insert(handler);
+    GetInstance()._handlers[event].insert(handler);
 }
 
 void EventManager::Unsubscribe(GDCLEvent event, void* handler)
 {
-    EventManager& manager = EventManager::GetInstance();
-    manager._handlers[event].erase(handler);
+    GetInstance()._handlers[event].erase(handler);
 }

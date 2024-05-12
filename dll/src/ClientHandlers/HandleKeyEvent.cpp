@@ -18,8 +18,11 @@ bool HandleKeyEvent(void* _this, EngineAPI::Input::KeyButtonEvent& event)
             if ((client.IsPlayingSeason()) && (!EngineAPI::IsMultiplayer()))
             {
                 EngineAPI::UI::ChatWindow& chatWindow = EngineAPI::UI::ChatWindow::GetInstance();
-                if ((chatWindow.IsInitialized()) && (chatWindow.HandleKeyEvent(event)))
-                    return true;
+                if (chatWindow.IsInitialized())
+                {
+                    if (chatWindow.HandleKeyEvent(event))
+                        return true;
+                }
             }
         }
 

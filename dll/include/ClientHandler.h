@@ -6,6 +6,7 @@
 #include "HookManager.h"
 #include "EngineAPI.h"
 #include "GameAPI.h"
+#include "WindowsAPI.h"
 #include "Client.h"
 #include "Log.h"
 

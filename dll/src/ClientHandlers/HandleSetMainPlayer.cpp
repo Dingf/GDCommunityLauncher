@@ -1,4 +1,4 @@
-#include "ChatClient.h"
+#include "ChatConnection.h"
 #include "ClientHandler.h"
 #include "EventManager.h"
 #include "Quest.h"
@@ -70,13 +70,6 @@ void HandleSetMainPlayer(void* _this, uint32_t unk1)
 
         EventManager::Publish(GDCL_EVENT_SET_MAIN_PLAYER, mainPlayer);
 
-        /*if ((client.IsOfflineMode()) && (modName.empty()))
-        {
-            GameAPI::SendChatMessage(L"Server", L"Welcome to the Grim Dawn Community League!", EngineAPI::UI::CHAT_TYPE_NORMAL);
-            GameAPI::SendChatMessage(L"Server", L"You are currently playing in offline mode. Some features such as chat and cloud stash will not work properly.", EngineAPI::UI::CHAT_TYPE_NORMAL);
-            GameAPI::SendChatMessage(L"Server", L"You can play online during a season or by becoming a patron at https://www.patreon.com/bePatron?u=46741640.", EngineAPI::UI::CHAT_TYPE_NORMAL);
-        }
-        else*/
         if ((mainPlayer) && (seasonInfo))
         {
             std::wstring playerName = GameAPI::GetPlayerName(mainPlayer);
@@ -89,7 +82,6 @@ void HandleSetMainPlayer(void* _this, uint32_t unk1)
 
             // Initialize the chat window
             EngineAPI::UI::ChatWindow::GetInstance().Initialize();
-            ChatClient::GetInstance().DisplayWelcomeMessage();
         }
     }
 }

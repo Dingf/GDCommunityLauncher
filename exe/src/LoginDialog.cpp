@@ -146,7 +146,7 @@ INT_PTR CALLBACK LoginDialogHandler(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
 
                         client.SetUsername(username);
                         client.SetPassword(password);
-                        client.SetGameURL(hostValue->ToString());
+                        client.CreateConnection(hostValue->ToString());
 
                         std::thread t(&ServerAuthenticate, LoginValidateCallback);
                         t.detach();
@@ -163,7 +163,6 @@ INT_PTR CALLBACK LoginDialogHandler(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
                 {
                     Client& client = Client::GetInstance();
                     client.SetBranch(SEASON_BRANCH_OFFLINE);
-                    client.SetUpdateFlag(false);
                     client.SetSeasonName(OFFLINE_SEASON_NAME);
 
                     if (!InitializeClient())
@@ -314,7 +313,6 @@ bool LoginDialog::Login(void* configPointer)
             if (branch == SEASON_BRANCH_OFFLINE)
             {
                 client.SetBranch(SEASON_BRANCH_OFFLINE);
-                client.SetUpdateFlag(false);
                 client.SetSeasonName(OFFLINE_SEASON_NAME);
 
                 if (!InitializeClient())
@@ -329,8 +327,8 @@ bool LoginDialog::Login(void* configPointer)
             {
                 client.SetUsername(username);
                 client.SetPassword(password);
-                client.SetGameURL(hostName);
                 client.SetBranch(branch);
+                client.CreateConnection(hostName);
 
                 std::future<ServerAuthResult> future = std::async(&ServerAuthenticate, nullptr);
                 ServerAuthResult loginResult = future.get();

@@ -28,153 +28,17 @@ namespace UpdateDialog
 
 typedef void (*DownloadValueCallback)(size_t);
 
-std::string GetSeasonModName(const URI& gameURL, const std::string& authToken, const std::string& branchName)
+const std::unordered_map<std::wstring, std::string>& GetDownloadList()
 {
-    URI endpoint = gameURL / "Season" / "latest";
-    endpoint.AddParam("branch", branchName);
-
-    web::http::client::http_client httpClient((utility::string_t)endpoint);
-    web::http::http_request request(web::http::methods::GET);
-
-    std::string bearerToken = "Bearer " + authToken;
-    request.headers().add(U("Authorization"), bearerToken.c_str());
-
-    try
+    Client& client = Client::GetInstance();
+    if (Connection* connection = client.GetConnection())
     {
-        web::http::http_response response = httpClient.request(request).get();
-        switch (response.status_code())
+        if (!connection->Invoke("GetLeagueFiles", client.GetAuthToken(), client.GetBranchName()))
         {
-            case web::http::status_codes::OK:
-            {
-                web::json::value responseBody = response.extract_json().get();
-                web::json::array seasonsList = responseBody.as_array();
-                for (auto it = seasonsList.begin(); it != seasonsList.end(); ++it)
-                {
-                    std::string startDate = JSONString(it->at(U("startDate")).serialize());
-                    std::string endDate = JSONString(it->at(U("endDate")).serialize());
-
-                    std::time_t startDateTime = Date(startDate);
-                    std::time_t endDateTime = Date(endDate);
-                    std::time_t currentDateTime = Date();
-
-                    // No longer needed, since role/time access is granted by the server
-                    //if ((currentDateTime >= startDateTime) && (currentDateTime <= endDateTime))
-                    {
-                        // Mod name should be the same across all seasons, so return the first result that is currently active
-                        std::string modName = JSONString(it->at(U("modName")).serialize());
-                        return modName;
-                    }
-                }
-                return {};
-            }
-            default:
-            {
-                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-            }
+            SendMessage(UpdateDialog::_window, WM_UPDATE_FAIL, NULL, NULL);
         }
     }
-    catch (const std::exception& ex)
-    {
-        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve season mod name: %", ex.what());
-    }
-    return {};
-}
-
-bool GetLauncherUpdate(const URI& gameURL, const std::string& authToken, const std::string& branch, std::unordered_map<std::wstring, std::string>& downloadList)
-{
-    URI endpoint = gameURL / "File" / "launcher";
-    endpoint.AddParam("branch", branch);
-
-    web::http::client::http_client httpClient((utility::string_t)endpoint);
-    web::http::http_request request(web::http::methods::GET);
-
-    std::string bearerToken = "Bearer " + authToken;
-    request.headers().add(U("Authorization"), bearerToken.c_str());
-
-    try
-    {
-        web::http::http_response response = httpClient.request(request).get();
-        switch (response.status_code())
-        {
-            case web::http::status_codes::OK:
-            {
-                web::json::value responseBody = response.extract_json().get();
-                std::string filename = JSONString(responseBody[U("fileName")].serialize());
-                std::string downloadURL = JSONString(responseBody[U("downloadUrl")].serialize());
-                std::filesystem::path filenamePath = std::filesystem::current_path() / filename;
-                downloadList[filenamePath.wstring()] = downloadURL;
-                return true;
-            }
-            default:
-            {
-                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-            }
-        }
-    }
-    catch (const std::exception& ex)
-    {
-        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to download launcher: %", ex.what());
-    }
-    return false;
-}
-
-bool GetDownloadList(const URI& gameURL, const std::string& modName, const std::string& authToken, const std::string& branch, std::unordered_map<std::wstring, std::string>& downloadList)
-{
-    URI endpoint = gameURL / "File" / "filenames";
-    endpoint.AddParam("branch", branch);
-
-    web::http::client::http_client httpClient((utility::string_t)endpoint);
-    web::http::http_request request(web::http::methods::GET);
-
-    std::string bearerToken = "Bearer " + authToken;
-    request.headers().add(U("Authorization"), bearerToken.c_str());
-
-    try
-    {
-        web::http::http_response response = httpClient.request(request).get();
-        switch (response.status_code())
-        {
-            case web::http::status_codes::OK:
-            {
-                web::json::value responseBody = response.extract_json().get();
-                web::json::array fileList = responseBody.as_array();
-
-                for (auto it = fileList.begin(); it != fileList.end(); ++it)
-                {
-                    std::string filename = JSONString(it->at(U("fileName")).serialize());
-                    std::string downloadURL = JSONString(it->at(U("downloadUrl")).serialize());
-                    uintmax_t fileSize = std::stoull(JSONString(it->at(U("fileSize")).serialize()));
-
-                    // Generate the filename path based on the file extension and mod name
-                    std::filesystem::path filenamePath(filename);
-                    if (filenamePath.extension() == ".arc")
-                        filenamePath = std::filesystem::current_path() / "mods" / modName / "resources" / filenamePath;
-                    else if (filenamePath.extension() == ".arz")
-                        filenamePath = std::filesystem::current_path() / "mods" / modName / "database" / filenamePath;
-                    else
-                        filenamePath = std::filesystem::current_path() / filenamePath;
-
-                    // If the file doesn't exist or the file sizes don't match, add it to the list of files to download
-                    if ((!std::filesystem::is_regular_file(filenamePath)) || (std::filesystem::file_size(filenamePath) != fileSize))
-                    {
-                        downloadList[filenamePath.wstring()] = downloadURL;
-                    }
-                }
-
-                return true;
-            }
-            default:
-            {
-                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-            }
-        }
-    }
-    catch (const std::exception& ex)
-    {
-        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve file list: %", ex.what());
-    }
-
-    return false;
+    return client.GetDownloadList();
 }
 
 bool DownloadFile(const std::filesystem::path& filenamePath, const URI& downloadURL, DownloadValueCallback totalSizeCallback, DownloadValueCallback downloadSizeCallback)
@@ -207,7 +71,8 @@ bool DownloadFile(const std::filesystem::path& filenamePath, const URI& download
             {
                 bytesRead = body.read(fileStream.streambuf(), 1024).get();
                 downloadSizeCallback(bytesRead);
-            } while (bytesRead > 0);
+            }
+            while (bytesRead > 0);
 
             fileStream.close().wait();
             std::filesystem::rename(tempPath, filenamePath);
@@ -225,14 +90,16 @@ bool DownloadFile(const std::filesystem::path& filenamePath, const URI& download
     }
 }
 
-bool VerifyBaseGameFiles(const URI& gameURL, const std::string& authToken, std::string& expectedVersion)
+bool VerifyBaseGameFiles(std::string& expectedVersion)
 {
     std::vector<pplx::task<bool>> tasks;
     // TODO: Make this more scalable, like store it as a list in a file or something
     std::vector<std::string> paths = { "database/database.arz", "gdx1/database/GDX1.arz", "gdx2/database/GDX2.arz" };
     try
     {
-        URI endpoint = gameURL / "File" / "base-game" / "file-sizes";
+        Client& client = Client::GetInstance();
+        URI endpoint = client.GetServerGameURL() / "File" / "base-game" / "file-sizes";
+        endpoint.AddParam("branch", client.GetBranchName());
 
         web::http::client::http_client httpClient((utility::string_t)endpoint);
         web::http::http_request request(web::http::methods::POST);
@@ -249,7 +116,7 @@ bool VerifyBaseGameFiles(const URI& gameURL, const std::string& authToken, std::
 
         request.set_body(requestBody);
 
-        std::string bearerToken = "Bearer " + authToken;
+        std::string bearerToken = "Bearer " + client.GetAuthToken();
         request.headers().add(U("Authorization"), bearerToken.c_str());
 
         web::http::http_response response = httpClient.request(request).get();
@@ -274,18 +141,15 @@ bool VerifyBaseGameFiles(const URI& gameURL, const std::string& authToken, std::
     }
 }
 
-void DownloadFiles(const std::string& modName, const std::unordered_map<std::wstring, std::string>& updateList)
+void DownloadFiles(const std::unordered_map<std::wstring, std::string>& downloadList)
 {
     std::shared_ptr<size_t> totalSize = UpdateDialog::_totalSize;
     std::shared_ptr<size_t> downloadSize = UpdateDialog::_downloadSize;
 
     std::vector<std::future<bool>> tasks;
-    for (const auto& it : updateList)
+    for (const auto& it : downloadList)
     {
-        const std::wstring& filename = it.first;
-        const std::string& downloadURL = it.second;
-
-        tasks.push_back(std::async(&DownloadFile, filename, downloadURL, [](size_t value) { *UpdateDialog::_totalSize += value; }, [](size_t value) { *UpdateDialog::_downloadSize += value; }));
+        tasks.push_back(std::async(&DownloadFile, it.first, it.second, [](size_t value) { *UpdateDialog::_totalSize += value; }, [](size_t value) { *UpdateDialog::_downloadSize += value; }));
     }
 
     for (size_t i = 0; i < tasks.size(); ++i)
@@ -420,39 +284,24 @@ bool UpdateDialog::Update()
     auto updateTask   = std::async([]()
     {
         Client& client = Client::GetInstance();
-        URI gameURL = client.GetServerGameURL();
-        std::string authToken = client.GetAuthToken();
-        std::string branchName = client.GetBranchName();
-        std::string modName = GetSeasonModName(gameURL, authToken, branchName);
-        if (modName.empty())
+        std::string seasonName = client.GetSeasonName();
+        if (seasonName.empty())
         {
             SendMessage(UpdateDialog::_window, WM_UPDATE_NO_SEASON, NULL, NULL);
             return;
         }
 
         std::string gameVersion;
-        if (!VerifyBaseGameFiles(gameURL, authToken, gameVersion))
+        if (!VerifyBaseGameFiles(gameVersion))
         {
             SendMessage(UpdateDialog::_window, WM_UPDATE_WRONG_VERSION, NULL, (LPARAM)gameVersion.c_str());
             return;
         }
 
-        std::unordered_map<std::wstring, std::string> downloadList;
-        if (!GetDownloadList(gameURL, modName, authToken, branchName, downloadList))
-        {
-            SendMessage(UpdateDialog::_window, WM_UPDATE_FAIL, NULL, NULL);
-            return;
-        }
-
-        if (client.HasUpdate() && !GetLauncherUpdate(gameURL, authToken, branchName, downloadList))
-        {
-            SendMessage(UpdateDialog::_window, WM_UPDATE_FAIL, NULL, NULL);
-            return;
-        }
-
+        const std::unordered_map<std::wstring, std::string>& downloadList = GetDownloadList();
         if (downloadList.size() > 0)
         {
-            DownloadFiles(modName, downloadList);
+            DownloadFiles(downloadList);
         }
         else
         {

@@ -37,8 +37,7 @@ std::string HandleGetBaseFolder(void* _this)
     GetBaseFolderProto callback = (GetBaseFolderProto)HookManager::GetOriginalFunction(GAME_DLL, GameAPI::GAPI_NAME_GET_BASE_FOLDER);
     if (callback)
     {
-        std::string result = callback(_this);
-        return result;
+        return callback(_this);
     }
     return {};
 }
@@ -195,7 +194,13 @@ void HandleGetSharedSavePath(void* _this, GameAPI::SharedSaveType type, std::str
         if ((filePath.extension() == ".bst") || (filePath.extension() == ".cst") || (filePath.extension() == ".dst"))
         {
             filePath.replace_extension(".gst");
-            path = filePath.u8string();
+            path = filePath.string();
+        }
+
+        if ((filePath.extension() == ".bsh") || (filePath.extension() == ".csh") || (filePath.extension() == ".dsh"))
+        {
+            filePath.replace_extension(".gsh");
+            path = filePath.string();
         }
     }
 }

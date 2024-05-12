@@ -8,9 +8,9 @@ bool HandleDirectRead(void* _this, const std::string& filename, void*& data, uin
     DirectReadProto callback = (DirectReadProto)HookManager::GetOriginalFunction(ENGINE_DLL, EngineAPI::EAPI_NAME_DIRECT_READ);
     if (callback)
     {
-        bool override = false;
-        EventManager::Publish(GDCL_EVENT_DIRECT_FILE_READ, filename, &data, &size, &override);
-        return (override) ? true : callback(_this, filename, data, size, unk1, unk2);
+        size = 0;
+        EventManager::Publish(GDCL_EVENT_DIRECT_FILE_READ, filename, &data, &size);
+        return (size > 0) ? true : callback(_this, filename, data, size, unk1, unk2);
     }
     return false;
 }

@@ -91,27 +91,12 @@ class Character : public JSONObject
         Character() {}
         Character(const std::filesystem::path& path) { ReadFromFile(path); }
 
-        bool ReadFromFile(const std::filesystem::path& path);
-        bool ReadFromBuffer(uint8_t* data, size_t size);
+        bool ReadFromFile(const std::filesystem::path& path, bool headerOnly = false);
+        bool ReadFromBuffer(uint8_t* data, size_t size, bool headerOnly = false);
+
+        static std::string GetCharacterClassName(CharacterClass charClass);
 
         web::json::value ToJSON() const;
-
-    private:
-        void ReadHeaderBlock(EncodedFileReader* reader);
-        void ReadInfoBlock(EncodedFileReader* reader);
-        void ReadAttributesBlock(EncodedFileReader* reader);
-        void ReadInventoryBlock(EncodedFileReader* reader);
-        void ReadStashBlock(EncodedFileReader* reader);
-        void ReadRespawnBlock(EncodedFileReader* reader);
-        void ReadWaypointBlock(EncodedFileReader* reader);
-        void ReadMarkerBlock(EncodedFileReader* reader);
-        void ReadShrineBlock(EncodedFileReader* reader);
-        void ReadSkillBlock(EncodedFileReader* reader);
-        void ReadNotesBlock(EncodedFileReader* reader);
-        void ReadFactionBlock(EncodedFileReader* reader);
-        void ReadUIBlock(EncodedFileReader* reader);
-        void ReadTutorialBlock(EncodedFileReader* reader);
-        void ReadStatsBlock(EncodedFileReader* reader);
 
         // Header block, ID = 0, Version = 6,7,8
         struct CharacterHeaderBlock : public GDDataBlock
@@ -184,49 +169,49 @@ class Character : public JSONObject
 
             class CharacterInventory : public Stash
             {
-                public:
-                    ItemContainerType GetContainerType() const { return ITEM_CONTAINER_CHAR_BAG; }
+            public:
+                ItemContainerType GetContainerType() const { return ITEM_CONTAINER_CHAR_BAG; }
 
-                    size_t GetBufferSize() const;
+                size_t GetBufferSize() const;
 
-                    void Read(EncodedFileReader* reader);
-                    void Write(EncodedFileWriter* writer);
+                void Read(EncodedFileReader* reader);
+                void Write(EncodedFileWriter* writer);
 
-                    uint32_t GetFocusedTab() const { return _focusedTab; }
-                    uint32_t GetSelectedTab() const { return _selectedTab; }
+                uint32_t GetFocusedTab() const { return _focusedTab; }
+                uint32_t GetSelectedTab() const { return _selectedTab; }
 
-                    void SetFocusedTab(uint32_t tab) { _focusedTab = tab; }
-                    void SetSelectedTab(uint32_t tab) { _selectedTab = tab; }
+                void SetFocusedTab(uint32_t tab) { _focusedTab = tab; }
+                void SetSelectedTab(uint32_t tab) { _selectedTab = tab; }
 
-                private:
-                    uint32_t _focusedTab;
-                    uint32_t _selectedTab;
+            private:
+                uint32_t _focusedTab;
+                uint32_t _selectedTab;
             }
             _charInventory;
 
             class CharacterEquipped : public ItemContainer
             {
-                public:
-                    CharacterEquipped() : ItemContainer(1, MAX_CHAR_INV_SLOT) {}
+            public:
+                CharacterEquipped() : ItemContainer(1, MAX_CHAR_INV_SLOT) {}
 
-                    size_t GetBufferSize() const;
+                size_t GetBufferSize() const;
 
-                    void Read(EncodedFileReader* reader);
-                    void Write(EncodedFileWriter* writer);
+                void Read(EncodedFileReader* reader);
+                void Write(EncodedFileWriter* writer);
 
-                    ItemContainerType GetContainerType() const { return ITEM_CONTAINER_CHAR_INVENTORY; }
+                ItemContainerType GetContainerType() const { return ITEM_CONTAINER_CHAR_INVENTORY; }
 
-                    bool IsUsingSecondaryWeaponSet() const { return _activeWeaponSet; }
-                    bool GetAttachState(uint32_t index) const { return (index < MAX_CHAR_INV_SLOT) ? _attached[index] : false; }
+                bool IsUsingSecondaryWeaponSet() const { return _activeWeaponSet; }
+                bool GetAttachState(uint32_t index) const { return (index < MAX_CHAR_INV_SLOT) ? _attached[index] : false; }
 
-                    void SetActiveWeaponSet(bool secondary) { _activeWeaponSet = secondary; }
-                    void SetAttachState(uint32_t index, bool state) { if (index < MAX_CHAR_INV_SLOT) { _attached[index] = state; } }
+                void SetActiveWeaponSet(bool secondary) { _activeWeaponSet = secondary; }
+                void SetAttachState(uint32_t index, bool state) { if (index < MAX_CHAR_INV_SLOT) { _attached[index] = state; } }
 
-                private:
-                    bool _activeWeaponSet;
-                    bool _attached[MAX_CHAR_INV_SLOT];
-                    int8_t _weaponSet1;
-                    int8_t _weaponSet2;
+            private:
+                bool _activeWeaponSet;
+                bool _attached[MAX_CHAR_INV_SLOT];
+                int8_t _weaponSet1;
+                int8_t _weaponSet2;
             }
             _charEquipped;
 
@@ -242,11 +227,11 @@ class Character : public JSONObject
 
             class CharacterStash : public Stash
             {
-                public:
-                    ItemContainerType GetContainerType() const { return ITEM_CONTAINER_CHAR_STASH; }
+            public:
+                ItemContainerType GetContainerType() const { return ITEM_CONTAINER_CHAR_STASH; }
 
-                    void Read(EncodedFileReader* reader);
-                    void Write(EncodedFileWriter* writer);
+                void Read(EncodedFileReader* reader);
+                void Write(EncodedFileWriter* writer);
             }
             _charStash;
         }
@@ -460,6 +445,23 @@ class Character : public JSONObject
             CharacterPerDifficultyStats _charDifficultyStats[3];
         }
         _statsBlock;
+
+    private:
+        void ReadHeaderBlock(EncodedFileReader* reader);
+        void ReadInfoBlock(EncodedFileReader* reader);
+        void ReadAttributesBlock(EncodedFileReader* reader);
+        void ReadInventoryBlock(EncodedFileReader* reader);
+        void ReadStashBlock(EncodedFileReader* reader);
+        void ReadRespawnBlock(EncodedFileReader* reader);
+        void ReadWaypointBlock(EncodedFileReader* reader);
+        void ReadMarkerBlock(EncodedFileReader* reader);
+        void ReadShrineBlock(EncodedFileReader* reader);
+        void ReadSkillBlock(EncodedFileReader* reader);
+        void ReadNotesBlock(EncodedFileReader* reader);
+        void ReadFactionBlock(EncodedFileReader* reader);
+        void ReadUIBlock(EncodedFileReader* reader);
+        void ReadTutorialBlock(EncodedFileReader* reader);
+        void ReadStatsBlock(EncodedFileReader* reader);
 };
 
 

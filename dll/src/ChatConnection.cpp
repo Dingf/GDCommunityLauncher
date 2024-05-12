@@ -6,95 +6,55 @@
 #include <signalrclient/signalr_value.h>
 #include "EngineAPI.h"
 #include "GameAPI.h"
-#include "ChatClient.h"
+#include "ChatConnection.h"
 #include "Client.h"
 #include "EventManager.h"
+#include "ThreadManager.h"
 #include "Configuration.h"
 #include "Item.h"
 #include "StringConvert.h"
 #include "URI.h"
 #include "Log.h"
 
-class ChatClientLogger : public signalr::log_writer
-{
-    // Inherited via log_writer
-    virtual void __cdecl write(const std::string& entry) override
-    {
-        Logger::LogMessage(LOG_LEVEL_INFO, entry);
-    }
-};
+// TODO: The connection state doesn't update properly?
 
-inline bool LogExceptionPointer(const std::exception_ptr& exception, const std::string& message)
+void ChatClient::OnShutdownEvent()
 {
-    if (exception)
-    {
-        try
-        {
-            std::rethrow_exception(exception);
-        }
-        catch (const std::exception& ex)
-        {
-            Logger::LogMessage(LOG_LEVEL_ERROR, message, ex.what());
-        }
-        return true;
-    }
-    return false;
-}
-
-void ChatClient::OnConnectEvent()
-{
-    ChatClient& chatClient = ChatClient::GetInstance();
-    chatClient._connection->start([](std::exception_ptr ex)
-    {
-        ChatClient& chatClient = ChatClient::GetInstance();
-        if (!LogExceptionPointer(ex, "Failed to connect chat client: %"))
-        {
-            chatClient._connection->invoke("GetConnectionId", std::vector<signalr::value>(), [](const signalr::value& value, std::exception_ptr ex2)
-            {
-                LogExceptionPointer(ex2, "Failed to retrieve connection ID: %");
-            });
-        }
-    });
-}
-
-void ChatClient::OnDisconnectEvent()
-{
-    Client& client = Client::GetInstance();
-    if (client.GetActiveSeason())
-    {
-        GameAPI::AddChatMessage(L"Server", L"Disconnected from chat server.", EngineAPI::UI::CHAT_TYPE_NORMAL);
-    }
-
-    ChatClient& chatClient = ChatClient::GetInstance();
-    chatClient._connection->stop([](std::exception_ptr ex)
-    {
-        LogExceptionPointer(ex, "Failed to disconnect chat client: %");
-    });
+    GetInstance().Disconnect();
 }
 
 void ChatClient::OnWorldPreLoadEvent(std::string mapName, bool modded)
 {
-    ChatClient& chatClient = ChatClient::GetInstance();
-    chatClient.LoadConfig();
-    chatClient.LoadMutedList();
+    GetInstance().LoadConfig();
+    GetInstance().LoadMutedList();
+
+    // Connect the client at game start; we can't do this when the DLL is loaded due to networking code
+    ChatClient& chatClient = GetInstance();
+    if ((!chatClient.IsConnected()) && (chatClient.Connect()))
+        chatClient.Invoke("GetConnectionId");
 }
 
-void ChatClient::OnConnection(const signalr::value& m)
+void ChatClient::OnSetMainPlayerEvent(void* player)
 {
-    if (!m.is_null())
+    GetInstance().Invoke("Welcome");
+}
+
+void ChatClient::OnConnection(const signalr::value& value)
+{
+    if (!value.is_null())
     {
         ChatClient& chatClient = ChatClient::GetInstance();
-        chatClient._connectionID = m.as_array()[0].as_string();
+        chatClient._connectionID = value.as_array()[0].as_string();
         GameAPI::AddChatMessage(L"Server", L"Connected to chat server.", EngineAPI::UI::CHAT_TYPE_NORMAL);
     }
 }
 
-void ChatClient::OnReceiveMessage(const signalr::value& m)
+void ChatClient::OnReceiveMessage(const signalr::value& value)
 {
-    if (!m.is_null())
+    if (!value.is_null())
     {
         ChatClient& chatClient = ChatClient::GetInstance();
-        const auto& values = m.as_array();
+        const auto& values = value.as_array();
 
         std::wstring name = RawToWide(values[0].as_string());
         std::wstring message = RawToWide(values[1].as_string());
@@ -119,24 +79,24 @@ void ChatClient::OnReceiveMessage(const signalr::value& m)
     }
 }
 
-void ChatClient::OnServerMessage(const signalr::value& m)
+void ChatClient::OnServerMessage(const signalr::value& value)
 {
-    if (!m.is_null())
+    if (!value.is_null())
     {
         ChatClient& chatClient = ChatClient::GetInstance();
-        const auto& values = m.as_array();
+        const auto& values = value.as_array();
 
         std::wstring message = CharToWide(values[1].as_string());
         GameAPI::AddChatMessage(L"Server", message, EngineAPI::UI::CHAT_TYPE_NORMAL);
     }
 }
 
-void ChatClient::OnWelcomeMessage(const signalr::value& m)
+void ChatClient::OnWelcomeMessage(const signalr::value& value)
 {
-    if (!m.is_null())
+    if (!value.is_null())
     {
         ChatClient& chatClient = ChatClient::GetInstance();
-        const auto& values = m.as_array();
+        const auto& values = value.as_array();
 
         const auto& messages = values[0].as_array();
         for (size_t i = 0; i < messages.size(); ++i)
@@ -149,12 +109,12 @@ void ChatClient::OnWelcomeMessage(const signalr::value& m)
     }
 }
 
-void ChatClient::OnJoinedChannel(const signalr::value& m)
+void ChatClient::OnJoinedChannel(const signalr::value& value)
 {
-    if (!m.is_null())
+    if (!value.is_null())
     {
         ChatClient& chatClient = ChatClient::GetInstance();
-        const auto& values = m.as_array();
+        const auto& values = value.as_array();
 
         uint32_t channels = (uint32_t)values[0].as_double();
         if ((channels & 0xF0) != (chatClient._channels & 0xF0))
@@ -186,46 +146,36 @@ void ChatClient::OnJoinedChannel(const signalr::value& m)
     }
 }
 
-void ChatClient::OnBanned(const signalr::value& m)
+void ChatClient::OnBanned(const signalr::value& value)
 {
     GameAPI::AddChatMessage(L"Server", L"Your account has been banned from chat.", EngineAPI::UI::CHAT_TYPE_NORMAL);
 }
 
-ChatClient::ChatClient()
+ChatClient::ChatClient(URI endpoint) : Connection(endpoint), _channels(0)
 {
-    Client& client = Client::GetInstance();
-    URI endpoint = client.GetServerChatURL();
+    Register("Connection", OnConnection);
+    Register("ReceiveMessage", OnReceiveMessage);
+    Register("SystemMessage", OnServerMessage);
+    Register("WelcomeMessage", OnWelcomeMessage);
+    Register("JoinedChannel", OnJoinedChannel);
+    Register("Banned", OnBanned);
 
-    _connection = std::make_unique<signalr::hub_connection>(signalr::hub_connection_builder::create(endpoint).skip_negotiation().with_logging(std::make_shared<ChatClientLogger>(), signalr::trace_level::verbose).build());
-    _connection->on("Connection", OnConnection);
-    _connection->on("ReceiveMessage", OnReceiveMessage);
-    _connection->on("SystemMessage", OnServerMessage);
-    _connection->on("WelcomeMessage", OnWelcomeMessage);
-    _connection->on("JoinedChannel", OnJoinedChannel);
-    _connection->on("Banned", OnBanned);
-
-    EventManager::Subscribe(GDCL_EVENT_CONNECT, &ChatClient::OnConnectEvent);
-    //EventManager::Subscribe(GDCL_EVENT_DISCONNECT, &ChatClient::OnDisconnectEvent);
-    EventManager::Subscribe(GDCL_EVENT_WORLD_PRE_LOAD, &ChatClient::OnWorldPreLoadEvent);
-
-    _channels = 0;
+    EventManager::Subscribe(GDCL_EVENT_SHUTDOWN,        &ChatClient::OnShutdownEvent);
+    EventManager::Subscribe(GDCL_EVENT_WORLD_PRE_LOAD,  &ChatClient::OnWorldPreLoadEvent);
+    EventManager::Subscribe(GDCL_EVENT_SET_MAIN_PLAYER, &ChatClient::OnSetMainPlayerEvent);
 }
 
 ChatClient::~ChatClient()
 {
-    EventManager::Unsubscribe(GDCL_EVENT_CONNECT, &ChatClient::OnConnectEvent);
-    //EventManager::Unsubscribe(GDCL_EVENT_DISCONNECT, &ChatClient::OnDisconnectEvent);
-    EventManager::Unsubscribe(GDCL_EVENT_WORLD_PRE_LOAD, &ChatClient::OnWorldPreLoadEvent);
-
-    _connection->stop([](std::exception_ptr ex)
-    {
-        LogExceptionPointer(ex, "Failed to shut down chat client: %");
-    });
+    EventManager::Unsubscribe(GDCL_EVENT_SHUTDOWN,        &ChatClient::OnShutdownEvent);
+    EventManager::Unsubscribe(GDCL_EVENT_WORLD_PRE_LOAD,  &ChatClient::OnWorldPreLoadEvent);
+    EventManager::Unsubscribe(GDCL_EVENT_SET_MAIN_PLAYER, &ChatClient::OnSetMainPlayerEvent);
 }
 
 ChatClient& ChatClient::GetInstance()
 {
-    static ChatClient instance;
+    Client& client = Client::GetInstance();
+    static ChatClient instance(client.GetServerChatURL());
     return instance;
 }
 
@@ -239,123 +189,95 @@ uint8_t ChatClient::GetChannel(EngineAPI::UI::ChatType type) const
         return 0;
 }
 
-std::vector<signalr::value> BuildSetChannelArgs(EngineAPI::UI::ChatType type, uint32_t oldChannel, uint32_t newChannel)
+void ChatClient::SetChannel(EngineAPI::UI::ChatType type, uint32_t channel)
 {
-    std::vector<signalr::value> args;
-    uint32_t newChannelValue = newChannel;
+    uint32_t oldChannel = _channels;
+    uint32_t newChannel = channel;
     switch (type)
     {
         case EngineAPI::UI::CHAT_TYPE_NORMAL:
-            newChannelValue = (uint8_t)(newChannel & 0xFF);
+            newChannel = (uint8_t)(channel & 0xFF);
             break;
         case EngineAPI::UI::CHAT_TYPE_TRADE:
-            newChannelValue = (oldChannel & 0xF0) | (newChannel & 0x0F);
+            newChannel = (oldChannel & 0xF0) | (channel & 0x0F);
             break;
         case EngineAPI::UI::CHAT_TYPE_GLOBAL:
-            newChannelValue = (oldChannel & 0x0F) | ((newChannel & 0x0F) << 4);
+            newChannel = (oldChannel & 0x0F) | ((channel & 0x0F) << 4);
             break;
     }
 
     Client& client = Client::GetInstance();
-    ChatClient& chatClient = ChatClient::GetInstance();
-    args.push_back(chatClient.GetConnectionID());
-    args.push_back(client.GetUsername());
-    args.push_back((double)oldChannel);
-    args.push_back((double)newChannelValue);
-
-    return args;
-}
-
-void ChatClient::SetChannel(EngineAPI::UI::ChatType type, uint32_t channel)
-{
-    std::vector<signalr::value> args = BuildSetChannelArgs(type, _channels, channel);
-    _connection->invoke("JoinChannel", args, [](const signalr::value& value, std::exception_ptr ex)
-    {
-        LogExceptionPointer(ex, "Failed to join chat channel: %");
-    });
-}
-
-void ChatClient::SetChannel(uint32_t channel)
-{
-    std::vector<signalr::value> args = BuildSetChannelArgs(EngineAPI::UI::CHAT_TYPE_NORMAL, _channels, channel);
-    _connection->invoke("JoinChannel", args, [](const signalr::value& value, std::exception_ptr ex)
-    {
-        LogExceptionPointer(ex, "Failed to join chat channel: %");
-    });
-}
-
-std::vector<signalr::value> BuildSendMessageArgs(EngineAPI::UI::ChatType type, const std::wstring& name, const std::wstring& message, uint32_t channel, void* item)
-{
-    std::vector<signalr::value> args;
-    args.push_back(WideToRaw(name));
-    args.push_back(WideToRaw(message));
-
-    switch (type)
-    {
-        case EngineAPI::UI::CHAT_TYPE_GLOBAL:
-            args.push_back((double)(channel & 0xF0));
-            break;
-        case EngineAPI::UI::CHAT_TYPE_TRADE:
-            args.push_back((double)(channel & 0x0F));
-            break;
-        default:
-            args.push_back((double)0);
-            break;
-    }
-
-    if (item)
-    {
-        GameAPI::ItemReplicaInfo itemInfo = GameAPI::GetItemReplicaInfo(item);
-        Item item = InfoToItem(itemInfo);
-        std::string itemJSON = JSONString(item.ToJSON().serialize());
-        args.push_back(itemJSON);
-    }
-    else
-    {
-        args.push_back("");
-    }
-    return args;
+    InvokeAsync("JoinChannel", GetConnectionID(), client.GetUsername(), oldChannel, newChannel);
 }
 
 void ChatClient::SendChatMessage(EngineAPI::UI::ChatType type, const std::wstring& name, const std::wstring& message, void* item)
 {
-    std::vector<signalr::value> args = BuildSendMessageArgs(type, name, message, _channels, item);
-    _connection->invoke("Send", args, [](const signalr::value& value, std::exception_ptr ex)
+    uint32_t channelValue = 0;
+    switch (type)
     {
-        LogExceptionPointer(ex, "Failed to send chat message: %");
-    });
+        case EngineAPI::UI::CHAT_TYPE_GLOBAL:
+            channelValue = _channels & 0xF0;
+            break;
+        case EngineAPI::UI::CHAT_TYPE_TRADE:
+            channelValue = _channels & 0x0F;
+            break;
+    }
+
+    std::string itemJSON = "";
+    if (item)
+    {
+        GameAPI::ItemReplicaInfo itemInfo = GameAPI::GetItemReplicaInfo(item);
+        Item item = InfoToItem(itemInfo);
+        itemJSON = JSONString(item.ToJSON().serialize());
+    }
+
+    InvokeAsync("Send", WideToRaw(name), WideToRaw(message), channelValue, itemJSON);
 }
 
 void ChatClient::SetChannelAndSendMessage(EngineAPI::UI::ChatType type, uint32_t channel, const std::wstring& name, const std::wstring& message, void* item)
 {
-    std::vector<signalr::value> joinArgs = BuildSetChannelArgs(type, _channels, channel);
-    uint32_t newChannels = (uint32_t)(joinArgs[3].as_double());
-    _connection->invoke("JoinChannel", joinArgs, [this, type, name, message, newChannels, item](const signalr::value& value, std::exception_ptr ex)
-    {
-        if (!LogExceptionPointer(ex, "Failed to join chat channel: %"))
-        {
-            std::vector<signalr::value> sendArgs = BuildSendMessageArgs(type, name, message, newChannels, item);
-            this->_connection->invoke("Send", sendArgs, [](const signalr::value& value, std::exception_ptr ex)
-            {
-                LogExceptionPointer(ex, "Failed to send chat message: %");
-            });
-        }
-    });
-}
-
-void ChatClient::DisplayWelcomeMessage()
-{
+    Client& client = Client::GetInstance();
     std::vector<signalr::value> args;
-    _connection->invoke("Welcome", args, [](const signalr::value& value, std::exception_ptr ex)
+    uint32_t oldChannel = _channels;
+    uint32_t newChannel = channel;
+    switch (type)
     {
-        LogExceptionPointer(ex, "Failed to retrieve welcome message: %");
+        case EngineAPI::UI::CHAT_TYPE_NORMAL:
+            newChannel = (uint8_t)(channel & 0xFF);
+            break;
+        case EngineAPI::UI::CHAT_TYPE_TRADE:
+            newChannel = (oldChannel & 0xF0) | (channel & 0x0F);
+            break;
+        case EngineAPI::UI::CHAT_TYPE_GLOBAL:
+            newChannel = (oldChannel & 0x0F) | ((channel & 0x0F) << 4);
+            break;
+    }
+
+    args.push_back(GetConnectionID());
+    args.push_back(client.GetUsername());
+    args.push_back((double)oldChannel);
+    args.push_back((double)newChannel);
+
+    _connection->invoke("JoinChannel", args, [=](const signalr::value& value, std::exception_ptr ex)
+    {
+        try
+        {
+            if (ex)
+                std::rethrow_exception(ex);
+
+            SendChatMessage(type, name, message, item);
+        }
+        catch (const std::exception& ex)
+        {
+            Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to join chat channel: %", ex.what());
+        }
     });
 }
 
 void ChatClient::DisplayNewTradeNotifications()
 {
     Client& client = Client::GetInstance();
-    URI endpoint = client.GetServerGameURL() / "Trade" / "participant" / std::to_string(client.GetParticipantID()) / "trade-notifications" / "new";
+    URI endpoint = client.GetServerGameURL() / "Trade" / "participant" / std::to_string(client.GetCurrentParticipantID()) / "trade-notifications" / "new";
     endpoint.AddParam("branch", client.GetBranchName());
 
     web::http::client::http_client httpClient((utility::string_t)endpoint);

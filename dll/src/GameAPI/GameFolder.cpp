@@ -90,9 +90,31 @@ std::filesystem::path GetSharedSavePath(GameAPI::SharedSaveType type)
     return result;
 }
 
-std::filesystem::path GetTransferStashPath()
+std::filesystem::path GetTransferStashPath(bool hardcore)
 {
-    return GetSharedSavePath(SHARED_SAVE_TRANSFER);
+    std::filesystem::path result = GetSharedSavePath(SHARED_SAVE_TRANSFER);
+    if (hardcore)
+        result.replace_extension(".gsh");
+
+    return result;
+}
+
+std::filesystem::path GetFormulasPath(bool hardcore)
+{
+    std::filesystem::path result = GetSharedSavePath(SHARED_SAVE_FORMULAS);
+    if (hardcore)
+        result.replace_extension(".gsh");
+
+    return result;
+}
+
+std::filesystem::path GetTransmutesPath(bool hardcore)
+{
+    std::filesystem::path result = GetSharedSavePath(SHARED_SAVE_TRANSMUTES);
+    if (hardcore)
+        result.replace_extension(".gsh");
+
+    return result;
 }
 
 }

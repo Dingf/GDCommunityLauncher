@@ -20,7 +20,7 @@ struct ImprintFlags
     }
 };
 
-std::unordered_map<std::string, ImprintFlags> _imprintTypeMap =
+const std::unordered_map<std::string, ImprintFlags> _imprintTypeMap =
 {
     { "grimleague/items/enchants/r201_imprint_helm.dbr",      { (1 << ITEM_TYPE_HEAD),      0 } },
     { "grimleague/items/enchants/r202_imprint_torso.dbr",     { (1 << ITEM_TYPE_CHEST),     0 } },
@@ -34,7 +34,7 @@ std::unordered_map<std::string, ImprintFlags> _imprintTypeMap =
     { "grimleague/items/enchants/r210_imprint_amulet.dbr",    { (1 << ITEM_TYPE_AMULET),    0 } },
     { "grimleague/items/enchants/r211_imprint_1h.dbr",        { (1 << ITEM_TYPE_WEAPON),    (1 << WEAPON_TYPE_SWORD_1H) | (1 << WEAPON_TYPE_AXE_1H) | (1 << WEAPON_TYPE_MACE_1H) | (1 << WEAPON_TYPE_RANGED_1H) } },
     { "grimleague/items/enchants/r212_imprint_1hcaster.dbr",  { (1 << ITEM_TYPE_WEAPON),    (1 << WEAPON_TYPE_DAGGER)   | (1 << WEAPON_TYPE_SCEPTER) } },
-    { "grimleague/items/enchants/r213_imprint_2h.dbr",        { (1 << ITEM_TYPE_WEAPON),    (1 << WEAPON_TYPE_SWORD_2H) | (1 << WEAPON_TYPE_AXE_2H) | (1 << WEAPON_TYPE_MACE_2H) | (1 << WEAPON_TYPE_RANGED_2H) } },
+    { "grimleague/items/enchants/r213_imprint_2h.dbr",        { (1 << ITEM_TYPE_WEAPON),    (1 << WEAPON_TYPE_SWORD_2H) | (1 << WEAPON_TYPE_AXE_2H) | (1 << WEAPON_TYPE_MACE_2H) | (1 << WEAPON_TYPE_RANGED_2H) | (1 << WEAPON_TYPE_SPEAR) } },
     { "grimleague/items/enchants/r214_imprint_shield.dbr",    { (1 << ITEM_TYPE_OFFHAND),   (1 << WEAPON_TYPE_SHIELD) } },
     { "grimleague/items/enchants/r215_imprint_offhand.dbr",   { (1 << ITEM_TYPE_OFFHAND),   (1 << WEAPON_TYPE_CASTER_OH) } },
 };
@@ -670,8 +670,11 @@ void ModifyEnchant(void* enchant, GameAPI::ItemReplicaInfo& enchantInfo)
                 if (enchantInfo._itemStackCount > 1)
                 {
                     enchantInfo._itemStackCount--;
-                    void* newEnchant = GameAPI::CreateItem(enchantInfo);
-                    GameAPI::AddItemToTab(tab, position, newEnchant, true);
+                    enchantInfo._itemID = EngineAPI::CreateObjectID();
+                    if (void* newEnchant = GameAPI::CreateItem(enchantInfo))
+                    {
+                        GameAPI::AddItemToTab(tab, position, newEnchant, true);
+                    }
                 }
                 break;
             }
@@ -695,8 +698,11 @@ bool ModifyItem(void* item, GameAPI::ItemReplicaInfo& itemInfo)
             if (GameAPI::RemoveItemFromTab(tab, itemID))
             {
                 EngineAPI::DestroyObjectEx(item);
-                void* newItem = GameAPI::CreateItem(itemInfo);
-                return GameAPI::AddItemToTab(tab, position, newItem, true);
+                itemInfo._itemID = EngineAPI::CreateObjectID();
+                if (void* newItem = GameAPI::CreateItem(itemInfo))
+                {
+                    return GameAPI::AddItemToTab(tab, position, newItem, true);
+                }
             }
         }
     }
@@ -745,7 +751,7 @@ bool HandleCanEnchantBeUsedOn(void* _this, void* item, bool unk1, bool& unk2)
         if (_this != _lastEnchant)
         {
             _lastEnchant = _this;
-            _lastEnchantInfo = GameAPI::GetItemReplicaInfo(_this);
+            GameAPI::GetItemReplicaInfo(_this, _lastEnchantInfo);
         }
 
         auto pair = canUseItemFilters.find(_lastEnchantInfo._itemName);

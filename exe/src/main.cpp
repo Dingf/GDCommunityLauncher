@@ -50,7 +50,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
     // Get the list of files from the server and download any files that need to be updated
     Client& client = Client::GetInstance();
     if ((!client.IsOfflineMode()) && (!UpdateDialog::Update()))
+    {
+        if (Connection* connection = client.GetConnection())
+            connection->Disconnect();
         return EXIT_FAILURE;
+    }
 
     config.Save(configPath);
     if (!GameLauncher::LaunchProcess(grimDawnPath, libraryPath, pCmdLine))
@@ -60,5 +64,5 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
         return EXIT_FAILURE;
     }
 
-    return 0;
+    return EXIT_SUCCESS;
 }

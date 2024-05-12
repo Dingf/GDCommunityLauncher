@@ -1,10 +1,11 @@
 #include <unordered_map>
 #include "ClientHandler.h"
+#include "DeathRecap.h"
 #include "DungeonDatabase.h"
 
-void HandleRenderStyledText2D(void* _this, const EngineAPI::Rect& rect, const wchar_t* text, const std::string& style, float unk1, EngineAPI::UI::GraphicsXAlign xAlign, EngineAPI::UI::GraphicsYAlign yAlign, int layout)
+void HandleRenderStyledText2D(void* _this, const EngineAPI::Rect& rect, const wchar_t* text, const std::string& style, float unk1, EngineAPI::GraphicsXAlign xAlign, EngineAPI::GraphicsYAlign yAlign, int layout)
 {
-    typedef void (__thiscall* RenderTextStyled2DProto)(void*, const EngineAPI::Rect&, const wchar_t*, const std::string&, float, EngineAPI::UI::GraphicsXAlign, EngineAPI::UI::GraphicsYAlign, int);
+    typedef void (__thiscall* RenderTextStyled2DProto)(void*, const EngineAPI::Rect&, const wchar_t*, const std::string&, float, EngineAPI::GraphicsXAlign, EngineAPI::GraphicsYAlign, int);
 
     RenderTextStyled2DProto callback = (RenderTextStyled2DProto)HookManager::GetOriginalFunction(ENGINE_DLL, EngineAPI::EAPI_NAME_RENDER_STYLED_TEXT_2D);
     if (callback)
@@ -45,5 +46,17 @@ void HandleRenderStyledText2D(void* _this, const EngineAPI::Rect& rect, const wc
         {
             callback(_this, rect, text, style, unk1, xAlign, yAlign, layout);
         }
+    }
+}
+
+void HandleRender(void* _this)
+{
+    typedef void (__thiscall* RenderProto)(void*);
+
+    RenderProto callback = (RenderProto)HookManager::GetOriginalFunction(ENGINE_DLL, EngineAPI::EAPI_NAME_RENDER);
+    if (callback)
+    {
+        callback(_this);
+        DeathRecap::Update();
     }
 }
