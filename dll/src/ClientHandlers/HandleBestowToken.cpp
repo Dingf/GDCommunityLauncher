@@ -51,7 +51,7 @@ bool HandleSeasonPointToken(const std::string& tokenString)
         void* mainPlayer = GameAPI::GetMainPlayer();
 
         // Otherwise if it's a season token, pass it along to the server and update the points/rank
-        URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(client.GetParticipantID()) / "quest-tag" / tokenString;
+        URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(client.GetCurrentParticipantID()) / "quest-tag" / tokenString;
         web::http::http_request request(web::http::methods::POST);
 
         web::json::value requestBody;

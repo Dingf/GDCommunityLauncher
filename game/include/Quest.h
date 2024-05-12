@@ -3,12 +3,13 @@
 
 #include <vector>
 #include <filesystem>
+#include "FileData.h"
 #include "FileReader.h"
 #include "JSONObject.h"
 #include "GDDataBlock.h"
 #include "UID.h"
 
-class Quest : public JSONObject
+class Quest : public FileData, public JSONObject
 {
     public:
         struct QuestTask : public JSONObject
@@ -19,6 +20,7 @@ class Quest : public JSONObject
             web::json::value ToJSON() const;
 
             void Read(EncodedFileReader* reader);
+            void Write(EncodedFileWriter* writer);
 
             uint32_t _id1;
             UID16    _id2;
@@ -36,6 +38,7 @@ class Quest : public JSONObject
             web::json::value ToJSON() const;
 
             void Read(EncodedFileReader* reader);
+            void Write(EncodedFileWriter* writer);
 
             uint32_t _id1;
             UID16    _id2;
@@ -45,14 +48,14 @@ class Quest : public JSONObject
         Quest() {}
         Quest(const std::filesystem::path& path) { ReadFromFile(path); }
 
+        size_t GetBufferSize() const;
+
         web::json::value ToJSON() const;
 
         bool ReadFromFile(const std::filesystem::path& path);
-
-    private:
-        void ReadHeaderData(EncodedFileReader* reader);
-        void ReadTokensBlock(EncodedFileReader* reader);
-        void ReadDataBlock(EncodedFileReader* reader);
+        bool ReadFromBuffer(uint8_t* data, size_t size);
+        bool WriteToFile(const std::filesystem::path& path);
+        bool WriteToBuffer(uint8_t* data, size_t size);
 
         UID16 _id;
 
@@ -77,6 +80,18 @@ class Quest : public JSONObject
             std::vector<QuestData> _questData;
         }
         _dataBlock;
+
+    private:
+        void Read(EncodedFileReader* reader);
+        void Write(EncodedFileWriter* writer);
+
+        void ReadHeaderData(EncodedFileReader* reader);
+        void ReadTokensBlock(EncodedFileReader* reader);
+        void ReadDataBlock(EncodedFileReader* reader);
+
+        void WriteHeaderData(EncodedFileWriter* writer);
+        void WriteTokensBlock(EncodedFileWriter* writer);
+        void WriteDataBlock(EncodedFileWriter* writer);
 };
 
 

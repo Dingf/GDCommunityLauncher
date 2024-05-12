@@ -60,7 +60,7 @@ const wchar_t* GetPlayerName(void* player)
 
 std::string GetPlayerNameInChar(void* player)
 {
-    typedef std::string (__thiscall* GetPlayerNameInCharProto)(void*);
+    typedef std::string& (__thiscall* GetPlayerNameInCharProto)(void*);
 
     HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
     if ((!gameDLL) || (!player))
@@ -191,6 +191,36 @@ void GiveItemToPlayer(void* player, void* item, bool unk1, bool unk2)
         return;
 
     callback(player, item, unk1, unk2);
+}
+
+void LoadQuestStatesFromFile(void* player, const char* filename)
+{
+    typedef void (__thiscall* LoadQuestStatesProto)(void*, const char*);
+
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
+    if (!gameDLL)
+        return;
+
+    LoadQuestStatesProto callback = (LoadQuestStatesProto)GetProcAddress(gameDLL, GAPI_NAME_LOAD_PLAYER_QUEST_STATES);
+    if ((!callback) || (!player))
+        return;
+
+    callback(player, filename);
+}
+
+void SaveQuestStatesToFile(void* player, const char* filename)
+{
+    typedef void (__thiscall* SaveQuestStatesProto)(void*, const char*);
+
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
+    if (!gameDLL)
+        return;
+
+    SaveQuestStatesProto callback = (SaveQuestStatesProto)GetProcAddress(gameDLL, GAPI_NAME_SAVE_PLAYER_QUEST_STATES);
+    if ((!callback) || (!player))
+        return;
+
+    callback(player, filename);
 }
 
 void AddOrSubtractMoney(void* player, int32_t amount)

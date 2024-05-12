@@ -25,6 +25,14 @@ UID16& UID16::operator=(const UID16& id)
     return *this;
 }
 
+void UID16::WriteUID16(EncodedFileWriter* writer)
+{
+    for (uint32_t i = 0; i < 16; ++i)
+    {
+        writer->BufferInt8(_data[i]);
+    }
+}
+
 std::string UID16::ToString() const
 {
     std::string result;

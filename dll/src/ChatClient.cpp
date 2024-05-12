@@ -355,7 +355,7 @@ void ChatClient::DisplayWelcomeMessage()
 void ChatClient::DisplayNewTradeNotifications()
 {
     Client& client = Client::GetInstance();
-    URI endpoint = client.GetServerGameURL() / "Trade" / "participant" / std::to_string(client.GetParticipantID()) / "trade-notifications" / "new";
+    URI endpoint = client.GetServerGameURL() / "Trade" / "participant" / std::to_string(client.GetCurrentParticipantID()) / "trade-notifications" / "new";
     endpoint.AddParam("branch", client.GetBranchName());
 
     web::http::client::http_client httpClient((utility::string_t)endpoint);

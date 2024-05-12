@@ -19,7 +19,7 @@ class Client : public ClientBase
 
         uint32_t GetPoints() const { return _points; }
         uint32_t GetRank() const { return _rank; }
-        uint32_t GetParticipantID() const { return _participantID; }
+        uint32_t GetCurrentParticipantID() const { return _participantID; }
 
         const std::string&  GetVersionInfoText() const { return _versionInfoText; }
         const std::wstring& GetLeagueInfoText()  const { return _leagueInfoText; }

@@ -17,6 +17,8 @@ void HandleSaveNewFormatData(void* _this, void* writer)
     }
 }
 
+// The hook for this function is currently disabled
+// For some reason, this hook causes the bug where the main menu characters sometimes don't show up
 void HandleLoadNewFormatData(void* _this, void* reader)
 {
     typedef void (__thiscall* LoadNewFormatDataProto)(void*, void*);

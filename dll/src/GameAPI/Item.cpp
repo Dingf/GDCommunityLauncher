@@ -1,6 +1,6 @@
 #include <Windows.h>
 #include "EngineAPI/Engine.h"
-#include "EngineAPI/GraphicsTexture.h"
+#include "EngineAPI/Graphics.h"
 #include "GameAPI.h"
 #include "Item.h"
 

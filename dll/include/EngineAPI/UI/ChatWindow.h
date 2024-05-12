@@ -15,8 +15,8 @@ enum ChatType
     CHAT_TYPE_WHISPER = 3,
 };
 
-static const uint32_t CHAT_CHANNEL_MAX = 15;
-static const uint32_t MAX_CHAT_SIZE = 255;
+static constexpr uint32_t CHAT_CHANNEL_MAX = 15;
+static constexpr uint32_t MAX_CHAT_SIZE = 255;
 
 class ChatWindow
 {

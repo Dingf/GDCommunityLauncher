@@ -29,10 +29,13 @@ std::string& HandleGetPlayerFolder2(void* _this, void* unk1, void* player);
 std::string& HandleGetMapFolder(void* _this, void* unk1, const std::string& name, void* player);
 std::string& HandleGetDifficultyFolder(void* _this, void* unk1, GameAPI::Difficulty difficulty, const std::string& mapName, void* player);
 void HandleGetSharedSavePath(void* _this, GameAPI::SharedSaveType type, std::string& path, bool unk1, bool unk2, bool unk3, bool unk4);
+void HandleSetGod(void* _this, bool state);
+void HandleSetInvincible(void* _this, bool state);
 
 // Offline Hooks
 const char* HandleGetVersion(void* _this);
-void HandleRenderStyledText2D(void* _this, const EngineAPI::Rect& rect, const wchar_t* text, const std::string& style, float unk1, EngineAPI::UI::GraphicsXAlign xAlign, EngineAPI::UI::GraphicsYAlign yAlign, int layout);
+void HandleRender(void* _this);
+void HandleRenderStyledText2D(void* _this, const EngineAPI::Rect& rect, const wchar_t* text, const std::string& style, float unk1, EngineAPI::GraphicsXAlign xAlign, EngineAPI::GraphicsYAlign yAlign, int layout);
 void HandleLuaInitialize(void* _this, bool unk1, bool unk2);
 void HandleLuaShutdown(void* _this);
 bool HandleLoadWorld(void* _this, const char* map, bool unk1, bool modded);
@@ -44,8 +47,10 @@ bool HandleCanEnchantBeUsedOn(void* _this, void* item, bool unk1, bool& unk2);
 void HandleGetItemDescription(void* _this, std::vector<GameAPI::GameTextLine>& lines);
 void HandleGetWeaponDescription(void* _this, std::vector<GameAPI::GameTextLine>& lines);
 void HandleGetArmorDescription(void* _this, std::vector<GameAPI::GameTextLine>& lines);
-void HandleSetGod(void* _this, bool state);
-void HandleSetInvincible(void* _this, bool state);
+bool HandleApplyDamage(void* _this, float damage, void* playStatsDamage, GameAPI::CombatAttributeType type, const std::vector<uint32_t>& skills);
+
+// Manual Hooks
+size_t HandleSaveQuestStates(void* buffer, size_t size, size_t count, void* file);
 
 namespace ClientHandler
 {
@@ -62,7 +67,7 @@ const std::vector<HookManager::Hook> _onlineHooks =
     { GAME_DLL,   GameAPI::GAPI_NAME_GAME_ENGINE_SHUTDOWN,       &HandleGameShutdown,         false },
     { GAME_DLL,   GameAPI::GAPI_NAME_ON_CARAVAN_INTERACT,        &HandleCaravanInteract,      false },
     { GAME_DLL,   GameAPI::GAPI_NAME_SAVE_NEW_FORMAT_DATA,       &HandleSaveNewFormatData,    false },
-    { GAME_DLL,   GameAPI::GAPI_NAME_LOAD_NEW_FORMAT_DATA,       &HandleLoadNewFormatData,    false },
+    //{ GAME_DLL,   GameAPI::GAPI_NAME_LOAD_NEW_FORMAT_DATA,       &HandleLoadNewFormatData,    false },
     { GAME_DLL,   GameAPI::GAPI_NAME_SAVE_TRANSFER_STASH,        &HandleSaveTransferStash,    true  },
     { GAME_DLL,   GameAPI::GAPI_NAME_LOAD_TRANSFER_STASH,        &HandleLoadTransferStash,    false },
     { GAME_DLL,   GameAPI::GAPI_NAME_BESTOW_TOKEN,               &HandleBestowToken,          false },
@@ -84,6 +89,7 @@ const std::vector<HookManager::Hook> _onlineHooks =
 const std::vector<HookManager::Hook> _offlineHooks =
 {
     { ENGINE_DLL, EngineAPI::EAPI_NAME_GET_VERSION,              &HandleGetVersion,           false },
+    //{ ENGINE_DLL, EngineAPI::EAPI_NAME_RENDER,                   &HandleRender,               false },
     { ENGINE_DLL, EngineAPI::EAPI_NAME_RENDER_STYLED_TEXT_2D,    &HandleRenderStyledText2D,   false },
     { ENGINE_DLL, EngineAPI::EAPI_NAME_LUA_INITIALIZE,           &HandleLuaInitialize,        false },
     { ENGINE_DLL, EngineAPI::EAPI_NAME_LUA_SHUTDOWN,             &HandleLuaShutdown,          false },
@@ -96,6 +102,7 @@ const std::vector<HookManager::Hook> _offlineHooks =
     { GAME_DLL,   GameAPI::GAPI_NAME_GET_ITEM_DESCRIPTION,       &HandleGetItemDescription,   false },
     { GAME_DLL,   GameAPI::GAPI_NAME_GET_WEAPON_DESCRIPTION,     &HandleGetWeaponDescription, false },
     { GAME_DLL,   GameAPI::GAPI_NAME_GET_ARMOR_DESCRIPTION,      &HandleGetArmorDescription,  false },
+    //{ GAME_DLL,   GameAPI::GAPI_NAME_APPLY_DAMAGE,               &HandleApplyDamage,          false },
 };
 
 std::list<const HookManager::Hook*> _activeHooks;
@@ -124,6 +131,35 @@ bool CreateOfflineHooks()
     return true;
 }
 
+bool CreateManualHooks()
+{
+    Client& client = Client::GetInstance();
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
+    if (!gameDLL)
+        return false;
+
+    // This hook overwrites the internal fwrite() call in the SaveQuestStatesToFile subroutine
+    // This allows us to get the quest save buffer in a filesystem agnostic way
+    if (!client.IsOfflineMode())
+    {
+        void* callback = GetProcAddress(gameDLL, GameAPI::GAPI_NAME_SAVE_PLAYER_QUEST_STATES);
+
+        uint32_t offset = *(uint32_t*)((uint8_t*)callback + 0x08);
+        void* subroutine = (void*)((uint8_t*)callback + offset + 0x0C);
+        uint8_t* start = ((uint8_t*)subroutine + 0x86);
+
+        size_t bytesWritten;
+        uint8_t buffer[6] = { 0xE8, 0x00, 0x00, 0x00, 0x00, 0x90 };
+        *(uint32_t*)(&buffer[1]) = ((ptrdiff_t)&HandleSaveQuestStates - (ptrdiff_t)start - 0x05);
+        WriteProcessMemory(GetCurrentProcess(), start, &buffer, 6, &bytesWritten);
+
+        if (bytesWritten != 6)
+            return false;
+    }
+
+    return true;
+}
+
 void CreateHooks()
 {
     Client& client = Client::GetInstance();
@@ -132,6 +168,9 @@ void CreateHooks()
 
     if (!CreateOfflineHooks())
         Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to create one or more offline game hooks.");
+
+    if (!CreateManualHooks())
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to create one or more manual game hooks.");
 }
 
 void DeleteHooks()

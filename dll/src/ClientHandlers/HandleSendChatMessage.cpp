@@ -382,7 +382,7 @@ pplx::task<std::unordered_set<uint32_t>> GetCompletedChallengeIDs()
     Client& client = Client::GetInstance();
     if (client.IsPlayingSeason())
     {
-        URI endpoint = client.GetServerGameURL() / "Season" / std::to_string(client.GetActiveSeason()->_seasonID) / "participant-challenges" / std::to_string(client.GetParticipantID());
+        URI endpoint = client.GetServerGameURL() / "Season" / std::to_string(client.GetActiveSeason()->_seasonID) / "participant-challenges" / std::to_string(client.GetCurrentParticipantID());
 
         web::http::client::http_client httpClient((utility::string_t)endpoint);
         web::http::http_request request(web::http::methods::GET);

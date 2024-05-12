@@ -9,6 +9,7 @@
 #include "FileData.h"
 #include "SharedStash.h"
 #include "Item.h"
+#include "GameAPI/Difficulty.h"
 
 enum StashSyncFlag
 {
@@ -45,6 +46,25 @@ class ServerSync
             uint32_t _participantID;
         };
 
+        struct CharacterBuffer : public FileWriter
+        {
+            CharacterBuffer(uint8_t* buffer, size_t size) : FileWriter(buffer, size) {}
+
+            web::json::value _tagData;
+        };
+
+        struct QuestBuffer : public FileWriter
+        {
+            QuestBuffer(uint8_t* buffer, size_t size, GameAPI::Difficulty difficulty, const std::wstring& playerName) : FileWriter(buffer, size)
+            {
+                _difficulty = difficulty;
+                _playerName = playerName;
+            }
+
+            GameAPI::Difficulty _difficulty;
+            std::wstring        _playerName;
+        };
+
         ServerSync();
         ServerSync(ServerSync&) = delete;
         void operator=(const ServerSync&) = delete;
@@ -56,6 +76,7 @@ class ServerSync
 
         FileMetadata GetServerCharacterMetadata(const std::wstring& playerName, uint32_t participantID);
         FileMetadata GetServerStashMetadata(uint32_t participantID);
+        int32_t GetServerStashCapacity(uint32_t participantID);
 
         void IncrementStashLock() { _stashLock.fetch_add(1); }
         void DecrementStashLock() { _stashLock.fetch_sub(1); }
@@ -67,8 +88,8 @@ class ServerSync
         void SyncStashData();
 
         void DownloadCharacterBuffer(const std::wstring& playerName, uint32_t participantID, void** data, size_t* size);
-        void DownloadCharacterFile(const std::wstring& playerName, uint32_t participantID);
-        void DownloadCharacterQuestFile(const std::wstring& playerName, uint32_t participantID);
+        void DownloadCharacterFile(const std::wstring& playerName, uint32_t participantID, bool overwrite = false);
+        void DownloadCharacterQuestData(const std::wstring& playerName, uint32_t participantID, bool overwrite = false);
         void DownloadCharacterList(uint32_t participantID);
         void DownloadStashData(uint32_t participantID);
         void DownloadTransferItems(uint32_t participantID);
@@ -80,21 +101,26 @@ class ServerSync
         static void OnWorldPreLoadEvent(std::string mapName, bool unk1, bool modded);
         static void OnWorldPostLoadEvent(std::string mapName, bool unk1, bool modded);
         static void OnWorldPreUnloadEvent();
+        static void OnSetMainPlayerEvent(void* player);
         static void OnTransferPostLoadEvent();
         static void OnTransferPreSaveEvent();
         static void OnTransferPostSaveEvent();
         static void OnCharacterPreSaveEvent(void* player);
         static void OnCharacterPostSaveEvent(void* player);
+        static void OnQuestFileWriteEvent(void* file, void* data, size_t size);
         static void OnDelayedCharacterUpload();
 
         void RegisterSeasonParticipant(bool hardcore);
-        void UploadCharacterQuestData(uint32_t participantID, const std::wstring& characterName);
         void UploadCloudStash();
         void UploadNewCharacterBuffer(const std::string& filename, void* buffer, size_t size);
         void UploadStashBuffer(const std::string& filename, void* buffer, size_t size);
+        void CacheQuestBuffer(void* file, void* buffer, size_t size);
         void CacheCharacterBuffer(const std::string& filename, void* buffer, size_t size);
-        void UploadCachedStashBuffer();
         void UploadCachedCharacterBuffer();
+        void UploadCachedQuestBuffer();
+        void UploadCachedStashBuffer();
+        void UploadCachedBuffers();
+        void LoadQuestStatesForPlayer(void* player);
         void PullTransferItems(const std::vector<std::shared_ptr<Item>>& items);
 
         static void WaitBackgroundComplete();
@@ -102,10 +128,11 @@ class ServerSync
         void*        _newPlayer;
         std::atomic_int32_t _stashSynced;   // Bit flag used to indicate whether the stash was successfully synced with the server data
         std::atomic_int32_t _stashLock;     // Lock used to prevent the user from opening the stash during stash operations
+        std::shared_ptr<CharacterBuffer> _cachedCharacterBuffer;
+        std::shared_ptr<QuestBuffer>     _cachedQuestBuffer;
+        std::shared_ptr<FileWriter>      _cachedStashBuffer;
         std::map<CharacterIDRef, uint32_t> _characterIDCache;
-        std::unique_ptr<FileWriter> _cachedStashBuffer;
-        std::unique_ptr<FileWriter> _cachedCharacterBuffer;
-        std::unique_ptr<web::json::value> _cachedQuestData;
+        std::map<bool, uint32_t> _participantIDCache;
         concurrency::task_group _backgroundTasks;
 };
 

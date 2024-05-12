@@ -21,6 +21,23 @@ void* GetGameInfo()
     return callback(*engine);
 }
 
+int32_t GetGameTime()
+{
+    typedef int32_t (__thiscall* GetGameTimeProto)();
+
+    HMODULE engineDLL = GetModuleHandle(TEXT(ENGINE_DLL));
+    if (!engineDLL)
+        return 0;
+
+    GetGameTimeProto callback = (GetGameTimeProto)GetProcAddress(engineDLL, EAPI_NAME_GET_GAME_TIME);
+    void** engine = GetEngineHandle();
+
+    if ((!callback) || (!engine))
+        return 0;
+
+    return callback();
+}
+
 uint32_t GetPlayerLevel()
 {
     typedef uint32_t(__thiscall* GetPlayerLevelProto)(void*);

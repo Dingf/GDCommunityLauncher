@@ -22,6 +22,8 @@ constexpr char GAPI_NAME_IS_PLAYER_HARDCORE[] = "?IsHardcore@Player@GAME@@QEBA_N
 constexpr char GAPI_NAME_IS_PLAYER_IN_MAIN_QUEST[] = "?IsInMainQuest@Player@GAME@@QEBA_NXZ";
 constexpr char GAPI_NAME_SET_MAIN_PLAYER[] = "?SetMainPlayer@PlayerManagerClient@GAME@@QEAAXI@Z";
 constexpr char GAPI_NAME_GIVE_ITEM_TO_PLAYER[] = "?GiveItemToCharacter@Player@GAME@@UEAAXPEAVItem@2@_N1@Z";
+constexpr char GAPI_NAME_LOAD_PLAYER_QUEST_STATES[] = "?LoadQuestStatesFromFile@Player@GAME@@QEAAXPEBD@Z";
+constexpr char GAPI_NAME_SAVE_PLAYER_QUEST_STATES[] = "?SaveQuestStatesToFile@Player@GAME@@QEAAXPEBD@Z";
 constexpr char GAPI_NAME_SET_INVINCIBLE[] = "?SetInvincible@Character@GAME@@QEAAX_N@Z";
 constexpr char GAPI_NAME_SET_GOD[] = "?SetGod@Character@GAME@@QEAAX_N@Z";
 #else
@@ -39,6 +41,8 @@ constexpr char GAPI_NAME_IS_PLAYER_HARDCORE[] = "?IsHardcore@Player@GAME@@QBE_NX
 constexpr char GAPI_NAME_IS_PLAYER_IN_MAIN_QUEST[] = "?IsInMainQuest@Player@GAME@@QBE_NXZ";
 constexpr char GAPI_NAME_SET_MAIN_PLAYER[] = "?SetMainPlayer@PlayerManagerClient@GAME@@QAEXI@Z";
 constexpr char GAPI_NAME_GIVE_ITEM_TO_PLAYER[] = "?GiveItemToCharacter@Player@GAME@@UAEXPAVItem@2@_N1@Z";
+constexpr char GAPI_NAME_LOAD_PLAYER_QUEST_STATES[] = "?LoadQuestStatesFromFile@Player@GAME@@QAEXPBD@Z";
+constexpr char GAPI_NAME_SAVE_PLAYER_QUEST_STATES[] = "?SaveQuestStatesToFile@Player@GAME@@QAEXPBD@Z";
 constexpr char GAPI_NAME_SET_INVINCIBLE[] = "?SetInvincible@Character@GAME@@QAEX_N@Z";
 constexpr char GAPI_NAME_SET_GOD[] = "?SetGod@Character@GAME@@QAEX_N@";
 #endif
@@ -55,6 +59,8 @@ bool HasPlayerBeenInGame(void* player);
 Difficulty GetPlayerMaxDifficulty(void* player);
 void SetPlayerMaxDifficulty(void* player, Difficulty difficulty);
 void GiveItemToPlayer(void* player, void* item, bool unk1, bool unk2);
+void LoadQuestStatesFromFile(void* player, const char* filename);
+void SaveQuestStatesToFile(void* player, const char* filename);
 void AddOrSubtractMoney(void* player, int32_t amount);
 
 }

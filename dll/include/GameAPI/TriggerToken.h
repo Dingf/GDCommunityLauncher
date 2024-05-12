@@ -10,8 +10,10 @@ namespace GameAPI
 {
 #if _WIN64
 constexpr char GAPI_NAME_GET_PLAYER_TOKENS[] = "?GetTokens@Player@GAME@@QEBAAEBV?$vector@UTriggerToken@GAME@@@mem@@W4GameDifficulty@2@@Z";
+constexpr char GAPI_NAME_CLEAR_PLAYER_TOKENS[] = "?ClearTokens@Player@GAME@@QEAAXXZ";
 #else
 constexpr char GAPI_NAME_GET_PLAYER_TOKENS[] = "?GetTokens@Player@GAME@@QBEABV?$vector@UTriggerToken@GAME@@@mem@@W4GameDifficulty@2@@Z";
+constexpr char GAPI_NAME_CLEAR_PLAYER_TOKENS[] = "?ClearTokens@Player@GAME@@QAEXXZ";
 #endif
 
 struct TriggerToken
@@ -26,6 +28,7 @@ struct TriggerToken
 };
 
 const std::vector<TriggerToken>& GetPlayerTokens(void* player, Difficulty difficulty);
+void ClearPlayerTokens(void* player);
 
 }
 

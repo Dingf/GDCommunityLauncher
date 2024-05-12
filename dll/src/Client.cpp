@@ -8,6 +8,7 @@
 #include "HookManager.h"
 #include "EventManager.h"
 #include "ThreadManager.h"
+#include "DeathRecap.h"
 #include "ServerSync.h"
 #include "JSONObject.h"
 #include "URI.h"
@@ -394,7 +395,7 @@ void Client::SetActiveSeason(bool hardcore)
 
 void Client::UpdateSeasonStanding()
 {
-    URI endpoint = GetServerGameURL() / "Season" / "participant" / std::to_string(GetParticipantID()) / "standing";
+    URI endpoint = GetServerGameURL() / "Season" / "participant" / std::to_string(GetCurrentParticipantID()) / "standing";
     web::http::http_request request(web::http::methods::GET);
 
     ServerSync::ScheduleTask([endpoint, request]()
@@ -482,6 +483,9 @@ bool Client::Initialize()
         ThreadManager::CreatePeriodicThread("refresh_token", 60000, 900000, 0, &Client::UpdateRefreshToken);
         ThreadManager::CreatePeriodicThread("connection_status", 60000, 60000, 0, &Client::UpdateConnectionStatus);
     }
+
+    // Initialize the death recap module
+    //DeathRecap::Initialize();
 
     CreatePlayMenu();
 

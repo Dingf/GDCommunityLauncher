@@ -167,3 +167,9 @@
 
 - Fixed a performance issue that would occur when running on Linux.
 - Fixed a bug where items that were transferred from the cloud stash would disappear after being dropped.
+
+## 1.3.3 (2024-05-12)
+
+- Fixed a bug where items that were placed in the upload tab while the cloud stash is full would be incorrectly deleted.
+- Fixed a bug where characters would sometimes not load correctly on the main menu.
+- Fixed a bug where players on Linux would be unable to save their quest data after a period of time.
