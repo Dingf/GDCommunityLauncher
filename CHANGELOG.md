@@ -173,3 +173,10 @@
 - Fixed a bug where items that were placed in the upload tab while the cloud stash is full would be incorrectly deleted.
 - Fixed a bug where characters would sometimes not load correctly on the main menu.
 - Fixed a bug where players on Linux would be unable to save their quest data after a period of time.
+
+## 1.4.0 (2024-10-18)
+
+- Added shared Alteration tree progress.
+    - Progress is now shared between all characters of the same ladder (hardcore/softcore) within the season. 
+- Fixed a bug where season characters would not be deleted properly.
+- Fixed additional performance issues when running on Linux.

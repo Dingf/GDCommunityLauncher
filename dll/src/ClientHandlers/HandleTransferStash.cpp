@@ -2,12 +2,9 @@
 #include <thread>
 #include <future>
 #include <mutex>
-#include <cpprest/http_client.h>
 #include "ClientHandler.h"
 #include "EventManager.h"
 #include "ServerSync.h"
-#include "SharedStash.h"
-#include "URI.h"
 
 void HandleSaveTransferStash(void* _this)
 {

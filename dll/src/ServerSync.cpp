@@ -12,6 +12,7 @@
 #include "SharedStash.h"
 #include "Quest.h"
 #include "Version.h"
+#include "StringConvert.h"
 #include "Log.h"
 
 const std::unordered_map<GameAPI::Difficulty, const utility::char_t*> difficultyTagLookup =
@@ -76,20 +77,30 @@ ServerSync::ServerSync()
     Client& client = Client::GetInstance();
     if (!client.IsOfflineMode())
     {
-        EventManager::Subscribe(GDCL_EVENT_SHUTDOWN,            &ServerSync::OnShutdownEvent);
-        EventManager::Subscribe(GDCL_EVENT_DIRECT_FILE_READ,    &ServerSync::OnDirectReadEvent);
-        EventManager::Subscribe(GDCL_EVENT_DIRECT_FILE_WRITE,   &ServerSync::OnDirectWriteEvent);
-        EventManager::Subscribe(GDCL_EVENT_ADD_SAVE_JOB,        &ServerSync::OnAddSaveJob);
-        EventManager::Subscribe(GDCL_EVENT_WORLD_PRE_LOAD,      &ServerSync::OnWorldPreLoadEvent);
-        EventManager::Subscribe(GDCL_EVENT_WORLD_POST_LOAD,     &ServerSync::OnWorldPostLoadEvent);
-        EventManager::Subscribe(GDCL_EVENT_WORLD_PRE_UNLOAD,    &ServerSync::OnWorldPreUnloadEvent);
-        EventManager::Subscribe(GDCL_EVENT_SET_MAIN_PLAYER,     &ServerSync::OnSetMainPlayerEvent);
-        EventManager::Subscribe(GDCL_EVENT_TRANSFER_POST_LOAD,  &ServerSync::OnTransferPostLoadEvent);
-        EventManager::Subscribe(GDCL_EVENT_TRANSFER_PRE_SAVE,   &ServerSync::OnTransferPreSaveEvent);
-        EventManager::Subscribe(GDCL_EVENT_TRANSFER_POST_SAVE,  &ServerSync::OnTransferPostSaveEvent);
-        EventManager::Subscribe(GDCL_EVENT_CHARACTER_PRE_SAVE,  &ServerSync::OnCharacterPreSaveEvent);
-        EventManager::Subscribe(GDCL_EVENT_CHARACTER_POST_SAVE, &ServerSync::OnCharacterPostSaveEvent);
-        EventManager::Subscribe(GDCL_EVENT_QUEST_FILE_WRITE,    &ServerSync::OnQuestFileWriteEvent);
+        EventManager::Subscribe(GDCL_EVENT_INITIALIZE,            &ServerSync::OnInitializeEvent);
+        EventManager::Subscribe(GDCL_EVENT_SHUTDOWN,              &ServerSync::OnShutdownEvent);
+        EventManager::Subscribe(GDCL_EVENT_DIRECT_FILE_READ,      &ServerSync::OnDirectReadEvent);
+        EventManager::Subscribe(GDCL_EVENT_DIRECT_FILE_WRITE,     &ServerSync::OnDirectWriteEvent);
+        EventManager::Subscribe(GDCL_EVENT_ADD_SAVE_JOB,          &ServerSync::OnAddSaveJobEvent);
+        EventManager::Subscribe(GDCL_EVENT_WORLD_PRE_LOAD,        &ServerSync::OnWorldPreLoadEvent);
+        EventManager::Subscribe(GDCL_EVENT_WORLD_POST_LOAD,       &ServerSync::OnWorldPostLoadEvent);
+        EventManager::Subscribe(GDCL_EVENT_WORLD_PRE_UNLOAD,      &ServerSync::OnWorldPreUnloadEvent);
+        EventManager::Subscribe(GDCL_EVENT_SET_MAIN_PLAYER,       &ServerSync::OnSetMainPlayerEvent);
+        EventManager::Subscribe(GDCL_EVENT_TRANSFER_POST_LOAD,    &ServerSync::OnTransferPostLoadEvent);
+        EventManager::Subscribe(GDCL_EVENT_TRANSFER_PRE_SAVE,     &ServerSync::OnTransferPreSaveEvent);
+        EventManager::Subscribe(GDCL_EVENT_TRANSFER_POST_SAVE,    &ServerSync::OnTransferPostSaveEvent);
+        EventManager::Subscribe(GDCL_EVENT_CHARACTER_PRE_SAVE,    &ServerSync::OnCharacterPreSaveEvent);
+        EventManager::Subscribe(GDCL_EVENT_CHARACTER_POST_SAVE,   &ServerSync::OnCharacterPostSaveEvent);
+        EventManager::Subscribe(GDCL_EVENT_DELETE_FILE,           &ServerSync::OnDeleteFileEvent);
+
+        /*if (Connection* connection = client.GetConnection())
+        {
+            connection->Register("AddSeasonParticipant",          &ServerSync::OnAddParticipant);
+            connection->Register("GetParticipantCharacter",       &ServerSync::OnGetCharacterInfo);
+            connection->Register("GetParticipantCharacters",      &ServerSync::OnGetCharacterList);
+            connection->Register("GetParticipantSharedStash",     &ServerSync::OnGetStashInfo);
+            connection->Register("ConnectionStatus",              &ServerSync::OnConnectionStatus);
+        }*/
     }
 }
 
@@ -153,16 +164,13 @@ uint32_t ServerSync::GetParticipantID(bool hardcore)
     }
 }
 
-uint32_t ServerSync::GetCharacterID(const std::wstring& playerName, uint32_t participantID)
+uint32_t ServerSync::GetCharacterID(const std::wstring& playerName)
 {
     Client& client = Client::GetInstance();
+    uint32_t participantID = client.GetCurrentParticipantID();
 
-    if (participantID == 0)
-        participantID = client.GetCurrentParticipantID();
-
-    CharacterIDRef ref = { playerName, participantID };
-    if (_characterIDCache.count(ref) > 0)
-        return _characterIDCache[ref];
+    if (_characterIDCache.count(playerName) > 0)
+        return _characterIDCache[playerName];
 
     try
     {
@@ -180,8 +188,8 @@ uint32_t ServerSync::GetCharacterID(const std::wstring& playerName, uint32_t par
             {
                 web::json::value responseBody = response.extract_json().get();
                 web::json::value characterID = responseBody[U("participantCharacterId")];
-                _characterIDCache[ref] = (uint32_t)characterID.as_integer();
-                return _characterIDCache[ref];
+                _characterIDCache[playerName] = (uint32_t)characterID.as_integer();
+                return _characterIDCache[playerName];
             }
             case web::http::status_codes::NoContent:
             {
@@ -197,8 +205,8 @@ uint32_t ServerSync::GetCharacterID(const std::wstring& playerName, uint32_t par
     catch (const std::exception& ex)
     {
         Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve character ID: %", ex.what());
-        return 0;
     }
+    return 0;
 }
 
 FileMetadata ServerSync::GetServerCharacterMetadata(const std::wstring& playerName, uint32_t participantID)
@@ -277,6 +285,7 @@ FileMetadata ServerSync::GetServerStashMetadata(uint32_t participantID)
         Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve shared stash metadata: %", ex.what());
         return result;
     }
+    return result;
 }
 
 int32_t ServerSync::GetServerStashCapacity(uint32_t participantID)
@@ -317,7 +326,7 @@ int32_t ServerSync::GetServerStashCapacity(uint32_t participantID)
     }
 }
 
-void ServerSync::RegisterSeasonParticipant(bool hardcore)
+void ServerSync::RegisterSeasonParticipant(bool hardcore, bool async)
 {
     try
     {
@@ -385,8 +394,6 @@ void ServerSync::UploadNewCharacterBuffer(const std::string& filename, void* buf
     if (client.IsOfflineMode())
         return;
 
-    uint32_t participantID = GetParticipantID(GameAPI::IsPlayerHardcore(_newPlayer));
-
     Character characterData;
     if (!characterData.ReadFromBuffer((uint8_t*)buffer, size))
     {
@@ -394,6 +401,10 @@ void ServerSync::UploadNewCharacterBuffer(const std::string& filename, void* buf
         return;
     }
 
+    bool hardcore = characterData._headerBlock._charIsHardcore;
+    GetInstance().RegisterSeasonParticipant(hardcore, false);
+
+    uint32_t participantID = GetParticipantID(hardcore);
     web::json::value characterJSON = characterData.ToJSON();
     web::json::value characterInfo = web::json::value::object();
 
@@ -416,6 +427,7 @@ void ServerSync::UploadNewCharacterBuffer(const std::string& filename, void* buf
     {
         Client& client = Client::GetInstance();
         URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(participantID) / "character";
+        endpoint.AddParam("branch", client.GetBranchName());
         endpoint.AddParam("newPlayer", true);
 
         web::http::http_request request(web::http::methods::POST);
@@ -452,91 +464,215 @@ void ServerSync::UploadNewCharacterBuffer(const std::string& filename, void* buf
 void ServerSync::UploadStashBuffer(const std::string& filename, void* buffer, size_t size)
 {
     Client& client = Client::GetInstance();
-    URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(client.GetCurrentParticipantID()) / "shared-stash";
-
-    web::json::value requestJSON;
-
-    std::string requestBody;
-    requestBody += "\r\n";
-    requestBody += GetMultipartJSONData("sharedstash", requestJSON);
-    requestBody += GetMultipartBufferData("file", filename, (uint8_t*)buffer, size);
-    requestBody += "--" + GetMultipartBoundary() + "--\r\n";
-
-    web::http::client::http_client httpClient((utility::string_t)endpoint);
-    web::http::http_request request(web::http::methods::POST);
-
-    request.set_body(requestBody, "multipart/form-data; boundary=" + GetMultipartBoundary());
-
-    std::string bearerToken = "Bearer " + client.GetAuthToken();
-    request.headers().add(U("Authorization"), bearerToken.c_str());
-
-    // Cache the buffer data so that if it fails, we can send it again later
-    // This needs to be cached because the transfer stash gets deleted before Shutdown/WorldUnload
-    // Also, it's not safe to trust the save file because the user could replace it after the file has been saved
-    _cachedStashBuffer = std::make_shared<FileWriter>((uint8_t*)buffer, size);
-
-    _backgroundTasks.run([endpoint, request]()
+    if ((client.IsPlayingSeasonOnline()) && (!EngineAPI::IsMultiplayer()))
     {
+        URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(client.GetCurrentParticipantID()) / "shared-stash";
+
+        web::json::value requestJSON;
+
+        std::string requestBody;
+        requestBody += "\r\n";
+        requestBody += GetMultipartJSONData("sharedstash", requestJSON);
+        requestBody += GetMultipartBufferData("file", filename, (uint8_t*)buffer, size);
+        requestBody += "--" + GetMultipartBoundary() + "--\r\n";
+
         web::http::client::http_client httpClient((utility::string_t)endpoint);
-        return httpClient.request(request).then([](Concurrency::task<web::http::http_response> responseTask)
+        web::http::http_request request(web::http::methods::POST);
+
+        request.set_body(requestBody, "multipart/form-data; boundary=" + GetMultipartBoundary());
+
+        std::string bearerToken = "Bearer " + client.GetAuthToken();
+        request.headers().add(U("Authorization"), bearerToken.c_str());
+
+        // Cache the buffer data so that if it fails, we can send it again later
+        // This needs to be cached because the transfer stash gets deleted before Shutdown/WorldUnload
+        // Also, it's not safe to trust the save file because the user could replace it after the file has been saved
+        _cachedStashBuffer = std::make_shared<StashBuffer>((uint8_t*)buffer, size, EngineAPI::IsHardcore());
+
+        _backgroundTasks.run([endpoint, request]()
         {
-            try
+            web::http::client::http_client httpClient((utility::string_t)endpoint);
+            return httpClient.request(request).then([](Concurrency::task<web::http::http_response> responseTask)
             {
-                web::http::http_response response = responseTask.get();
-                if (response.status_code() == web::http::status_codes::OK)
+                try
                 {
-                    ServerSync::GetInstance()._cachedStashBuffer.reset();
+                    web::http::http_response response = responseTask.get();
+                    if (response.status_code() == web::http::status_codes::OK)
+                    {
+                        ServerSync::GetInstance()._cachedStashBuffer.reset();
+                    }
+                    else
+                    {
+                        throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+                    }
                 }
-                else
+                catch (std::exception& ex)
                 {
-                    throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+                    Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload shared stash: %", ex.what());
                 }
-            }
-            catch (std::exception& ex)
-            {
-                Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload shared stash: %", ex.what());
-            }
+            });
         });
-    });
+    }
 }
 
-void ServerSync::CacheQuestBuffer(void* file, void* buffer, size_t size)
+void ServerSync::UploadFormulasBuffer(const std::string& filename, void* buffer, size_t size)
 {
-    if (void* mainPlayer = GameAPI::GetMainPlayer())
+    Client& client = Client::GetInstance();
+    if ((client.IsPlayingSeasonOnline()) && (!EngineAPI::IsMultiplayer()))
     {
-        GameAPI::Difficulty difficulty = GameAPI::GetGameDifficulty();
-        std::wstring playerName = GameAPI::GetPlayerName(mainPlayer);
+        URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(client.GetCurrentParticipantID()) / "formulasfile";
 
-        _cachedQuestBuffer = std::make_shared<QuestBuffer>((uint8_t*)buffer, size, difficulty, playerName);
+        web::json::value requestJSON;
+
+        std::string requestBody;
+        requestBody += "\r\n";
+        requestBody += GetMultipartJSONData("formulas", requestJSON);
+        requestBody += GetMultipartBufferData("file", filename, (uint8_t*)buffer, size);
+        requestBody += "--" + GetMultipartBoundary() + "--\r\n";
+
+        web::http::client::http_client httpClient((utility::string_t)endpoint);
+        web::http::http_request request(web::http::methods::POST);
+
+        request.set_body(requestBody, "multipart/form-data; boundary=" + GetMultipartBoundary());
+
+        std::string bearerToken = "Bearer " + client.GetAuthToken();
+        request.headers().add(U("Authorization"), bearerToken.c_str());
+
+        _backgroundTasks.run([endpoint, request]()
+        {
+            web::http::client::http_client httpClient((utility::string_t)endpoint);
+            return httpClient.request(request).then([](Concurrency::task<web::http::http_response> responseTask)
+            {
+                try
+                {
+                    web::http::http_response response = responseTask.get();
+                    if (response.status_code() != web::http::status_codes::OK)
+                        throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+                }
+                catch (std::exception& ex)
+                {
+                    Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload formulas file: %", ex.what());
+                }
+            });
+        });
+    }
+}
+
+void ServerSync::UploadTransmutesBuffer(const std::string& filename, void* buffer, size_t size)
+{
+    Client& client = Client::GetInstance();
+    if ((client.IsPlayingSeasonOnline()) && (!EngineAPI::IsMultiplayer()))
+    {
+        URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(client.GetCurrentParticipantID()) / "transmutesfile";
+
+        web::json::value requestJSON;
+
+        std::string requestBody;
+        requestBody += "\r\n";
+        requestBody += GetMultipartJSONData("transmutes", requestJSON);
+        requestBody += GetMultipartBufferData("file", filename, (uint8_t*)buffer, size);
+        requestBody += "--" + GetMultipartBoundary() + "--\r\n";
+
+        web::http::client::http_client httpClient((utility::string_t)endpoint);
+        web::http::http_request request(web::http::methods::POST);
+
+        request.set_body(requestBody, "multipart/form-data; boundary=" + GetMultipartBoundary());
+
+        std::string bearerToken = "Bearer " + client.GetAuthToken();
+        request.headers().add(U("Authorization"), bearerToken.c_str());
+
+        _backgroundTasks.run([endpoint, request]()
+        {
+            web::http::client::http_client httpClient((utility::string_t)endpoint);
+            return httpClient.request(request).then([](Concurrency::task<web::http::http_response> responseTask)
+            {
+                try
+                {
+                    web::http::http_response response = responseTask.get();
+                    if (response.status_code() != web::http::status_codes::OK)
+                        throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+                }
+                catch (std::exception& ex)
+                {
+                    Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload transmutes file: %", ex.what());
+                }
+            });
+        });
     }
 }
 
 void ServerSync::CacheCharacterBuffer(const std::string& filename, void* buffer, size_t size)
 {
     Client& client = Client::GetInstance();
-    URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(client.GetCurrentParticipantID()) / "character";
-
-    _cachedCharacterBuffer = std::make_shared<CharacterBuffer>((uint8_t*)buffer, size);
-    _cachedCharacterBuffer->_tagData = web::json::value::object();
-
-    for (auto pair : difficultyTagLookup)
-        _cachedCharacterBuffer->_tagData[pair.second] = web::json::value::array();
-
-    void* mainPlayer = GameAPI::GetMainPlayer();
-    if (mainPlayer != nullptr)
+    if ((client.IsPlayingSeasonOnline()) && (!EngineAPI::IsMultiplayer()))
     {
-        for (auto difficulty : GameAPI::GAME_DIFFICULTIES)
-        {
-            const std::vector<GameAPI::TriggerToken>& tokens = GameAPI::GetPlayerTokens(mainPlayer, difficulty);
-            for (size_t i = 0, index = 0; i < tokens.size(); ++i)
-            {
-                std::string tokenString = tokens[i];
-                for (char& c : tokenString)
-                    c = std::tolower(c);
+        _cachedCharacterBuffer = std::make_shared<CharacterBuffer>((uint8_t*)buffer, size);
+        _cachedCharacterBuffer->_tagData = web::json::value::object();
 
-                if (tokenString.find("gdl_", 0) == 0)
-                    _cachedCharacterBuffer->_tagData[difficultyTagLookup.at(difficulty)][index++] = JSONString(tokenString);
+        for (auto pair : difficultyTagLookup)
+            _cachedCharacterBuffer->_tagData[pair.second] = web::json::value::array();
+
+        void* mainPlayer = GameAPI::GetMainPlayer();
+        if (mainPlayer != nullptr)
+        {
+            for (auto difficulty : GameAPI::GAME_DIFFICULTIES)
+            {
+                const std::vector<GameAPI::TriggerToken>& tokens = GameAPI::GetPlayerTokens(mainPlayer, difficulty);
+                for (size_t i = 0, index = 0; i < tokens.size(); ++i)
+                {
+                    std::string tokenString = tokens[i];
+                    for (char& c : tokenString)
+                        c = std::tolower(c);
+
+                    if (tokenString.find("gdl_", 0) == 0)
+                        _cachedCharacterBuffer->_tagData[difficultyTagLookup.at(difficulty)][index++] = JSONString(tokenString);
+                }
             }
+        }
+    }
+}
+
+void ServerSync::CacheQuestBuffer(const std::string& filename, void* buffer, size_t size)
+{
+    Client& client = Client::GetInstance();
+    if ((client.IsPlayingSeasonOnline()) && (!EngineAPI::IsMultiplayer()))
+    {
+        if (void* mainPlayer = GameAPI::GetMainPlayer())
+        {
+            GameAPI::Difficulty difficulty = GameAPI::GetGameDifficulty();
+            std::wstring playerName = GameAPI::GetPlayerName(mainPlayer);
+
+            _cachedQuestBuffer = std::make_shared<PlayerDataBuffer>((uint8_t*)buffer, size, difficulty, playerName);
+        }
+    }
+}
+
+void ServerSync::CacheConversationsBuffer(const std::string& filename, void* buffer, size_t size)
+{
+    Client& client = Client::GetInstance();
+    if ((client.IsPlayingSeasonOnline()) && (!EngineAPI::IsMultiplayer()))
+    {
+        if (void* mainPlayer = GameAPI::GetMainPlayer())
+        {
+            GameAPI::Difficulty difficulty = GameAPI::GetGameDifficulty();
+            std::wstring playerName = GameAPI::GetPlayerName(mainPlayer);
+
+            _cachedConversationsBuffer = std::make_shared<PlayerDataBuffer>((uint8_t*)buffer, size, difficulty, playerName);
+        }
+    }
+}
+
+void ServerSync::CacheFOWBuffer(const std::string& filename, void* buffer, size_t size)
+{
+    Client& client = Client::GetInstance();
+    if ((client.IsPlayingSeasonOnline()) && (!EngineAPI::IsMultiplayer()))
+    {
+        if (void* mainPlayer = GameAPI::GetMainPlayer())
+        {
+            GameAPI::Difficulty difficulty = GameAPI::GetGameDifficulty();
+            std::wstring playerName = GameAPI::GetPlayerName(mainPlayer);
+
+            _cachedFOWBuffer = std::make_shared<PlayerDataBuffer>((uint8_t*)buffer, size, difficulty, playerName);
         }
     }
 }
@@ -544,12 +680,12 @@ void ServerSync::CacheCharacterBuffer(const std::string& filename, void* buffer,
 void ServerSync::UploadCachedCharacterBuffer()
 {
     std::shared_ptr<CharacterBuffer> characterBuffer = _cachedCharacterBuffer;
-
     if (characterBuffer)
     {
         Client& client = Client::GetInstance();
         uint32_t participantID = client.GetCurrentParticipantID();
         URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(participantID) / "character";
+        endpoint.AddParam("branch", client.GetBranchName());
 
         Character characterData;
         if (!characterData.ReadFromBuffer(characterBuffer->GetBuffer(), characterBuffer->GetBufferSize()))
@@ -583,7 +719,7 @@ void ServerSync::UploadCachedCharacterBuffer()
 
         std::string bearerToken = "Bearer " + client.GetAuthToken();
         request.headers().add(U("Authorization"), bearerToken.c_str());
-
+        
         _backgroundTasks.run([endpoint, request]()
         {
             web::http::client::http_client httpClient((utility::string_t)endpoint);
@@ -613,23 +749,19 @@ void ServerSync::UploadCachedCharacterBuffer()
 
 void ServerSync::UploadCachedQuestBuffer()
 {
-    std::shared_ptr<QuestBuffer> questBuffer = _cachedQuestBuffer;
-
-    if (questBuffer)
+    std::shared_ptr<PlayerDataBuffer> buffer = _cachedQuestBuffer;
+    if (buffer)
     {
         Client& client = Client::GetInstance();
-        std::string difficultyName = GameAPI::GetGameDifficultyName(questBuffer->_difficulty);
-        std::filesystem::path characterPath = GameAPI::GetPlayerFolder(questBuffer->_playerName);
-        std::filesystem::path questFilePath = characterPath / "levels_world001.map" / difficultyName / "quests.gdd";
-
-        URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(client.GetCurrentParticipantID()) / "character" / questBuffer->_playerName / "questfile" / difficultyName;
+        URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(client.GetCurrentParticipantID()) / "character" / buffer->_playerName / "questfile" / GameAPI::GetGameDifficultyName(buffer->_difficulty);
+        endpoint.AddParam("branch", client.GetBranchName());
 
         web::http::client::http_client httpClient((utility::string_t)endpoint);
         web::http::http_request request(web::http::methods::POST);
 
         std::string requestBody;
         requestBody += "\r\n";
-        requestBody += GetMultipartBufferData("file", questFilePath, questBuffer->GetBuffer(), questBuffer->GetBufferSize());
+        requestBody += GetMultipartBufferData("file", "quests.gdd", buffer->GetBuffer(), buffer->GetBufferSize());
         requestBody += "--" + GetMultipartBoundary() + "--\r\n";
 
         request.set_body(requestBody, "multipart/form-data; boundary=" + GetMultipartBoundary());
@@ -661,14 +793,108 @@ void ServerSync::UploadCachedQuestBuffer()
             });
         });
     }
+}
 
+void ServerSync::UploadCachedConversationsBuffer()
+{
+    std::shared_ptr<PlayerDataBuffer> buffer = _cachedConversationsBuffer;
+    if (buffer)
+    {
+        Client& client = Client::GetInstance();
+        URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(client.GetCurrentParticipantID()) / "character" / buffer->_playerName / "conversationsfile" / GameAPI::GetGameDifficultyName(buffer->_difficulty);
+        endpoint.AddParam("branch", client.GetBranchName());
+
+        web::http::client::http_client httpClient((utility::string_t)endpoint);
+        web::http::http_request request(web::http::methods::POST);
+
+        std::string requestBody;
+        requestBody += "\r\n";
+        requestBody += GetMultipartBufferData("file", "conversations.gdd", buffer->GetBuffer(), buffer->GetBufferSize());
+        requestBody += "--" + GetMultipartBoundary() + "--\r\n";
+
+        request.set_body(requestBody, "multipart/form-data; boundary=" + GetMultipartBoundary());
+
+        std::string bearerToken = "Bearer " + client.GetAuthToken();
+        request.headers().add(U("Authorization"), bearerToken.c_str());
+
+        _backgroundTasks.run([endpoint, request]()
+        {
+            web::http::client::http_client httpClient((utility::string_t)endpoint);
+            return httpClient.request(request).then([](Concurrency::task<web::http::http_response> responseTask)
+            {
+                try
+                {
+                    web::http::http_response response = responseTask.get();
+                    if (response.status_code() == web::http::status_codes::OK)
+                    {
+                        ServerSync::GetInstance()._cachedQuestBuffer.reset();
+                    }
+                    else
+                    {
+                        throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+                    }
+                }
+                catch (std::exception& ex)
+                {
+                    Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload conversations data: %", ex.what());
+                }
+            });
+        });
+    }
+}
+
+void ServerSync::UploadCachedFOWBuffer()
+{
+    std::shared_ptr<PlayerDataBuffer> buffer = _cachedFOWBuffer;
+    if (buffer)
+    {
+        Client& client = Client::GetInstance();
+        URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(client.GetCurrentParticipantID()) / "character" / buffer->_playerName / "mapfowfile" / GameAPI::GetGameDifficultyName(buffer->_difficulty);
+        endpoint.AddParam("branch", client.GetBranchName());
+
+        web::http::client::http_client httpClient((utility::string_t)endpoint);
+        web::http::http_request request(web::http::methods::POST);
+
+        std::string requestBody;
+        requestBody += "\r\n";
+        requestBody += GetMultipartBufferData("file", "map.fow", buffer->GetBuffer(), buffer->GetBufferSize());
+        requestBody += "--" + GetMultipartBoundary() + "--\r\n";
+
+        request.set_body(requestBody, "multipart/form-data; boundary=" + GetMultipartBoundary());
+
+        std::string bearerToken = "Bearer " + client.GetAuthToken();
+        request.headers().add(U("Authorization"), bearerToken.c_str());
+
+        _backgroundTasks.run([endpoint, request]()
+        {
+            web::http::client::http_client httpClient((utility::string_t)endpoint);
+            return httpClient.request(request).then([](Concurrency::task<web::http::http_response> responseTask)
+            {
+                try
+                {
+                    web::http::http_response response = responseTask.get();
+                    if (response.status_code() == web::http::status_codes::OK)
+                    {
+                        ServerSync::GetInstance()._cachedQuestBuffer.reset();
+                    }
+                    else
+                    {
+                        throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+                    }
+                }
+                catch (std::exception& ex)
+                {
+                    Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload FOW data: %", ex.what());
+                }
+            });
+        });
+    }
 }
 
 void ServerSync::UploadCachedStashBuffer()
 {
-    std::shared_ptr<FileWriter> stashBuffer = _cachedStashBuffer;
-
-    if (stashBuffer)
+    std::shared_ptr<StashBuffer> buffer = _cachedStashBuffer;
+    if (buffer)
     {
         Client& client = Client::GetInstance();
         URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(client.GetCurrentParticipantID()) / "shared-stash";
@@ -678,7 +904,7 @@ void ServerSync::UploadCachedStashBuffer()
         std::string requestBody;
         requestBody += "\r\n";
         requestBody += GetMultipartJSONData("sharedstash", requestJSON);
-        requestBody += GetMultipartBufferData("file", GameAPI::GetTransferStashPath(), stashBuffer->GetBuffer(), stashBuffer->GetBufferSize());
+        requestBody += GetMultipartBufferData("file", (buffer->_hardcore ? "transfer.gsh" : "transfer.gst"), buffer->GetBuffer(), buffer->GetBufferSize());
         requestBody += "--" + GetMultipartBoundary() + "--\r\n";
 
         web::http::client::http_client httpClient((utility::string_t)endpoint);
@@ -715,18 +941,102 @@ void ServerSync::UploadCachedStashBuffer()
     }
 }
 
-
 void ServerSync::UploadCachedBuffers()
 {
     UploadCachedCharacterBuffer();
     UploadCachedQuestBuffer();
+    UploadCachedConversationsBuffer();
+    UploadCachedFOWBuffer();
     UploadCachedStashBuffer();
+}
+
+void ServerSync::SaveTagsFile()
+{
+    Client& client = Client::GetInstance();
+    URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(client.GetCurrentParticipantID()) / "tagsfile";
+    web::http::client::http_client httpClient((utility::string_t)endpoint);
+    web::http::http_request request(web::http::methods::POST);
+
+    std::string filename = EngineAPI::IsHardcore() ? "tags.gsh" : "tags.gst";
+    std::filesystem::path filePath = GameAPI::GetUserSaveFolder() / filename;
+
+    void* mainPlayer = GameAPI::GetMainPlayer();
+    const std::vector<GameAPI::TriggerToken>& tokens = GameAPI::GetPlayerTokens(mainPlayer, GameAPI::GetGameDifficulty());
+
+    uint32_t count = 0;
+    std::string buffer;
+    for (GameAPI::TriggerToken token : tokens)
+    {
+        std::string tokenString = token;
+        if (tokenString.rfind("GDIP_", 0) == 0)
+        {
+            uint32_t tokenSize = tokenString.size();
+            buffer.append((const char*)&tokenSize, 4);
+            buffer += tokenString;
+            count++;
+        }
+    }
+
+    size_t fileSize = 8 + buffer.size();
+    FileWriter writer(fileSize);
+
+    writer.BufferInt32(count);
+    writer.BufferString(buffer);
+    writer.WriteToFile(filePath);
+
+    std::string requestBody;
+    requestBody += "\r\n";
+    requestBody += GetMultipartBufferData("file", filePath.filename(), writer.GetBuffer(), writer.GetBufferSize());
+    requestBody += "--" + GetMultipartBoundary() + "--\r\n";
+
+    request.set_body(requestBody, "multipart/form-data; boundary=" + GetMultipartBoundary());
+
+    std::string bearerToken = "Bearer " + client.GetAuthToken();
+    request.headers().add(U("Authorization"), bearerToken.c_str());
+
+    _backgroundTasks.run([endpoint, request]()
+    {
+        web::http::client::http_client httpClient((utility::string_t)endpoint);
+        return httpClient.request(request).then([](Concurrency::task<web::http::http_response> responseTask)
+        {
+            try
+            {
+                web::http::http_response response = responseTask.get();
+                if (response.status_code() != web::http::status_codes::OK)
+                    throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+            }
+            catch (std::exception& ex)
+            {
+                Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload shared tags file: %", ex.what());
+            }
+        });
+    });
+}
+
+void RefundCloudStashItems(const std::vector<GameAPI::ItemReplicaInfo> items)
+{
+    void* mainPlayer = GameAPI::GetMainPlayer();
+    uint32_t playerID = EngineAPI::GetObjectID(GameAPI::GetMainPlayer());
+
+    for (const auto& itemInfo : items)
+    {
+        if (void* item = GameAPI::CreateItem(itemInfo))
+        {
+            GameAPI::SetItemVisiblePlayer(item, playerID);
+            GameAPI::AddItemToTransfer(EngineAPI::GetObjectID(item), 5, true);
+            EngineAPI::DestroyObjectEx(item);
+        }
+        else
+        {
+            throw std::runtime_error("Failed to recreate stash item from item data");
+        }
+    }
 }
 
 void ServerSync::UploadCloudStash()
 {
     Client& client = Client::GetInstance();
-    if (client.IsPlayingSeasonOnline())
+    if ((client.IsPlayingSeasonOnline()) && (!EngineAPI::IsMultiplayer()))
     {
         const std::vector<void*>& transferTabs = GameAPI::GetTransferTabs();
         if (transferTabs.size() >= 6)
@@ -746,21 +1056,28 @@ void ServerSync::UploadCloudStash()
                 IncrementStashLock();
 
                 uint32_t index = 0;
+                std::vector<GameAPI::ItemReplicaInfo> cloudStashItems;
                 web::json::value requestBody = web::json::value::array();
                 for (const auto& pair : items)
                 {
-                    GameAPI::ItemReplicaInfo itemInfo = GameAPI::GetItemReplicaInfo(EngineAPI::FindObjectByID(pair.first));
+                    void* item = EngineAPI::FindObjectByID(pair.first);
+                    if (item)
+                    {
+                        GameAPI::ItemReplicaInfo itemInfo;
+                        GameAPI::GetItemReplicaInfo(item, itemInfo);
+                        cloudStashItems.push_back(itemInfo);
 
-                    Item item = GameAPI::InfoToItem(itemInfo);
-                    requestBody[index] = item.ToJSON();
-                    requestBody[index].erase(U("unknown1"));
-                    requestBody[index].erase(U("unknown2"));
-                    index++;
+                        Item item = GameAPI::InfoToItem(itemInfo);
+                        requestBody[index] = item.ToJSON();
+                        requestBody[index].erase(U("unknown1"));
+                        requestBody[index].erase(U("unknown2"));
+                        index++;
+                    }
                 }
 
                 GameAPI::RemoveAllItemsFromTab(uploadTab);
 
-                _backgroundTasks.run([requestBody]()
+                _backgroundTasks.run([requestBody, cloudStashItems]()
                 {
                     Client& client = Client::GetInstance();
                     URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(client.GetCurrentParticipantID()) / "stash";
@@ -773,21 +1090,25 @@ void ServerSync::UploadCloudStash()
                     std::string bearerToken = "Bearer " + client.GetAuthToken();
                     request.headers().add(U("Authorization"), bearerToken.c_str());
 
-                    httpClient.request(request).then([](Concurrency::task<web::http::http_response> responseTask)
+                    httpClient.request(request).then([cloudStashItems](Concurrency::task<web::http::http_response> responseTask)
                     {
+                        ServerSync& sync = ServerSync::GetInstance();
                         try
                         {
                             web::http::http_response response = responseTask.get();
                             if (response.status_code() == web::http::status_codes::OK)
                             {
+                                const std::vector<void*>& transferTabs = GameAPI::GetTransferTabs();
                                 GameAPI::DisplayUINotification("tagGDLeagueStorageSuccess");
                             }
                             else if (response.status_code() == web::http::status_codes::BadRequest)
                             {
+                                RefundCloudStashItems(cloudStashItems);
                                 GameAPI::DisplayUINotification("tagGDLeagueStorageFull");
                             }
                             else
                             {
+                                RefundCloudStashItems(cloudStashItems);
                                 GameAPI::DisplayUINotification("tagGDLeagueStorageFailure");
                                 throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
                             }
@@ -797,7 +1118,7 @@ void ServerSync::UploadCloudStash()
                             Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload shared stash: %", ex.what());
                         }
 
-                        GetInstance().DecrementStashLock();
+                        sync.DecrementStashLock();
                     });
                 });
             }
@@ -829,17 +1150,39 @@ void ServerSync::LoadQuestStatesForPlayer(void* player)
             if (response.status_code() == web::http::status_codes::OK)
             {
                 std::vector<uint8_t> responseBody = response.extract_vector().get();
-                FileWriter writer(&responseBody[0], responseBody.size());
 
-                // It'd be nice if we can bypass the filesystem here but there's no call for loading quest states from a buffer
-                // Technically it should be possible if we manually hook into the fread() call in Player::LoadQuestStatesFromFile()
-                // However, the file would still need to exist on disk since the code uses fseek() to initialize the size of the buffer first...
-                // ...so we might as well just read from the disk at that point
-                std::filesystem::path questFilePath = std::filesystem::current_path() / "quests_load.gdd";
-                writer.WriteToFile(questFilePath);
+                Quest questData;
+                if (!questData.ReadFromBuffer(&responseBody[0], responseBody.size()))
+                {
+                    throw std::runtime_error("Could not read quest data from server");
+                }
+
                 GameAPI::ClearPlayerTokens(player);
-                GameAPI::LoadQuestStatesFromFile(player, "quests_load.gdd");
-                std::filesystem::remove(questFilePath);
+                for (const auto& token : questData._tokensBlock._questTokens)
+                {
+                    // Skip loading these, as they will be loaded from the tags file
+                    if (token.rfind("GDIP_", 0) == 0)
+                        continue;
+
+                    GameAPI::BestowTokenNow(player, token);
+                }
+
+                for (const auto& questData : questData._dataBlock._questData)
+                {
+                    void* quest = GameAPI::GetQuestByID(questData._id1);
+                    if (!quest)
+                        throw std::runtime_error("Failed to load quest data with ID " + std::to_string(questData._id1));
+
+                    for (const auto& taskData : questData._tasks)
+                    {
+                        void* task = GameAPI::GetQuestTaskByID(quest, taskData._id1);
+                        if (!task)
+                            throw std::runtime_error("Failed to load task " + std::to_string(taskData._id1) + " for quest with ID " + std::to_string(questData._id1));
+
+                        GameAPI::SetQuestTaskState(task, taskData._state);
+                        GameAPI::SetQuestTaskInProgress(task, taskData._isInProgress);
+                    }
+                }
             }
             else
             {
@@ -849,6 +1192,54 @@ void ServerSync::LoadQuestStatesForPlayer(void* player)
         catch (const std::exception& ex)
         {
             Logger::LogMessage(LOG_LEVEL_WARN, "Failed to load character quest states: %", ex.what());
+        }
+    }
+}
+
+void ServerSync::LoadTagsFileForPlayer(void* player)
+{
+    if (player)
+    {
+        try
+        {
+            uint32_t participantID = GetParticipantID(GameAPI::IsPlayerHardcore(player));
+            std::string difficultyName = GetGameDifficultyName(GameAPI::GetGameDifficulty());
+            std::wstring playerName = GameAPI::GetPlayerName(player);
+
+            Client& client = Client::GetInstance();
+            URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(participantID) / "tagsfile";
+            endpoint.AddParam("branch", client.GetBranchName());
+
+            web::http::client::http_client httpClient((utility::string_t)endpoint);
+            web::http::http_request request(web::http::methods::GET);
+
+            std::string bearerToken = "Bearer " + client.GetAuthToken();
+            request.headers().add(U("Authorization"), bearerToken.c_str());
+
+            web::http::http_response response = httpClient.request(request).get();
+            if (response.status_code() == web::http::status_codes::OK)
+            {
+                std::vector<uint8_t> responseBody = response.extract_vector().get();
+
+                FileReader reader(&responseBody[0], responseBody.size());
+
+                uint32_t count = reader.ReadInt32();
+                reader.ReadInt32();     // This is the size of the string contents, but not really needed here
+
+                for (size_t i = 0; i < count; ++i)
+                {
+                    std::string tokenString = reader.ReadString();
+                    GameAPI::BestowTokenNow(player, tokenString);
+                }
+            }
+            else
+            {
+                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+            }
+        }
+        catch (const std::exception& ex)
+        {
+            Logger::LogMessage(LOG_LEVEL_WARN, "Failed to load shared tags file: %", ex.what());
         }
     }
 }
@@ -895,7 +1286,7 @@ void ServerSync::PullTransferItems(const std::vector<std::shared_ptr<Item>>& ite
     }
 }
 
-void ServerSync::DownloadCharacterBuffer(const std::wstring& playerName, uint32_t participantID, void** data, size_t* size)
+void ServerSync::DownloadCharacterBuffer(std::wstring playerName, uint32_t participantID, void** data, size_t* size)
 {
     try
     {
@@ -928,7 +1319,7 @@ void ServerSync::DownloadCharacterBuffer(const std::wstring& playerName, uint32_
     }
 }
 
-void ServerSync::DownloadCharacterFile(const std::wstring& playerName, uint32_t participantID, bool overwrite)
+void ServerSync::DownloadCharacterFile(std::wstring playerName, uint32_t participantID, bool overwrite)
 {
     try
     {
@@ -994,7 +1385,7 @@ void ServerSync::DownloadCharacterQuestData(const std::wstring& playerName, uint
                 FileWriter writer(&responseBody[0], responseBody.size());
                 writer.WriteToFile(questFilePath);
             }
-            else
+            else if (response.status_code() != web::http::status_codes::NoContent)
             {
                 throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
             }
@@ -1006,7 +1397,110 @@ void ServerSync::DownloadCharacterQuestData(const std::wstring& playerName, uint
     }
 }
 
-void ServerSync::DownloadCharacterList(uint32_t participantID)
+void ServerSync::DownloadCharacterConversationsData(const std::wstring& playerName, uint32_t participantID, bool overwrite)
+{
+    try
+    {
+        for (GameAPI::Difficulty difficulty : GameAPI::GAME_DIFFICULTIES)
+        {
+            std::string difficultyName = GetGameDifficultyName(difficulty);
+
+            std::filesystem::path characterPath = GameAPI::GetPlayerFolder(playerName);
+            std::filesystem::path questFilePath = characterPath / "levels_world001.map" / difficultyName / "conversations.gdd";
+            if ((!overwrite) && (std::filesystem::exists(questFilePath)))
+                return;
+
+            Client& client = Client::GetInstance();
+            URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(participantID) / "character" / playerName / "conversationsfile" / difficultyName;
+            endpoint.AddParam("branch", client.GetBranchName());
+
+            web::http::client::http_client httpClient((utility::string_t)endpoint);
+            web::http::http_request request(web::http::methods::GET);
+
+            std::string bearerToken = "Bearer " + client.GetAuthToken();
+            request.headers().add(U("Authorization"), bearerToken.c_str());
+
+            web::http::http_response response = httpClient.request(request).get();
+            if (response.status_code() == web::http::status_codes::OK)
+            {
+                std::vector<uint8_t> responseBody = response.extract_vector().get();
+                FileWriter writer(&responseBody[0], responseBody.size());
+                writer.WriteToFile(questFilePath);
+            }
+            else if (response.status_code() != web::http::status_codes::NoContent)
+            {
+                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+            }
+        }
+    }
+    catch (const std::exception& ex)
+    {
+        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to download character conversations data: %", ex.what());
+    }
+}
+
+void ServerSync::DownloadCharacterFOWData(const std::wstring& playerName, uint32_t participantID, bool overwrite)
+{
+    try
+    {
+        for (GameAPI::Difficulty difficulty : GameAPI::GAME_DIFFICULTIES)
+        {
+            std::string difficultyName = GetGameDifficultyName(difficulty);
+
+            std::filesystem::path characterPath = GameAPI::GetPlayerFolder(playerName);
+            std::filesystem::path questFilePath = characterPath / "levels_world001.map" / difficultyName / "map.fow";
+            if ((!overwrite) && (std::filesystem::exists(questFilePath)))
+                return;
+
+            Client& client = Client::GetInstance();
+            URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(participantID) / "character" / playerName / "mapfowfile" / difficultyName;
+            endpoint.AddParam("branch", client.GetBranchName());
+
+            web::http::client::http_client httpClient((utility::string_t)endpoint);
+            web::http::http_request request(web::http::methods::GET);
+
+            std::string bearerToken = "Bearer " + client.GetAuthToken();
+            request.headers().add(U("Authorization"), bearerToken.c_str());
+
+            web::http::http_response response = httpClient.request(request).get();
+            if (response.status_code() == web::http::status_codes::OK)
+            {
+                std::vector<uint8_t> responseBody = response.extract_vector().get();
+                FileWriter writer(&responseBody[0], responseBody.size());
+                writer.WriteToFile(questFilePath);
+            }
+            else
+            {
+                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+            }
+        }
+    }
+    catch (const std::exception& ex)
+    {
+        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to download character conversations data: %", ex.what());
+    }
+}
+
+void ServerSync::CleanupSaveFolder(const std::unordered_set<std::wstring>& characterList)
+{
+    std::filesystem::path mainPath = GameAPI::GetUserSaveFolder() / "main";
+    if (std::filesystem::is_directory(mainPath))
+    {
+        for (const auto& it : std::filesystem::directory_iterator(mainPath))
+        {
+            const std::filesystem::path& filePath = it.path();
+            if (std::filesystem::is_directory(filePath))
+            {
+                std::wstring playerName = filePath.filename().wstring().substr(1);
+                if (characterList.count(playerName) > 0)
+                    continue;
+            }
+            std::filesystem::remove_all(filePath);
+        }
+    }
+}
+
+void ServerSync::DownloadCharacterList(uint32_t participantID, std::unordered_set<std::wstring>& characterList)
 {
     try
     {
@@ -1028,9 +1522,14 @@ void ServerSync::DownloadCharacterList(uint32_t participantID)
             for (size_t i = 0; i < charactersArray.size(); ++i)
             {
                 std::wstring playerName = charactersArray[i].as_string();
-                DownloadCharacterFile(playerName, participantID);
-                DownloadCharacterQuestData(playerName, participantID);
-                // TODO: Download the other data (FOW/Conversation) from the server once it's been uploaded
+                _backgroundTasks.run([=]()
+                {
+                    DownloadCharacterFile(playerName, participantID);
+                    DownloadCharacterQuestData(playerName, participantID);
+                    DownloadCharacterConversationsData(playerName, participantID);
+                    DownloadCharacterFOWData(playerName, participantID);
+                });
+                characterList.insert(playerName);
             }
         }
         else
@@ -1044,13 +1543,81 @@ void ServerSync::DownloadCharacterList(uint32_t participantID)
     }
 }
 
+void ServerSync::DownloadFormulasFile(uint32_t participantID, bool hardcore)
+{
+    _backgroundTasks.run([=]()
+    {
+        try
+        {
+            Client& client = Client::GetInstance();
+            URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(participantID) / "formulasfile";
+            endpoint.AddParam("branch", client.GetBranchName());
+
+            web::http::client::http_client httpClient((utility::string_t)endpoint);
+            web::http::http_request request(web::http::methods::GET);
+
+            std::string bearerToken = "Bearer " + client.GetAuthToken();
+            request.headers().add(U("Authorization"), bearerToken.c_str());
+
+            web::http::http_response response = httpClient.request(request).get();
+            if (response.status_code() == web::http::status_codes::OK)
+            {
+                std::vector<uint8_t> responseBody = response.extract_vector().get();
+                FileWriter writer(&responseBody[0], responseBody.size());
+                writer.WriteToFile(GameAPI::GetFormulasPath(hardcore));
+            }
+            else if (response.status_code() != web::http::status_codes::NoContent)
+            {
+                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+            }
+        }
+        catch (const std::exception& ex)
+        {
+            Logger::LogMessage(LOG_LEVEL_WARN, "Failed to download formulas file: %", ex.what());
+        }
+    });
+}
+
+void ServerSync::DownloadTransmutesFile(uint32_t participantID, bool hardcore)
+{
+    _backgroundTasks.run([=]()
+    {
+        try
+        {
+            Client& client = Client::GetInstance();
+            URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(participantID) / "transmutesfile";
+            endpoint.AddParam("branch", client.GetBranchName());
+
+            web::http::client::http_client httpClient((utility::string_t)endpoint);
+            web::http::http_request request(web::http::methods::GET);
+
+            std::string bearerToken = "Bearer " + client.GetAuthToken();
+            request.headers().add(U("Authorization"), bearerToken.c_str());
+
+            web::http::http_response response = httpClient.request(request).get();
+            if (response.status_code() == web::http::status_codes::OK)
+            {
+                std::vector<uint8_t> responseBody = response.extract_vector().get();
+                FileWriter writer(&responseBody[0], responseBody.size());
+                writer.WriteToFile(GameAPI::GetTransmutesPath(hardcore));
+            }
+            else if (response.status_code() != web::http::status_codes::NoContent)
+            {
+                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+            }
+        }
+        catch (const std::exception& ex)
+        {
+            Logger::LogMessage(LOG_LEVEL_WARN, "Failed to download formulas file: %", ex.what());
+        }
+    });
+}
+
 void ServerSync::DownloadTransferItems(uint32_t participantID)
 {
     try
     {
         Client& client = Client::GetInstance();
-        std::filesystem::path stashPath = GameAPI::GetTransferStashPath();
-
         URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(participantID) / "transfer-queue";
         endpoint.AddParam("branch", client.GetBranchName());
 
@@ -1129,7 +1696,7 @@ void ServerSync::DownloadStashData(uint32_t participantID)
             }
 
             FileWriter writer(&responseBody[0], responseBody.size());
-            writer.WriteToFile(GameAPI::GetTransferStashPath());
+            writer.WriteToFile(GameAPI::GetTransferStashPath(EngineAPI::IsHardcore()));
 
             GameAPI::SetNumberOfTransferTabs(stash.GetTabCount());
 
@@ -1177,26 +1744,21 @@ void ServerSync::DownloadStashData(uint32_t participantID)
 
 void ServerSync::SyncCharacterData(const std::filesystem::path& filePath, void** data, size_t* size)
 {
-    Client& client = Client::GetInstance();
-
-    std::filesystem::path parentPath = filePath.parent_path();
-    std::wstring playerName = parentPath.filename().wstring().substr(1);
-
-    FileMetadata clientMetadata(filePath);
-
-    // We don't know whether the character is SC/HC without reading the data, which is expensive, so just try both and use whichever one is not empty
-    uint32_t participantID = GetParticipantID(true);
-    FileMetadata serverMetadata = GetServerCharacterMetadata(playerName, participantID);
-    if (serverMetadata.IsEmpty())
+    Character character;
+    if (character.ReadFromFile(filePath, true))
     {
-        participantID = GetParticipantID(false);
-        serverMetadata = GetServerCharacterMetadata(playerName, participantID);
-    }
+        uint32_t participantID = GetParticipantID(character._headerBlock._charIsHardcore);
+        std::wstring playerName = filePath.parent_path().filename().wstring().substr(1);
+        FileMetadata serverMetadata = GetServerCharacterMetadata(playerName, participantID);
+        FileMetadata clientMetadata(filePath);
 
-    if (serverMetadata != clientMetadata)
-    {
-        DownloadCharacterBuffer(playerName, participantID, data, size);
-        DownloadCharacterQuestData(playerName, participantID, true);    // TODO: This should probably have its own metadata check
+        if (serverMetadata != clientMetadata)
+        {
+            DownloadCharacterBuffer(playerName, participantID, data, size);
+            DownloadCharacterQuestData(playerName, participantID, true);
+            DownloadCharacterConversationsData(playerName, participantID);
+            DownloadCharacterFOWData(playerName, participantID);
+        }
     }
 }
 
@@ -1206,15 +1768,14 @@ void ServerSync::SyncStashData()
     _backgroundTasks.run([&]()
     {
         Client& client = Client::GetInstance();
-        uint32_t participantID = ServerSync::GetParticipantID(EngineAPI::IsHardcore());
-        FileMetadata clientMetadata(GameAPI::GetTransferStashPath());
+        uint32_t participantID = GetParticipantID(EngineAPI::IsHardcore());
+        FileMetadata clientMetadata(GameAPI::GetTransferStashPath(EngineAPI::IsHardcore()));
         FileMetadata serverMetadata = GetServerStashMetadata(participantID);
 
         if ((serverMetadata != clientMetadata) && (!IsStashSynced()))
         {
             DownloadStashData(participantID);
             DownloadTransferItems(participantID);
-            client.UpdateLeagueInfoText();
         }
         else
         {
@@ -1226,65 +1787,103 @@ void ServerSync::SyncStashData()
     });
 }
 
-void ServerSync::OnShutdownEvent()
+void ServerSync::OnInitializeEvent()
 {
-    ServerSync& sync = ServerSync::GetInstance();
-    sync.UploadCachedBuffers();
-    sync.WaitBackgroundComplete();
+    // Connect the client at game start; we can't do this when the DLL is loaded due to networking code
+    //Client& client = Client::GetInstance();
+    //if (Connection* connection = client.GetConnection())
+    //    connection->Connect();
 }
 
-void ServerSync::OnDirectReadEvent(std::string filename, void** data, size_t* size, bool* override)
+void ServerSync::OnShutdownEvent()
+{
+    GetInstance().UploadCachedBuffers();
+    GetInstance().WaitBackgroundComplete();
+
+    //Client& client = Client::GetInstance();
+    //if (Connection* connection = client.GetConnection())
+    //    connection->Disconnect();
+}
+
+void ServerSync::OnDirectReadEvent(std::string filename, void** data, size_t* size)
 {
     std::filesystem::path filePath = filename;
     if (filePath.filename() == "player.gdc")
     {
-        *size = 0;  // This should be set to 0 initially anyways, but do it again just to be safe
-
-        ServerSync& sync = ServerSync::GetInstance();
-        sync.SyncCharacterData(filePath, data, size);
-        *override = (*size > 0);
+        GetInstance().SyncCharacterData(filePath, data, size);
     }
 }
 
 void ServerSync::OnDirectWriteEvent(std::string filename, void* data, size_t size)
 {
-    ServerSync& sync = ServerSync::GetInstance();
     std::filesystem::path filePath = filename;
-    if (filePath == GameAPI::GetTransferStashPath())
+    if (filePath == GameAPI::GetTransferStashPath(EngineAPI::IsHardcore()))
     {
-        sync.UploadStashBuffer(filename, data, size);
+        GetInstance().UploadStashBuffer(filename, data, size);
+    }
+    else if (filePath == GameAPI::GetFormulasPath(EngineAPI::IsHardcore()))
+    {
+        GetInstance().UploadFormulasBuffer(filename, data, size);
+    }
+    else if (filePath == GameAPI::GetTransmutesPath(EngineAPI::IsHardcore()))
+    {
+        GetInstance().UploadTransmutesBuffer(filename, data, size);
     }
 }
 
-void ServerSync::OnAddSaveJob(std::string filename, void* data, size_t size)
+void ServerSync::OnAddSaveJobEvent(std::string filename, void* data, size_t size)
 {
-    ServerSync& sync = ServerSync::GetInstance();
     std::filesystem::path filePath(filename);
     if (filePath.extension() == ".gdc")
     {
-        if ((!std::filesystem::exists(filePath)) && (sync._newPlayer))
+        if (!std::filesystem::exists(filePath))
         {
-            sync.UploadNewCharacterBuffer(filename, data, size);
-            sync._newPlayer = nullptr;
+            GetInstance().UploadNewCharacterBuffer(filename, data, size);
         }
         else
         {
             // Cache the character data instead of uploading immediately so that we don't overwhelm the server with requests
-            sync.CacheCharacterBuffer(filename, data, size);
+            GetInstance().CacheCharacterBuffer(filename, data, size);
         }
+    }
+    else if (filePath.filename() == "quests.gdd")
+    {
+        GetInstance().CacheQuestBuffer(filename, data, size);
+
+        // Only save tags file if the character already exists, so that we don't overwrite all of them on a new character
+        if (std::filesystem::exists(filePath))
+            GetInstance().SaveTagsFile();
+    }
+    else if (filePath.filename() == "conversations.gdd")
+    {
+        GetInstance().CacheConversationsBuffer(filename, data, size);
+    }
+    else if (filePath.filename() == "map.fow")
+    {
+        GetInstance().CacheFOWBuffer(filename, data, size);
     }
 }
 
 void ServerSync::OnWorldPreLoadEvent(std::string mapName, bool unk1, bool modded)
 {
-    ServerSync& sync = ServerSync::GetInstance();
     if (mapName.substr(0, 16) == "levels/mainmenu/")
     {
-        if (uint32_t softcoreID = sync.GetParticipantID(false))
-            sync.DownloadCharacterList(softcoreID);
+        std::unordered_set<std::wstring> characterList;
+        if (uint32_t softcoreID = GetInstance().GetParticipantID(false))
+        {
+            GetInstance().DownloadCharacterList(softcoreID, characterList);
+            GetInstance().DownloadFormulasFile(softcoreID, false);
+            GetInstance().DownloadTransmutesFile(softcoreID, false);
+        }
 
-        if (uint32_t hardcoreID = sync.GetParticipantID(true))
-            sync.DownloadCharacterList(hardcoreID);
+        if (uint32_t hardcoreID = GetInstance().GetParticipantID(true))
+        {
+            GetInstance().DownloadCharacterList(hardcoreID, characterList);
+            GetInstance().DownloadFormulasFile(hardcoreID, true);
+            GetInstance().DownloadTransmutesFile(hardcoreID, true);
+        }
+        GetInstance().CleanupSaveFolder(characterList);
+        GetInstance().WaitBackgroundComplete();
     }
 }
 
@@ -1302,7 +1901,8 @@ void ServerSync::OnWorldPreUnloadEvent()
 
 void ServerSync::OnSetMainPlayerEvent(void* player)
 {
-    ServerSync::GetInstance().LoadQuestStatesForPlayer(player);
+    GetInstance().LoadQuestStatesForPlayer(player);
+    GetInstance().LoadTagsFileForPlayer(player);
 }
 
 void ServerSync::OnTransferPostLoadEvent()
@@ -1310,7 +1910,7 @@ void ServerSync::OnTransferPostLoadEvent()
     Client& client = Client::GetInstance();
     if ((client.IsPlayingSeasonOnline()) && (!EngineAPI::IsMultiplayer()))
     {
-        ServerSync::GetInstance().SyncStashData();
+        GetInstance().SyncStashData();
     }
 }
 
@@ -1338,42 +1938,152 @@ void ServerSync::OnCharacterPreSaveEvent(void* player)
 {
     if (player)
     {
-        Client& client = Client::GetInstance();
-        ServerSync& sync = ServerSync::GetInstance();
-
         std::filesystem::path playerFile = GameAPI::GetPlayerSaveFile(player);
         if (GameAPI::IsPlayerInMainQuest(player))
         {
             // If the file doesn't exist, then it's most likely a new character so register the character with the server
             if ((!std::filesystem::exists(playerFile)) && (!GameAPI::HasPlayerBeenInGame(player)))
             {
-                sync.RegisterSeasonParticipant(GameAPI::IsPlayerHardcore(player));
-                sync._newPlayer = player;
+                GetInstance().RegisterSeasonParticipant(GameAPI::IsPlayerHardcore(player));
             }
+        }
+    }
+}
+
+void ServerSync::OnCharacterPostSaveEvent(void* player)
+{
+    ThreadManager::CreatePeriodicThread("character_save", 1000, 0, 5000, &ServerSync::OnDelayedCharacterUpload);
+}
+
+void ServerSync::OnDeleteFileEvent(const char* filename)
+{
+    std::filesystem::path filePath(filename);
+    if (filePath.filename() == "player.gdc")
+    {
+        std::filesystem::path parentPath = filePath.parent_path();
+        std::wstring playerName = parentPath.filename().wstring().substr(1);
+
+        // Check to make sure it's a season character and not a custom game character before deleting
+        if (parentPath.parent_path().filename() == "main")
+        {
+            Character characterData;
+            if (!characterData.ReadFromFile(filename, true))
+            {
+                Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to load character data.");
+                return;
+            }
+
+            Client& client = Client::GetInstance();
+            uint32_t participantID = GetInstance().GetParticipantID(characterData._headerBlock._charIsHardcore);
+            URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(participantID) / "character" / playerName;
+            endpoint.AddParam("branch", client.GetBranchName());
+
+            web::http::client::http_client httpClient((utility::string_t)endpoint);
+            web::http::http_request request(web::http::methods::DEL);
+
+            std::string bearerToken = "Bearer " + client.GetAuthToken();
+            request.headers().add(U("Authorization"), bearerToken.c_str());
+
+            httpClient.request(request).then([](Concurrency::task<web::http::http_response> responseTask)
+            {
+                try
+                {
+                    web::http::http_response response = responseTask.get();
+                    if (response.status_code() != web::http::status_codes::OK)
+                        throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+                }
+                catch (std::exception& ex)
+                {
+                    Logger::LogMessage(LOG_LEVEL_WARN, "Failed to delete character data: %", ex.what());
+                }
+            });
         }
     }
 }
 
 void ServerSync::OnDelayedCharacterUpload()
 {
-    ServerSync::GetInstance().UploadCachedBuffers();
+    GetInstance().UploadCachedBuffers();
 }
 
-void ServerSync::OnCharacterPostSaveEvent(void* player)
+void ServerSync::OnAddParticipant(const signalr::value& value)
 {
-    ThreadManager::CreatePeriodicThread("character_save", 1000, 0, 5000, &ServerSync::OnDelayedCharacterUpload);
-
-    // This call is mostly to enter the hook that allows us to cache the buffer; we don't care about the actual file
-    GameAPI::SaveQuestStatesToFile(player, "quests_save.gdd");
-    std::filesystem::remove("quests_save.gdd");
+    const signalr::value& result = value.as_array()[0];
+    if (result.is_string())
+    {
+        Client& client = Client::GetInstance();
+        web::json::value resultJSON = web::json::value::parse(result.as_string());
+        if (!resultJSON.is_null())
+        {
+            client.SetParticipantID(resultJSON[U("SeasonParticipantId")].as_integer());
+        }
+    }
 }
 
-void ServerSync::OnQuestFileWriteEvent(void* file, void* data, size_t size)
+void ServerSync::OnGetCharacterInfo(const signalr::value& value, const std::vector<void*> args)
 {
-    ServerSync::GetInstance().CacheQuestBuffer(file, data, size);
+    const signalr::value& result = value.as_array()[0];
+    if (result.is_string())
+    {
+        auto characterID = static_cast<uint32_t*>(args[0]);
+        auto checksum = static_cast<std::string*>(args[1]);
+
+        web::json::value resultJSON = web::json::value::parse(result.as_string());
+        if (!resultJSON.is_null())
+        {
+            if (characterID != nullptr)
+                *characterID = resultJSON[U("ParticipantCharacterId")].as_integer();
+
+            if (checksum != nullptr)
+                *checksum = JSONString(resultJSON[U("LastChecksum")].serialize());
+        }
+    }
+}
+
+void ServerSync::OnGetCharacterList(const signalr::value& value, const std::vector<void*> args)
+{
+    const signalr::value& result = value.as_array()[0];
+    if (result.is_array())
+    {
+        auto characterList = static_cast<std::unordered_set<std::wstring>*>(args[0]);
+        characterList->clear();
+
+        const std::vector<signalr::value>& charactersArray = result.as_array();
+        for (size_t i = 0; i < charactersArray.size(); ++i)
+        {
+            std::wstring playerName = CharToWide(charactersArray[i].as_string());
+            playerName = std::wstring(playerName.begin() + 1, playerName.end() - 1);
+            characterList->insert(playerName);
+        }
+    }
+}
+
+void ServerSync::OnGetStashInfo(const signalr::value& value, const std::vector<void*> args)
+{
+    const signalr::value& result = value.as_array()[0];
+    if (result.is_string())
+    {
+        auto checksum = static_cast<std::string*>(args[0]);
+        auto capacity = static_cast<int32_t*>(args[1]);
+
+        web::json::value resultJSON = web::json::value::parse(result.as_string());
+        if (!resultJSON.is_null())
+        {
+            if (checksum != nullptr)
+                *checksum = JSONString(resultJSON[U("LastChecksum")].serialize());
+
+            if (capacity != nullptr)
+                *capacity = resultJSON[U("CloudStashCapacity")].as_integer();
+        }
+    }
+}
+
+void ServerSync::OnConnectionStatus(const signalr::value& value, const std::vector<void*> args)
+{
+    // No need to do anything here; calling the method is enough for checking connection status
 }
 
 void ServerSync::WaitBackgroundComplete()
 {
-    ServerSync::GetInstance()._backgroundTasks.wait();
+    GetInstance()._backgroundTasks.wait();
 }

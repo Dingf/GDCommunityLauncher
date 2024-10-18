@@ -9,8 +9,7 @@
 #include <filesystem>
 #include <cpprest/http_client.h>
 #include "ClientHandler.h"
-#include "ChatClient.h"
-#include "Character.h"
+#include "ChatConnection.h"
 #include "JSONObject.h"
 #include "StringConvert.h"
 #include "URI.h"
@@ -946,7 +945,7 @@ const std::unordered_map<ChatCommandHandler, ChatCommandInfo> chatCommandInfo =
     { HandleChatMuteCommand,       { nullptr,      L"Blocks all incoming messages from a user.", L"Usage: /m, /mute [user]\n\nBlocks all incoming messages from a user. If no arguments are specified, displays the list of users that you have currently muted.\n\n    [user] - Specifies the username to be blocked.\n\n" } },
     { HandleChatOnlineCommand,     { nullptr,      L"Displays the number of online users.", L"Usage: /o, /online\n\nDisplays the number of concurrent online users.\n\n" } },
     { HandleChatTradeCommand,      { nullptr,      L"Sends a message to trade chat.", L"Usage: /t, /trade[channel] [on|off|color] ...\n\nSends a message to the current trade chat channel. If no arguments are specified, displays the current trade chat channel.\n\n    [channel] - Sets or switches the current trade chat channel. Valid values are 1-15.\n\n    [on/off] - Enables or disables trade chat.\n\n    [color] - Sets the color of trade chat to a color alias or a 6-digit hex code. Type \"/h color\" for a list of color aliases.\n\n" } },
-    { HandleChatUnmuteCommand,     { nullptr,      L"Unblocks all incoming messages from a user.", L"Usage: /m, /mute <user>\n\nUnblocks a user that was previously blocked, allowing you to see their messages again.\n\n    <user> - Specifies the username to be unblocked.\n\n" } },
+    { HandleChatUnmuteCommand,     { nullptr,      L"Unblocks all incoming messages from a user.", L"Usage: /u, /unmute <user>\n\nUnblocks a user that was previously blocked, allowing you to see their messages again.\n\n    <user> - Specifies the username to be unblocked.\n\n" } },
     { HandleChatWhisperCommand,    { nullptr,      L"Sends a direct message to a user.", L"Usage: /w, /whisper <user> ...\n\nSends a direct message to a user.\n\n    <user> - Specifies the username to send a message to.\n\n" } },
     
     // Beta testing commands
@@ -1123,8 +1122,8 @@ void HandleSendChatMessage(void* _this, const std::wstring& name, const std::wst
                 realMessage = chatWindow.GetSavedText();
 
             // If handling an interrupting chat command, return so we don't print the message
-            ChatClient& chatClient = ChatClient::GetInstance();
             void* item = EngineAPI::FindObjectByID(itemID);
+            ChatClient& chatClient = ChatClient::GetInstance();
             if (!chatClient.ProcessChatCommand(realName, realMessage, type, item))
                 return;
         }

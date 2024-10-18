@@ -1,9 +1,6 @@
 #include <Windows.h>
-#include <cpprest/http_client.h>
 #include "Client.h"
 #include "SelectorDialog.h"
-#include "Date.h"
-#include "Version.h"
 #include "Log.h"
 
 inline bool HasBetaAccess(const std::string& role)
@@ -16,73 +13,22 @@ inline bool HasOffSeasonAccess(const std::string& role)
     return (HasBetaAccess(role)) || (role == "patreon_supporter");
 }
 
-std::string GetLauncherVersion()
+bool CheckLauncherVersion()
 {
     Client& client = Client::GetInstance();
-    URI endpoint = client.GetServerGameURL() / "File" / "launcher";
-    endpoint.AddParam("branch", client.GetBranchName());
-
-    web::http::client::http_client httpClient((utility::string_t)endpoint);
-    web::http::http_request request(web::http::methods::GET);
-
-    std::string bearerToken = "Bearer " + client.GetAuthToken();
-    request.headers().add(U("Authorization"), bearerToken.c_str());
-
-    try
+    if (Connection* connection = client.GetConnection())
     {
-        web::http::http_response response = httpClient.request(request).get();
-        switch (response.status_code())
-        {
-            case web::http::status_codes::OK:
-            {
-                web::json::value responseBody = response.extract_json().get();
-                web::json::value version = responseBody[U("version")];
-
-                std::string versionString = JSONString(version.serialize());
-                return versionString;
-            }
-            default:
-            {
-                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-            }
-        }
+        return connection->Invoke("GetLauncherFile", client.GetAuthToken(), client.GetBranchName());
     }
-    catch (const std::exception& ex)
-    {
-        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve launcher version: %", ex.what());
-    }
-    return {};
+    return false;
 }
 
 bool GetChatAPI()
 {
     Client& client = Client::GetInstance();
-    URI endpoint = client.GetServerGameURL() / "Admin" / "chat-url";
-    web::http::client::http_client httpClient((utility::string_t)endpoint);
-    web::http::http_request request(web::http::methods::GET);
-
-    std::string bearerToken = "Bearer " + client.GetAuthToken();
-    request.headers().add(U("Authorization"), bearerToken.c_str());
-
-    try
+    if (Connection* connection = client.GetConnection())
     {
-        web::http::http_response response = httpClient.request(request).get();
-        switch (response.status_code())
-        {
-            case web::http::status_codes::OK:
-            {
-                client.SetChatURL(response.extract_utf8string().get());
-                return true;
-            }
-            default:
-            {
-                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-            }
-        }
-    }
-    catch (const std::exception& ex)
-    {
-        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve chat API: %", ex.what());
+        return connection->Invoke("GetChatUrl");
     }
     return false;
 }
@@ -90,31 +36,9 @@ bool GetChatAPI()
 bool GetSeasonName()
 {
     Client& client = Client::GetInstance();
-    URI endpoint = client.GetServerGameURL() / "Season" / "latest" / "season-name";
-    endpoint.AddParam("branch", client.GetBranchName());
-
-    web::http::client::http_client httpClient((utility::string_t)endpoint);
-    web::http::http_request request(web::http::methods::GET);
-
-    try
+    if (Connection* connection = client.GetConnection())
     {
-        web::http::http_response response = httpClient.request(request).get();
-        switch (response.status_code())
-        {
-            case web::http::status_codes::OK:
-            {
-                client.SetSeasonName(response.extract_utf8string().get());
-                return true;
-            }
-            default:
-            {
-                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-            }
-        }
-    }
-    catch (const std::exception& ex)
-    {
-        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve season name: %", ex.what());
+        return connection->Invoke("GetLatestSeasonName", client.GetBranchName());
     }
     return false;
 }
@@ -122,71 +46,9 @@ bool GetSeasonName()
 bool GetSeasonData()
 {
     Client& client = Client::GetInstance();
-    URI endpoint = client.GetServerGameURL() / "Season" / "latest";
-    endpoint.AddParam("branch", client.GetBranchName());
-
-    web::http::client::http_client httpClient((utility::string_t)endpoint);
-    web::http::http_request request(web::http::methods::GET);
-
-    std::string bearerToken = "Bearer " + client.GetAuthToken();
-    request.headers().add(U("Authorization"), bearerToken.c_str());
-
-    try
+    if (Connection* connection = client.GetConnection())
     {
-        web::http::http_response response = httpClient.request(request).get();
-        switch (response.status_code())
-        {
-            case web::http::status_codes::OK:
-            {
-                web::json::value responseBody = response.extract_json().get();
-                web::json::array seasonsList = responseBody.as_array();
-                for (auto it = seasonsList.begin(); it != seasonsList.end(); ++it)
-                {
-                    std::string startDate = JSONString(it->at(U("startDate")).serialize());
-                    std::string endDate = JSONString(it->at(U("endDate")).serialize());
-
-                    std::time_t startDateTime = Date(startDate);
-                    std::time_t endDateTime = Date(endDate);
-                    std::time_t currentDateTime = Date();
-
-                    if ((HasOffSeasonAccess(client.GetRole())) || ((currentDateTime >= startDateTime) && (currentDateTime <= endDateTime)))
-                    {
-                        SeasonInfo seasonInfo;
-                        seasonInfo._seasonID = it->at(U("seasonId")).as_integer();
-                        seasonInfo._seasonType = it->at(U("seasonTypeId")).as_integer();
-
-                        std::string modName = JSONString(it->at(U("modName")).serialize());
-                        std::string displayName = JSONString(it->at(U("displayName")).serialize());
-                        std::string participationToken = JSONString(it->at(U("participationTag")).serialize());
-
-                        // Trim quotes from serializing the string
-                        if ((modName.front() == '"') && (modName.back() == '"'))
-                            modName = std::string(modName.begin() + 1, modName.end() - 1);
-                        if ((displayName.front() == '"') && (displayName.back() == '"'))
-                            displayName = std::string(displayName.begin() + 1, displayName.end() - 1);
-                        if ((participationToken.front() == '"') && (participationToken.back() == '"'))
-                            participationToken = std::string(participationToken.begin() + 1, participationToken.end() - 1);
-
-                        for (char& c : participationToken)
-                            c = std::tolower(c);
-
-                        seasonInfo._displayName = displayName;
-                        seasonInfo._participationToken = participationToken;
-
-                        client.AddSeasonInfo(seasonInfo);
-                    }
-                }
-                return true;
-            }
-            default:
-            {
-                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-            }
-        }
-    }
-    catch (const std::exception& ex)
-    {
-        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve season data: %", ex.what());
+        return connection->Invoke("GetLatestSeason", client.GetAuthToken(), false, client.GetBranchName());
     }
     return false;
 }
@@ -293,6 +155,11 @@ bool SelectorDialog::Select()
         return false;
     }
     
-    client.SetUpdateFlag(GetLauncherVersion() != std::string(GDCL_VERSION));
+    if (!CheckLauncherVersion())
+    {
+        Logger::LogMessage(LOG_LEVEL_WARN, "Could not retrieve launcher version from the server.");
+        return false;
+    }
+
     return true;
 }

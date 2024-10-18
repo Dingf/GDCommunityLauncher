@@ -39,9 +39,9 @@ bool Quest::ReadFromFile(const std::filesystem::path& path)
             Read(&reader);
             return true;
         }
-        catch (std::runtime_error&)
+        catch (std::runtime_error& ex)
         {
-            Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to load quest file \"%\"", path.string().c_str());
+            Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to load quest file \"%\": %", path.string().c_str(), ex.what());
             return false;
         }
     }

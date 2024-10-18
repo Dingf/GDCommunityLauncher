@@ -6,9 +6,11 @@ namespace GameAPI
 
 #if _WIN64
 constexpr char GAPI_NAME_GAME_ENGINE[] = "?gGameEngine@GAME@@3PEAVGameEngine@1@EA";
+constexpr char GAPI_NAME_GAME_ENGINE_INITIALIZE[] = "?Initialize@GameEngine@GAME@@QEAAXXZ";
 constexpr char GAPI_NAME_GAME_ENGINE_SHUTDOWN[] = "?Shutdown@GameEngine@GAME@@QEAAXXZ";
 #else
 constexpr char GAPI_NAME_GAME_ENGINE[] = "?gGameEngine@GAME@@3PAVGameEngine@1@A";
+constexpr char GAPI_NAME_GAME_ENGINE_INITIALIZE[] = "?Initialize@GameEngine@GAME@@QAEXXZ";
 constexpr char GAPI_NAME_GAME_ENGINE_SHUTDOWN[] = "?Shutdown@GameEngine@GAME@@QAEXXZ";
 #endif
 

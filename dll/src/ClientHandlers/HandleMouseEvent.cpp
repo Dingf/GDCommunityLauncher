@@ -1,5 +1,4 @@
 #include "ClientHandler.h"
-#include "ChatClient.h"
 
 bool HandleMouseEvent(void* _this, EngineAPI::Input::MouseEvent& event)
 {

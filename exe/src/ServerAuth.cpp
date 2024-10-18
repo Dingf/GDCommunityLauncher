@@ -1,63 +1,41 @@
-#include <string>
-#include <filesystem>
-#include <cpprest/http_client.h>
 #include "ServerAuth.h"
 #include "Client.h"
-#include "Date.h"
-#include "JSONObject.h"
-#include "URI.h"
 #include "Log.h"
 
 ServerAuthResult ServerAuthenticate(ServerAuthCallback callback)
 {
+    ServerAuthResult result = SERVER_AUTH_TIMEOUT;
+
     Client& client = Client::GetInstance();
-    URI gameURL = client.GetServerGameURL();
-    URI endpoint = gameURL / "Account" / "login";
-    web::http::client::http_client httpClient((utility::string_t)endpoint);
-
-    web::json::value requestBody;
-    requestBody[U("username")] = JSONString(client._username);
-    requestBody[U("password")] = JSONString(client._password);
-
-    web::http::http_request request(web::http::methods::POST);
-    request.set_body(requestBody);
-
-    try
+    if (Connection* connection = client.GetConnection())
     {
-        web::http::http_response response = httpClient.request(request).get();
-        if (response.status_code() == web::http::status_codes::OK)
+        if (!connection->Connect())
         {
-            web::json::value responseBody = response.extract_json().get();
-            web::json::value authTokenValue = responseBody[U("access_token")];
-            web::json::value refreshTokenValue = responseBody[U("refresh_token")];
-            web::json::value roleValue = responseBody[U("role")];
-            if ((!authTokenValue.is_null()) && (!refreshTokenValue.is_null()))
-            {
-                client._authToken = JSONString(authTokenValue.serialize());
-                client._refreshToken = JSONString(refreshTokenValue.serialize());
-            }
-            if (!roleValue.is_null())
-            {
-                client._role = JSONString(roleValue.serialize());
-            }
+            Logger::LogMessage(LOG_LEVEL_ERROR, "Could not connect to the server.");
+            return SERVER_AUTH_TIMEOUT;
+        }
+
+        if (!connection->Invoke("Login", client.GetUsername(), client.GetPassword()))
+        {
+            Logger::LogMessage(LOG_LEVEL_ERROR, "Could not authenticate user credentials.");
         }
         else
         {
-            if (callback)
-                callback(SERVER_AUTH_INVALID_LOGIN);
-            return SERVER_AUTH_INVALID_LOGIN;
+            // The auth token and refresh token should be populated by this point
+            // If they weren't, then that means the login failed (most likely due to invalid credentials)
+            if ((client.GetAuthToken().empty()) || (client.GetRefreshToken().empty()))
+            {
+                result = SERVER_AUTH_INVALID_LOGIN;
+            }
+            else
+            {
+                result = SERVER_AUTH_OK;
+            }
         }
-    }
-    catch (const std::exception& ex)
-    {
-        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to authenticate credentials: %", ex.what());
-        if (callback)
-            callback(SERVER_AUTH_TIMEOUT);
-        return SERVER_AUTH_TIMEOUT;
     }
 
     if (callback)
-        callback(SERVER_AUTH_OK);
+        callback(result);
 
-    return SERVER_AUTH_OK;
+    return result;
 }

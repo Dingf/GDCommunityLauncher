@@ -35,4 +35,9 @@ std::string GetGameDifficultyName(Difficulty difficulty)
     return "";
 }
 
+std::string GetGameDifficultyName()
+{
+    return GetGameDifficultyName(GetGameDifficulty());
+}
+
 }

@@ -196,5 +196,11 @@ void HandleGetSharedSavePath(void* _this, GameAPI::SharedSaveType type, std::str
             filePath.replace_extension(".gst");
             path = filePath.string();
         }
+
+        if ((filePath.extension() == ".bsh") || (filePath.extension() == ".csh") || (filePath.extension() == ".dsh"))
+        {
+            filePath.replace_extension(".gsh");
+            path = filePath.string();
+        }
     }
 }

@@ -47,7 +47,9 @@ std::filesystem::path GetPlayerFolder(void* player);
 std::filesystem::path GetPlayerSaveFile(const std::wstring& playerName);
 std::filesystem::path GetPlayerSaveFile(void* player);
 std::filesystem::path GetSharedSavePath(GameAPI::SharedSaveType type);
-std::filesystem::path GetTransferStashPath();
+std::filesystem::path GetTransferStashPath(bool hardcore);
+std::filesystem::path GetFormulasPath(bool hardcore);
+std::filesystem::path GetTransmutesPath(bool hardcore);
     
 }
 

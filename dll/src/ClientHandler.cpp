@@ -11,6 +11,7 @@ bool HandleKeyEvent(void* _this, EngineAPI::Input::KeyButtonEvent& event);
 bool HandleMouseEvent(void* _this, EngineAPI::Input::MouseEvent& event);
 int32_t HandleCreateNewConnection(void* _this, void* unk1, void* unk2, void* unk3);
 void HandleAddNetworkServer(void* _this, void* server, uint32_t unk1);
+void HandleGameInitialize(void* _this);
 void HandleGameShutdown(void* _this);
 void HandleCaravanInteract(void* _this, uint32_t caravanID, bool unk2, bool unk3);
 void HandleSaveNewFormatData(void* _this, void* writer);
@@ -31,6 +32,7 @@ std::string& HandleGetDifficultyFolder(void* _this, void* unk1, GameAPI::Difficu
 void HandleGetSharedSavePath(void* _this, GameAPI::SharedSaveType type, std::string& path, bool unk1, bool unk2, bool unk3, bool unk4);
 void HandleSetGod(void* _this, bool state);
 void HandleSetInvincible(void* _this, bool state);
+bool HandleDeleteFile(const char* filename);
 
 // Offline Hooks
 const char* HandleGetVersion(void* _this);
@@ -50,7 +52,7 @@ void HandleGetArmorDescription(void* _this, std::vector<GameAPI::GameTextLine>& 
 bool HandleApplyDamage(void* _this, float damage, void* playStatsDamage, GameAPI::CombatAttributeType type, const std::vector<uint32_t>& skills);
 
 // Manual Hooks
-size_t HandleSaveQuestStates(void* buffer, size_t size, size_t count, void* file);
+//size_t HandleSaveQuestStates(void* buffer, size_t size, size_t count, void* file);
 
 namespace ClientHandler
 {
@@ -64,13 +66,14 @@ const std::vector<HookManager::Hook> _onlineHooks =
     { ENGINE_DLL, EngineAPI::EAPI_NAME_HANDLE_MOUSE_EVENT,       &HandleMouseEvent,           false },
     { ENGINE_DLL, EngineAPI::EAPI_NAME_CREATE_SERVER_CONNECTION, &HandleCreateNewConnection,  false },
     { ENGINE_DLL, EngineAPI::EAPI_NAME_ADD_NETWORK_SERVER,       &HandleAddNetworkServer,     false },
+    { GAME_DLL,   GameAPI::GAPI_NAME_GAME_ENGINE_INITIALIZE,     &HandleGameInitialize,       false },
     { GAME_DLL,   GameAPI::GAPI_NAME_GAME_ENGINE_SHUTDOWN,       &HandleGameShutdown,         false },
     { GAME_DLL,   GameAPI::GAPI_NAME_ON_CARAVAN_INTERACT,        &HandleCaravanInteract,      false },
     { GAME_DLL,   GameAPI::GAPI_NAME_SAVE_NEW_FORMAT_DATA,       &HandleSaveNewFormatData,    false },
     //{ GAME_DLL,   GameAPI::GAPI_NAME_LOAD_NEW_FORMAT_DATA,       &HandleLoadNewFormatData,    false },
     { GAME_DLL,   GameAPI::GAPI_NAME_SAVE_TRANSFER_STASH,        &HandleSaveTransferStash,    true  },
     { GAME_DLL,   GameAPI::GAPI_NAME_LOAD_TRANSFER_STASH,        &HandleLoadTransferStash,    false },
-    { GAME_DLL,   GameAPI::GAPI_NAME_BESTOW_TOKEN,               &HandleBestowToken,          false },
+    { GAME_DLL,   GameAPI::GAPI_NAME_BESTOW_TOKEN,               &HandleBestowToken,          true  },
     { GAME_DLL,   GameAPI::GAPI_NAME_SYNC_DUNGEON_PROGRESS,      &HandleSyncDungeonProgress,  false },
     { GAME_DLL,   GameAPI::GAPI_NAME_SEND_CHAT_MESSAGE,          &HandleSendChatMessage,      false },
     { GAME_DLL,   GameAPI::GAPI_NAME_GET_ROOT_SAVE_PATH,         &HandleGetRootSavePath,      false },
@@ -84,6 +87,7 @@ const std::vector<HookManager::Hook> _onlineHooks =
     { GAME_DLL,   GameAPI::GAPI_NAME_GET_SHARED_SAVE_PATH,       &HandleGetSharedSavePath,    true  },
     { GAME_DLL,   GameAPI::GAPI_NAME_SET_INVINCIBLE,             &HandleSetInvincible,        true  },
     { GAME_DLL,   GameAPI::GAPI_NAME_SET_GOD,                    &HandleSetGod,               true  },
+    { KERNEL_DLL, WindowsAPI::WAPI_NAME_DELETE_FILE,             &HandleDeleteFile,           true  },
 };
 
 const std::vector<HookManager::Hook> _offlineHooks =
@@ -139,8 +143,8 @@ bool CreateManualHooks()
         return false;
 
     // This hook overwrites the internal fwrite() call in the SaveQuestStatesToFile subroutine
-    // This allows us to get the quest save buffer in a filesystem agnostic way
-    if (!client.IsOfflineMode())
+    // This allows us to get the quest save buffer without having to deal with the filesystem
+    /*if (!client.IsOfflineMode())
     {
         void* callback = GetProcAddress(gameDLL, GameAPI::GAPI_NAME_SAVE_PLAYER_QUEST_STATES);
 
@@ -155,7 +159,7 @@ bool CreateManualHooks()
 
         if (bytesWritten != 6)
             return false;
-    }
+    }*/
 
     return true;
 }

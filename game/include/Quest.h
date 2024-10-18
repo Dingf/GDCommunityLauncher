@@ -47,6 +47,9 @@ class Quest : public FileData, public JSONObject
 
         Quest() {}
         Quest(const std::filesystem::path& path) { ReadFromFile(path); }
+        Quest(uint8_t* data, size_t size) { ReadFromBuffer(data, size); }
+
+        size_t GetBufferSize() const;
 
         size_t GetBufferSize() const;
 

@@ -5,8 +5,10 @@
 #include <string>
 #include <vector>
 #include <list>
+#include <memory>
 #include <unordered_map>
 #include "ClientBase.h"
+#include "Connection.h"
 
 class Client : public ClientBase
 {
@@ -16,6 +18,8 @@ class Client : public ClientBase
         bool Initialize();
 
         bool IsOnline() const { return _online; }
+
+        void SetBranch(SeasonBranch branch) {}
 
         uint32_t GetPoints() const { return _points; }
         uint32_t GetRank() const { return _rank; }
@@ -27,6 +31,8 @@ class Client : public ClientBase
         const SeasonInfo* GetActiveSeason() const { return _activeSeason; }
         std::wstring GetActiveCharacter() const { return _activeCharacter; }
 
+        Connection* GetConnection() { return _connection.get(); }
+
         bool IsInActiveSeason() const { return _activeSeason != nullptr; }
         bool IsPlayingSeasonOnline() const { return IsInActiveSeason() && !_activeCharacter.empty(); }
         bool IsPlayingSeason() const { return IsOfflineMode() || IsPlayingSeasonOnline(); }
@@ -34,23 +40,24 @@ class Client : public ClientBase
         void SetActiveSeason(bool hardcore);
         void SetActiveCharacter(const std::wstring& character) { _activeCharacter = character; }
 
-        void SetParticipantID(uint32_t participantID) { _participantID = participantID; }
-
+        void SetParticipantID(uint32_t participantID);
         void UpdateSeasonStanding();
-        void UpdateLeagueInfoText();
-        void UpdateVersionInfoText();
-
-        static bool UpdateRefreshToken();
-        static bool UpdateConnectionStatus();
 
     private:
-        Client() : _activeSeason(nullptr), _online(false) {}
+        Client();
         Client(Client&) = delete;
         void operator=(const Client&) = delete;
 
         void ReadDataFromPipe();
-        
-        void CreatePlayMenu();
+
+        static bool UpdateRefreshToken();
+        static bool UpdateConnectionStatus();
+
+        static void OnRefreshToken(const signalr::value& value, const std::vector<void*> args);
+        static void OnUpdateSeasonStanding(const signalr::value& value, const std::vector<void*> args);
+
+        void UpdateLeagueInfoText();
+        void UpdateVersionInfoText();
 
         bool _online;
 
@@ -58,11 +65,12 @@ class Client : public ClientBase
         uint32_t _points;
         uint32_t _participantID;
         
-        SeasonInfo* _activeSeason;
+        SeasonInfo*  _activeSeason;
         std::wstring _activeCharacter;
-
-        std::string _versionInfoText;
+        std::string  _versionInfoText;
         std::wstring _leagueInfoText;
+
+        std::unique_ptr<Connection> _connection;
 };
 
 #endif//INC_GDCL_DLL_CLIENT_H

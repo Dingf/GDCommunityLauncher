@@ -1,7 +1,5 @@
 #include <Windows.h>
-#include <cpprest/http_client.h>
 #include "LuaAPI.h"
-#include "ChatClient.h"
 #include "ClientHandler.h"
 #include "DatabaseValues.h"
 #include "DungeonDatabase.h"

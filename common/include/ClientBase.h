@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include "URI.h"
+#include "Connection.h"
 
 enum SeasonType
 {
@@ -32,17 +33,20 @@ class ClientBase
     public:
         bool IsInitialized() const
         {
-            return (!_username.empty() && !_authToken.empty() && !_refreshToken.empty());
+            return (!_authToken.empty() && !_refreshToken.empty());
         }
 
         bool IsOfflineMode() const { return _branch == SEASON_BRANCH_OFFLINE; }
         bool HasSeasons() const { return !_seasons.empty(); }
 
         const std::string& GetUsername() const { return _username; }
+        const std::string& GetPassword() const { return _password; }
         const std::string& GetAuthToken() const { return _authToken; }
         const std::string& GetRefreshToken() const { return _refreshToken; }
         const std::string& GetSeasonName() const { return _seasonName; }
         SeasonBranch GetBranch() const { return _branch; }
+
+        virtual Connection* GetConnection() = 0;
 
         std::string GetBranchName() const
         {

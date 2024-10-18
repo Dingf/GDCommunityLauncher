@@ -131,13 +131,13 @@ const std::map<EngineAPI::Input::KeyCode, ControlKeyHandler> controlKeyHandlers 
     { EngineAPI::Input::KEY_V, &HandlePasteEvent },
 };
 
-
 bool ChatWindow::HandleKeyPress(EngineAPI::Input::KeyButtonEvent& event)
 {
     std::wstring& text = *(std::wstring*)(_visible + 0xB0);
     uint32_t& carat = GetCaratPosition();
     uint32_t& selectStart = GetSelectStartPosition();
     uint32_t& selectEnd = GetSelectEndPosition();
+    wchar_t output = (wchar_t)event._output;    // Cast to avoid endianness issues between different OS
 
     switch (event._key)
     {
@@ -173,7 +173,7 @@ bool ChatWindow::HandleKeyPress(EngineAPI::Input::KeyButtonEvent& event)
         }
         default:
         {
-            if ((IsVisible()) && (event._output != 0) && (text.size() < MAX_CHAT_SIZE))
+            if ((IsVisible()) && (output != 0) && (text.size() < MAX_CHAT_SIZE))
             {
                 // Ctrl + key usually has output, but shouldn't actually print a character to the window
                 // Most of the time, just let the main program handle it
@@ -197,7 +197,7 @@ bool ChatWindow::HandleKeyPress(EngineAPI::Input::KeyButtonEvent& event)
                     selectEnd = 0;
                 }
 
-                text.insert(carat, 1, (wchar_t)event._output);
+                text.insert(carat, 1, output);
                 carat++;
                 return true;
             }
@@ -274,7 +274,14 @@ void ChatWindow::FindMagicAddresses()
     void* gameEngine = *GameAPI::GetGameEngineHandle();
     if (gameEngine)
     {
-        _visible = *(uint8_t**)((uint8_t*)gameEngine + 0x18A0) + 0x45F90;
+        std::string versionString = EngineAPI::GetVersionString();
+
+        // This will likely need to be updated in future versions if the data structure changes again
+        if (versionString <= "v1.2.0.5")
+            _visible = *(uint8_t**)((uint8_t*)gameEngine + 0x18A0) + 0x45F90;    // Version 1.2.0.5 and earlier
+        else //if (versionString <= "v1.2.1.1")
+            _visible = *(uint8_t**)((uint8_t*)gameEngine + 0x18B0) + 0x45BD8;    // Version 1.2.1.1
+         
         _colors = _visible + 0x2C28;
 
         // Change the in-game command names to avoid conflicts with the launcher chat commands

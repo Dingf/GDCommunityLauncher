@@ -53,7 +53,19 @@ const std::unordered_map<CharacterClass, std::string> classNameLookup =
     { CHAR_CLASS_OPPRESSOR,     "Oppressor" },
 };
 
-bool Character::ReadFromFile(const std::filesystem::path& path)
+std::string Character::GetCharacterClassName(CharacterClass charClass)
+{
+    if (classNameLookup.count(charClass) > 0)
+    {
+        return classNameLookup.at(charClass);
+    }
+    else
+    {
+        return {};
+    }
+}
+
+bool Character::ReadFromFile(const std::filesystem::path& path, bool headerOnly)
 {
     if (std::filesystem::is_regular_file(path))
     {
@@ -67,6 +79,52 @@ bool Character::ReadFromFile(const std::filesystem::path& path)
         try
         {
             ReadHeaderBlock(&reader);
+            if (!headerOnly)
+            {
+                ReadInfoBlock(&reader);
+                ReadAttributesBlock(&reader);
+                ReadInventoryBlock(&reader);
+                ReadStashBlock(&reader);
+                ReadRespawnBlock(&reader);
+                ReadWaypointBlock(&reader);
+                ReadMarkerBlock(&reader);
+                ReadShrineBlock(&reader);
+                ReadSkillBlock(&reader);
+                ReadNotesBlock(&reader);
+                ReadFactionBlock(&reader);
+                ReadUIBlock(&reader);
+                ReadTutorialBlock(&reader);
+                ReadStatsBlock(&reader);
+            }
+            return true;
+        }
+        catch (std::runtime_error& ex)
+        {
+            Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to load character file \"%\": %", path.string().c_str(), ex.what());
+            return false;
+        }
+    }
+    else
+    {
+        Logger::LogMessage(LOG_LEVEL_WARN, "The path \"%\" is not recognized as a file.", path.string());
+    }
+    return false;
+}
+
+bool Character::ReadFromBuffer(uint8_t* data, size_t size, bool headerOnly)
+{
+    EncodedFileReader reader(data, size);
+    if (!reader.HasData())
+    {
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to read character data from buffer");
+        return false;
+    }
+
+    try
+    {
+        ReadHeaderBlock(&reader);
+        if (!headerOnly)
+        {
             ReadInfoBlock(&reader);
             ReadAttributesBlock(&reader);
             ReadInventoryBlock(&reader);
@@ -81,47 +139,7 @@ bool Character::ReadFromFile(const std::filesystem::path& path)
             ReadUIBlock(&reader);
             ReadTutorialBlock(&reader);
             ReadStatsBlock(&reader);
-            return true;
         }
-        catch (std::runtime_error&)
-        {
-            Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to load character file \"%\"", path.string().c_str());
-            return false;
-        }
-    }
-    else
-    {
-        Logger::LogMessage(LOG_LEVEL_WARN, "The path \"%\" is not recognized as a file.", path.string());
-    }
-    return false;
-}
-
-bool Character::ReadFromBuffer(uint8_t* data, size_t size)
-{
-    EncodedFileReader reader(data, size);
-    if (!reader.HasData())
-    {
-        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to read character data from buffer");
-        return false;
-    }
-
-    try
-    {
-        ReadHeaderBlock(&reader);
-        ReadInfoBlock(&reader);
-        ReadAttributesBlock(&reader);
-        ReadInventoryBlock(&reader);
-        ReadStashBlock(&reader);
-        ReadRespawnBlock(&reader);
-        ReadWaypointBlock(&reader);
-        ReadMarkerBlock(&reader);
-        ReadShrineBlock(&reader);
-        ReadSkillBlock(&reader);
-        ReadNotesBlock(&reader);
-        ReadFactionBlock(&reader);
-        ReadUIBlock(&reader);
-        ReadTutorialBlock(&reader);
-        ReadStatsBlock(&reader);
         return true;
     }
     catch (std::runtime_error&)
@@ -158,7 +176,8 @@ void Character::ReadHeaderBlock(EncodedFileReader* reader)
         _headerBlock._charClass = CHAR_CLASS_NONE;
     }
 
-    if (classNameLookup.count(_headerBlock._charClass) == 0)
+    std::string className = GetCharacterClassName(_headerBlock._charClass);
+    if (className.empty())
         throw std::runtime_error(Logger::LogMessage(LOG_LEVEL_ERROR, "Unrecognized character class name: %", charClassName));
 
     _headerBlock._charLevel = reader->ReadInt32();
@@ -617,8 +636,8 @@ void Character::ReadStatsBlock(EncodedFileReader* reader)
     _statsBlock._charMaxLevel = reader->ReadInt32();
     _statsBlock._charHitsReceived = reader->ReadInt32();
     _statsBlock._charHitsInflicted = reader->ReadInt32();
-    _statsBlock._charCritsInflicted = reader->ReadInt32();
     _statsBlock._charCritsReceived = reader->ReadInt32();
+    _statsBlock._charCritsInflicted = reader->ReadInt32();
     _statsBlock._charGreatestDamageInflicted = reader->ReadFloat();
 
     for (uint32_t i = 0; i < 3; ++i)
@@ -715,7 +734,7 @@ web::json::value Character::ToJSON() const
 
 web::json::value Character::CharacterHeaderBlock::ToJSON() const
 {
-    std::string className = (classNameLookup.count(_charClass) > 0) ? classNameLookup.at(_charClass) : "";
+    std::string className = GetCharacterClassName(_charClass);
 
     web::json::value obj = web::json::value::object();
 

@@ -1,6 +1,3 @@
-#include <filesystem>
-#include <cpprest/filestream.h>
-#include <cpprest/http_client.h>
 #include "ClientHandler.h"
 #include "EventManager.h"
 

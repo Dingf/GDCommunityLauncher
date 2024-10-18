@@ -4,7 +4,7 @@
 #include <minizip/unzip.h>
 #include "Client.h"
 #include "ClientHandler.h"
-#include "ChatClient.h"
+#include "ChatConnection.h"
 #include "HookManager.h"
 #include "EventManager.h"
 #include "ThreadManager.h"
@@ -15,13 +15,23 @@
 #include "Log.h"
 #include "Version.h"
 
+Client::Client()  : _activeSeason(nullptr), _online(false)
+{
+    ReadDataFromPipe();
+
+    if (!IsOfflineMode())
+    {
+        if (!_gameURL.empty())
+            _connection = std::make_unique<Connection>(_gameURL);
+
+        _connection->Register("RefreshToken",         &Client::OnRefreshToken);
+        _connection->Register("GetParticipantPoints", &Client::OnUpdateSeasonStanding);
+    }
+}
+
 Client& Client::GetInstance()
 {
     static Client instance;
-    if (!instance.IsInitialized() && !instance.IsOfflineMode())
-    {
-        instance.ReadDataFromPipe();
-    }
     return instance;
 }
 
@@ -181,137 +191,57 @@ bool ExtractZIPUpdate()
 
 void Client::ReadDataFromPipe()
 {
-    if (!IsInitialized())
+    HANDLE pipe = GetStdHandle(STD_INPUT_HANDLE);
+
+    uint8_t updateFlag;
+    std::string gameURL;
+    std::string chatURL;
+    uint32_t branch;
+
+    if (!ReadStringFromPipe(pipe, _username) ||
+        !ReadStringFromPipe(pipe, _password) ||
+        !ReadStringFromPipe(pipe, _authToken) ||
+        !ReadStringFromPipe(pipe, _refreshToken) ||
+        !ReadStringFromPipe(pipe, _seasonName) ||
+        !ReadStringFromPipe(pipe, gameURL) ||
+        !ReadStringFromPipe(pipe, chatURL) ||
+        !ReadInt32FromPipe(pipe, branch) ||
+        !ReadByteFromPipe(pipe, updateFlag) ||
+        !ReadSeasonsFromPipe(pipe, _seasons))
     {
-        HANDLE pipe = GetStdHandle(STD_INPUT_HANDLE);
-
-        uint8_t updateFlag;
-        std::string gameURL;
-        std::string chatURL;
-        uint32_t branch;
-
-        if (!ReadStringFromPipe(pipe, _username) ||
-            !ReadStringFromPipe(pipe, _password) ||
-            !ReadStringFromPipe(pipe, _authToken) ||
-            !ReadStringFromPipe(pipe, _refreshToken) ||
-            !ReadStringFromPipe(pipe, _seasonName) ||
-            !ReadStringFromPipe(pipe, gameURL) ||
-            !ReadStringFromPipe(pipe, chatURL) ||
-            !ReadInt32FromPipe(pipe, branch) ||
-            !ReadByteFromPipe(pipe, updateFlag) ||
-            !ReadSeasonsFromPipe(pipe, _seasons))
-        {
-            Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to read client data from stdin pipe.");
-            return;
-        }
-
-        CloseHandle(pipe);
-
-        _gameURL = URI(gameURL);
-        _chatURL = URI(chatURL);
-        _branch = static_cast<SeasonBranch>(branch);
-        if ((updateFlag != 0) && (!ExtractZIPUpdate()))
-        {
-            Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to update GDCommunityLauncher.exe");
-            return;
-        }
-
-        if (_seasons.size() > 0)
-        {
-            std::string rootPrefix = _seasonName;
-            if (_branch != SEASON_BRANCH_RELEASE)
-            {
-                rootPrefix += "_";
-                rootPrefix += GetBranchName();
-            }
-
-            GameAPI::SetRootPrefix(rootPrefix);
-        }
-
-        UpdateLeagueInfoText();
-        UpdateVersionInfoText();
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to read client data from stdin pipe.");
+        return;
     }
-}
 
-// this function usually runs in its own periodic thread so no pplx necessary here
-bool Client::UpdateRefreshToken()
-{
-    try
+    CloseHandle(pipe);
+
+    _gameURL = URI(gameURL);
+    _chatURL = URI(chatURL);
+    _branch = static_cast<SeasonBranch>(branch);
+    if ((updateFlag != 0) && (!ExtractZIPUpdate()))
     {
-        Client& client = Client::GetInstance();
-        URI endpoint = client.GetServerGameURL() / "Account" / "login";
-
-        web::json::value requestBody;
-        requestBody[U("username")] = JSONString(client._username);
-        requestBody[U("password")] = JSONString(client._password);
-
-        web::http::http_request request(web::http::methods::POST);
-        request.set_body(requestBody);
-
-        web::http::client::http_client httpClient((utility::string_t)endpoint);
-        web::http::http_response response = httpClient.request(request).get();
-        if (response.status_code() == web::http::status_codes::OK)
-        {
-            web::json::value responseBody = response.extract_json().get();
-            web::json::value authTokenValue = responseBody[U("access_token")];
-            web::json::value refreshTokenValue = responseBody[U("refresh_token")];
-            if ((!authTokenValue.is_null()) && (!refreshTokenValue.is_null()))
-            {
-                Client& client = Client::GetInstance();
-                client._authToken = JSONString(authTokenValue.serialize());
-                client._refreshToken = JSONString(refreshTokenValue.serialize());
-            }
-        }
-        else
-        {
-            throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-        }
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to update GDCommunityLauncher.exe");
+        return;
     }
-    catch (const std::exception& ex)
+
+    if (_seasons.size() > 0)
     {
-        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to refresh token: %", ex.what());
-    }
-    return true;
-}
-
-bool Client::UpdateConnectionStatus()
-{
-    Client& client = Client::GetInstance();
-    try
-    {
-        URI endpoint = client.GetServerGameURL() / "Account" / "status";
-
-        web::http::client::http_client httpClient((utility::string_t)endpoint);
-        web::http::http_request request(web::http::methods::GET);
-
-        web::http::http_response response = httpClient.request(request).get();
-        bool status = (response.status_code() == web::http::status_codes::OK);
-        if (client._online != status)
+        std::string rootPrefix = _seasonName;
+        if (_branch != SEASON_BRANCH_RELEASE)
         {
-            client._online = status;
-            if (status)
-                EventManager::Publish(GDCL_EVENT_CONNECT);
-            else
-                EventManager::Publish(GDCL_EVENT_DISCONNECT);
+            rootPrefix += "_";
+            rootPrefix += GetBranchName();
         }
+
+        GameAPI::SetRootPrefix(rootPrefix);
     }
-    catch (const std::exception& ex)
-    {
-        if (client._online == true)
-        {
-            Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to query server status: % %", client._online, ex.what());
-            client._online = false;
-            EventManager::Publish(GDCL_EVENT_DISCONNECT);
-        }
-    }
-    client.UpdateLeagueInfoText();
-    return true;
+
+    UpdateLeagueInfoText();
+    UpdateVersionInfoText();
 }
 
 void Client::UpdateVersionInfoText()
 {
-    typedef const char* (__thiscall* GetVersionProto)(void*);
-
     _versionInfoText = EngineAPI::GetVersionString();
     _versionInfoText += "\n{^F}GDCL v";
     _versionInfoText += GDCL_VERSION;
@@ -393,6 +323,12 @@ void Client::SetActiveSeason(bool hardcore)
     UpdateLeagueInfoText();
 }
 
+void Client::SetParticipantID(uint32_t participantID)
+{
+    _participantID = participantID;
+    UpdateSeasonStanding();
+}
+
 void Client::UpdateSeasonStanding()
 {
     URI endpoint = GetServerGameURL() / "Season" / "participant" / std::to_string(GetCurrentParticipantID()) / "standing";
@@ -431,7 +367,119 @@ void Client::UpdateSeasonStanding()
     });
 }
 
-void Client::CreatePlayMenu()
+bool Client::UpdateRefreshToken()
+{
+    try
+    {
+        Client& client = Client::GetInstance();
+        URI endpoint = client.GetServerGameURL() / "Account" / "login";
+
+        web::json::value requestBody;
+        requestBody[U("username")] = JSONString(client._username);
+        requestBody[U("password")] = JSONString(client._password);
+
+        web::http::http_request request(web::http::methods::POST);
+        request.set_body(requestBody);
+
+        web::http::client::http_client httpClient((utility::string_t)endpoint);
+        web::http::http_response response = httpClient.request(request).get();
+        if (response.status_code() == web::http::status_codes::OK)
+        {
+            web::json::value responseBody = response.extract_json().get();
+            web::json::value authTokenValue = responseBody[U("access_token")];
+            web::json::value refreshTokenValue = responseBody[U("refresh_token")];
+            if ((!authTokenValue.is_null()) && (!refreshTokenValue.is_null()))
+            {
+                Client& client = Client::GetInstance();
+                client._authToken = JSONString(authTokenValue.serialize());
+                client._refreshToken = JSONString(refreshTokenValue.serialize());
+            }
+        }
+        else
+        {
+            throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+        }
+    }
+    catch (const std::exception& ex)
+    {
+        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to refresh token: %", ex.what());
+    }
+    return true;
+}
+
+bool Client::UpdateConnectionStatus()
+{
+    Client& client = Client::GetInstance();
+    try
+    {
+        URI endpoint = client.GetServerGameURL() / "Account" / "status";
+
+        web::http::client::http_client httpClient((utility::string_t)endpoint);
+        web::http::http_request request(web::http::methods::GET);
+
+        web::http::http_response response = httpClient.request(request).get();
+        bool status = (response.status_code() == web::http::status_codes::OK);
+        if (client._online != status)
+        {
+            client._online = status;
+        }
+    }
+    catch (const std::exception& ex)
+    {
+        if (client._online == true)
+        {
+            Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to query server status: % %", client._online, ex.what());
+            client._online = false;
+        }
+    }
+    client.UpdateLeagueInfoText();
+    return true;
+}
+
+void Client::OnRefreshToken(const signalr::value& value, const std::vector<void*> args)
+{
+    const signalr::value& result = value.as_array()[0];
+    if (result.is_string())
+    {
+        Client& client = Client::GetInstance();
+        std::error_code errorCode;
+
+        web::json::value resultJSON = web::json::value::parse(result.as_string(), errorCode);
+        if (!resultJSON.is_null())
+        {
+            client._authToken = JSONString(resultJSON[U("access_token")].serialize());
+            client._refreshToken = JSONString(resultJSON[U("refresh_token")].serialize());
+        }
+        else
+        {
+            Logger::LogMessage(LOG_LEVEL_WARN, "Failed to refresh token. The data received from the server is \"%\"", result.as_string());
+        }
+    }
+}
+
+void Client::OnUpdateSeasonStanding(const signalr::value& value, const std::vector<void*> args)
+{
+    const signalr::value& result = value.as_array()[0];
+    if (result.is_string())
+    {
+        Client& client = Client::GetInstance();
+        std::error_code errorCode;
+
+        web::json::value resultJSON = web::json::value::parse(result.as_string(), errorCode);
+        if (!resultJSON.is_null())
+        {
+            client._points = resultJSON[U("PointTotal")].as_integer();
+            client._rank = resultJSON[U("Rank")].as_integer();
+            client.UpdateLeagueInfoText();
+        }
+        else
+        {
+            Logger::LogMessage(LOG_LEVEL_WARN, "Failed to update season standing. The data received from the server is \"%\"", result.as_string());
+        }
+    }
+}
+
+void CreatePlayMenu(const std::string& seasonName)
 {
     std::filesystem::path userSavePath = GameAPI::GetUserSaveFolder();
     if (!std::filesystem::is_directory(userSavePath))
@@ -440,7 +488,6 @@ void Client::CreatePlayMenu()
     std::filesystem::path playMenuPath = userSavePath / "playmenu.cpn";
     if (!std::filesystem::is_regular_file(playMenuPath))
     {
-        std::string seasonName = GetSeasonName();
         std::wstring serverName = L"Grim Dawn Server";
         std::string mapName = "levels/world001.map";
 
@@ -480,14 +527,14 @@ bool Client::Initialize()
         ChatClient::GetInstance();
 
         // Initialize threads to handle refreshing the server token/connection status
-        ThreadManager::CreatePeriodicThread("refresh_token", 60000, 900000, 0, &Client::UpdateRefreshToken);
-        ThreadManager::CreatePeriodicThread("connection_status", 60000, 60000, 0, &Client::UpdateConnectionStatus);
+        ThreadManager::CreatePeriodicThread("refresh_token", 60000, 900000, 900000, &Client::UpdateRefreshToken);
+        ThreadManager::CreatePeriodicThread("connection_status", 1000, 10000, 0, &Client::UpdateConnectionStatus);
     }
 
     // Initialize the death recap module
     //DeathRecap::Initialize();
 
-    CreatePlayMenu();
+    CreatePlayMenu(GetSeasonName());
 
     return true;
 }

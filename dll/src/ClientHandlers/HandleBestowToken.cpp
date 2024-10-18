@@ -1,7 +1,6 @@
 #include <filesystem>
 #include <cpprest/http_client.h>
 #include "GameAPI/TriggerToken.h"
-#include "ChatClient.h"
 #include "ClientHandler.h"
 #include "URI.h"
 
@@ -9,7 +8,6 @@ bool HandleParticipationToken(const std::string& tokenString)
 {
     Client& client = Client::GetInstance();
     const SeasonInfo* seasonInfo = client.GetActiveSeason();
-
     if (tokenString == seasonInfo->_participationToken)
     {
         if (EngineAPI::IsMultiplayer())

@@ -44,7 +44,7 @@ enum WeaponType : uint32_t
     WEAPON_TYPE_MACE_1H = 4,
     WEAPON_TYPE_DAGGER = 5,
     WEAPON_TYPE_SCEPTER = 6,
-    WEAPON_TYPE_SPEAR = 7,
+    //WEAPON_TYPE_SPEAR = 7,    // This is the one used in TQ; GD spears use WeaponType = 18 instead
     WEAPON_TYPE_RANGED_2H = 8,
     WEAPON_TYPE_STAFF = 9,
     //WEAPON_TYPE_UNKNOWN = 10,
@@ -55,6 +55,7 @@ enum WeaponType : uint32_t
     WEAPON_TYPE_AXE_2H = 15,
     WEAPON_TYPE_SWORD_2H = 16,
     WEAPON_TYPE_MACE_2H = 17,
+    WEAPON_TYPE_SPEAR = 18,
 };
 
 struct ItemTypePair

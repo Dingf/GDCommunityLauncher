@@ -26,6 +26,8 @@ constexpr char GAPI_NAME_LOAD_PLAYER_QUEST_STATES[] = "?LoadQuestStatesFromFile@
 constexpr char GAPI_NAME_SAVE_PLAYER_QUEST_STATES[] = "?SaveQuestStatesToFile@Player@GAME@@QEAAXPEBD@Z";
 constexpr char GAPI_NAME_SET_INVINCIBLE[] = "?SetInvincible@Character@GAME@@QEAAX_N@Z";
 constexpr char GAPI_NAME_SET_GOD[] = "?SetGod@Character@GAME@@QEAAX_N@Z";
+constexpr char GAPI_NAME_ADD_MONEY[] = "?AddMoney@Character@GAME@@QEAAXI@Z";
+constexpr char GAPI_NAME_SUBTRACT_MONEY[] = "?SubtractMoney@Character@GAME@@QEAA?BII@Z";
 #else
 constexpr char GAPI_NAME_GET_MAIN_PLAYER[] = "?GetMainPlayer@GameEngine@GAME@@QBEPAVPlayer@2@XZ";
 constexpr char GAPI_NAME_GET_CONTROLLER_ID[] = "?GetControllerId@Character@GAME@@QBE?BIXZ";
@@ -45,12 +47,14 @@ constexpr char GAPI_NAME_LOAD_PLAYER_QUEST_STATES[] = "?LoadQuestStatesFromFile@
 constexpr char GAPI_NAME_SAVE_PLAYER_QUEST_STATES[] = "?SaveQuestStatesToFile@Player@GAME@@QAEXPBD@Z";
 constexpr char GAPI_NAME_SET_INVINCIBLE[] = "?SetInvincible@Character@GAME@@QAEX_N@Z";
 constexpr char GAPI_NAME_SET_GOD[] = "?SetGod@Character@GAME@@QAEX_N@";
+constexpr char GAPI_NAME_ADD_MONEY[] = "?AddMoney@Character@GAME@@QAEXI@Z";
+constexpr char GAPI_NAME_SUBTRACT_MONEY[] = "?SubtractMoney@Character@GAME@@QAE?BII@Z";
 #endif
 
 void* GetMainPlayer();
 void* GetPlayerController(void* player);
 const wchar_t* GetPlayerName(void* player);
-std::string GetPlayerNameInChar(void* player);
+//std::string GetPlayerNameInChar(void* player);        // This function crashes the game for some reason? Use GetPlayerName() instead and convert to std::string as needed
 int32_t GetPlayerPartyID(void* player);
 bool PlayerHasToken(void* player, std::string token);
 bool IsPlayerHardcore(void* player);

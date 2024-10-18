@@ -19,7 +19,37 @@ const std::vector<TriggerToken>& GetPlayerTokens(void* player, Difficulty diffic
     if (!callback)
         return dummy;
 
-    return callback((LPVOID)player, difficulty);
+    return callback(player, difficulty);
+}
+
+void BestowTokenNow(void* player, const std::string& token)
+{
+    typedef void (__thiscall* GetPlayerTokensProto)(void*, const std::string&);
+
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
+    if ((!gameDLL) || (!player))
+        return;
+
+    GetPlayerTokensProto callback = (GetPlayerTokensProto)GetProcAddress(gameDLL, GAPI_NAME_BESTOW_TOKEN_NOW);
+    if (!callback)
+        return;
+
+    return callback(player, token);
+}
+
+void ClearPlayerTokens(void* player)
+{
+    typedef void (__thiscall* ClearPlayerTokensProto)(void*);
+
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
+    if ((!gameDLL) || (!player))
+        return;
+
+    ClearPlayerTokensProto callback = (ClearPlayerTokensProto)GetProcAddress(gameDLL, GAPI_NAME_CLEAR_PLAYER_TOKENS);
+    if (!callback)
+        return;
+
+    callback((LPVOID)player);
 }
 
 void ClearPlayerTokens(void* player)

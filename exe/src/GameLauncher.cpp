@@ -149,8 +149,12 @@ HANDLE GameLauncher::LaunchProcess(const std::filesystem::path& exePath, const s
 {
     Client& client = Client::GetInstance();
 
+    // Need to disconnect manually here because SignalR is dumb and will cause the process to hang if it's done in the destructor
+    if (Connection* connection = client.GetConnection())
+        connection->Disconnect();
+
     // If we need to update the launcher, unload the DLL and then overwrite it with the copy from the .zip file
-    if (client.HasUpdate() && !ExtractZIPUpdate())
+    if (client.HasLauncherUpdate() && !ExtractZIPUpdate())
     {
         Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to update GDCommunityLauncher.dll");
         return NULL;

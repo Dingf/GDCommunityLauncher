@@ -225,14 +225,17 @@ void SaveQuestStatesToFile(void* player, const char* filename)
 
 void AddOrSubtractMoney(void* player, int32_t amount)
 {
-    if (!player)
+    typedef void (__thiscall* AddOrSubtractMoneyProto)(void*, uint32_t);
+
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
+    if (!gameDLL)
         return;
 
-    uint32_t* moneyAddress = (uint32_t*)((uintptr_t)player + 0x15E4);
-    int64_t moneyAmount = *moneyAddress;
-    moneyAmount += amount;
-    moneyAmount = std::clamp(moneyAmount, (int64_t)0, (int64_t)0xFFFFFFFF);
-    *moneyAddress = (uint32_t)moneyAmount;
+    AddOrSubtractMoneyProto callback = (AddOrSubtractMoneyProto)((amount < 0) ? GetProcAddress(gameDLL, GAPI_NAME_SUBTRACT_MONEY) : GetProcAddress(gameDLL, GAPI_NAME_ADD_MONEY));
+    if ((!callback) || (!player))
+        return;
+
+    callback(player, (uint32_t)abs(amount));
 }
 
 }
