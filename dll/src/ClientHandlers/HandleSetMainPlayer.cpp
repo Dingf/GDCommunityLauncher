@@ -32,17 +32,13 @@ bool HasParticipationTokenFromFile(const std::wstring& playerName, const SeasonI
             const std::filesystem::path& filePath = it.path();
             if ((filePath.filename() == "quests.gdd") && (questData.ReadFromFile(filePath)))
             {
-                web::json::value questJSON = questData.ToJSON();
-                web::json::array tokensArray = questJSON[U("Tokens")][U("Tokens")].as_array();
-
-                uint32_t index = 0;
-                for (auto it2 = tokensArray.begin(); it2 != tokensArray.end(); ++it2)
+                for (const auto& token : questData._tokensBlock._questTokens)
                 {
-                    std::string token = JSONString(it2->serialize());
-                    for (char& c : token)
+                    std::string tokenString = token;
+                    for (char& c : tokenString)
                         c = std::tolower(c);
 
-                    if (token == seasonInfo->_participationToken)
+                    if (tokenString == seasonInfo->_participationToken)
                         return true;
                 }
             }
@@ -78,7 +74,10 @@ void HandleSetMainPlayer(void* _this, uint32_t unk1)
                                          HasParticipationTokenFromFile(playerName, seasonInfo);
 
             if (hasParticipationToken)
+            {
+                GameAPI::BestowTokenNow(mainPlayer, seasonInfo->_participationToken);       // Grant the token just in case because the character might have it from another difficulty/mode
                 client.SetActiveCharacter(playerName);
+            }
 
             // Initialize the chat window
             EngineAPI::UI::ChatWindow::GetInstance().Initialize();

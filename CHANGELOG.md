@@ -180,3 +180,10 @@
     - Progress is now shared between all characters of the same ladder (hardcore/softcore) within the season. 
 - Fixed a bug where season characters would not be deleted properly.
 - Fixed additional performance issues when running on Linux.
+
+## 1.4.1 (2024-10-22)
+
+- Fixed a bug where some players would lose quest progress after playing the Crucible game mode.
+- Fixed a bug where players with non-Latin Windows usernames would not be able to change their settings.
+- Fixed a bug where Nemesis enemies would not count towards season challenges.
+- Fixed a bug where icons for season factions would not display properly.

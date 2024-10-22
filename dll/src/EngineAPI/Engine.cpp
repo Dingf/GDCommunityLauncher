@@ -72,15 +72,15 @@ bool LoadDatabase(const std::string& database)
     return callback(*engine, database);
 }
 
-bool IsExpansion1Enabled()
+bool IsExpansion1Loaded()
 {
-    typedef bool (__thiscall* IsExpansion1EnabledProto)(void*);
+    typedef bool (__thiscall* IsExpansion1LoadedProto)(void*);
 
     HMODULE engineDLL = GetModuleHandle(TEXT(ENGINE_DLL));
     if (!engineDLL)
         return false;
 
-    IsExpansion1EnabledProto callback = (IsExpansion1EnabledProto)GetProcAddress(engineDLL, "?IsExpansion1Loaded@Engine@GAME@@QEBA_NXZ");
+    IsExpansion1LoadedProto callback = (IsExpansion1LoadedProto)GetProcAddress(engineDLL, EAPI_NAME_IS_EXPANSION1_LOADED);
     void** engine = GetEngineHandle();
 
     if ((!callback) || (!engine))
@@ -89,15 +89,15 @@ bool IsExpansion1Enabled()
     return callback(*engine);
 }
 
-bool IsExpansion2Enabled()
+bool IsExpansion2Loaded()
 {
-    typedef bool (__thiscall* IsExpansion2EnabledProto)(void*);
+    typedef bool (__thiscall* IsExpansion2LoadedProto)(void*);
 
     HMODULE engineDLL = GetModuleHandle(TEXT(ENGINE_DLL));
     if (!engineDLL)
         return false;
 
-    IsExpansion2EnabledProto callback = (IsExpansion2EnabledProto)GetProcAddress(engineDLL, "?IsExpansion2Loaded@Engine@GAME@@QEBA_NXZ");
+    IsExpansion2LoadedProto callback = (IsExpansion2LoadedProto)GetProcAddress(engineDLL, EAPI_NAME_IS_EXPANSION2_LOADED);
     void** engine = GetEngineHandle();
 
     if ((!callback) || (!engine))
@@ -106,15 +106,15 @@ bool IsExpansion2Enabled()
     return callback(*engine);
 }
 
-bool IsExpansion3Enabled()
+bool IsExpansion3Loaded()
 {
-    typedef bool (__thiscall* IsExpansion3EnabledProto)(void*);
+    typedef bool (__thiscall* IsExpansion3LoadedProto)(void*);
 
     HMODULE engineDLL = GetModuleHandle(TEXT(ENGINE_DLL));
     if (!engineDLL)
         return false;
 
-    IsExpansion3EnabledProto callback = (IsExpansion3EnabledProto)GetProcAddress(engineDLL, "?IsExpansion3Loaded@Engine@GAME@@QEBA_NXZ");
+    IsExpansion3LoadedProto callback = (IsExpansion3LoadedProto)GetProcAddress(engineDLL, EAPI_NAME_IS_EXPANSION3_LOADED);
     void** engine = GetEngineHandle();
 
     if ((!callback) || (!engine))

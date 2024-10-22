@@ -126,7 +126,9 @@ void Client::OnLogin(const signalr::value& value)
             web::json::value loginJSON = web::json::value::parse(value.as_array()[0].as_string());
             client._authToken = JSONString(loginJSON.at(U("access_token")).serialize());
             client._refreshToken = JSONString(loginJSON.at(U("refresh_token")).serialize());
-            client._role = JSONString(loginJSON.at(U("role")).serialize());
+
+            if (loginJSON.has_string_field(U("role")))
+                client._role = JSONString(loginJSON.at(U("role")).serialize());
         }
         catch (std::exception& ex)
         {

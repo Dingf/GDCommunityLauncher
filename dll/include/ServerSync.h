@@ -59,13 +59,6 @@ class ServerSync
             bool _hardcore;
         };
 
-        struct CharacterBuffer : public FileWriter
-        {
-            CharacterBuffer(uint8_t* buffer, size_t size) : FileWriter(buffer, size) {}
-
-            web::json::value _tagData;
-        };
-
         struct QuestBuffer : public FileWriter
         {
             QuestBuffer(uint8_t* buffer, size_t size, GameAPI::Difficulty difficulty, const std::wstring& playerName) : FileWriter(buffer, size)

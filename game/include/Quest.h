@@ -51,8 +51,6 @@ class Quest : public FileData, public JSONObject
 
         size_t GetBufferSize() const;
 
-        size_t GetBufferSize() const;
-
         web::json::value ToJSON() const;
 
         bool ReadFromFile(const std::filesystem::path& path);

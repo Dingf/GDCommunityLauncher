@@ -7,6 +7,7 @@ namespace GameAPI
 {
 
 #if _WIN64
+constexpr char GAPI_NAME_SET_CLOUD_STORAGE[] = "?SetCloudStorage@GameEngine@GAME@@QEAAX_N@Z";
 constexpr char GAPI_NAME_IS_CLOUD_STORAGE[] = "?GetCloudStorage@GameEngine@GAME@@QEBA_NXZ";
 constexpr char GAPI_NAME_IS_GAME_LOADING[] = "?IsGameLoading@GameEngine@GAME@@QEBA_NXZ";
 constexpr char GAPI_NAME_SAVE_GAME[] = "?SaveGame@GameEngine@GAME@@QEAA_NXZ";
@@ -21,7 +22,9 @@ constexpr char GAPI_NAME_SEND_CHAT_MESSAGE[] = "?SendChatMessage@GameEngine@GAME
 constexpr char GAPI_NAME_ADD_CHAT_MESSAGE[] = "?AddChatMessage@GameEngine@GAME@@QEAAXAEBV?$basic_string@GU?$char_traits@G@std@@V?$allocator@G@2@@std@@0EPEAVEntity@2@@Z";
 constexpr char GAPI_NAME_ON_CARAVAN_INTERACT[] = "?OnPlayerInteract@NpcCaravan@GAME@@UEAAXI_N0@Z";
 constexpr char GAPI_NAME_DISPLAY_CARAVAN_WINDOW[] = "?DisplayCaravanWindow@GameEngine@GAME@@QEAA_NI@Z";
+constexpr char GAPI_NAME_RELOAD_DATABASE[] = "?ReloadDatabase@GameEngine@GAME@@QEAAXXZ";
 #else
+constexpr char GAPI_NAME_SET_CLOUD_STORAGE[] = "?SetCloudStorage@GameEngine@GAME@@QAEX_N@Z";
 constexpr char GAPI_NAME_IS_CLOUD_STORAGE[] = "?GetCloudStorage@GameEngine@GAME@@QBE_NXZ";
 constexpr char GAPI_NAME_IS_GAME_LOADING[] = "?IsGameLoading@GameEngine@GAME@@QBE_NXZ";
 constexpr char GAPI_NAME_SAVE_GAME[] = "?SaveGame@GameEngine@GAME@@QAE_NXZ";
@@ -36,8 +39,10 @@ constexpr char GAPI_NAME_SEND_CHAT_MESSAGE[] = "?SendChatMessage@GameEngine@GAME
 constexpr char GAPI_NAME_ADD_CHAT_MESSAGE[] = "?AddChatMessage@GameEngine@GAME@@QAEXABV?$basic_string@GU?$char_traits@G@std@@V?$allocator@G@2@@std@@0EPAVEntity@2@@Z";
 constexpr char GAPI_NAME_ON_CARAVAN_INTERACT[] = "?OnPlayerInteract@NpcCaravan@GAME@@UAEXI_N0@Z";
 constexpr char GAPI_NAME_DISPLAY_CARAVAN_WINDOW[] = "?DisplayCaravanWindow@GameEngine@GAME@@QAE_NI@Z";
+constexpr char GAPI_NAME_RELOAD_DATABASE[] = "?ReloadDatabase@GameEngine@GAME@@QAEXXZ";
 #endif
 
+void SetCloudStorageEnabled(bool enabled);
 bool IsCloudStorageEnabled();
 bool IsGameLoading();
 void SaveGame();
@@ -49,6 +54,7 @@ bool IsCaravanWindowOpen();
 void DisplayUINotification(const std::string& tag);
 void SendChatMessage(const std::wstring& name, const std::wstring& message, uint8_t type);
 void AddChatMessage(const std::wstring& name, const std::wstring& message, uint8_t type, void* item = nullptr);
+void ReloadDatabase();
 
 }
 

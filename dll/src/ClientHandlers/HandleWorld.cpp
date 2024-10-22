@@ -95,6 +95,7 @@ void LoadSeasonModAssets(const std::string& seasonName)
     EngineAPI::AddFileSystemSource(EngineAPI::PARTITION_MOD_RESOURCES, sourceName, nullptr, true, true, false);
     EngineAPI::LoadDatabase(databaseName);
     EngineAPI::UI::LoadLocalizationTags(true);
+    GameAPI::ReloadDatabase();
 }
 
 bool HandleLoadWorld(void* _this, const char* map, bool unk1, bool modded)

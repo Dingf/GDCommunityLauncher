@@ -8,6 +8,8 @@
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmdShow)
 {
+    Logger::SetMinimumLogLevel(LOG_LEVEL_DEBUG);
+
     // Check to make sure that both the DLL and the GD executables are present in their relative paths
     std::filesystem::path current = std::filesystem::current_path();
 
@@ -59,7 +61,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
     config.Save(configPath);
     if (!GameLauncher::LaunchProcess(grimDawnPath, libraryPath, pCmdLine))
     {
-        //TODO: Replace me with a more useful error message that gets the last error code from Windows
         MessageBox(NULL, TEXT("Failed to launch Grim Dawn."), NULL, MB_OK | MB_ICONERROR);
         return EXIT_FAILURE;
     }

@@ -42,7 +42,7 @@ void HandleAddSaveJob(void* _this, const std::string& filename, void* data, uint
 
 size_t HandleSaveQuestStates(void* buffer, size_t size, size_t count, void* file)
 {
-    EventManager::Publish(GDCL_EVENT_QUEST_FILE_WRITE, file, buffer, size*count);
+    //EventManager::Publish(GDCL_EVENT_QUEST_FILE_WRITE, file, buffer, size*count);
 
     // This function (SaveQuestStatesToFile, both versions) isn't actually being called as far as I can tell
     // So it should be safe to just not write anything here and pretend like we did

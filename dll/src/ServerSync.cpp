@@ -635,7 +635,7 @@ void ServerSync::CacheCharacterBuffer(const std::string& filename, void* buffer,
 void ServerSync::CacheQuestBuffer(const std::string& filename, void* buffer, size_t size)
 {
     Client& client = Client::GetInstance();
-    if ((client.IsPlayingSeasonOnline()) && (!EngineAPI::IsMultiplayer()))
+    if ((client.IsPlayingSeasonOnline()) && (EngineAPI::IsMainCampaign()) && (!EngineAPI::IsMultiplayer()))
     {
         if (void* mainPlayer = GameAPI::GetMainPlayer())
         {
@@ -650,7 +650,7 @@ void ServerSync::CacheQuestBuffer(const std::string& filename, void* buffer, siz
 void ServerSync::CacheConversationsBuffer(const std::string& filename, void* buffer, size_t size)
 {
     Client& client = Client::GetInstance();
-    if ((client.IsPlayingSeasonOnline()) && (!EngineAPI::IsMultiplayer()))
+    if ((client.IsPlayingSeasonOnline()) && (EngineAPI::IsMainCampaign()) && (!EngineAPI::IsMultiplayer()))
     {
         if (void* mainPlayer = GameAPI::GetMainPlayer())
         {
@@ -665,7 +665,7 @@ void ServerSync::CacheConversationsBuffer(const std::string& filename, void* buf
 void ServerSync::CacheFOWBuffer(const std::string& filename, void* buffer, size_t size)
 {
     Client& client = Client::GetInstance();
-    if ((client.IsPlayingSeasonOnline()) && (!EngineAPI::IsMultiplayer()))
+    if ((client.IsPlayingSeasonOnline()) && (EngineAPI::IsMainCampaign()) && (!EngineAPI::IsMultiplayer()))
     {
         if (void* mainPlayer = GameAPI::GetMainPlayer())
         {

@@ -52,19 +52,4 @@ void ClearPlayerTokens(void* player)
     callback((LPVOID)player);
 }
 
-void ClearPlayerTokens(void* player)
-{
-    typedef void (__thiscall* ClearPlayerTokensProto)(void*);
-
-    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
-    if ((!gameDLL) || (!player))
-        return;
-
-    ClearPlayerTokensProto callback = (ClearPlayerTokensProto)GetProcAddress(gameDLL, GAPI_NAME_CLEAR_PLAYER_TOKENS);
-    if (!callback)
-        return;
-
-    callback((LPVOID)player);
-}
-
 }

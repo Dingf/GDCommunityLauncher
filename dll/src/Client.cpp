@@ -18,15 +18,6 @@
 Client::Client()  : _activeSeason(nullptr), _online(false)
 {
     ReadDataFromPipe();
-
-    if (!IsOfflineMode())
-    {
-        if (!_gameURL.empty())
-            _connection = std::make_unique<Connection>(_gameURL);
-
-        _connection->Register("RefreshToken",         &Client::OnRefreshToken);
-        _connection->Register("GetParticipantPoints", &Client::OnUpdateSeasonStanding);
-    }
 }
 
 Client& Client::GetInstance()
@@ -242,70 +233,76 @@ void Client::ReadDataFromPipe()
 
 void Client::UpdateVersionInfoText()
 {
-    _versionInfoText = EngineAPI::GetVersionString();
-    _versionInfoText += "\n{^F}GDCL v";
-    _versionInfoText += GDCL_VERSION;
-    _versionInfoText += " (";
+    std::string message;
+
+    _versionInfoText.clear();
+    message = EngineAPI::GetVersionString();
+    message += "\n{^F}GDCL v";
+    message += GDCL_VERSION;
+    message += " (";
     if (IsOfflineMode())
-        _versionInfoText += "Offline Mode";
+        message += "Offline Mode";
     else
-        _versionInfoText += GetUsername();
-    _versionInfoText += ")";
+        message += GetUsername();
+    message += ")";
+    _versionInfoText = message;
 }
 
 void Client::UpdateLeagueInfoText()
 {
+    std::wstring message;
     _leagueInfoText.clear();
-
     if (IsOfflineMode())
     {
         std::string versionText = GDCL_VERSION;
-        _leagueInfoText += L"\n";
-        _leagueInfoText += L"GDCL v";
-        _leagueInfoText += std::wstring(versionText.begin(), versionText.end());
+        message += L"\n";
+        message += L"GDCL v";
+        message += std::wstring(versionText.begin(), versionText.end());
     }
     else if (_activeSeason)
     {
-        _leagueInfoText += L"\n";
-        _leagueInfoText += std::wstring(_activeSeason->_displayName.begin(), _activeSeason->_displayName.end());
+        message += L"\n";
+        message += std::wstring(_activeSeason->_displayName.begin(), _activeSeason->_displayName.end());
     }
-    _leagueInfoText += L"\n";
-    _leagueInfoText += std::wstring(_username.begin(), _username.end());
+    message += L"\n";
+    message += std::wstring(_username.begin(), _username.end());
 
     if (IsOfflineMode())
     {
-        _leagueInfoText += L" {^L}(Offline Mode)";
+        message += L" {^L}(Offline Mode)";
     }
     else if ((_online) && (_activeSeason))
     {
         if (GameAPI::IsCloudStorageEnabled())
         {
-            _leagueInfoText += L" {^Y}(Disable Cloud Saving)";
+            message += L" {^Y}(Disable Cloud Saving)";
         }
         else if (EngineAPI::IsMultiplayer())
         {
-            _leagueInfoText += L" {^Y}(Multiplayer)";
+            message += L" {^Y}(Multiplayer)";
         }
         else
         {
             if ((_points > 0) && (_rank > 0))
             {
-                _leagueInfoText += L" {^L}(Rank ";
-                _leagueInfoText += std::to_wstring(_rank);
-                _leagueInfoText += L" ~ ";
+                message += L" {^L}(Rank ";
+                message += std::to_wstring(_rank);
+                message += L" ~ ";
             }
             else
             {
-                _leagueInfoText += L" {^L}(";
+                message += L" {^L}(";
             }
-            _leagueInfoText += std::to_wstring(_points);
-            _leagueInfoText += L" points)";
+            message += std::to_wstring(_points);
+            message += L" points)";
         }
     }
     else
     {
-        _leagueInfoText += L" {^R}(Disconnected)";
+        message += L" {^R}(Disconnected)";
     }
+
+    _leagueInfoText = message;
 }
 
 void Client::SetActiveSeason(bool hardcore)
@@ -422,6 +419,7 @@ bool Client::UpdateConnectionStatus()
         if (client._online != status)
         {
             client._online = status;
+            client.UpdateLeagueInfoText();
         }
     }
     catch (const std::exception& ex)
@@ -430,53 +428,10 @@ bool Client::UpdateConnectionStatus()
         {
             Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to query server status: % %", client._online, ex.what());
             client._online = false;
-        }
-    }
-    client.UpdateLeagueInfoText();
-    return true;
-}
-
-void Client::OnRefreshToken(const signalr::value& value, const std::vector<void*> args)
-{
-    const signalr::value& result = value.as_array()[0];
-    if (result.is_string())
-    {
-        Client& client = Client::GetInstance();
-        std::error_code errorCode;
-
-        web::json::value resultJSON = web::json::value::parse(result.as_string(), errorCode);
-        if (!resultJSON.is_null())
-        {
-            client._authToken = JSONString(resultJSON[U("access_token")].serialize());
-            client._refreshToken = JSONString(resultJSON[U("refresh_token")].serialize());
-        }
-        else
-        {
-            Logger::LogMessage(LOG_LEVEL_WARN, "Failed to refresh token. The data received from the server is \"%\"", result.as_string());
-        }
-    }
-}
-
-void Client::OnUpdateSeasonStanding(const signalr::value& value, const std::vector<void*> args)
-{
-    const signalr::value& result = value.as_array()[0];
-    if (result.is_string())
-    {
-        Client& client = Client::GetInstance();
-        std::error_code errorCode;
-
-        web::json::value resultJSON = web::json::value::parse(result.as_string(), errorCode);
-        if (!resultJSON.is_null())
-        {
-            client._points = resultJSON[U("PointTotal")].as_integer();
-            client._rank = resultJSON[U("Rank")].as_integer();
             client.UpdateLeagueInfoText();
         }
-        else
-        {
-            Logger::LogMessage(LOG_LEVEL_WARN, "Failed to update season standing. The data received from the server is \"%\"", result.as_string());
-        }
     }
+    return true;
 }
 
 void CreatePlayMenu(const std::string& seasonName)
