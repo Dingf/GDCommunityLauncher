@@ -101,9 +101,9 @@ class ServerSync
         void DownloadCharacterQuestData(const std::wstring& playerName, uint32_t participantID, bool overwrite = false);
         void DownloadCharacterConversationsData(const std::wstring& playerName, uint32_t participantID, bool overwrite = false);
         void DownloadCharacterFOWData(const std::wstring& playerName, uint32_t participantID, bool overwrite = false);
-        void DownloadCharacterList(uint32_t participantID, std::unordered_set<std::wstring>& characterList);
-        void DownloadFormulasFile(uint32_t participantID, bool hardcore);
-        void DownloadTransmutesFile(uint32_t participantID, bool hardcore);
+        void DownloadCharacterList(std::vector<pplx::task<void>>& downloadTasks, uint32_t participantID, std::unordered_set<std::wstring>& characterList);
+        void DownloadFormulasFile(std::vector<pplx::task<void>>& downloadTasks, uint32_t participantID, bool hardcore);
+        void DownloadTransmutesFile(std::vector<pplx::task<void>>& downloadTasks, uint32_t participantID, bool hardcore);
         void DownloadStashData(uint32_t participantID);
         void DownloadTransferItems(uint32_t participantID);
 

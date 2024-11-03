@@ -187,3 +187,13 @@
 - Fixed a bug where players with non-Latin Windows usernames would not be able to change their settings.
 - Fixed a bug where Nemesis enemies would not count towards season challenges.
 - Fixed a bug where icons for season factions would not display properly.
+
+
+## 1.4.2 (2024-11-02)
+
+- Added an error message when players use the `/g color` or `/t color` commands with an invalid color alias.
+- Increased the maximum length of the username and password fields. This would sometimes cause an issue previously when players had passwords that were longer than 64 characters.
+- Fixed a bug where entering the Crucible would reset the player's Alteration tree progress.
+- Fixed a bug where uploading items to the cloud stash would render the in-game stash inaccessible.
+- Fixed a bug where Level Limited Challenges were not being displayed when using the `/challenges` command.
+- Fixed a bug where items in the transfer queue would not be saved if the player logged out without opening the shared stash.

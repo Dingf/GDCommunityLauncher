@@ -364,7 +364,11 @@ bool LoginDialog::Login(void* configPointer)
     else if (!_window)
     {
         HINSTANCE instance = GetModuleHandle(NULL);
-        LoginDialog::_window = CreateDialogParam(instance, MAKEINTRESOURCE(IDD_DIALOG1), 0, LoginDialogHandler, (LPARAM)_config);
+        _window = CreateDialogParam(instance, MAKEINTRESOURCE(IDD_DIALOG1), 0, LoginDialogHandler, (LPARAM)_config);
+
+        // Increase the maximum length of the username/password fields
+        SendMessage (GetDlgItem(_window, IDC_EDIT1), EM_SETLIMITTEXT, 32767, 0);
+        SendMessage (GetDlgItem(_window, IDC_EDIT2), EM_SETLIMITTEXT, 32767, 0);
 
         MSG message;
         while (GetMessage(&message, 0, 0, 0))

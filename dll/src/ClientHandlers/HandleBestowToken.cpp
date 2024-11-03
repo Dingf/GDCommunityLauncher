@@ -50,6 +50,8 @@ bool HandleSeasonPointToken(const std::string& tokenString)
 
         // Otherwise if it's a season token, pass it along to the server and update the points/rank
         URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(client.GetCurrentParticipantID()) / "quest-tag" / tokenString;
+        endpoint.AddParam("branch", client.GetBranchName());
+
         web::http::http_request request(web::http::methods::POST);
 
         web::json::value requestBody;
@@ -61,20 +63,25 @@ bool HandleSeasonPointToken(const std::string& tokenString)
         std::string bearerToken = "Bearer " + client.GetAuthToken();
         request.headers().add(U("Authorization"), bearerToken.c_str());
 
-        pplx::create_task([endpoint, request]()
+        web::http::client::http_client httpClient((utility::string_t)endpoint);
+        httpClient.request(request).then([](web::http::http_response response)
         {
-            web::http::client::http_client httpClient((utility::string_t)endpoint);
-            return httpClient.request(request).then([](web::http::http_response response)
+            if (response.status_code() == web::http::status_codes::OK)
+                return true;
+            else
+                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+        })
+        .then([](concurrency::task<bool> task)
+        {
+            try
             {
-                if (response.status_code() == web::http::status_codes::OK)
-                {
+                if (task.get())
                     Client::GetInstance().UpdateSeasonStanding();
-                }
-                else
-                {
-                    Logger::LogMessage(LOG_LEVEL_WARN, "Failed to update quest tag: Server responded with status code %", response.status_code());
-                }
-            });
+            }
+            catch (std::exception& ex)
+            {
+                Logger::LogMessage(LOG_LEVEL_WARN, "Failed to update quest tag: %", ex.what());
+            }
         });
         return true;
     }

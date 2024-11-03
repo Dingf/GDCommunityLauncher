@@ -35,6 +35,21 @@ enum ItemType : uint32_t
     MAX_ITEM_TYPES = 27,
 };
 
+#define ITEM_MASK_EQUIPPABLE (\
+    (1 << ITEM_TYPE_HEAD) | \
+    (1 << ITEM_TYPE_AMULET) | \
+    (1 << ITEM_TYPE_CHEST) | \
+    (1 << ITEM_TYPE_LEGS) | \
+    (1 << ITEM_TYPE_FEET) | \
+    (1 << ITEM_TYPE_RING) | \
+    (1 << ITEM_TYPE_HANDS) | \
+    (1 << ITEM_TYPE_OFFHAND) | \
+    (1 << ITEM_TYPE_WEAPON) | \
+    (1 << ITEM_TYPE_RELIC) | \
+    (1 << ITEM_TYPE_BELT) | \
+    (1 << ITEM_TYPE_SHOULDERS) | \
+    (1 << ITEM_TYPE_MEDAL))
+
 enum WeaponType : uint32_t
 {
     WEAPON_TYPE_DEFAULT = 0,
@@ -57,6 +72,25 @@ enum WeaponType : uint32_t
     WEAPON_TYPE_MACE_2H = 17,
     WEAPON_TYPE_SPEAR = 18,
 };
+
+#define WEAPON_MASK_1H (\
+    (1 << WEAPON_TYPE_SWORD_1H) |\
+    (1 << WEAPON_TYPE_AXE_1H) |\
+    (1 << WEAPON_TYPE_MACE_1H) |\
+    (1 << WEAPON_TYPE_RANGED_1H))
+
+#define WEAPON_MASK_CASTER (\
+    (1 << WEAPON_TYPE_DAGGER) |\
+    (1 << WEAPON_TYPE_SCEPTER))
+
+#define WEAPON_MASK_2H (\
+    (1 << WEAPON_TYPE_SWORD_2H) |\
+    (1 << WEAPON_TYPE_AXE_2H) |\
+    (1 << WEAPON_TYPE_MACE_2H) |\
+    (1 << WEAPON_TYPE_RANGED_2H))
+
+#define WEAPON_MASK_SHIELD (1 << WEAPON_TYPE_SHIELD)
+#define WEAPON_MASK_CASTER_OH (1 << WEAPON_TYPE_CASTER_OH)
 
 struct ItemTypePair
 {

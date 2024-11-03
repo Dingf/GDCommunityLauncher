@@ -16,7 +16,7 @@
 
 const std::unordered_map<std::string, uint32_t> challengeCategoryMap =
 {
-    { "Leveling Achievements", 1 },
+    { "Level Limited Challenges", 1 },
     { "Shattered Realm Clears", 2 },
     { "Skeleton Key Dungeons", 3 },
     { "World Bosses", 4 },
@@ -127,8 +127,13 @@ bool HandleChatGlobalCommand(ChatClient* chatClient, std::wstring& name, std::ws
                 name = L"Server";
                 message = L"Could not change global chat text color.";
             }
-            return true;
         }
+        else
+        {
+            name = L"Server";
+            message = L"\"" + args + L"\" is not a valid color. Type \"/h color\" for a list of available color aliases. You can also use a hex code, e.g. #FFFFFF.";
+        }
+        return true;
     }
     
     if (channel != 0)
@@ -248,8 +253,13 @@ bool HandleChatTradeCommand(ChatClient* chatClient, std::wstring& name, std::wst
                 name = L"Server";
                 message = L"Could not change trade chat text color.";
             }
-            return true;
         }
+        else
+        {
+            name = L"Server";
+            message = L"\"" + args + L"\" is not a valid color. Type \"/h color\" for a list of available color aliases. You can also use a hex code, e.g. #FFFFFF.";
+        }
+        return true;
     }
 
     if (channel != 0)
@@ -311,33 +321,29 @@ bool HandleChatOnlineCommand(ChatClient* chatClient, std::wstring& name, std::ws
     std::string bearerToken = "Bearer " + client.GetAuthToken();
     request.headers().add(U("Authorization"), bearerToken.c_str());
 
-    // don't need to use ServerSync task group here since it's not critical that chat messages get synced on shutdown
-    pplx::create_task([endpoint, request]() // pplx okay here, no blocking calls inside
+    web::http::client::http_client httpClient((utility::string_t)endpoint);
+    httpClient.request(request).then([](web::http::http_response response)
     {
-        web::http::client::http_client httpClient((utility::string_t)endpoint);
-        httpClient.request(request).then([](web::http::http_response response)
+        if (response.status_code() == web::http::status_codes::OK)
+            return response.extract_json();
+        else
+            throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+    })
+    .then([](concurrency::task<web::json::value> task)
+    {
+        try
         {
-            if (response.status_code() == web::http::status_codes::OK)
-                return response.extract_json();
-            else
-                throw std::runtime_error("Server responded with status code %" + std::to_string(response.status_code()));
-        })
-        .then([](concurrency::task<web::json::value> task)
-        {
-            try
-            {
-                // can use get here since taking the task as continuation parameter ensures it is finished
-                web::json::value responseBody = task.get(); 
-                web::json::array usersArray = responseBody.as_array();
+            // can use get here since taking the task as continuation parameter ensures it is finished
+            web::json::value responseBody = task.get(); 
+            web::json::array usersArray = responseBody.as_array();
 
-                std::wstring message = L"There are " + std::to_wstring(usersArray.size()) + L" users currently online.";
-                GameAPI::SendChatMessage(L"Server", message, EngineAPI::UI::CHAT_TYPE_NORMAL);
-            }
-            catch (std::exception& ex)
-            {
-                Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve online users: %", ex.what());
-            }
-        });
+            std::wstring message = L"There are " + std::to_wstring(usersArray.size()) + L" users currently online.";
+            GameAPI::SendChatMessage(L"Server", message, EngineAPI::UI::CHAT_TYPE_NORMAL);
+        }
+        catch (std::exception& ex)
+        {
+            Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve online users: %", ex.what());
+        }
     });
 
     return false;
@@ -359,13 +365,9 @@ pplx::task<web::json::value> GetSeasonChallenges()
         return httpClient.request(request).then([](web::http::http_response response)
         {
             if (response.status_code() == web::http::status_codes::OK)
-            {
                 return response.extract_json();
-            }
             else
-            {
                 throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-            }
         })
         .then([](pplx::task<web::json::value> task)
         {

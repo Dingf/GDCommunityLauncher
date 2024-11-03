@@ -83,13 +83,13 @@ ServerSync::ServerSync()
         EventManager::Subscribe(GDCL_EVENT_DIRECT_FILE_WRITE,     &ServerSync::OnDirectWriteEvent);
         EventManager::Subscribe(GDCL_EVENT_ADD_SAVE_JOB,          &ServerSync::OnAddSaveJobEvent);
         EventManager::Subscribe(GDCL_EVENT_WORLD_PRE_LOAD,        &ServerSync::OnWorldPreLoadEvent);
-        EventManager::Subscribe(GDCL_EVENT_WORLD_POST_LOAD,       &ServerSync::OnWorldPostLoadEvent);
+        //EventManager::Subscribe(GDCL_EVENT_WORLD_POST_LOAD,       &ServerSync::OnWorldPostLoadEvent);
         EventManager::Subscribe(GDCL_EVENT_WORLD_PRE_UNLOAD,      &ServerSync::OnWorldPreUnloadEvent);
         EventManager::Subscribe(GDCL_EVENT_SET_MAIN_PLAYER,       &ServerSync::OnSetMainPlayerEvent);
         EventManager::Subscribe(GDCL_EVENT_TRANSFER_POST_LOAD,    &ServerSync::OnTransferPostLoadEvent);
         EventManager::Subscribe(GDCL_EVENT_TRANSFER_PRE_SAVE,     &ServerSync::OnTransferPreSaveEvent);
         EventManager::Subscribe(GDCL_EVENT_TRANSFER_POST_SAVE,    &ServerSync::OnTransferPostSaveEvent);
-        EventManager::Subscribe(GDCL_EVENT_CHARACTER_PRE_SAVE,    &ServerSync::OnCharacterPreSaveEvent);
+        //EventManager::Subscribe(GDCL_EVENT_CHARACTER_PRE_SAVE,    &ServerSync::OnCharacterPreSaveEvent);
         EventManager::Subscribe(GDCL_EVENT_CHARACTER_POST_SAVE,   &ServerSync::OnCharacterPostSaveEvent);
         EventManager::Subscribe(GDCL_EVENT_DELETE_FILE,           &ServerSync::OnDeleteFileEvent);
 
@@ -402,8 +402,6 @@ void ServerSync::UploadNewCharacterBuffer(const std::string& filename, void* buf
     }
 
     bool hardcore = characterData._headerBlock._charIsHardcore;
-    GetInstance().RegisterSeasonParticipant(hardcore, false);
-
     uint32_t participantID = GetParticipantID(hardcore);
     web::json::value characterJSON = characterData.ToJSON();
     web::json::value characterInfo = web::json::value::object();
@@ -423,42 +421,36 @@ void ServerSync::UploadNewCharacterBuffer(const std::string& filename, void* buf
     requestBody += GetMultipartBufferData("file", filename, (uint8_t*)buffer, size);
     requestBody += "--" + GetMultipartBoundary() + "--\r\n";
 
-    try
+    URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(participantID) / "character";
+    endpoint.AddParam("branch", client.GetBranchName());
+    endpoint.AddParam("newPlayer", true);
+
+    web::http::http_request request(web::http::methods::POST);
+
+    request.set_body(requestBody, "multipart/form-data; boundary=" + GetMultipartBoundary());
+
+    std::string bearerToken = "Bearer " + client.GetAuthToken();
+    request.headers().add(U("Authorization"), bearerToken.c_str());
+
+    web::http::client::http_client httpClient((utility::string_t)endpoint);
+    httpClient.request(request).then([](web::http::http_response response)
     {
-        Client& client = Client::GetInstance();
-        URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(participantID) / "character";
-        endpoint.AddParam("branch", client.GetBranchName());
-        endpoint.AddParam("newPlayer", true);
-
-        web::http::http_request request(web::http::methods::POST);
-
-        request.set_body(requestBody, "multipart/form-data; boundary=" + GetMultipartBoundary());
-
-        std::string bearerToken = "Bearer " + client.GetAuthToken();
-        request.headers().add(U("Authorization"), bearerToken.c_str());
-
-        _backgroundTasks.run([endpoint, request]()
+        if (response.status_code() == web::http::status_codes::OK)
+            return true;
+        else
+            throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+    })
+    .then([](concurrency::task<bool> task)
+    {
+        try
         {
-            web::http::client::http_client httpClient((utility::string_t)endpoint);
-            return httpClient.request(request).then([](Concurrency::task<web::http::http_response> responseTask)
-            {
-                try
-                {
-                    web::http::http_response response = responseTask.get();
-                    if (response.status_code() != web::http::status_codes::OK)
-                        throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-                }
-                catch (std::exception& ex)
-                {
-                    Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload character data: %", ex.what());
-                }
-            });
-        });
-    }
-    catch (const std::exception& ex)
-    {
-        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload character data: %", ex.what());
-    }
+            task.get();
+        }
+        catch (std::exception& ex)
+        {
+            Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload character data: %", ex.what());
+        }
+    });
 }
 
 void ServerSync::UploadStashBuffer(const std::string& filename, void* buffer, size_t size)
@@ -489,28 +481,24 @@ void ServerSync::UploadStashBuffer(const std::string& filename, void* buffer, si
         // Also, it's not safe to trust the save file because the user could replace it after the file has been saved
         _cachedStashBuffer = std::make_shared<StashBuffer>((uint8_t*)buffer, size, EngineAPI::IsHardcore());
 
-        _backgroundTasks.run([endpoint, request]()
+        httpClient.request(request).then([](web::http::http_response response)
         {
-            web::http::client::http_client httpClient((utility::string_t)endpoint);
-            return httpClient.request(request).then([](Concurrency::task<web::http::http_response> responseTask)
+            if (response.status_code() == web::http::status_codes::OK)
+                return true;
+            else
+                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+        })
+        .then([](concurrency::task<bool> task)
+        {
+            try
             {
-                try
-                {
-                    web::http::http_response response = responseTask.get();
-                    if (response.status_code() == web::http::status_codes::OK)
-                    {
-                        ServerSync::GetInstance()._cachedStashBuffer.reset();
-                    }
-                    else
-                    {
-                        throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-                    }
-                }
-                catch (std::exception& ex)
-                {
-                    Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload shared stash: %", ex.what());
-                }
-            });
+                if (task.get())
+                    ServerSync::GetInstance()._cachedStashBuffer.reset();
+            }
+            catch (std::exception& ex)
+            {
+                Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload shared stash: %", ex.what());
+            }
         });
     }
 }
@@ -538,22 +526,23 @@ void ServerSync::UploadFormulasBuffer(const std::string& filename, void* buffer,
         std::string bearerToken = "Bearer " + client.GetAuthToken();
         request.headers().add(U("Authorization"), bearerToken.c_str());
 
-        _backgroundTasks.run([endpoint, request]()
+        httpClient.request(request).then([](web::http::http_response response)
         {
-            web::http::client::http_client httpClient((utility::string_t)endpoint);
-            return httpClient.request(request).then([](Concurrency::task<web::http::http_response> responseTask)
+            if (response.status_code() == web::http::status_codes::OK)
+                return true;
+            else
+                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+        })
+        .then([](concurrency::task<bool> task)
+        {
+            try
             {
-                try
-                {
-                    web::http::http_response response = responseTask.get();
-                    if (response.status_code() != web::http::status_codes::OK)
-                        throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-                }
-                catch (std::exception& ex)
-                {
-                    Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload formulas file: %", ex.what());
-                }
-            });
+                task.get();
+            }
+            catch (std::exception& ex)
+            {
+                Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload formulas file: %", ex.what());
+            }
         });
     }
 }
@@ -581,22 +570,23 @@ void ServerSync::UploadTransmutesBuffer(const std::string& filename, void* buffe
         std::string bearerToken = "Bearer " + client.GetAuthToken();
         request.headers().add(U("Authorization"), bearerToken.c_str());
 
-        _backgroundTasks.run([endpoint, request]()
+        httpClient.request(request).then([](web::http::http_response response)
         {
-            web::http::client::http_client httpClient((utility::string_t)endpoint);
-            return httpClient.request(request).then([](Concurrency::task<web::http::http_response> responseTask)
+            if (response.status_code() == web::http::status_codes::OK)
+                return true;
+            else
+                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+        })
+        .then([](concurrency::task<bool> task)
+        {
+            try
             {
-                try
-                {
-                    web::http::http_response response = responseTask.get();
-                    if (response.status_code() != web::http::status_codes::OK)
-                        throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-                }
-                catch (std::exception& ex)
-                {
-                    Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload transmutes file: %", ex.what());
-                }
-            });
+                task.get();
+            }
+            catch (std::exception& ex)
+            {
+                Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload transmutes file: %", ex.what());
+            }
         });
     }
 }
@@ -719,30 +709,30 @@ void ServerSync::UploadCachedCharacterBuffer()
 
         std::string bearerToken = "Bearer " + client.GetAuthToken();
         request.headers().add(U("Authorization"), bearerToken.c_str());
-        
-        _backgroundTasks.run([endpoint, request]()
+
+
+        web::http::client::http_client httpClient((utility::string_t)endpoint);
+        httpClient.request(request).then([](web::http::http_response response)
         {
-            web::http::client::http_client httpClient((utility::string_t)endpoint);
-            return httpClient.request(request).then([](Concurrency::task<web::http::http_response> responseTask)
+            if (response.status_code() == web::http::status_codes::OK)
+                return true;
+            else
+                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+        })
+        .then([](concurrency::task<bool> task)
+        {
+            try
             {
-                try
+                if (task.get())
                 {
-                    web::http::http_response response = responseTask.get();
-                    if (response.status_code() == web::http::status_codes::OK)
-                    {
-                        ServerSync::GetInstance()._cachedCharacterBuffer.reset();
-                        Client::GetInstance().UpdateSeasonStanding();
-                    }
-                    else
-                    {
-                        throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-                    }
+                    ServerSync::GetInstance()._cachedCharacterBuffer.reset();
+                    Client::GetInstance().UpdateSeasonStanding();
                 }
-                catch (std::exception& ex)
-                {
-                    Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload character data: %", ex.what());
-                }
-            });
+            }
+            catch (std::exception& ex)
+            {
+                Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload character data: %", ex.what());
+            }
         });
     }
 }
@@ -769,28 +759,24 @@ void ServerSync::UploadCachedQuestBuffer()
         std::string bearerToken = "Bearer " + client.GetAuthToken();
         request.headers().add(U("Authorization"), bearerToken.c_str());
 
-        _backgroundTasks.run([endpoint, request]()
+        httpClient.request(request).then([](web::http::http_response response)
         {
-            web::http::client::http_client httpClient((utility::string_t)endpoint);
-            return httpClient.request(request).then([](Concurrency::task<web::http::http_response> responseTask)
+            if (response.status_code() == web::http::status_codes::OK)
+                return true;
+            else
+                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+        })
+        .then([](concurrency::task<bool> task)
+        {
+            try
             {
-                try
-                {
-                    web::http::http_response response = responseTask.get();
-                    if (response.status_code() == web::http::status_codes::OK)
-                    {
-                        ServerSync::GetInstance()._cachedQuestBuffer.reset();
-                    }
-                    else
-                    {
-                        throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-                    }
-                }
-                catch (std::exception& ex)
-                {
-                    Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload quest data: %", ex.what());
-                }
-            });
+                if (task.get())
+                    ServerSync::GetInstance()._cachedQuestBuffer.reset();
+            }
+            catch (std::exception& ex)
+            {
+                Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload quest data: %", ex.what());
+            }
         });
     }
 }
@@ -817,28 +803,24 @@ void ServerSync::UploadCachedConversationsBuffer()
         std::string bearerToken = "Bearer " + client.GetAuthToken();
         request.headers().add(U("Authorization"), bearerToken.c_str());
 
-        _backgroundTasks.run([endpoint, request]()
+        httpClient.request(request).then([](web::http::http_response response)
         {
-            web::http::client::http_client httpClient((utility::string_t)endpoint);
-            return httpClient.request(request).then([](Concurrency::task<web::http::http_response> responseTask)
+            if (response.status_code() == web::http::status_codes::OK)
+                return true;
+            else
+                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+        })
+        .then([](concurrency::task<bool> task)
+        {
+            try
             {
-                try
-                {
-                    web::http::http_response response = responseTask.get();
-                    if (response.status_code() == web::http::status_codes::OK)
-                    {
-                        ServerSync::GetInstance()._cachedQuestBuffer.reset();
-                    }
-                    else
-                    {
-                        throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-                    }
-                }
-                catch (std::exception& ex)
-                {
-                    Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload conversations data: %", ex.what());
-                }
-            });
+                if (task.get())
+                    ServerSync::GetInstance()._cachedConversationsBuffer.reset();
+            }
+            catch (std::exception& ex)
+            {
+                Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload conversations data: %", ex.what());
+            }
         });
     }
 }
@@ -865,28 +847,24 @@ void ServerSync::UploadCachedFOWBuffer()
         std::string bearerToken = "Bearer " + client.GetAuthToken();
         request.headers().add(U("Authorization"), bearerToken.c_str());
 
-        _backgroundTasks.run([endpoint, request]()
+        httpClient.request(request).then([](web::http::http_response response)
         {
-            web::http::client::http_client httpClient((utility::string_t)endpoint);
-            return httpClient.request(request).then([](Concurrency::task<web::http::http_response> responseTask)
+            if (response.status_code() == web::http::status_codes::OK)
+                return true;
+            else
+                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+        })
+        .then([](concurrency::task<bool> task)
+        {
+            try
             {
-                try
-                {
-                    web::http::http_response response = responseTask.get();
-                    if (response.status_code() == web::http::status_codes::OK)
-                    {
-                        ServerSync::GetInstance()._cachedQuestBuffer.reset();
-                    }
-                    else
-                    {
-                        throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-                    }
-                }
-                catch (std::exception& ex)
-                {
-                    Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload FOW data: %", ex.what());
-                }
-            });
+                if (task.get())
+                    ServerSync::GetInstance()._cachedFOWBuffer.reset();
+            }
+            catch (std::exception& ex)
+            {
+                Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload FOW data: %", ex.what());
+            }
         });
     }
 }
@@ -915,28 +893,24 @@ void ServerSync::UploadCachedStashBuffer()
         std::string bearerToken = "Bearer " + client.GetAuthToken();
         request.headers().add(U("Authorization"), bearerToken.c_str());
 
-        _backgroundTasks.run([endpoint, request]()
+        httpClient.request(request).then([](web::http::http_response response)
         {
-            web::http::client::http_client httpClient((utility::string_t)endpoint);
-            return httpClient.request(request).then([](Concurrency::task<web::http::http_response> responseTask)
+            if (response.status_code() == web::http::status_codes::OK)
+                return true;
+            else
+                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+        })
+        .then([](concurrency::task<bool> task)
+        {
+            try
             {
-                try
-                {
-                    web::http::http_response response = responseTask.get();
-                    if (response.status_code() == web::http::status_codes::OK)
-                    {
-                        ServerSync::GetInstance()._cachedStashBuffer.reset();
-                    }
-                    else
-                    {
-                        throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-                    }
-                }
-                catch (std::exception& ex)
-                {
-                    Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload shared stash: %", ex.what());
-                }
-            });
+                if (task.get())
+                    ServerSync::GetInstance()._cachedStashBuffer.reset();
+            }
+            catch (std::exception& ex)
+            {
+                Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload shared stash: %", ex.what());
+            }
         });
     }
 }
@@ -994,22 +968,23 @@ void ServerSync::SaveTagsFile()
     std::string bearerToken = "Bearer " + client.GetAuthToken();
     request.headers().add(U("Authorization"), bearerToken.c_str());
 
-    _backgroundTasks.run([endpoint, request]()
+    httpClient.request(request).then([](web::http::http_response response)
     {
-        web::http::client::http_client httpClient((utility::string_t)endpoint);
-        return httpClient.request(request).then([](Concurrency::task<web::http::http_response> responseTask)
+        if (response.status_code() == web::http::status_codes::OK)
+            return true;
+        else
+            throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+    })
+    .then([](concurrency::task<bool> task)
+    {
+        try
         {
-            try
-            {
-                web::http::http_response response = responseTask.get();
-                if (response.status_code() != web::http::status_codes::OK)
-                    throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-            }
-            catch (std::exception& ex)
-            {
-                Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload shared tags file: %", ex.what());
-            }
-        });
+            task.get();
+        }
+        catch (std::exception& ex)
+        {
+            Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload shared tags file: %", ex.what());
+        }
     });
 }
 
@@ -1077,49 +1052,48 @@ void ServerSync::UploadCloudStash()
 
                 GameAPI::RemoveAllItemsFromTab(uploadTab);
 
-                _backgroundTasks.run([requestBody, cloudStashItems]()
+                Client& client = Client::GetInstance();
+                URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(client.GetCurrentParticipantID()) / "stash";
+                endpoint.AddParam("branch", client.GetBranchName());
+
+                web::http::client::http_client httpClient((utility::string_t)endpoint);
+                web::http::http_request request(web::http::methods::POST);
+                request.set_body(requestBody);
+
+                std::string bearerToken = "Bearer " + client.GetAuthToken();
+                request.headers().add(U("Authorization"), bearerToken.c_str());
+
+                httpClient.request(request).then([](web::http::http_response response)
                 {
-                    Client& client = Client::GetInstance();
-                    URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(client.GetCurrentParticipantID()) / "stash";
-                    endpoint.AddParam("branch", client.GetBranchName());
-
-                    web::http::client::http_client httpClient((utility::string_t)endpoint);
-                    web::http::http_request request(web::http::methods::POST);
-                    request.set_body(requestBody);
-
-                    std::string bearerToken = "Bearer " + client.GetAuthToken();
-                    request.headers().add(U("Authorization"), bearerToken.c_str());
-
-                    httpClient.request(request).then([cloudStashItems](Concurrency::task<web::http::http_response> responseTask)
+                    return response.status_code();
+                })
+                .then([cloudStashItems](concurrency::task<web::http::status_code> task)
+                {
+                    try
                     {
-                        ServerSync& sync = ServerSync::GetInstance();
-                        try
+                        web::http::status_code statusCode = task.get();
+                        if (statusCode == web::http::status_codes::OK)
                         {
-                            web::http::http_response response = responseTask.get();
-                            if (response.status_code() == web::http::status_codes::OK)
-                            {
-                                const std::vector<void*>& transferTabs = GameAPI::GetTransferTabs();
-                                GameAPI::DisplayUINotification("tagGDLeagueStorageSuccess");
-                            }
-                            else if (response.status_code() == web::http::status_codes::BadRequest)
-                            {
-                                RefundCloudStashItems(cloudStashItems);
-                                GameAPI::DisplayUINotification("tagGDLeagueStorageFull");
-                            }
-                            else
-                            {
-                                RefundCloudStashItems(cloudStashItems);
-                                GameAPI::DisplayUINotification("tagGDLeagueStorageFailure");
-                                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-                            }
+                            const std::vector<void*>& transferTabs = GameAPI::GetTransferTabs();
+                            GameAPI::DisplayUINotification("tagGDLeagueStorageSuccess");
                         }
-                        catch (std::exception& ex)
+                        else if (statusCode == web::http::status_codes::BadRequest)
                         {
-                            Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload shared stash: %", ex.what());
+                            RefundCloudStashItems(cloudStashItems);
+                            GameAPI::DisplayUINotification("tagGDLeagueStorageFull");
                         }
-
-                        sync.DecrementStashLock();
-                    });
+                        else
+                        {
+                            RefundCloudStashItems(cloudStashItems);
+                            GameAPI::DisplayUINotification("tagGDLeagueStorageFailure");
+                            throw std::runtime_error("Server responded with status code " + std::to_string(statusCode));
+                        }
+                    }
+                    catch (std::exception& ex)
+                    {
+                        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to upload items to cloud stash: %", ex.what());
+                    }
+                    GetInstance().DecrementStashLock();
                 });
             }
         }
@@ -1184,7 +1158,7 @@ void ServerSync::LoadQuestStatesForPlayer(void* player)
                     }
                 }
             }
-            else
+            else if (response.status_code() != web::http::status_codes::NoContent)
             {
                 throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
             }
@@ -1232,7 +1206,7 @@ void ServerSync::LoadTagsFileForPlayer(void* player)
                     GameAPI::BestowTokenNow(player, tokenString);
                 }
             }
-            else
+            else if (response.status_code() != web::http::status_codes::NoContent)
             {
                 throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
             }
@@ -1266,22 +1240,23 @@ void ServerSync::PullTransferItems(const std::vector<std::shared_ptr<Item>>& ite
         std::string bearerToken = "Bearer " + client.GetAuthToken();
         request.headers().add(U("Authorization"), bearerToken.c_str());
 
-        _backgroundTasks.run([endpoint, request]()
+        httpClient.request(request).then([](web::http::http_response response)
         {
-            web::http::client::http_client httpClient((utility::string_t)endpoint);
-            return httpClient.request(request).then([](Concurrency::task<web::http::http_response> responseTask)
+            if (response.status_code() == web::http::status_codes::OK)
+                return true;
+            else
+                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+        })
+        .then([](concurrency::task<bool> task)
+        {
+            try
             {
-                try
-                {
-                    web::http::http_response response = responseTask.get();
-                    if (response.status_code() != web::http::status_codes::OK)
-                        throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-                }
-                catch (std::exception& ex)
-                {
-                    Logger::LogMessage(LOG_LEVEL_WARN, "Failed to pull items from transfer queue: %", ex.what());
-                }
-            });
+                task.get();
+            }
+            catch (std::exception& ex)
+            {
+                Logger::LogMessage(LOG_LEVEL_WARN, "Failed to pull items from transfer queue: %", ex.what());
+            }
         });
     }
 }
@@ -1308,7 +1283,7 @@ void ServerSync::DownloadCharacterBuffer(std::wstring playerName, uint32_t parti
             *data = new uint8_t[*size];
             memcpy(*data, &responseBody[0], *size);
         }
-        else
+        else if (response.status_code() != web::http::status_codes::NoContent)
         {
             throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
         }
@@ -1344,7 +1319,7 @@ void ServerSync::DownloadCharacterFile(std::wstring playerName, uint32_t partici
             FileWriter writer(&responseBody[0], responseBody.size());
             writer.WriteToFile(characterFilePath);
         }
-        else
+        else if (response.status_code() != web::http::status_codes::NoContent)
         {
             throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
         }
@@ -1469,7 +1444,7 @@ void ServerSync::DownloadCharacterFOWData(const std::wstring& playerName, uint32
                 FileWriter writer(&responseBody[0], responseBody.size());
                 writer.WriteToFile(questFilePath);
             }
-            else
+            else if (response.status_code() != web::http::status_codes::NoContent)
             {
                 throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
             }
@@ -1477,7 +1452,7 @@ void ServerSync::DownloadCharacterFOWData(const std::wstring& playerName, uint32
     }
     catch (const std::exception& ex)
     {
-        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to download character conversations data: %", ex.what());
+        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to download character FOW data: %", ex.what());
     }
 }
 
@@ -1500,7 +1475,7 @@ void ServerSync::CleanupSaveFolder(const std::unordered_set<std::wstring>& chara
     }
 }
 
-void ServerSync::DownloadCharacterList(uint32_t participantID, std::unordered_set<std::wstring>& characterList)
+void ServerSync::DownloadCharacterList(std::vector<pplx::task<void>>& downloadTasks, uint32_t participantID, std::unordered_set<std::wstring>& characterList)
 {
     try
     {
@@ -1522,13 +1497,27 @@ void ServerSync::DownloadCharacterList(uint32_t participantID, std::unordered_se
             for (size_t i = 0; i < charactersArray.size(); ++i)
             {
                 std::wstring playerName = charactersArray[i].as_string();
-                _backgroundTasks.run([=]()
+
+                auto task = pplx::create_task([=]()
                 {
                     DownloadCharacterFile(playerName, participantID);
                     DownloadCharacterQuestData(playerName, participantID);
                     DownloadCharacterConversationsData(playerName, participantID);
                     DownloadCharacterFOWData(playerName, participantID);
+                })
+                .then([](pplx::task<void> task)
+                {
+                    try
+                    {
+                        task.get();
+                    }
+                    catch (std::exception& ex)
+                    {
+                        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to download character data: %", ex.what());
+                    }
                 });
+
+                downloadTasks.emplace_back(task);
                 characterList.insert(playerName);
             }
         }
@@ -1543,74 +1532,100 @@ void ServerSync::DownloadCharacterList(uint32_t participantID, std::unordered_se
     }
 }
 
-void ServerSync::DownloadFormulasFile(uint32_t participantID, bool hardcore)
+void ServerSync::DownloadFormulasFile(std::vector<pplx::task<void>>& downloadTasks, uint32_t participantID, bool hardcore)
 {
-    _backgroundTasks.run([=]()
+    try
     {
-        try
+        Client& client = Client::GetInstance();
+        URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(participantID) / "formulasfile";
+        endpoint.AddParam("branch", client.GetBranchName());
+
+        web::http::client::http_client httpClient((utility::string_t)endpoint);
+        web::http::http_request request(web::http::methods::GET);
+
+        std::string bearerToken = "Bearer " + client.GetAuthToken();
+        request.headers().add(U("Authorization"), bearerToken.c_str());
+
+        auto task = httpClient.request(request).then([](web::http::http_response response)
         {
-            Client& client = Client::GetInstance();
-            URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(participantID) / "formulasfile";
-            endpoint.AddParam("branch", client.GetBranchName());
-
-            web::http::client::http_client httpClient((utility::string_t)endpoint);
-            web::http::http_request request(web::http::methods::GET);
-
-            std::string bearerToken = "Bearer " + client.GetAuthToken();
-            request.headers().add(U("Authorization"), bearerToken.c_str());
-
-            web::http::http_response response = httpClient.request(request).get();
             if (response.status_code() == web::http::status_codes::OK)
-            {
-                std::vector<uint8_t> responseBody = response.extract_vector().get();
-                FileWriter writer(&responseBody[0], responseBody.size());
-                writer.WriteToFile(GameAPI::GetFormulasPath(hardcore));
-            }
-            else if (response.status_code() != web::http::status_codes::NoContent)
-            {
+                return response.extract_vector();
+            else if (response.status_code() == web::http::status_codes::NoContent)
+                return pplx::create_task([]() -> std::vector<uint8_t> { return {}; });
+            else
                 throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-            }
-        }
-        catch (const std::exception& ex)
+        })
+        .then([hardcore](concurrency::task<std::vector<uint8_t>> task)
         {
-            Logger::LogMessage(LOG_LEVEL_WARN, "Failed to download formulas file: %", ex.what());
-        }
-    });
+            try
+            {
+                std::vector<uint8_t> responseBody = task.get();
+                if (!responseBody.empty())
+                {
+                    FileWriter writer(&responseBody[0], responseBody.size());
+                    writer.WriteToFile(GameAPI::GetFormulasPath(hardcore));
+                }
+            }
+            catch (std::exception& ex)
+            {
+                Logger::LogMessage(LOG_LEVEL_WARN, "Failed to download formulas file: %", ex.what());
+            }
+        });
+
+        downloadTasks.emplace_back(task);
+    }
+    catch (const std::exception& ex)
+    {
+        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to download formulas file: %", ex.what());
+    }
 }
 
-void ServerSync::DownloadTransmutesFile(uint32_t participantID, bool hardcore)
+void ServerSync::DownloadTransmutesFile(std::vector<pplx::task<void>>& downloadTasks, uint32_t participantID, bool hardcore)
 {
-    _backgroundTasks.run([=]()
+    try
     {
-        try
+        Client& client = Client::GetInstance();
+        URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(participantID) / "transmutesfile";
+        endpoint.AddParam("branch", client.GetBranchName());
+
+        web::http::client::http_client httpClient((utility::string_t)endpoint);
+        web::http::http_request request(web::http::methods::GET);
+
+        std::string bearerToken = "Bearer " + client.GetAuthToken();
+        request.headers().add(U("Authorization"), bearerToken.c_str());
+
+        auto task = httpClient.request(request).then([](web::http::http_response response)
         {
-            Client& client = Client::GetInstance();
-            URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(participantID) / "transmutesfile";
-            endpoint.AddParam("branch", client.GetBranchName());
-
-            web::http::client::http_client httpClient((utility::string_t)endpoint);
-            web::http::http_request request(web::http::methods::GET);
-
-            std::string bearerToken = "Bearer " + client.GetAuthToken();
-            request.headers().add(U("Authorization"), bearerToken.c_str());
-
-            web::http::http_response response = httpClient.request(request).get();
             if (response.status_code() == web::http::status_codes::OK)
-            {
-                std::vector<uint8_t> responseBody = response.extract_vector().get();
-                FileWriter writer(&responseBody[0], responseBody.size());
-                writer.WriteToFile(GameAPI::GetTransmutesPath(hardcore));
-            }
-            else if (response.status_code() != web::http::status_codes::NoContent)
-            {
+                return response.extract_vector();
+            else if (response.status_code() == web::http::status_codes::NoContent)
+                return pplx::create_task([]() -> std::vector<uint8_t> { return {}; });
+            else
                 throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-            }
-        }
-        catch (const std::exception& ex)
+        })
+        .then([hardcore](concurrency::task<std::vector<uint8_t>> task)
         {
-            Logger::LogMessage(LOG_LEVEL_WARN, "Failed to download formulas file: %", ex.what());
-        }
-    });
+            try
+            {
+                std::vector<uint8_t> responseBody = task.get();
+                if (!responseBody.empty())
+                {
+                    FileWriter writer(&responseBody[0], responseBody.size());
+                    writer.WriteToFile(GameAPI::GetTransmutesPath(hardcore));
+                }
+            }
+            catch (std::exception& ex)
+            {
+                Logger::LogMessage(LOG_LEVEL_WARN, "Failed to download transmutes file: %", ex.what());
+            }
+        });
+
+        downloadTasks.emplace_back(task);
+    }
+    catch (const std::exception& ex)
+    {
+        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to download formulas file: %", ex.what());
+    }
 }
 
 void ServerSync::DownloadTransferItems(uint32_t participantID)
@@ -1657,6 +1672,7 @@ void ServerSync::DownloadTransferItems(uint32_t participantID)
                 }
             }
 
+            GameAPI::SaveTransferStash();
             PullTransferItems(pullItemList);
             SetStashSynced(STASH_SYNC_TRANSFER);
         }
@@ -1677,6 +1693,7 @@ void ServerSync::DownloadStashData(uint32_t participantID)
     {
         Client& client = Client::GetInstance();
         URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(participantID) / "shared-stash" / "file";
+        endpoint.AddParam("branch", client.GetBranchName());
 
         web::http::client::http_client httpClient((utility::string_t)endpoint);
         web::http::http_request request(web::http::methods::GET);
@@ -1765,7 +1782,8 @@ void ServerSync::SyncCharacterData(const std::filesystem::path& filePath, void**
 void ServerSync::SyncStashData()
 {
     IncrementStashLock();
-    _backgroundTasks.run([&]()
+
+    pplx::create_task([=]()
     {
         Client& client = Client::GetInstance();
         uint32_t participantID = GetParticipantID(EngineAPI::IsHardcore());
@@ -1782,7 +1800,17 @@ void ServerSync::SyncStashData()
             SetStashSynced(STASH_SYNC_DOWNLOAD);
             DownloadTransferItems(participantID);
         }
-
+    })
+    .then([=](pplx::task<void> task)
+    {
+        try
+        {
+            task.get();
+        }
+        catch (std::exception& ex)
+        {
+            Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to sync stash data: %", ex.what());
+        }
         DecrementStashLock();
     });
 }
@@ -1798,7 +1826,7 @@ void ServerSync::OnInitializeEvent()
 void ServerSync::OnShutdownEvent()
 {
     GetInstance().UploadCachedBuffers();
-    GetInstance().WaitBackgroundComplete();
+    //GetInstance().WaitBackgroundComplete();
 
     //Client& client = Client::GetInstance();
     //if (Connection* connection = client.GetConnection())
@@ -1808,7 +1836,7 @@ void ServerSync::OnShutdownEvent()
 void ServerSync::OnDirectReadEvent(std::string filename, void** data, size_t* size)
 {
     std::filesystem::path filePath = filename;
-    if (filePath.filename() == "player.gdc")
+    if ((filePath.filename() == "player.gdc") && (std::filesystem::is_regular_file(filePath)))
     {
         GetInstance().SyncCharacterData(filePath, data, size);
     }
@@ -1846,21 +1874,25 @@ void ServerSync::OnAddSaveJobEvent(std::string filename, void* data, size_t size
             GetInstance().CacheCharacterBuffer(filename, data, size);
         }
     }
-    else if (filePath.filename() == "quests.gdd")
+    // Only save these files in the main campaign to prevent Crucible from overwriting them
+    else if (EngineAPI::IsMainCampaign())
     {
-        GetInstance().CacheQuestBuffer(filename, data, size);
+        if (filePath.filename() == "quests.gdd")
+        {
+            GetInstance().CacheQuestBuffer(filename, data, size);
 
-        // Only save tags file if the character already exists, so that we don't overwrite all of them on a new character
-        if (std::filesystem::exists(filePath))
-            GetInstance().SaveTagsFile();
-    }
-    else if (filePath.filename() == "conversations.gdd")
-    {
-        GetInstance().CacheConversationsBuffer(filename, data, size);
-    }
-    else if (filePath.filename() == "map.fow")
-    {
-        GetInstance().CacheFOWBuffer(filename, data, size);
+            // Only save tags file if the character already exists, so that we don't overwrite all of them on a new character
+            if (std::filesystem::exists(filePath))
+                GetInstance().SaveTagsFile();
+        }
+        else if (filePath.filename() == "conversations.gdd")
+        {
+            GetInstance().CacheConversationsBuffer(filename, data, size);
+        }
+        else if (filePath.filename() == "map.fow")
+        {
+            GetInstance().CacheFOWBuffer(filename, data, size);
+        }
     }
 }
 
@@ -1868,29 +1900,30 @@ void ServerSync::OnWorldPreLoadEvent(std::string mapName, bool unk1, bool modded
 {
     if (mapName.substr(0, 16) == "levels/mainmenu/")
     {
+        std::vector<pplx::task<void>> downloadTasks;
         std::unordered_set<std::wstring> characterList;
         if (uint32_t softcoreID = GetInstance().GetParticipantID(false))
         {
-            GetInstance().DownloadCharacterList(softcoreID, characterList);
-            GetInstance().DownloadFormulasFile(softcoreID, false);
-            GetInstance().DownloadTransmutesFile(softcoreID, false);
+            GetInstance().DownloadCharacterList(downloadTasks, softcoreID, characterList);
+            GetInstance().DownloadFormulasFile(downloadTasks, softcoreID, false);
+            GetInstance().DownloadTransmutesFile(downloadTasks, softcoreID, false);
         }
 
         if (uint32_t hardcoreID = GetInstance().GetParticipantID(true))
         {
-            GetInstance().DownloadCharacterList(hardcoreID, characterList);
-            GetInstance().DownloadFormulasFile(hardcoreID, true);
-            GetInstance().DownloadTransmutesFile(hardcoreID, true);
+            GetInstance().DownloadCharacterList(downloadTasks, hardcoreID, characterList);
+            GetInstance().DownloadFormulasFile(downloadTasks, hardcoreID, true);
+            GetInstance().DownloadTransmutesFile(downloadTasks, hardcoreID, true);
         }
+        pplx::when_all(downloadTasks.begin(), downloadTasks.end()).wait();
         GetInstance().CleanupSaveFolder(characterList);
-        GetInstance().WaitBackgroundComplete();
     }
 }
 
 void ServerSync::OnWorldPostLoadEvent(std::string mapName, bool unk1, bool modded)
 {
-    if (EngineAPI::IsMainCampaignOrCrucible())
-        ServerSync::GetInstance().RegisterSeasonParticipant(EngineAPI::IsHardcore());
+    //if (EngineAPI::IsMainCampaignOrCrucible())
+    //    ServerSync::GetInstance().RegisterSeasonParticipant(EngineAPI::IsHardcore());
 }
 
 void ServerSync::OnWorldPreUnloadEvent()
@@ -1936,7 +1969,7 @@ void ServerSync::OnTransferPostSaveEvent()
 
 void ServerSync::OnCharacterPreSaveEvent(void* player)
 {
-    if (player)
+    /*if (player)
     {
         std::filesystem::path playerFile = GameAPI::GetPlayerSaveFile(player);
         if (GameAPI::IsPlayerInMainQuest(player))
@@ -1947,7 +1980,7 @@ void ServerSync::OnCharacterPreSaveEvent(void* player)
                 GetInstance().RegisterSeasonParticipant(GameAPI::IsPlayerHardcore(player));
             }
         }
-    }
+    }*/
 }
 
 void ServerSync::OnCharacterPostSaveEvent(void* player)
@@ -2081,9 +2114,4 @@ void ServerSync::OnGetStashInfo(const signalr::value& value, const std::vector<v
 void ServerSync::OnConnectionStatus(const signalr::value& value, const std::vector<void*> args)
 {
     // No need to do anything here; calling the method is enough for checking connection status
-}
-
-void ServerSync::WaitBackgroundComplete()
-{
-    GetInstance()._backgroundTasks.wait();
 }

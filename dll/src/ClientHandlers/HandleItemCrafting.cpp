@@ -32,11 +32,11 @@ const std::unordered_map<std::string, ImprintFlags> _imprintTypeMap =
     { "grimleague/items/enchants/r208_imprint_medal.dbr",     { (1 << ITEM_TYPE_MEDAL),     0 } },
     { "grimleague/items/enchants/r209_imprint_ring.dbr",      { (1 << ITEM_TYPE_RING),      0 } },
     { "grimleague/items/enchants/r210_imprint_amulet.dbr",    { (1 << ITEM_TYPE_AMULET),    0 } },
-    { "grimleague/items/enchants/r211_imprint_1h.dbr",        { (1 << ITEM_TYPE_WEAPON),    (1 << WEAPON_TYPE_SWORD_1H) | (1 << WEAPON_TYPE_AXE_1H) | (1 << WEAPON_TYPE_MACE_1H) | (1 << WEAPON_TYPE_RANGED_1H) } },
-    { "grimleague/items/enchants/r212_imprint_1hcaster.dbr",  { (1 << ITEM_TYPE_WEAPON),    (1 << WEAPON_TYPE_DAGGER)   | (1 << WEAPON_TYPE_SCEPTER) } },
-    { "grimleague/items/enchants/r213_imprint_2h.dbr",        { (1 << ITEM_TYPE_WEAPON),    (1 << WEAPON_TYPE_SWORD_2H) | (1 << WEAPON_TYPE_AXE_2H) | (1 << WEAPON_TYPE_MACE_2H) | (1 << WEAPON_TYPE_RANGED_2H) | (1 << WEAPON_TYPE_SPEAR) } },
-    { "grimleague/items/enchants/r214_imprint_shield.dbr",    { (1 << ITEM_TYPE_OFFHAND),   (1 << WEAPON_TYPE_SHIELD) } },
-    { "grimleague/items/enchants/r215_imprint_offhand.dbr",   { (1 << ITEM_TYPE_OFFHAND),   (1 << WEAPON_TYPE_CASTER_OH) } },
+    { "grimleague/items/enchants/r211_imprint_1h.dbr",        { (1 << ITEM_TYPE_WEAPON),    WEAPON_MASK_1H } },
+    { "grimleague/items/enchants/r212_imprint_1hcaster.dbr",  { (1 << ITEM_TYPE_WEAPON),    WEAPON_MASK_CASTER } },
+    { "grimleague/items/enchants/r213_imprint_2h.dbr",        { (1 << ITEM_TYPE_WEAPON),    WEAPON_MASK_2H } },
+    { "grimleague/items/enchants/r214_imprint_shield.dbr",    { (1 << ITEM_TYPE_OFFHAND),   WEAPON_MASK_SHIELD } },
+    { "grimleague/items/enchants/r215_imprint_offhand.dbr",   { (1 << ITEM_TYPE_OFFHAND),   WEAPON_MASK_CASTER_OH } },
 };
 
 const std::regex vaalRegex("^grimleague/items/lootaffixes/ultos/ultos_affix(\\d{2}[a-z]).dbr$");
@@ -44,8 +44,6 @@ const std::regex smithRegex("^grimleague/items/lootaffixes/ultos/ultos_smith(\\d
 
 void* _lastEnchantUsedOn = nullptr;
 void* _lastEquipment = nullptr;
-void* _lastEnchant = nullptr;
-GameAPI::ItemReplicaInfo _lastEnchantInfo;
 
 std::string GenerateAffixRoll(const std::string& tableName, uint32_t itemLevel, std::string ignore)
 {
@@ -746,21 +744,14 @@ bool HandleCanEnchantBeUsedOn(void* _this, void* item, bool unk1, bool& unk2)
     CanEnchantBeUsedOnProto callback = (CanEnchantBeUsedOnProto)HookManager::GetOriginalFunction(GAME_DLL, GameAPI::GAPI_NAME_CAN_ENCHANT_BE_USED_ON);
     if (callback)
     {
-        bool result = callback(_this, item, unk1, unk2);
-
-        if (_this != _lastEnchant)
-        {
-            _lastEnchant = _this;
-            GameAPI::GetItemReplicaInfo(_this, _lastEnchantInfo);
-        }
-
-        auto pair = canUseItemFilters.find(_lastEnchantInfo._itemName);
+        GameAPI::ItemReplicaInfo enchantInfo = GameAPI::GetItemReplicaInfo(_this);
+        auto pair = canUseItemFilters.find(enchantInfo._itemName);
         if (pair != canUseItemFilters.end())
         {
             CanUseItemFilter filter = pair->second;
 
             ItemType itemType = GameAPI::GetItemType(item);
-            if (((1 << itemType) & 0xEBFE) == 0)    // This bitmask checks to make sure the item is equippable
+            if (((1 << itemType) & ITEM_MASK_EQUIPPABLE) == 0)
                 return false;
 
             // Prevent crafting on items that are already equipped
@@ -782,8 +773,10 @@ bool HandleCanEnchantBeUsedOn(void* _this, void* item, bool unk1, bool& unk2)
 
             return filter(item, _this, itemLevel, itemInfo, itemType, itemRarity);
         }
-
-        return result;
+        else
+        {
+            return callback(_this, item, unk1, unk2);
+        }
     }
     return false;
 }

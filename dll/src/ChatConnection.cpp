@@ -206,8 +206,11 @@ void ChatClient::SetChannel(EngineAPI::UI::ChatType type, uint32_t channel)
             break;
     }
 
-    Client& client = Client::GetInstance();
-    InvokeAsync("JoinChannel", GetConnectionID(), client.GetUsername(), oldChannel, newChannel);
+    if (IsConnected())
+    {
+        Client& client = Client::GetInstance();
+        InvokeAsync("JoinChannel", GetConnectionID(), client.GetUsername(), oldChannel, newChannel);
+    }
 }
 
 void ChatClient::SendChatMessage(EngineAPI::UI::ChatType type, const std::wstring& name, const std::wstring& message, void* item)
@@ -414,7 +417,7 @@ void ChatClient::LoadMutedList()
         }
         else
         {
-            throw std::runtime_error("Server responded with status code %" + std::to_string(response.status_code()));
+            throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
         }
     }
     catch (const std::exception& ex)
