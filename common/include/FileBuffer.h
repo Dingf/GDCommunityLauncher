@@ -1,6 +1,8 @@
 #ifndef INC_GDCL_FILE_BUFFER_H
 #define INC_GDCL_FILE_BUFFER_H
 
+#include <stdint.h>
+
 class FileBuffer
 {
     public:

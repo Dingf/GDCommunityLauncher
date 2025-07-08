@@ -381,7 +381,7 @@ bool LoginDialog::Login(void* configPointer)
         }
 
         Client& client = Client::GetInstance();
-        if ((!client.IsInitialized()) && (!client.IsOfflineMode()))
+        if ((client.GetAuthToken().empty()) && (!client.IsOfflineMode()))
         {
             MessageBox(NULL, TEXT("Failed to retrieve data from the server."), NULL, MB_OK | MB_ICONERROR);
             return FALSE;

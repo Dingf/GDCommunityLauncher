@@ -2,7 +2,7 @@
 #define INC_GDCL_JSON_OBJECT_H
 
 #include <string>
-#include <cpprest/json.h>
+/*#include <cpprest/json.h>
 
 class JSONObject
 {
@@ -29,6 +29,6 @@ class JSONString : public JSONObject
 
     private:
         const std::string& _s;
-};
+};*/
 
 #endif//INC_GDCL_JSON_OBJECT_H

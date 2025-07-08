@@ -31,6 +31,7 @@ const std::unordered_map<uint64_t, CraftingTemplate> templates =
     { ItemTypePair { ITEM_TYPE_WEAPON,    WEAPON_TYPE_SCEPTER },   { "records/items/loottables/weapons/tdyn_caster1h_a06.dbr",         0.96f, 1.50f } },
     { ItemTypePair { ITEM_TYPE_WEAPON,    WEAPON_TYPE_RANGED_1H }, { "records/items/loottables/weapons/tdyn_gun1h_a07.dbr",            0.48f, 0.43f } },
     { ItemTypePair { ITEM_TYPE_WEAPON,    WEAPON_TYPE_RANGED_2H }, { "records/items/loottables/weapons/tdyn_gun2h_a07.dbr",            1.58f, 0.43f } },
+    { ItemTypePair { ITEM_TYPE_WEAPON,    WEAPON_TYPE_SPEAR },     { "records/items/loottables/weapons/tdyn_melee2h_a07.dbr",          0.82f, 0.43f } },
     { ItemTypePair { ITEM_TYPE_OFFHAND,   WEAPON_TYPE_SHIELD },    { "records/items/loottables/weapons/tdyn_shield_a06.dbr",           1.52f, 0.86f } },
     { ItemTypePair { ITEM_TYPE_OFFHAND,   WEAPON_TYPE_CASTER_OH }, { "records/items/loottables/weapons/tdyn_focus_a05.dbr",            1.81f, 2.18f } },
 };

@@ -782,7 +782,7 @@ web::json::value Character::CharacterInfoBlock::ToJSON() const
     return obj;
 }
 
-web::json::value Character::CharacterAttributeBlock::ToJSON() const
+web::json::value Character::CharacterAttributesBlock::ToJSON() const
 {
     web::json::value obj = web::json::value::object();
 

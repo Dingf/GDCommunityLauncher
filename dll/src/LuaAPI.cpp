@@ -206,7 +206,7 @@ void Initialize()
     HookManager::CreateHook(LUA_DLL, "lua_gettop", &HandleLuaGetTop);
 }
 
-void Cleanup()
+void Shutdown()
 {
     HookManager::DeleteHook(LUA_DLL, "lua_gettop");
     _state = NULL;

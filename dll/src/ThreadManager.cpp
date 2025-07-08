@@ -2,7 +2,7 @@
 
 ThreadManager::~ThreadManager()
 {
-    _threads.clear();
+    DeleteAllThreads();
 }
 
 ThreadManager& ThreadManager::GetInstance()
@@ -11,73 +11,54 @@ ThreadManager& ThreadManager::GetInstance()
     return instance;
 }
 
-void ThreadManager::StopThread(const std::string& name)
+void ThreadManager::TimerThread::Start()
 {
-    ThreadManager& manager = GetInstance();
-    if (manager._threads.count(name) > 0)
-        manager._threads[name]->Stop();
+    _running = true;
+    _future = std::async(std::launch::async, &TimerThread::Tick, this);
 }
 
-void ThreadManager::DeleteThread(BaseThread* thread)
+void ThreadManager::TimerThread::Stop()
 {
-    ThreadManager& manager = GetInstance();
-    for (auto& pair : _threads)
+    _running = false;
+}
+
+void ThreadManager::TimerThread::Tick()
+{
+    do
     {
-        if (pair.second.get() == thread)
+        std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
+        if ((uint64_t)ms.count() >= _nextTick)
         {
-            _threads.erase(pair.first);
-            break;
-        }
-    }
-}
-
-ThreadManager::BaseThread::BaseThread()
-{
-    Start();
-}
-
-void ThreadManager::BaseThread::Start()
-{
-    _thread = std::make_unique<std::thread>(&BaseThread::Callback, this);
-    _thread->detach();
-}
-
-void ThreadManager::BaseThread::Stop()
-{
-    _callback = nullptr;
-}
-
-void ThreadManager::BaseThread::Callback()
-{
-    while (_callback != nullptr)
-        Update();
-}
-
-void ThreadManager::BaseThread::Update()
-{
-    if (_callback != nullptr)
-    {
-        _callback();
-        Stop();
-    }
-}
-
-void ThreadManager::PeriodicThread::Update()
-{
-    std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
-    if ((_updateTime > 0) && ((uint64_t)ms.count() >= _updateTime))
-    {
-        if (_callback != nullptr)
-        {
-            _callback();
-            _updateTime += _repeat;
-
-            if (_repeat == 0)
+            int64_t delay = _callback();
+            if (delay <= 0)
             {
-                Stop();
-                return;
+                _running = false;
+                break;
             }
+            _nextTick += delay;
         }
+        std::this_thread::sleep_for(std::chrono::milliseconds(_tickRate));
     }
-    std::this_thread::sleep_for(std::chrono::milliseconds(_tickRate));
+    while (_running);
+}
+
+void ThreadManager::DeleteThread(const std::string& name)
+{
+    ThreadManager& manager = GetInstance();
+    auto it = manager._threads.find(name);
+    if (it != manager._threads.end())
+    {
+        it->second->Stop();
+        manager._threads.erase(it);
+    }
+}
+
+void ThreadManager::DeleteAllThreads()
+{
+    ThreadManager& manager = GetInstance();
+    for (auto& pair : manager._threads)
+    {
+        pair.second->Stop();
+    }
+    manager._threads.clear();
 }

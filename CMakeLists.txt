@@ -20,6 +20,11 @@ if (minhook_FOUND)
     include_directories(${minhook_INCLUDE_DIR})
 endif()
 
+find_package(boost 1.85 COMPONENTS beast REQUIRED)
+if (boost_FOUND)
+    INCLUDE_DIRECTORIES(${boost_INCLUDE_DIR})
+endif()
+
 find_package(cpprestsdk CONFIG REQUIRED)
 if (cpprestsdk_FOUND)
     find_path(cpprestsdk_INCLUDE_DIR cpprest/json.h)

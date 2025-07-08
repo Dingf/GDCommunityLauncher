@@ -4,8 +4,9 @@
 #include <string>
 #include <unordered_map>
 #include <memory>
-#include <thread>
 #include <functional>
+#include <future>
+#include <atomic>
 
 class ThreadManager
 {
@@ -13,114 +14,49 @@ class ThreadManager
         ~ThreadManager();
 
         template <typename F, typename... Ts>
-        static bool CreateThread(const std::string& name, F&& callback, Ts&&... args)
+        static bool CreateThread(const std::string& name, uint64_t tickRate, uint64_t delay, F&& callback, Ts&&... args)
         {
             ThreadManager& manager = GetInstance();
-            BaseThread* thread;
-            if (manager._threads.count(name) == 0)
+
+            auto it = manager._threads.find(name);
+            if (it != manager._threads.end())
             {
-                thread = new BaseThread;
-            }
-            else
-            {
-                ThreadType type = manager._threads[name]->GetType();
-                if (type == THREAD_TYPE_BASE)
-                    thread = manager._threads[name].get();
-                else
+                if (it->second->_running)
                     return false;
-            }
-
-            thread->_name = name;
-
-            auto f = std::bind(std::forward<F>(callback), std::forward<Ts>(args)...);
-            thread->_callback = [f] { f(); };
-
-            if (manager._threads.count(name) == 0)
-            {
-                std::unique_ptr<BaseThread> threadPointer(thread);
-                manager._threads.emplace(name, std::move(threadPointer));
-            }
-            else
-            {
-                thread->Start();
-            }
-            return true;
-        }
-
-        template <typename F, typename... Ts>
-        static bool CreatePeriodicThread(const std::string& name, uint64_t tickRate, uint64_t repeat, uint64_t delay, F&& callback, Ts&&... args)
-        {
-            ThreadManager& manager = GetInstance();
-            PeriodicThread* thread;
-            if (manager._threads.count(name) == 0)
-            {
-                thread = new PeriodicThread;
-            }
-            else
-            {
-                ThreadType type = manager._threads[name]->GetType();
-                if (type == THREAD_TYPE_PERIODIC)
-                    thread = dynamic_cast<PeriodicThread*>(manager._threads[name].get());
                 else
-                    return false;
+                    manager._threads.erase(it);
             }
 
-            thread->_name = name;
-
-            std::chrono::milliseconds ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
-            thread->_updateTime = ms.count() + delay;
+            TimerThread* thread = new TimerThread;
+            thread->_nextTick = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() + delay;
             thread->_tickRate = tickRate;
-            thread->_repeat = repeat;
 
             auto f = std::bind(std::forward<F>(callback), std::forward<Ts>(args)...);
-            thread->_callback = [f] { f(); };
+            thread->_callback = [f] { return f(); };
 
-            if (manager._threads.count(name) == 0)
-            {
-                std::unique_ptr<BaseThread> threadPointer(thread);
-                manager._threads.emplace(name, std::move(threadPointer));
-            }
-            else
-            {
-                thread->Start();
-            }
+            std::unique_ptr<TimerThread> threadPointer(thread);
+            manager._threads.emplace(name, std::move(threadPointer));
+            thread->Start();
             return true;
         }
 
-        static void StopThread(const std::string& name);
+        static void DeleteThread(const std::string& name);
+        static void DeleteAllThreads();
 
     private:
-        enum ThreadType
+        struct TimerThread
         {
-            THREAD_TYPE_BASE = 0,
-            THREAD_TYPE_PERIODIC = 1,
-        };
-
-        struct BaseThread
-        {
-            BaseThread();
-            virtual ~BaseThread() { Stop(); }
-
-            void Callback();
+            ~TimerThread() { Stop(); }
 
             void Start();
             void Stop();
-            virtual void Update();
-            virtual ThreadType GetType() { return THREAD_TYPE_BASE; }
+            void Tick();
 
-            std::string _name;
-            std::function<void()> _callback;
-            std::unique_ptr<std::thread> _thread;
-        };
-
-        struct PeriodicThread : public BaseThread
-        {
-            void Update();
-            ThreadType GetType() { return THREAD_TYPE_PERIODIC; }
-
-            uint64_t _updateTime;
+            std::function<int64_t()> _callback;
+            std::future<void> _future;
+            uint64_t _nextTick;
             uint64_t _tickRate;
-            uint64_t _repeat;
+            std::atomic_bool _running;
         };
 
         ThreadManager() {};
@@ -129,9 +65,7 @@ class ThreadManager
 
         static ThreadManager& GetInstance();
 
-        void DeleteThread(BaseThread* thread);
-
-        std::unordered_map<std::string, std::unique_ptr<BaseThread>> _threads;
+        std::unordered_map<std::string, std::unique_ptr<TimerThread>> _threads;
 };
 
 #endif//INC_GDCL_DLL_THREAD_MANAGER_H

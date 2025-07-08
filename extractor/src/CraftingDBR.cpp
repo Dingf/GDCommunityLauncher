@@ -27,7 +27,8 @@ std::vector<std::regex> craftingBlacklist =
     std::regex("\\/b_luminari_bayonettrifle_[0-9]+\\.dbr$"),
     std::regex("\\/b_luminari_bayonettrifle_[0-9]+\\.dbr$"),
     std::regex("d0[0-9]_[A-Za-z0-9_-]+_94"),
-    std::regex("halftrolls_chaoselemental_spirit")
+    std::regex("halftrolls_chaoselemental_spirit"),
+    std::regex("outlawcannonbroken")
 };
 
 uint32_t CraftingDBR::GetTotalValueWeight() const

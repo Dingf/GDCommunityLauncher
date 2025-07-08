@@ -18,7 +18,6 @@
 #include "EngineAPI/World.h"
 #include "EngineAPI/Input/KeyButtonEvent.h"
 #include "EngineAPI/Input/MouseEvent.h"
-#include "EngineAPI/UI/ChatWindow.h"
 #include "EngineAPI/UI/Localize.h"
 #include "EngineAPI/UI/StyleManager.h"
 

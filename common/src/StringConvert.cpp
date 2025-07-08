@@ -73,9 +73,8 @@ std::string WideToChar(const std::wstring& str)
 std::string BinaryToBase64(const std::vector<uint8_t>& str)
 {
     std::string result;
-
-    uint32_t size = str.size();
-    for (uint32_t i = 0; i < size; i += 3)
+    size_t size = str.size();
+    for (size_t i = 0; i < str.size(); i += 3)
     {
         int8_t v1 = str[i];
         result.push_back(_base64Chars[(v1 & 0xFC) >> 2]);
@@ -110,9 +109,7 @@ std::string BinaryToBase64(const std::vector<uint8_t>& str)
 std::vector<uint8_t> Base64ToBinary(const std::string& str)
 {
     std::vector<uint8_t> result;
-
-    uint32_t size = str.size();
-    for (uint32_t i = 0; i < size; i += 4)
+    for (size_t i = 0; i < str.size(); i += 4)
     {
         int8_t v1 = _base64Values[str[i]];
         int8_t v2 = _base64Values[str[i+1]];

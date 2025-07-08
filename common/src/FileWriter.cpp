@@ -4,16 +4,30 @@ FileWriter::FileWriter(size_t size)
 {
     _bufferPos = 0;
     _bufferSize = size;
-    _buffer = new uint8_t[size];
-    memset(_buffer, 0, size * sizeof(uint8_t));
+    if (size > 0)
+    {
+        _buffer = new uint8_t[size];
+        memset(_buffer, 0, size * sizeof(uint8_t));
+    }
+    else
+    {
+        _buffer = nullptr;
+    }
 }
 
 FileWriter::FileWriter(uint8_t* buffer, size_t size)
 {
     _bufferSize = size;
     _bufferPos = size;
-    _buffer = new uint8_t[size];
-    memcpy(_buffer, buffer, size);
+    if (size > 0)
+    {
+        _buffer = new uint8_t[size];
+        memcpy(_buffer, buffer, size);
+    }
+    else
+    {
+        _buffer = nullptr;
+    }
 }
 
 void FileWriter::BufferFloat(float val)
@@ -94,22 +108,28 @@ void FileWriter::BufferWideString(const std::wstring& val)
 void FileWriter::CopyFromBuffer(uint8_t* buffer, size_t size)
 {
     size = std::min((size_t)(_bufferSize - _bufferPos), size);
-    memcpy(&_buffer[_bufferPos], buffer, size);
-    _bufferPos += size;
+    if (size > 0)
+    {
+        memcpy(&_buffer[_bufferPos], buffer, size);
+        _bufferPos += size;
+    }
 }
 
 void FileWriter::WriteToFile(const std::filesystem::path& filename)
 {
-    std::filesystem::create_directories(filename.parent_path());
-    std::ofstream out(filename, std::ofstream::binary | std::ofstream::out);
-    if (out.is_open())
+    if (_buffer != nullptr)
     {
-        out.write((const char*)_buffer, _bufferSize);
-        out.close();
-    }
-    else
-    {
-        throw std::runtime_error(std::string("Could not open file ") + filename.u8string() + " for writing");
+        std::filesystem::create_directories(filename.parent_path());
+        std::ofstream out(filename, std::ofstream::binary | std::ofstream::out);
+        if (out.is_open())
+        {
+            out.write((const char*)_buffer, _bufferSize);
+            out.close();
+        }
+        else
+        {
+            throw std::runtime_error(std::string("Could not open file ") + filename.u8string() + " for writing");
+        }
     }
 }
 

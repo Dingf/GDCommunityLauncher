@@ -94,14 +94,13 @@ bool Configuration::Load(const std::filesystem::path& path)
                 }
                 case '=':
                 {
+                    // TODO: Test if '=' works in the configuration now
                     if ((valueStart == -1) && (sectionStart == -1))
                     {
                         key = ReadBufferedString(buffer, lineStart, i);
                         valueStart = i + 1;
-                        break;
                     }
-                    else
-                        return false;
+                    break;
                 }
             }
         }

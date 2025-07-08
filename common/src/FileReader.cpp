@@ -20,12 +20,16 @@ FileReader::FileReader(const std::filesystem::path& filename)
 
 FileReader::FileReader(uint8_t* buffer, size_t size)
 {
+    _bufferPos = 0;
+    _bufferSize = size;
     if (size > 0)
     {
-        _bufferPos = 0;
-        _bufferSize = size;
         _buffer = new uint8_t[size];
         memcpy(_buffer, buffer, size);
+    }
+    else
+    {
+        _buffer = nullptr;
     }
 }
 
@@ -216,7 +220,7 @@ uint32_t EncodedFileReader::ReadInt32(bool update)
 
 std::string EncodedFileReader::ReadString()
 {
-    uint32_t length = ReadInt32(true);
+    uint32_t length = ReadInt32();
     if ((length == 0) || (_bufferPos + length > _bufferSize))
         return {};
 
@@ -230,7 +234,7 @@ std::string EncodedFileReader::ReadString()
 
 std::wstring EncodedFileReader::ReadWideString()
 {
-    uint32_t length = ReadInt32(true);
+    uint32_t length = ReadInt32();
     if ((length == 0) || (_bufferPos + (length * 2) > _bufferSize))
         return {};
 

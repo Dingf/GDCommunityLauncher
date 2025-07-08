@@ -38,7 +38,7 @@ const char* lua_tostring(void* L, int index);
 ptrdiff_t lua_tointeger(void* L, int index);
 
 void Initialize();
-void Cleanup();
+void Shutdown();
 void* GetState();
 
 }

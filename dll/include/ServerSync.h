@@ -21,7 +21,7 @@ enum StashSyncFlag
 class ServerSync
 {
     public:
-        static void Initialize() { GetInstance(); }
+        static ServerSync& GetInstance();
 
         static bool IsStashSynced() { return (GetInstance()._stashSynced.load() == 0x03); }
         static bool IsStashLocked() { return (GetInstance()._stashLock.load() > 0); }
@@ -75,8 +75,6 @@ class ServerSync
         ServerSync(ServerSync&) = delete;
         void operator=(const ServerSync&) = delete;
 
-        static ServerSync& GetInstance();
-
         uint32_t GetParticipantID(bool hardcore);
         uint32_t GetCharacterID(const std::wstring& playerName);
 
@@ -123,7 +121,7 @@ class ServerSync
         static void OnCharacterPostSaveEvent(void* player);
 
         static void OnDeleteFileEvent(const char* filename);
-        static void OnDelayedCharacterUpload();
+        static int64_t OnDelayedCharacterUpload();
 
         static void OnAddParticipant(const signalr::value& value);
         static void OnGetCharacterInfo(const signalr::value& value, const std::vector<void*> args);

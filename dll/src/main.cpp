@@ -1,7 +1,10 @@
 #include <filesystem>
 #include <windows.h>
-#include "Client.h"
-#include "ClientHandler.h"
+#include "SeasonClient.h"
+#include "GameHandler.h"
+#include "ServerHandler.h"
+#include "ChatManager.h"
+#include "Log.h"
 
 BOOL APIENTRY DllMain(HINSTANCE hInstDLL, DWORD fdwReason, LPVOID lpReserved)
 {
@@ -9,18 +12,21 @@ BOOL APIENTRY DllMain(HINSTANCE hInstDLL, DWORD fdwReason, LPVOID lpReserved)
     if (!GetModuleFileName(NULL, buffer, MAX_PATH))
         return FALSE;
 
+    Logger::SetMinimumLogLevel(LOG_LEVEL_DEBUG);
+
     std::filesystem::path processPath(buffer);
     if (processPath.filename() == "Grim Dawn.exe")
     {
-        Client& client = Client::GetInstance();
         switch (fdwReason)
         {
             case DLL_PROCESS_ATTACH:
-                client.Initialize();
-                ClientHandler::CreateHooks();
+                if (!SeasonClient::Initialize() ||
+                    !GameHandler::Initialize() ||
+                    !ServerHandler::Initialize() ||
+                    !ChatManager::Initialize())
+                    return FALSE;
                 break;
             case DLL_PROCESS_DETACH:
-                ClientHandler::DeleteHooks();
                 break;
             case DLL_THREAD_ATTACH:
                 break;

@@ -13,6 +13,7 @@
 #include "StringConvert.h"
 #include "Log.h"
 
+// TODO: Delete this file
 class Connection
 {
     public:

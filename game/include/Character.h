@@ -140,9 +140,9 @@ class Character : public JSONObject
         _infoBlock;
 
         // Attributes Block, ID = 2, Version = 8
-        struct CharacterAttributeBlock : public GDDataBlock
+        struct CharacterAttributesBlock : public GDDataBlock
         {
-            CharacterAttributeBlock() : GDDataBlock(0x02, 0x80) {}
+            CharacterAttributesBlock() : GDDataBlock(0x02, 0x80) {}
 
             web::json::value ToJSON() const;
 
@@ -169,49 +169,49 @@ class Character : public JSONObject
 
             class CharacterInventory : public Stash
             {
-            public:
-                ItemContainerType GetContainerType() const { return ITEM_CONTAINER_CHAR_BAG; }
+                public:
+                    ItemContainerType GetContainerType() const { return ITEM_CONTAINER_CHAR_BAG; }
 
-                size_t GetBufferSize() const;
+                    size_t GetBufferSize() const;
 
-                void Read(EncodedFileReader* reader);
-                void Write(EncodedFileWriter* writer);
+                    void Read(EncodedFileReader* reader);
+                    void Write(EncodedFileWriter* writer);
 
-                uint32_t GetFocusedTab() const { return _focusedTab; }
-                uint32_t GetSelectedTab() const { return _selectedTab; }
+                    uint32_t GetFocusedTab() const { return _focusedTab; }
+                    uint32_t GetSelectedTab() const { return _selectedTab; }
 
-                void SetFocusedTab(uint32_t tab) { _focusedTab = tab; }
-                void SetSelectedTab(uint32_t tab) { _selectedTab = tab; }
+                    void SetFocusedTab(uint32_t tab) { _focusedTab = tab; }
+                    void SetSelectedTab(uint32_t tab) { _selectedTab = tab; }
 
-            private:
-                uint32_t _focusedTab;
-                uint32_t _selectedTab;
+                private:
+                    uint32_t _focusedTab;
+                    uint32_t _selectedTab;
             }
             _charInventory;
 
             class CharacterEquipped : public ItemContainer
             {
-            public:
-                CharacterEquipped() : ItemContainer(1, MAX_CHAR_INV_SLOT) {}
+                public:
+                    CharacterEquipped() : ItemContainer(1, MAX_CHAR_INV_SLOT) {}
 
-                size_t GetBufferSize() const;
+                    size_t GetBufferSize() const;
 
-                void Read(EncodedFileReader* reader);
-                void Write(EncodedFileWriter* writer);
+                    void Read(EncodedFileReader* reader);
+                    void Write(EncodedFileWriter* writer);
 
-                ItemContainerType GetContainerType() const { return ITEM_CONTAINER_CHAR_INVENTORY; }
+                    ItemContainerType GetContainerType() const { return ITEM_CONTAINER_CHAR_INVENTORY; }
 
-                bool IsUsingSecondaryWeaponSet() const { return _activeWeaponSet; }
-                bool GetAttachState(uint32_t index) const { return (index < MAX_CHAR_INV_SLOT) ? _attached[index] : false; }
+                    bool IsUsingSecondaryWeaponSet() const { return _activeWeaponSet; }
+                    bool GetAttachState(uint32_t index) const { return (index < MAX_CHAR_INV_SLOT) ? _attached[index] : false; }
 
-                void SetActiveWeaponSet(bool secondary) { _activeWeaponSet = secondary; }
-                void SetAttachState(uint32_t index, bool state) { if (index < MAX_CHAR_INV_SLOT) { _attached[index] = state; } }
+                    void SetActiveWeaponSet(bool secondary) { _activeWeaponSet = secondary; }
+                    void SetAttachState(uint32_t index, bool state) { if (index < MAX_CHAR_INV_SLOT) { _attached[index] = state; } }
 
-            private:
-                bool _activeWeaponSet;
-                bool _attached[MAX_CHAR_INV_SLOT];
-                int8_t _weaponSet1;
-                int8_t _weaponSet2;
+                private:
+                    bool _activeWeaponSet;
+                    bool _attached[MAX_CHAR_INV_SLOT];
+                    int8_t _weaponSet1;
+                    int8_t _weaponSet2;
             }
             _charEquipped;
 
@@ -227,11 +227,11 @@ class Character : public JSONObject
 
             class CharacterStash : public Stash
             {
-            public:
-                ItemContainerType GetContainerType() const { return ITEM_CONTAINER_CHAR_STASH; }
+                public:
+                    ItemContainerType GetContainerType() const { return ITEM_CONTAINER_CHAR_STASH; }
 
-                void Read(EncodedFileReader* reader);
-                void Write(EncodedFileWriter* writer);
+                    void Read(EncodedFileReader* reader);
+                    void Write(EncodedFileWriter* writer);
             }
             _charStash;
         }

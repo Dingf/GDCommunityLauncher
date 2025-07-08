@@ -4,6 +4,8 @@
 #include "GameAPI.h"
 #include "Item.h"
 
+#include "Log.h"
+
 namespace GameAPI
 {
 
@@ -159,7 +161,6 @@ ItemType GetItemType(void* item)
 
     //GetItemTypeProto callback = *(GetItemTypeProto*)(*((uintptr_t*)item) + 0x508);   // Version 1.2.1.1
     GetItemTypeProto callback = *(GetItemTypeProto*)(*((uintptr_t*)item) + 0x518);     // Version 1.2.1.6
-
     if (callback)
         return callback();
 

@@ -1,0 +1,101 @@
+#ifndef INC_GDCL_DLL_CHAT_MANAGER_H
+#define INC_GDCL_DLL_CHAT_MANAGER_H
+
+#include <unordered_set>
+#include <string>
+#include <memory>
+#include "Connection.h"
+#include "EngineAPI/UI/Chat.h"
+
+enum ChatType
+{
+    CHAT_TYPE_NORMAL = 0,
+    CHAT_TYPE_TRADE = 1,
+    CHAT_TYPE_GLOBAL = 2,
+    CHAT_TYPE_WHISPER = 3,
+};
+
+class ChatManager
+{
+    public:
+        ChatManager(ChatManager&) = delete;
+        void operator=(const ChatManager&) = delete;
+
+        static ChatManager* GetInstance();
+
+        static bool Initialize();
+
+        uint32_t GetChatColor(ChatType type) const;
+        uint8_t  GetChatChannel(ChatType type) const;
+
+        const std::wstring& GetChatPrefix() const { return _prefix; }
+        const std::wstring& GetBufferText() const;
+        const std::wstring& GetSavedText() const { return _saved; }
+
+        const std::unordered_set<std::wstring>& GetMutedList() const { return _mutedList; }
+
+        bool IsPlayerMuted(std::wstring playerName);
+        bool IsWindowVisible() const { return (_visible) ? (*_visible != 0) : false; }
+
+        bool SetChatColor(ChatType type, uint32_t color);
+        void SetChatChannel(ChatType type, uint32_t channel);
+
+        void SetChatPrefix(const std::wstring& prefix) { _prefix = prefix; }
+        void SaveBufferText() { _saved = GetBufferText(); }
+
+        void SendChatMessage(ChatType type, const std::wstring& name, const std::wstring& message, void* item = nullptr);
+        void SetChannelAndSendMessage(ChatType type, uint32_t channel, const std::wstring& name, const std::wstring& message, void* item);
+
+        bool MutePlayer(std::wstring playerName);
+        bool UnmutePlayer(std::wstring playerName);
+
+        static constexpr uint32_t CHAT_CHANNEL_MAX = 15;
+        static constexpr uint32_t MAX_MESSAGE_SIZE = 255;
+
+    private:
+        ChatManager();
+        ~ChatManager();
+
+        static void OnShutdownEvent();
+        //static void OnWorldPreLoadEvent(std::string mapName, bool modded);
+        static void OnWorldPreUnloadEvent();
+        static void OnSetMainPlayerEvent(void* player);
+
+        /*static void OnConnection(const signalr::value& value);
+        static void OnReceiveMessage(const signalr::value& value);
+        static void OnServerMessage(const signalr::value& value);
+        static void OnWelcomeMessage(const signalr::value& value);
+        static void OnJoinedChannel(const signalr::value& value);
+        static void OnBanned(const signalr::value& value);*/
+
+        void LoadConfig();
+        void SaveConfig();
+
+        uint32_t& GetCaratPosition() const;
+        uint32_t& GetSelectStartPosition() const;
+        uint32_t& GetSelectEndPosition() const;
+
+        void SetCaratPosition(uint32_t position);
+        void SetSelectStartPosition(uint32_t position);
+        void SetSelectEndPosition(uint32_t position);
+        void SetBufferText(const std::wstring& text);
+
+        void FindMagicAddresses();
+        void ToggleWindowDisplay();
+
+        void LoadMutedList();
+        void DisplayNewTradeNotifications();
+
+        uint8_t  _channels;     // Current chat channels; lower 4 bits are for trade chat, higher 4 bits are for global chat
+        uint32_t _tradeColor;   // Color used for trade chat
+        uint32_t _globalColor;  // Color used for global chat
+        uint8_t* _visible;      // Address used to toggle the chat window visibility
+        uint8_t* _colors;       // Address used to set the chat colors
+        std::wstring _prefix;   // Last used chat prefix
+        std::wstring _saved;    // Saved buffer text, used for linking items in chat
+        std::unordered_set<std::wstring> _mutedList;    // List of muted players by the current user
+};
+
+#define spChatManager ChatManager::GetInstance()
+
+#endif//INC_GDCL_DLL_CHAT_MANAGER_H

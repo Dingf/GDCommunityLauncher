@@ -83,7 +83,7 @@ ServerSync::ServerSync()
         EventManager::Subscribe(GDCL_EVENT_DIRECT_FILE_WRITE,     &ServerSync::OnDirectWriteEvent);
         EventManager::Subscribe(GDCL_EVENT_ADD_SAVE_JOB,          &ServerSync::OnAddSaveJobEvent);
         EventManager::Subscribe(GDCL_EVENT_WORLD_PRE_LOAD,        &ServerSync::OnWorldPreLoadEvent);
-        //EventManager::Subscribe(GDCL_EVENT_WORLD_POST_LOAD,       &ServerSync::OnWorldPostLoadEvent);
+        EventManager::Subscribe(GDCL_EVENT_WORLD_POST_LOAD,       &ServerSync::OnWorldPostLoadEvent);
         EventManager::Subscribe(GDCL_EVENT_WORLD_PRE_UNLOAD,      &ServerSync::OnWorldPreUnloadEvent);
         EventManager::Subscribe(GDCL_EVENT_SET_MAIN_PLAYER,       &ServerSync::OnSetMainPlayerEvent);
         EventManager::Subscribe(GDCL_EVENT_TRANSFER_POST_LOAD,    &ServerSync::OnTransferPostLoadEvent);
@@ -1825,6 +1825,7 @@ void ServerSync::OnInitializeEvent()
 
 void ServerSync::OnShutdownEvent()
 {
+    GameAPI::SaveGame();
     GetInstance().UploadCachedBuffers();
     //GetInstance().WaitBackgroundComplete();
 
@@ -1922,8 +1923,8 @@ void ServerSync::OnWorldPreLoadEvent(std::string mapName, bool unk1, bool modded
 
 void ServerSync::OnWorldPostLoadEvent(std::string mapName, bool unk1, bool modded)
 {
-    //if (EngineAPI::IsMainCampaignOrCrucible())
-    //    ServerSync::GetInstance().RegisterSeasonParticipant(EngineAPI::IsHardcore());
+    if (EngineAPI::IsMainCampaignOrCrucible())
+        ServerSync::GetInstance().RegisterSeasonParticipant(EngineAPI::IsHardcore());
 }
 
 void ServerSync::OnWorldPreUnloadEvent()
@@ -1985,7 +1986,7 @@ void ServerSync::OnCharacterPreSaveEvent(void* player)
 
 void ServerSync::OnCharacterPostSaveEvent(void* player)
 {
-    ThreadManager::CreatePeriodicThread("character_save", 1000, 0, 5000, &ServerSync::OnDelayedCharacterUpload);
+    ThreadManager::CreateThread("character_save", 1000, 5000, &ServerSync::OnDelayedCharacterUpload);
 }
 
 void ServerSync::OnDeleteFileEvent(const char* filename)
@@ -2034,9 +2035,10 @@ void ServerSync::OnDeleteFileEvent(const char* filename)
     }
 }
 
-void ServerSync::OnDelayedCharacterUpload()
+int64_t ServerSync::OnDelayedCharacterUpload()
 {
     GetInstance().UploadCachedBuffers();
+    return 0;
 }
 
 void ServerSync::OnAddParticipant(const signalr::value& value)
