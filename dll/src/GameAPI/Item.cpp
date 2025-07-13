@@ -127,7 +127,8 @@ void* GetItemBitmap(void* item)
 {
     typedef void* (__thiscall* GetItemBitmapProto)(void*);
 
-    GetItemBitmapProto callback = *(GetItemBitmapProto*)(*((uintptr_t*)item) + 0x3E0);
+    //GetItemBitmapProto callback = *(GetItemBitmapProto*)(*((uintptr_t*)item) + 0x3E0);   // Version 1.2.1.1
+    GetItemBitmapProto callback = *(GetItemBitmapProto*)(*((uintptr_t*)item) + 0x3F0);     // Version 1.2.1.6
     if (callback)
         return callback(item);
 
@@ -156,7 +157,9 @@ ItemType GetItemType(void* item)
 {
     typedef ItemType (__thiscall* GetItemTypeProto)();
 
-    GetItemTypeProto callback = *(GetItemTypeProto*)(*((uintptr_t*)item) + 0x508);
+    //GetItemTypeProto callback = *(GetItemTypeProto*)(*((uintptr_t*)item) + 0x508);   // Version 1.2.1.1
+    GetItemTypeProto callback = *(GetItemTypeProto*)(*((uintptr_t*)item) + 0x518);     // Version 1.2.1.6
+
     if (callback)
         return callback();
 
@@ -167,7 +170,8 @@ WeaponType GetWeaponType(void* item)
 {
     typedef WeaponType (__thiscall* GetWeaponTypeProto)();
 
-    GetWeaponTypeProto callback = *(GetWeaponTypeProto*)(*((uintptr_t*)item) + 0x658);
+    //GetWeaponTypeProto callback = *(GetWeaponTypeProto*)(*((uintptr_t*)item) + 0x658);   // Version 1.2.1.1
+    GetWeaponTypeProto callback = *(GetWeaponTypeProto*)(*((uintptr_t*)item) + 0x668);     // Version 1.2.1.6
     if (callback)
         return callback();
 
@@ -176,34 +180,20 @@ WeaponType GetWeaponType(void* item)
 
 std::string GetItemNameTag(void* item)
 {
-    return *(std::string*)((uintptr_t)item + 0xC08);
+    //return *(std::string*)((uintptr_t)item + 0xC08);    // Version 1.2.1.1
+    return *(std::string*)((uintptr_t)item + 0xC50);      // Version 1.2.1.6
 }
 
 std::string GetItemPrefixTag(void* item)
 {
-    std::string versionString = EngineAPI::GetVersionString();
-
-    // This will likely need to be updated in future versions if the data structure changes again
-    if (versionString < "v1.2.0.5")
-        return *(std::string*)((uintptr_t)item + 0x778);    // Pre-version 1.2.0.5
-    else if (versionString == "v1.2.0.5")
-        return *(std::string*)((uintptr_t)item + 0x790);    // Version 1.2.0.5
-    else //if (versionString <= "v1.2.1.1")
-        return *(std::string*)((uintptr_t)item + 0x790);    // Version 1.2.1.1
+    //return *(std::string*)((uintptr_t)item + 0x778);    // Pre-version 1.2.0.5
+    return *(std::string*)((uintptr_t)item + 0x790);      // Version 1.2.0.5
 }
 
 std::string GetItemSuffixTag(void* item)
 {
-    std::string versionString = EngineAPI::GetVersionString();
-
-    // This will likely need to be updated in future versions if the data structure changes again
-    if (versionString < "v1.2.0.5")
-        return *(std::string*)((uintptr_t)item + 0x798);    // Pre-version 1.2.0.5
-    else if (versionString == "v1.2.0.5")
-        return *(std::string*)((uintptr_t)item + 0x7B0);    // Version 1.2.0.5
-    else //if (versionString <= "v1.2.1.1")
-        return *(std::string*)((uintptr_t)item + 0x7B0);    // Version 1.2.1.1
-
+    //return *(std::string*)((uintptr_t)item + 0x798);    // Pre-version 1.2.0.5
+    return *(std::string*)((uintptr_t)item + 0x7B0);      // Version 1.2.0.5
 }
 
 GameAPI::ItemReplicaInfo ItemToInfo(const Item& item)

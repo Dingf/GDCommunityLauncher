@@ -188,7 +188,6 @@
 - Fixed a bug where Nemesis enemies would not count towards season challenges.
 - Fixed a bug where icons for season factions would not display properly.
 
-
 ## 1.4.2 (2024-11-02)
 
 - Added an error message when players use the `/g color` or `/t color` commands with an invalid color alias.
@@ -197,3 +196,8 @@
 - Fixed a bug where uploading items to the cloud stash would render the in-game stash inaccessible.
 - Fixed a bug where Level Limited Challenges were not being displayed when using the `/challenges` command.
 - Fixed a bug where items in the transfer queue would not be saved if the player logged out without opening the shared stash.
+
+## 1.4.3 (2025-07-13)
+
+- Fixed a bug where essences would not work properly after Patch 1.2.1.6.
+- Fixed a bug where the chat window would not work properly after Patch 1.2.1.6.
