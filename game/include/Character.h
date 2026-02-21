@@ -6,7 +6,7 @@
 #include <unordered_map>
 #include <filesystem>
 #include "FileReader.h"
-#include "JSONObject.h"
+#include "JSON.h"
 #include "GDDataBlock.h"
 #include "UID.h"
 #include "ItemContainer.h"
@@ -85,7 +85,7 @@ enum CharacterInventorySlot
     MAX_CHAR_INV_SLOT = 16,
 };
 
-class Character : public JSONObject
+class Character
 {
     public:
         Character() {}
@@ -94,16 +94,18 @@ class Character : public JSONObject
         bool ReadFromFile(const std::filesystem::path& path, bool headerOnly = false);
         bool ReadFromBuffer(uint8_t* data, size_t size, bool headerOnly = false);
 
-        static std::string GetCharacterClassName(CharacterClass charClass);
+        friend void to_json(json& j, const Character& data);
+        friend void from_json(const json& j, Character& data);
 
-        web::json::value ToJSON() const;
+        //web::json::value ToJSON() const;
 
         // Header block, ID = 0, Version = 6,7,8
         struct CharacterHeaderBlock : public GDDataBlock
         {
             CharacterHeaderBlock() : GDDataBlock(0x00, 0xE0) {}
 
-            web::json::value ToJSON() const;
+            friend void to_json(json& j, const CharacterHeaderBlock& data);
+            friend void from_json(const json& j, CharacterHeaderBlock& data);
 
             std::wstring   _charName;
             uint8_t        _charSex;
@@ -120,7 +122,8 @@ class Character : public JSONObject
         {
             CharacterInfoBlock() : GDDataBlock(0x01, 0x1C) {}
 
-            web::json::value ToJSON() const;
+            friend void to_json(json& j, const CharacterInfoBlock& data);
+            friend void from_json(const json& j, CharacterInfoBlock& data);
 
             uint8_t        _charIsModded;
             uint8_t        _charIsInGame;
@@ -144,7 +147,8 @@ class Character : public JSONObject
         {
             CharacterAttributesBlock() : GDDataBlock(0x02, 0x80) {}
 
-            web::json::value ToJSON() const;
+            friend void to_json(json& j, const CharacterAttributesBlock& data);
+            friend void from_json(const json& j, CharacterAttributesBlock& data);
 
             uint32_t       _charLevel;
             uint32_t       _charExperience;
@@ -165,7 +169,8 @@ class Character : public JSONObject
         {
             CharacterInventoryBlock() : GDDataBlock(0x03, 0x08) {}
 
-            web::json::value ToJSON() const;
+            friend void to_json(json& j, const CharacterInventoryBlock& data);
+            friend void from_json(const json& j, CharacterInventoryBlock& data);
 
             class CharacterInventory : public Stash
             {
@@ -223,7 +228,8 @@ class Character : public JSONObject
         {
             CharacterStashBlock() : GDDataBlock(0x04, 0x30) {}
 
-            web::json::value ToJSON() const;
+            friend void to_json(json& j, const CharacterStashBlock& data);
+            friend void from_json(const json& j, CharacterStashBlock& data);
 
             class CharacterStash : public Stash
             {
@@ -242,7 +248,8 @@ class Character : public JSONObject
         {
             CharacterRespawnBlock() : GDDataBlock(0x05, 0x01) {}
 
-            web::json::value ToJSON() const;
+            friend void to_json(json& j, const CharacterRespawnBlock& data);
+            friend void from_json(const json& j, CharacterRespawnBlock& data);
 
             std::vector<UID16> _charRespawnsNormal;
             std::vector<UID16> _charRespawnsElite;
@@ -258,7 +265,8 @@ class Character : public JSONObject
         {
             CharacterWaypointBlock() : GDDataBlock(0x06, 0x01) {}
 
-            web::json::value ToJSON() const;
+            friend void to_json(json& j, const CharacterWaypointBlock& data);
+            friend void from_json(const json& j, CharacterWaypointBlock& data);
 
             std::vector<UID16> _charWaypointsNormal;
             std::vector<UID16> _charWaypointsElite;
@@ -271,7 +279,8 @@ class Character : public JSONObject
         {
             CharacterMarkerBlock() : GDDataBlock(0x07, 0x01) {}
 
-            web::json::value ToJSON() const;
+            friend void to_json(json& j, const CharacterMarkerBlock& data);
+            friend void from_json(const json& j, CharacterMarkerBlock& data);
 
             std::vector<UID16> _charMarkersNormal;
             std::vector<UID16> _charMarkersElite;
@@ -284,7 +293,8 @@ class Character : public JSONObject
         {
             CharacterShrineBlock() : GDDataBlock(0x11, 0x02) {}
 
-            web::json::value ToJSON() const;
+            friend void to_json(json& j, const CharacterShrineBlock& data);
+            friend void from_json(const json& j, CharacterShrineBlock& data);
 
             // Two lists per difficulty; first is for restored, second is for discovered
             std::vector<UID16> _charShrines[6];
@@ -296,7 +306,8 @@ class Character : public JSONObject
         {
             CharacterSkillBlock() : GDDataBlock(0x08, 0x30) {}
 
-            web::json::value ToJSON() const;
+            friend void to_json(json& j, const CharacterSkillBlock& data);
+            friend void from_json(const json& j, CharacterSkillBlock& data);
 
             uint32_t           _charMasteriesAllowed;    // Always 2?
             uint32_t           _charSkillReclaimed;
@@ -312,7 +323,8 @@ class Character : public JSONObject
         {
             CharacterNotesBlock() : GDDataBlock(0x0C, 0x01) {}
 
-            web::json::value ToJSON() const;
+            friend void to_json(json& j, const CharacterNotesBlock& data);
+            friend void from_json(const json& j, CharacterNotesBlock& data);
 
             std::vector<std::string> _charNotes;
         }
@@ -323,7 +335,8 @@ class Character : public JSONObject
         {
             CharacterFactionBlock() : GDDataBlock(0x0D, 0x10) {}
 
-            web::json::value ToJSON() const;
+            friend void to_json(json& j, const CharacterFactionBlock& data);
+            friend void from_json(const json& j, CharacterFactionBlock& data);
 
             uint32_t             _unk1;             // GDStash has this listed as "faction", not sure what that means... value appears to always be 0
             std::vector<Faction> _charFactions;
@@ -335,20 +348,23 @@ class Character : public JSONObject
         {
             CharacterUIBlock() : GDDataBlock(0x0E, 0x78) {}
 
-            web::json::value ToJSON() const;
+            friend void to_json(json& j, const CharacterUIBlock& data);
+            friend void from_json(const json& j, CharacterUIBlock& data);
 
-            struct CharacterUIUnkData : public JSONObject
+            struct CharacterUIUnkData
             {
-                web::json::value ToJSON() const;
+                friend void to_json(json& j, const CharacterUIUnkData& data);
+                friend void from_json(const json& j, CharacterUIUnkData& data);
 
                 std::string    _unk1;
                 std::string    _unk2;
                 uint8_t        _unk3;
             };
 
-            struct CharacterUISlot : public JSONObject
+            struct CharacterUISlot
             {
-                web::json::value ToJSON() const;
+                friend void to_json(json& j, const CharacterUISlot& data);
+                friend void from_json(const json& j, CharacterUISlot& data);
 
                 int32_t        _slotType;           // 0 = item/class skill, 4 = item
                 std::string    _slotSkillName;
@@ -376,7 +392,8 @@ class Character : public JSONObject
         {
             CharacterTutorialBlock() : GDDataBlock(0x0F, 0x01) {}
 
-            web::json::value ToJSON() const;
+            friend void to_json(json& j, const CharacterTutorialBlock& data);
+            friend void from_json(const json& j, CharacterTutorialBlock& data);
 
             std::vector<uint32_t> _charTutorials;
         }
@@ -387,11 +404,13 @@ class Character : public JSONObject
         {
             CharacterStatsBlock() : GDDataBlock(0x10, 0x540) {}
 
-            web::json::value ToJSON() const;
+            friend void to_json(json& j, const CharacterStatsBlock& data);
+            friend void from_json(const json& j, CharacterStatsBlock& data);
 
-            struct CharacterPerDifficultyStats : public JSONObject
+            struct CharacterPerDifficultyStats
             {
-                web::json::value ToJSON() const;
+                friend void to_json(json& j, const CharacterPerDifficultyStats& data);
+                friend void from_json(const json& j, CharacterPerDifficultyStats& data);
 
                 uint32_t    _difficulty;
                 std::string _greatestEnemyKilled;

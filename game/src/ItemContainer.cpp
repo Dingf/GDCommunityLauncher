@@ -1,7 +1,5 @@
 #include "ItemContainer.h"
 
-#include "Log.h"
-
 ItemContainer::ItemContainer(uint32_t width, uint32_t height) : _width(width), _height(height)
 {
     for (uint32_t i = 0; i < width * height; ++i)
@@ -63,7 +61,7 @@ bool ItemContainer::AddItem(const Item& item, uint32_t x, uint32_t y)
 std::vector<Item*> ItemContainer::AddItemList(const std::vector<Item>& items)
 {
     std::vector<Item*> result;
-    for (int32_t i = items.size() - 1; i >= 0; i--)
+    for (int64_t i = items.size() - 1; i >= 0; i--)
     {
         const Item& item = items[i];
         for (auto it = _next.begin(); it != _next.end();)

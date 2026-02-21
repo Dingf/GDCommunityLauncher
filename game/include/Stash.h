@@ -4,11 +4,11 @@
 #include <memory>
 #include <vector>
 #include "FileData.h"
-#include "JSONObject.h"
+#include "JSON.h"
 #include "GDDataBlock.h"
 #include "ItemContainer.h"
 
-class Stash : public FileData, public JSONObject
+class Stash : public FileData
 {
     public:
         class StashTab : public ItemContainer
@@ -16,19 +16,31 @@ class Stash : public FileData, public JSONObject
             friend class Stash;
 
             public:
-                ItemContainerType GetContainerType() const { return _parent.GetContainerType(); }
+                StashTab(ItemContainerType type, uint32_t width, uint32_t height) : ItemContainer(width, height), _type(type) {}
+
+                ItemContainerType GetContainerType() const { return _type; }
 
             private:
-                StashTab(const Stash& stash, uint32_t width, uint32_t height) : ItemContainer(width, height), _parent(stash) {}
+                ItemContainerType _type;
+        };
 
-                const Stash& _parent;
+        struct StashTabBlock : public GDDataBlock
+        {
+            StashTabBlock() : GDDataBlock(0x00, 0x00) {}
+            ~StashTabBlock() {}
+
+            friend void to_json(json& j, const StashTabBlock& data);
+            friend void from_json(const json& j, StashTabBlock& data);
+
+            std::unique_ptr<StashTab> _stashTab;
         };
 
         virtual ~Stash() = 0;
 
         virtual size_t GetBufferSize() const;
 
-        virtual web::json::value ToJSON() const;
+        friend void to_json(json& j, const Stash& data);
+        friend void from_json(const json& j, Stash& data);
 
         virtual ItemContainerType GetContainerType() const = 0;
 
@@ -43,16 +55,6 @@ class Stash : public FileData, public JSONObject
         StashTab* GetStashTab(size_t index);
 
     protected:
-        struct StashTabBlock : public GDDataBlock
-        {
-            StashTabBlock() : GDDataBlock(0x00, 0x00) {}
-            ~StashTabBlock() {}
-
-            web::json::value ToJSON() const;
-
-            std::unique_ptr<StashTab> _stashTab;
-        };
-
         bool _isHardcore;
         std::vector<std::unique_ptr<StashTabBlock>> _stashTabs;
 };

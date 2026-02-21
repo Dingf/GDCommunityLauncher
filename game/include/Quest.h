@@ -5,19 +5,20 @@
 #include <filesystem>
 #include "FileData.h"
 #include "FileReader.h"
-#include "JSONObject.h"
+#include "JSON.h"
 #include "GDDataBlock.h"
 #include "UID.h"
 
-class Quest : public FileData, public JSONObject
+class Quest : public FileData
 {
     public:
-        struct QuestTask : public JSONObject
+        struct QuestTask
         {
             QuestTask() {}
             QuestTask(EncodedFileReader* reader) { Read(reader); }
 
-            web::json::value ToJSON() const;
+            friend void to_json(json& j, const QuestTask& data);
+            friend void from_json(const json& j, QuestTask& data);
 
             void Read(EncodedFileReader* reader);
             void Write(EncodedFileWriter* writer);
@@ -30,12 +31,13 @@ class Quest : public FileData, public JSONObject
             std::vector<uint32_t> _objectives;
         };
 
-        struct QuestData : public JSONObject
+        struct QuestData
         {
             QuestData() {}
             QuestData(EncodedFileReader* reader) { Read(reader); }
 
-            web::json::value ToJSON() const;
+            friend void to_json(json& j, const QuestData& data);
+            friend void from_json(const json& j, QuestData& data);
 
             void Read(EncodedFileReader* reader);
             void Write(EncodedFileWriter* writer);
@@ -51,7 +53,8 @@ class Quest : public FileData, public JSONObject
 
         size_t GetBufferSize() const;
 
-        web::json::value ToJSON() const;
+        friend void to_json(json& j, const Quest& data);
+        friend void from_json(const json& j, Quest& data);
 
         bool ReadFromFile(const std::filesystem::path& path);
         bool ReadFromBuffer(uint8_t* data, size_t size);
@@ -65,7 +68,8 @@ class Quest : public FileData, public JSONObject
         {
             QuestTokensBlock() : GDDataBlock(0x0A, 0x02) {}
 
-            web::json::value ToJSON() const;
+            friend void to_json(json& j, const QuestTokensBlock& data);
+            friend void from_json(const json& j, QuestTokensBlock& data);
 
             std::vector<std::string> _questTokens;
         }
@@ -76,7 +80,8 @@ class Quest : public FileData, public JSONObject
         {
             QuestDataBlock() : GDDataBlock(0x0B, 0x0C) {}
 
-            web::json::value ToJSON() const;
+            friend void to_json(json& j, const QuestDataBlock& data);
+            friend void from_json(const json& j, QuestDataBlock& data);
 
             std::vector<QuestData> _questData;
         }

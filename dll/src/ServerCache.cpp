@@ -2,7 +2,7 @@
 
 ServerCache::ServerCache()
 {
-    ClearCache();
+    Reset();
 }
 
 ServerCache* ServerCache::GetInstance()
@@ -17,17 +17,28 @@ uint32_t ServerCache::GetParticipantID(bool hardcore) const
         return _participantIDCache[hardcore];
 
     // TODO: Get the participant ID from the server and cache and return the result
+
+    return 0;
 }
 
 uint32_t ServerCache::GetCharacterID(const std::wstring& playerName) const
 {
-    if (_characterIDCache.count(playerName) > 0)
-        return _characterIDCache[playerName];
+    auto it = _characterIDCache.find(playerName);
+    if (it != _characterIDCache.end())
+        return it->second;
 
     // TODO: Get the character ID from the server and cache and return the result
+
+    return 0;
+}
+
+void ServerCache::SetParticipantID(bool hardcore, uint32_t participantID)
+{
+    _participantIDCache[hardcore] = participantID;
 }
 
 void ServerCache::Reset()
 {
     memset(_participantIDCache, 0, sizeof(uint32_t) * 2);
+    _characterIDCache.clear();
 }

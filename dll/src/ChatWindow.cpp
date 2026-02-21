@@ -290,9 +290,21 @@ void ChatWindow::FindMagicAddresses()
     void* gameEngine = *GameAPI::GetGameEngineHandle();
     if (gameEngine)
     {
+<<<<<<< HEAD:dll/src/EngineAPI/UI/ChatWindow.cpp
         //_visible = *(uint8_t**)((uint8_t*)gameEngine + 0x18A0) + 0x45F90;    // Version 1.2.0.5
         //_visible = *(uint8_t**)((uint8_t*)gameEngine + 0x18B0) + 0x45BD8;    // Version 1.2.1.1
         _visible = *(uint8_t**)((uint8_t*)gameEngine + 0x18C0) + 0x45BD8;      // Version 1.2.1.6
+=======
+        std::string versionString = EngineAPI::GetVersionString();
+
+        // This will likely need to be updated in future versions if the data structure changes again
+        if (versionString <= "v1.2.0.5")
+            _visible = *(uint8_t**)((uint8_t*)gameEngine + 0x18A0) + 0x45F90;    // Versions 1.2.0.5 and earlier
+        else if (versionString <= "v1.2.1.2")
+            _visible = *(uint8_t**)((uint8_t*)gameEngine + 0x18B0) + 0x45BD8;    // Versions 1.2.0.5 - 1.2.1.2
+        else //if (versionString <= "v1.2.1.3")
+            _visible = *(uint8_t**)((uint8_t*)gameEngine + 0x18C0) + 0x45BD8;    // Versions 1.2.1.3
+>>>>>>> e2cf335 (Temporary snapshot):dll/src/ChatWindow.cpp
          
         _colors = _visible + 0x2C28;
 

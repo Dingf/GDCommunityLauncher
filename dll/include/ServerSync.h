@@ -1,4 +1,4 @@
-#ifndef INC_GDCL_DLL_SERVER_SYNC_H
+/*#ifndef INC_GDCL_DLL_SERVER_SYNC_H
 #define INC_GDCL_DLL_SERVER_SYNC_H
 
 #include <atomic>
@@ -172,4 +172,4 @@ class ServerSync
 };
 
 
-#endif//INC_GDCL_DLL_SERVER_SYNC_H
+#endif//INC_GDCL_DLL_SERVER_SYNC_H*/

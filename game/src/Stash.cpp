@@ -45,44 +45,44 @@ void Stash::ReadStashTabs(EncodedFileReader* reader, size_t count)
     {
         std::unique_ptr<StashTabBlock> stashTabBlock = std::make_unique<StashTabBlock>();
 
-        uint32_t tabWidth = 0;
-        uint32_t tabHeight = 0;
+        uint32_t width = 0;
+        uint32_t height = 0;
 
         stashTabBlock->ReadBlockStart(reader, GD_DATA_BLOCK_FLAG_ID);
 
-        ItemContainerType containerType = GetContainerType();
-        switch (containerType)
+        ItemContainerType type = GetContainerType();
+        switch (type)
         {
             case ITEM_CONTAINER_SHARED_STASH:
             case ITEM_CONTAINER_CHAR_STASH:
-                tabWidth = reader->ReadInt32();
-                tabHeight = reader->ReadInt32();
+                width = reader->ReadInt32();
+                height = reader->ReadInt32();
                 break;
             case ITEM_CONTAINER_CHAR_BAG:
                 reader->ReadInt8();                             // Inventory bag sizes aren't defined in the save, so hardcode them I guess?
-                tabWidth = (_stashTabs.size() == 0) ? 12 : 8;   // First/main inventory bag is larger than the other ones
-                tabHeight = 8;
+                width = (_stashTabs.size() == 0) ? 12 : 8;   // First/main inventory bag is larger than the other ones
+                height = 8;
                 break;
             default:
-                throw std::runtime_error(Logger::LogMessage(LOG_LEVEL_ERROR, "Invalid or unsupported item container type \"%\"", containerType));
+                throw std::runtime_error(Logger::LogMessage(LOG_LEVEL_ERROR, "Invalid or unsupported item container type \"%\"", type));
         }
 
         // This has been observed frequently but it's unclear what causes it or how to reproduce it
         // So just keep this here to prevent people from losing all stash data if it happens
-        if ((tabWidth == 0) || (tabHeight == 0))
+        if ((width == 0) || (height == 0))
         {
-            tabWidth = 10;
-            tabHeight = 18;
+            width = 10;
+            height = 18;
         }
 
-        std::unique_ptr<StashTab> stashTab(new StashTab(*this, tabWidth, tabHeight));
+        std::unique_ptr<StashTab> stashTab(new StashTab(type, width, height));
 
         uint16_t itemX, itemY;
         uint32_t numItems = reader->ReadInt32();
         for (uint32_t j = 0; j < numItems; ++j)
         {
             Item item(reader);
-            if (containerType == ITEM_CONTAINER_CHAR_BAG)
+            if (type == ITEM_CONTAINER_CHAR_BAG)
             {
                 itemX = (uint16_t)reader->ReadInt32();
                 itemY = (uint16_t)reader->ReadInt32();
@@ -159,42 +159,89 @@ Stash::StashTab* Stash::GetStashTab(size_t index)
     return nullptr;
 }
 
-web::json::value Stash::ToJSON() const
+void to_json(json& j, const Stash& data)
 {
-    web::json::value obj = web::json::value::object();
-
-    obj[U("ContainerType")] = GetContainerType();
-    obj[U("Hardcore")] = _isHardcore;
-
-    web::json::value stashTabs = web::json::value::array();
-    for (uint32_t i = 0; i < _stashTabs.size(); ++i)
+    json stashTabs;
+    for (size_t i = 0; i < data._stashTabs.size(); ++i)
     {
-        web::json::value tabObject = _stashTabs[i]->ToJSON();
-        tabObject[U("ID")] = i;
-        stashTabs[i] = tabObject;
+        json tab = *data._stashTabs[i];
+        tab["ID"] = i;
+        stashTabs.push_back(tab);
     }
-    obj[U("Tabs")] = stashTabs;
 
-    return obj;
+    j = 
+    {
+        { "ContainerType", data.GetContainerType() },
+        { "Hardcore",      data._isHardcore },
+        { "Tabs",          stashTabs },
+    };
 }
 
-web::json::value Stash::StashTabBlock::ToJSON() const
+void from_json(const json& j, Stash& data)
 {
-    web::json::value obj = web::json::value::object();
+    data._stashTabs.clear();
 
-    if (_stashTab)
+    j.at("Hardcore").get_to(data._isHardcore);
+    
+    json stashTabs = j.at("Tabs");
+    for (auto it = stashTabs.begin(); it != stashTabs.end(); ++it)
     {
-        uint32_t i = 0;
-        web::json::value items = web::json::value::array();
-        for (auto pair : _stashTab->GetItemList())
-        {
-            web::json::value item = pair.first->ToJSON();
-            item[U("X")] = ((pair.second >> 32) & 0xFFFFFFFF);
-            item[U("Y")] = (pair.second & 0xFFFFFFFF);
-            items[i++] = item;
-        }
-        obj[U("Items")] = items;
+        std::unique_ptr<Stash::StashTabBlock> stashTabBlock = std::make_unique<Stash::StashTabBlock>();
+        it->get_to(*stashTabBlock);
+        data._stashTabs.push_back(std::move(stashTabBlock));
+    }
+}
+
+
+void to_json(json& j, const Stash::StashTabBlock& data)
+{
+    if (!data._stashTab)
+    {
+        j.clear();
+        return;
     }
 
-    return obj;
+    json items;
+    for (auto pair : data._stashTab->GetItemList())
+    {
+        json item = *pair.first;
+        item["X"] = ((pair.second >> 32) & 0xFFFFFFFF);
+        item["Y"] = (pair.second & 0xFFFFFFFF);
+        items.push_back(item);
+    }
+
+    j = 
+    {
+        { "Width",  data._stashTab->GetWidth() },
+        { "Height", data._stashTab->GetHeight() },
+        { "Type",   data._stashTab->GetContainerType()},
+        { "Items",  items }
+    };
+}
+
+void from_json(const json& j, Stash::StashTabBlock& data)
+{
+    uint32_t width = j.at("Width");
+    uint32_t height = j.at("Height");
+    ItemContainerType type = j.at("Type");
+
+    std::unique_ptr<Stash::StashTab> stashTab(new Stash::StashTab(type, width, height));
+
+    json items = j.at("Items");
+    for (auto it = items.begin(); it != items.end(); ++it)
+    {
+        Item item;
+        it->get_to(item);
+
+        uint32_t itemX = it->at("X");
+        uint32_t itemY = it->at("Y");
+
+        if (!stashTab->AddItem(item, itemX, itemY))
+            Logger::LogMessage(LOG_LEVEL_WARN, "Could not add item \"%\" at coordinates (%, %).", item._itemName, itemX, itemY);
+    }
+
+    if (stashTab->GetItemCount() != items.size())
+        Logger::LogMessage(LOG_LEVEL_WARN, "The number of items read from the container (%) does not match the expected number of items (%)", stashTab->GetItemCount(), items.size());
+
+    data._stashTab = std::move(stashTab);
 }

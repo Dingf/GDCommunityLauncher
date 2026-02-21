@@ -5,7 +5,6 @@
 #include <string>
 #include <memory>
 #include "Connection.h"
-#include "EngineAPI/UI/Chat.h"
 
 enum ChatType
 {
@@ -18,6 +17,9 @@ enum ChatType
 class ChatManager
 {
     public:
+        static constexpr uint32_t CHAT_CHANNEL_MAX = 15;
+        static constexpr uint32_t MAX_MESSAGE_SIZE = 255;
+
         ChatManager(ChatManager&) = delete;
         void operator=(const ChatManager&) = delete;
 
@@ -48,9 +50,6 @@ class ChatManager
 
         bool MutePlayer(std::wstring playerName);
         bool UnmutePlayer(std::wstring playerName);
-
-        static constexpr uint32_t CHAT_CHANNEL_MAX = 15;
-        static constexpr uint32_t MAX_MESSAGE_SIZE = 255;
 
     private:
         ChatManager();

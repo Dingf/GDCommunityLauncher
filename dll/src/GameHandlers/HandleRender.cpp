@@ -2,29 +2,33 @@
 #include "GameHandler.h"
 #include "DeathRecap.h"
 #include "DungeonDatabase.h"
+#include "StringConvert.h"
+#include "Version.h"
 
 void BuildLeagueInfoText(std::wstring& message)
 {
-    if (IsOfflineMode())
+    const SeasonClient::SeasonInfo* activeSeason = spClient->GetActiveSeason();
+    if (spClient->IsOfflineMode())
     {
         std::string versionText = GDCL_VERSION;
         message += L"\n";
         message += L"GDCL v";
-        message += std::wstring(versionText.begin(), versionText.end());
+        message += CharToWide(versionText);
     }
-    else if (_activeSeason)
+    else if (activeSeason)
     {
         message += L"\n";
-        message += std::wstring(_activeSeason->_displayName.begin(), _activeSeason->_displayName.end());
+        message += CharToWide(activeSeason->_displayName);
     }
     message += L"\n";
-    message += std::wstring(_username.begin(), _username.end());
+    message += CharToWide(spClient->GetUsername());
 
-    if (IsOfflineMode())
+    if (spClient->IsOfflineMode())
     {
         message += L" {^L}(Offline Mode)";
     }
-    else if ((_online) && (_activeSeason))
+    // TODO: The online check needs to be for the websocket connection to the server (spServerSocket)
+    else if (/*(_online) && */(activeSeason))
     {
         if (GameAPI::IsCloudStorageEnabled())
         {
@@ -36,17 +40,19 @@ void BuildLeagueInfoText(std::wstring& message)
         }
         else
         {
-            if ((_points > 0) && (_rank > 0))
+            uint32_t points = spClient->GetPoints();
+            uint32_t rank = spClient->GetRank();
+            if ((points > 0) && (rank > 0))
             {
                 message += L" {^L}(Rank ";
-                message += std::to_wstring(_rank);
+                message += std::to_wstring(rank);
                 message += L" ~ ";
             }
             else
             {
                 message += L" {^L}(";
             }
-            message += std::to_wstring(_points);
+            message += std::to_wstring(points);
             message += L" points)";
         }
     }
@@ -64,15 +70,13 @@ void HandleRenderStyledText2D(void* _this, const EngineAPI::Rect& rect, const wc
     RenderTextStyled2DProto callback = (RenderTextStyled2DProto)HookManager::GetOriginalFunction(ENGINE_DLL, EngineAPI::EAPI_NAME_RENDER_STYLED_TEXT_2D);
     if (callback)
     {
-        Client& client = Client::GetInstance();
-
         std::wstring textString(text);
         std::string areaTag = EngineAPI::GetRegionNameTag();
         std::wstring areaName = EngineAPI::UI::Localize(areaTag.c_str());
 
         // If the player is in-game on the season mod, append the league info to the difficulty text in the upper left corner
         // We modify the text instead of creating new text because that way it preserves the Z-order and doesn't conflict with the loading screen/pause overlay/etc.
-        if ((rect._x >= 0.0f) && (rect._y >= 0.0f) && (rect._x <= 24.0f) && (rect._y <= 24.0f) && (rect._x == rect._y) && (client.IsPlayingSeason()))
+        if ((rect._x >= 0.0f) && (rect._y >= 0.0f) && (rect._x <= 24.0f) && (rect._y <= 24.0f) && (rect._x == rect._y) && (spClient->IsPlayingSeason()))
         {
             if (textString.empty())
                 textString += L"Normal";

@@ -17,7 +17,7 @@ class GameHandler
         GameHandler(GameHandler&) = delete;
         void operator=(const GameHandler&) = delete;
 
-        bool Initialize();
+        static bool Initialize();
 
     private:
         GameHandler();

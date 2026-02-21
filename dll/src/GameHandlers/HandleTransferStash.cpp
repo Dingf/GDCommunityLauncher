@@ -43,8 +43,7 @@ void HandleCaravanInteract(void* _this, uint32_t caravanID, bool unk2, bool unk3
 {
     typedef void (__thiscall* OnCaravanInteractProto)(void*, uint32_t, bool, bool);
 
-    Client& client = Client::GetInstance();
-    if (((client.IsInActiveSeason()) && (!client.IsPlayingSeason())) || (ServerSync::IsStashLocked()))
+    if (((spClient->IsInActiveSeason()) && (!spClient->IsPlayingSeason())) || (ServerSync::IsStashLocked()))
         return;
 
     // If the stash was not synced, try to sync again and don't let the user open the stash to prevent access to any cheated items

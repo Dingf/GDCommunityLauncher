@@ -12,9 +12,8 @@ void* prevRegion = nullptr;
 
 void UpdateDungeonData(std::map<std::string, DungeonDatabase::DungeonDBEntry>& database)
 {
-    Client& client = Client::GetInstance();
     void* state = LuaAPI::GetState();
-    if ((client.IsPlayingSeason()) && (EngineAPI::IsMainCampaign()) && (state))
+    if ((spClient->IsPlayingSeason()) && (EngineAPI::IsMainCampaign()) && (state))
     {
         LuaAPI::lua_getglobal(state, "gd");
         LuaAPI::lua_pushstring(state, "GDLeague");
@@ -105,8 +104,7 @@ bool HandleLoadWorld(void* _this, const char* map, bool unk1, bool modded)
     LoadWorldProto callback = (LoadWorldProto)HookManager::GetOriginalFunction(ENGINE_DLL, EngineAPI::EAPI_NAME_LOAD_WORLD);
     if (callback)
     {
-        Client& client = Client::GetInstance();
-        std::string seasonName = client.GetSeasonName();
+        std::string seasonName = spClient->GetSeasonName();
         std::string mapName = map ? map : "";
         bool isMainMenu = (mapName.substr(0, 16) == "levels/mainmenu/");
 
@@ -161,8 +159,7 @@ void HandleSetRegionOfNote(void* _this, void* region)
     SetRegionOfNoteProto callback = (SetRegionOfNoteProto)HookManager::GetOriginalFunction(ENGINE_DLL, EngineAPI::EAPI_NAME_SET_REGION_OF_NOTE);
     if (callback)
     {
-        Client& client = Client::GetInstance();
-        if ((client.IsPlayingSeason()) && (EngineAPI::IsMainCampaign()) && (prevRegion != region))
+        if ((spClient->IsPlayingSeason()) && (EngineAPI::IsMainCampaign()) && (prevRegion != region))
         {
             DungeonDatabase::GetInstance().Update();
             prevRegion = region;
@@ -182,10 +179,9 @@ void HandleUnloadWorld(void* _this)
         EventManager::Publish(GDCL_EVENT_WORLD_PRE_UNLOAD);
         callback(_this);
 
-        Client& client = Client::GetInstance();
-        if (client.IsPlayingSeason())
+        if (spClient->IsPlayingSeason())
         {
-            client.SetActiveCharacter({});
+            spClient->SetActiveCharacter({});
             LuaAPI::Shutdown();
         }
 

@@ -1,9 +1,8 @@
-#include "ChatConnection.h"
 #include "GameHandler.h"
 #include "EventManager.h"
 #include "Quest.h"
 
-bool HasParticipationTokenFromAPI(void* mainPlayer, const SeasonInfo* seasonInfo)
+bool HasParticipationTokenFromAPI(void* mainPlayer, std::string participationToken)
 {
     for (auto difficulty : GameAPI::GAME_DIFFICULTIES)
     {
@@ -14,14 +13,14 @@ bool HasParticipationTokenFromAPI(void* mainPlayer, const SeasonInfo* seasonInfo
             for (char& c : token)
                 c = std::tolower(c);
 
-            if (token == seasonInfo->_participationToken)
+            if (token == participationToken)
                 return true;
         }
     }
     return false;
 }
 
-bool HasParticipationTokenFromFile(const std::wstring& playerName, const SeasonInfo* seasonInfo)
+bool HasParticipationTokenFromFile(const std::wstring& playerName, std::string participationToken)
 {
     std::filesystem::path characterPath = GameAPI::GetPlayerFolder(playerName);
     if (std::filesystem::is_directory(characterPath))
@@ -38,7 +37,7 @@ bool HasParticipationTokenFromFile(const std::wstring& playerName, const SeasonI
                     for (char& c : tokenString)
                         c = std::tolower(c);
 
-                    if (tokenString == seasonInfo->_participationToken)
+                    if (tokenString == participationToken)
                         return true;
                 }
             }
@@ -60,25 +59,25 @@ void HandleSetMainPlayer(void* _this, uint32_t unk1)
     {
         callback(_this, unk1);
 
-        Client& client = Client::GetInstance();
         void* mainPlayer = GameAPI::GetMainPlayer();
 
         EventManager::Publish(GDCL_EVENT_SET_MAIN_PLAYER, mainPlayer);
 
-        client.SetActiveSeason(GameAPI::IsPlayerHardcore(mainPlayer));
-        const SeasonInfo* seasonInfo = client.GetActiveSeason();
+        spClient->SetActiveSeason(GameAPI::IsPlayerHardcore(mainPlayer));
+        std::string seasonToken = spClient->GetActiveSeasonToken();
 
-        if ((mainPlayer) && (seasonInfo))
+        if ((mainPlayer) && (!seasonToken.empty()))
         {
             std::wstring playerName = GameAPI::GetPlayerName(mainPlayer);
-            bool hasParticipationToken = GameAPI::PlayerHasToken(mainPlayer, seasonInfo->_participationToken) ||
-                                         HasParticipationTokenFromAPI(mainPlayer, seasonInfo) || 
-                                         HasParticipationTokenFromFile(playerName, seasonInfo);
 
-            if (hasParticipationToken)
+            bool hasSeasonToken = GameAPI::PlayerHasToken(mainPlayer, seasonToken) ||
+                                         HasParticipationTokenFromAPI(mainPlayer, seasonToken) || 
+                                         HasParticipationTokenFromFile(playerName, seasonToken);
+
+            if (hasSeasonToken)
             {
-                GameAPI::BestowTokenNow(mainPlayer, seasonInfo->_participationToken);       // Grant the token just in case because the character might have it from another difficulty/mode
-                client.SetActiveCharacter(playerName);
+                GameAPI::BestowTokenNow(mainPlayer, seasonToken);       // Grant the token just in case because the character might have it from another difficulty/mode
+                spClient->SetActiveCharacter(playerName);
             }
         }
     }

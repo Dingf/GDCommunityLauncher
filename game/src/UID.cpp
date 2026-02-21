@@ -33,7 +33,7 @@ void UID16::WriteUID16(EncodedFileWriter* writer)
     }
 }
 
-std::string UID16::ToString() const
+UID16::operator std::string() const
 {
     std::string result;
     result.reserve(32);
@@ -52,7 +52,16 @@ std::string UID16::ToString() const
     return result;
 }
 
-web::json::value UID16::ToJSON() const
+void to_json(json& j, const UID16& data)
 {
-    return web::json::value::string(utility::conversions::to_utf16string(ToString()));
+    j = (std::string)data;
+}
+
+void from_json(const json& j, UID16& data)
+{
+    std::string result = j.get<std::string>();
+    for (uint32_t i = 0; i < 16 && i < result.size(); ++i)
+    {
+        data._data[i] = result[i];
+    }
 }

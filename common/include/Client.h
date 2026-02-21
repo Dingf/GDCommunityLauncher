@@ -5,13 +5,6 @@
 #include <vector>
 #include "URI.h"
 
-enum SeasonType
-{
-    SEASON_TYPE_NONE = 0,
-    SEASON_TYPE_SC_TRADE = 1,
-    SEASON_TYPE_HC_SSF = 2,
-};
-
 enum SeasonBranch
 {
     SEASON_BRANCH_OFFLINE = 0,
@@ -24,16 +17,8 @@ constexpr char OFFLINE_SEASON_NAME[] = "GrimLeagueS07";
 class Client
 {
     public:
-        struct SeasonInfo
-        {
-            uint32_t    _seasonID;
-            uint32_t    _seasonType;
-            std::string _displayName;
-            std::string _participationToken;
-        };
 
         bool IsOfflineMode() const { return _branch == SEASON_BRANCH_OFFLINE; }
-        bool HasSeasons() const { return !_seasons.empty(); }
 
         const std::string& GetUsername() const { return _username; }
         const std::string& GetPassword() const { return _password; }
@@ -60,8 +45,6 @@ class Client
         const URI& GetServerGameURL() const { return _gameURL; }
         const URI& GetServerChatURL() const { return _chatURL; }
 
-        const std::vector<SeasonInfo>& GetSeasonList() const { return _seasons; }
-
     protected:
         Client() : _branch(SEASON_BRANCH_RELEASE) {}
 
@@ -73,7 +56,6 @@ class Client
         SeasonBranch _branch;
         URI          _gameURL;
         URI          _chatURL;
-        std::vector<SeasonInfo> _seasons;
 };
 
 #endif//INC_GDCL_CLIENT_BASE_H

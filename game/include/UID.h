@@ -3,7 +3,7 @@
 
 #include <memory>
 #include <string>
-#include <cpprest/json.h>
+#include "JSON.h"
 #include "FileReader.h"
 #include "FileWriter.h"
 
@@ -20,9 +20,10 @@ class UID16
 
         void WriteUID16(EncodedFileWriter* writer);
 
-        std::string ToString() const;
+        operator std::string() const;
 
-        web::json::value ToJSON() const;
+        friend void to_json(json& j, const UID16& data);
+        friend void from_json(const json& j, UID16& data);
 
     private:
         char _data[16];

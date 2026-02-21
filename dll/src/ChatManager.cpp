@@ -1,10 +1,4 @@
-// TODO: Clean up some of these dependencies
-#include <future>
 #include <cwctype>
-#include <cpprest/http_client.h>
-#include <signalrclient/hub_connection.h>
-#include <signalrclient/hub_connection_builder.h>
-#include <signalrclient/signalr_value.h>
 #include "EngineAPI.h"
 #include "GameAPI.h"
 #include "ChatManager.h"
@@ -301,12 +295,11 @@ void ChatManager::SendChatMessage(ChatType type, const std::wstring& name, const
             break;
     }
 
-    std::string itemJSON = "";
+    json itemJSON;
     if (item)
     {
         GameAPI::ItemReplicaInfo itemInfo = GameAPI::GetItemReplicaInfo(item);
-        Item item = InfoToItem(itemInfo);
-        itemJSON = JSONString(item.ToJSON().serialize());
+        itemJSON = InfoToItem(itemInfo);
     }
 
     //InvokeAsync("Send", WideToRaw(name), WideToRaw(message), channelValue, itemJSON);
@@ -514,13 +507,9 @@ void ChatManager::FindMagicAddresses()
     {
         std::string versionString = EngineAPI::GetVersionString();
 
-        // This will likely need to be updated in future versions if the data structure changes again
-        if (versionString <= "v1.2.0.5")
-            _visible = *(uint8_t**)((uint8_t*)gameEngine + 0x18A0) + 0x45F90;    // Versions 1.2.0.5 and earlier
-        else if (versionString <= "v1.2.1.2")
-            _visible = *(uint8_t**)((uint8_t*)gameEngine + 0x18B0) + 0x45BD8;    // Versions 1.2.0.5 - 1.2.1.2
-        else //if (versionString <= "v1.2.1.3")
-            _visible = *(uint8_t**)((uint8_t*)gameEngine + 0x18C0) + 0x45BD8;    // Versions 1.2.1.3
+        //_visible = *(uint8_t**)((uint8_t*)gameEngine + 0x18A0) + 0x45F90;    // Pre-version 1.2.0.5
+        //_visible = *(uint8_t**)((uint8_t*)gameEngine + 0x18B0) + 0x45BD8;    // Version 1.2.0.5
+        _visible = *(uint8_t**)((uint8_t*)gameEngine + 0x18C0) + 0x45BD8;      // Version 1.2.1.3
 
         _colors = _visible + 0x2C28;
 

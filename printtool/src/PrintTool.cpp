@@ -21,7 +21,7 @@ void PrintCharacterData(const std::filesystem::path& path, std::ofstream& out)
 	out << "Header\n{\n";
 	out << "\tName = \"" << WideToChar(characterData._headerBlock._charName) << "\"\n";
 	out << "\tSex = " << ((characterData._headerBlock._charSex == 1) ? "Male" : "Female") << "\n";
-	out << "\tClass = " << Character::GetCharacterClassName(characterData._headerBlock._charClass) << "\n";
+	out << "\tClass = " << characterData._headerBlock._charClass << "\n";
 	out << "\tLevel = " << characterData._headerBlock._charLevel << "\n";
 	out << "\tHardcore = " << ((characterData._headerBlock._charIsHardcore == 1) ? "True" : "False") << "\n";
 	out << "\tExpansions = " << (uint32_t)characterData._headerBlock._charExpansions << "\n";

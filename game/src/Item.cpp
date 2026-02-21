@@ -1,27 +1,6 @@
 #include "Item.h"
 #include "Log.h"
 
-Item::Item(const web::json::value& obj)
-{
-    if (obj.has_integer_field(U("participantItemId")))
-        _itemID = obj.at(U("participantItemId")).as_integer();
-
-    _itemName = JSONString(obj.at(U("name")).serialize());
-    _itemPrefix = JSONString(obj.at(U("prefix")).serialize());
-    _itemSuffix = JSONString(obj.at(U("suffix")).serialize());
-    _itemModifier = JSONString(obj.at(U("modifier")).serialize());
-    _itemIllusion = JSONString(obj.at(U("illusion")).serialize());
-    _itemSeed = obj.at(U("itemSeed")).as_integer();
-    _itemComponent = JSONString(obj.at(U("component")).serialize());
-    _itemCompletion = JSONString(obj.at(U("completion")).serialize());
-    _itemComponentSeed = obj.at(U("componentSeed")).as_integer();
-    _itemAugment = JSONString(obj.at(U("augment")).serialize());
-    _itemUnk1 = 0;
-    _itemAugmentSeed = obj.at(U("augmentSeed")).as_integer();
-    _itemUnk2 = 0;
-    _itemStackCount = obj.at(U("stackCount")).as_integer();
-}
-
 Item& Item::operator=(const Item& item)
 {
     _itemName = item._itemName;
@@ -95,24 +74,45 @@ size_t Item::GetBufferSize() const
     return size;
 }
 
-web::json::value Item::ToJSON() const
+void to_json(json& j, const Item& data)
 {
-    web::json::value obj = web::json::value::object();
+    j = json
+    {
+        { "Name",              data._itemName },
+        { "Prefix",            data._itemPrefix },
+        { "Suffix",            data._itemSuffix },
+        { "Modifier",          data._itemModifier },
+        { "Illusion",          data._itemIllusion },
+        { "ItemSeed",          data._itemSeed },
+        { "Component",         data._itemComponent },
+        { "Completion",        data._itemCompletion },
+        { "ComponentSeed",     data._itemComponentSeed },
+        { "Augment",           data._itemAugment },
+        { "Unknown1",          data._itemUnk1 },
+        { "AugmentSeed",       data._itemAugmentSeed },
+        { "Unknown2",          data._itemUnk2 },
+        { "StackCount",        data._itemStackCount },
+        { "ParticipantItemID", data._itemID },
+    };
+}
 
-    obj[U("name")] = JSONString(_itemName);
-    obj[U("prefix")] = JSONString(_itemPrefix);
-    obj[U("suffix")] = JSONString(_itemSuffix);
-    obj[U("modifier")] = JSONString(_itemModifier);
-    obj[U("illusion")] = JSONString(_itemIllusion);
-    obj[U("itemSeed")] = _itemSeed;
-    obj[U("component")] = JSONString(_itemComponent);
-    obj[U("completion")] = JSONString(_itemCompletion);
-    obj[U("componentSeed")] = _itemComponentSeed;
-    obj[U("augment")] = JSONString(_itemAugment);
-    obj[U("unknown1")] = _itemUnk1;
-    obj[U("augmentSeed")] = _itemAugmentSeed;
-    obj[U("unknown2")] = _itemUnk2;
-    obj[U("stackCount")] = _itemStackCount;
+void from_json(const json& j, Item& data)
+{
+    j.at("Name")         .get_to(data._itemName);
+    j.at("Prefix")       .get_to(data._itemPrefix);
+    j.at("Suffix")       .get_to(data._itemSuffix);
+    j.at("Modifier")     .get_to(data._itemModifier);
+    j.at("Illusion")     .get_to(data._itemIllusion);
+    j.at("ItemSeed")     .get_to(data._itemSeed);
+    j.at("Component")    .get_to(data._itemComponent);
+    j.at("Completion")   .get_to(data._itemCompletion);
+    j.at("ComponentSeed").get_to(data._itemComponentSeed);
+    j.at("Augment")      .get_to(data._itemAugment);
+    j.at("Unknown1")     .get_to(data._itemUnk1);
+    j.at("AugmentSeed")  .get_to(data._itemAugmentSeed);
+    j.at("Unknown2")     .get_to(data._itemUnk2);
+    j.at("StackCount")   .get_to(data._itemStackCount);
 
-    return obj;
+    if (j.contains("ParticipantItemID"))
+        j.at("ParticipantItemID").get_to(data._itemID);
 }

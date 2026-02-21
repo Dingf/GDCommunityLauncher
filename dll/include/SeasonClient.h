@@ -4,16 +4,34 @@
 #include <stdint.h>
 #include <string>
 #include "Client.h"
+#include "JSON.h"
+
+enum SeasonType : uint32_t
+{
+    SEASON_TYPE_NONE = 0,
+    SEASON_TYPE_SC_TRADE = 1,
+    SEASON_TYPE_HC_SSF = 2,
+};
 
 class SeasonClient : public Client
 {
     public:
+        struct SeasonInfo
+        {
+            uint32_t    _seasonID;
+            SeasonType  _seasonType;
+            std::string _displayName;
+            std::string _participationToken;
+        };
+
         SeasonClient(SeasonClient&) = delete;
         void operator=(const SeasonClient&) = delete;
 
         static SeasonClient* GetInstance();
 
         static bool Initialize();
+
+        bool HasSeasons() const { return !_seasons.empty(); }
 
         // TODO: Clean up this and the other functions below
         uint32_t GetPoints() const { return _points; }
@@ -22,6 +40,7 @@ class SeasonClient : public Client
 
         //const std::wstring& GetLeagueInfoText()  const { return _leagueInfoText; }
 
+        std::string GetActiveSeasonToken() const { return IsInActiveSeason() ? _activeSeason->_participationToken : std::string(); }
         const SeasonInfo* GetActiveSeason() const { return _activeSeason; }
         //std::wstring GetActiveCharacter() const { return _activeCharacter; }
 
@@ -37,6 +56,8 @@ class SeasonClient : public Client
         //void SetParticipantID(uint32_t participantID);
         //void UpdateSeasonStanding();
 
+        const std::vector<SeasonInfo>& GetSeasonList() const { return _seasons; }
+
     private:
         SeasonClient();
 
@@ -48,10 +69,14 @@ class SeasonClient : public Client
         //static void OnRefreshToken(const signalr::value& value, const std::vector<void*> args);
         //static void OnUpdateSeasonStanding(const signalr::value& value, const std::vector<void*> args);
 
+        friend void HandleReadGetSeasons(json response);
+
         uint32_t _rank;
         uint32_t _points;
         //uint32_t _participantID;
         std::wstring _activeCharacter;
+
+        std::vector<SeasonInfo> _seasons;
         const SeasonInfo* _activeSeason;
 
         //std::unique_ptr<Connection> _connection;

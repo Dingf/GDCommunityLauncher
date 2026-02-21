@@ -4,7 +4,7 @@
 #include <memory>
 #include <string>
 #include "FileReader.h"
-#include "JSONObject.h"
+#include "JSON.h"
 
 enum Factions
 {
@@ -33,13 +33,14 @@ enum Factions
     FACTION_ELDRITCH_HORRORS = 22,
 };
 
-struct Faction : public JSONObject
+struct Faction
 {
     public:
         Faction() {}
         Faction(EncodedFileReader* reader) { Read(reader); }
 
-        web::json::value ToJSON() const;
+        friend void to_json(json& j, const Faction& data);
+        friend void from_json(const json& j, Faction& data);
 
         void Read(EncodedFileReader* reader);
 

@@ -4,9 +4,9 @@
 #include <memory>
 #include <string>
 #include "FileReader.h"
-#include "JSONObject.h"
+#include "JSON.h"
 
-struct Skill : public JSONObject
+struct Skill
 {
     public:
         virtual ~Skill() = 0;
@@ -22,7 +22,8 @@ struct ClassSkill : public Skill
         ClassSkill() {}
         ClassSkill(EncodedFileReader* reader) { Read(reader); }
 
-        web::json::value ToJSON() const;
+        friend void to_json(json& j, const ClassSkill& data);
+        friend void from_json(const json& j, ClassSkill& data);
 
         void Read(EncodedFileReader* reader);
 
@@ -41,7 +42,8 @@ struct ItemSkill : public Skill
         ItemSkill() {}
         ItemSkill(EncodedFileReader* reader) { Read(reader); }
 
-        web::json::value ToJSON() const;
+        friend void to_json(json& j, const ItemSkill& data);
+        friend void from_json(const json& j, ItemSkill& data);
 
         void Read(EncodedFileReader* reader);
 

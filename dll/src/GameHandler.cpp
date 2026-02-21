@@ -163,7 +163,7 @@ bool CreateManualHooks()
 
 GameHandler::GameHandler()
 {
-    if (!spSeasonClient->IsOfflineMode() && !CreateOnlineHooks())
+    if (!spClient->IsOfflineMode() && !CreateOnlineHooks())
         throw std::runtime_error("Could not create one or more online game hooks.");
 
     if (!CreateOfflineHooks())

@@ -10,8 +10,24 @@
 class SharedStash : public Stash
 {
     public:
+        // Header block, ID = 18, Version = 3,4,5
+        struct SharedStashHeaderBlock : public GDDataBlock
+        {
+            SharedStashHeaderBlock() : GDDataBlock(0x12, 0x1C) {}
+
+            friend void to_json(json& j, const SharedStashHeaderBlock& data);
+            friend void from_json(const json& j, SharedStashHeaderBlock& data);
+
+            uint32_t    _unk1;
+            std::string _stashModName;
+            uint8_t     _stashExpansions;
+        };
+
         SharedStash() {}
         SharedStash(const std::filesystem::path& path) { ReadFromFile(path); };
+
+        friend void to_json(json& j, const SharedStash& data);
+        friend void from_json(const json& j, SharedStash& data);
 
         size_t GetBufferSize() const;
 
@@ -26,18 +42,7 @@ class SharedStash : public Stash
         void Read(EncodedFileReader* reader);
         void Write(EncodedFileWriter* writer);
 
-        // Header block, ID = 18, Version = 3,4,5
-        struct SharedStashHeaderBlock : public GDDataBlock
-        {
-            SharedStashHeaderBlock() : GDDataBlock(0x12, 0x1C) {}
-
-            web::json::value ToJSON() const;
-
-            uint32_t    _unk1;
-            std::string _stashModName;
-            uint8_t     _stashExpansions;
-        }
-        _headerBlock;
+        SharedStashHeaderBlock _headerBlock;
 };
 
 

@@ -9,8 +9,7 @@ void RegisterLuaGetVersion(void* _this)
 
 void RegisterLuaGetBranch(void* _this)
 {
-    Client& client = Client::GetInstance();
-    std::string code = "function GDCL_GetBranch() return " + std::to_string(client.GetBranch()) + " end";
+    std::string code = "function GDCL_GetBranch() return " + std::to_string(spClient->GetBranch()) + " end";
     EngineAPI::RunLuaCode(code.c_str());
 }
 

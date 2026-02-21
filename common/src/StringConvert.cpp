@@ -40,10 +40,10 @@ std::string WideToRaw(const std::wstring& str)
 {
     std::string result;
     result.reserve(str.size() * 2);
-    for (size_t i = 0; i < str.size(); ++i)
+    for (wchar_t c : str)
     {
-        result.push_back((char)((str[i] >> 8) & 0xFF));
-        result.push_back((char)(str[i] & 0xFF));
+        result.push_back((char)((c >> 8) & 0xFF));
+        result.push_back((char)(c & 0xFF));
     }
     return result;
 }
@@ -52,9 +52,9 @@ std::wstring CharToWide(const std::string& str)
 {
     std::wstring result;
     result.reserve(str.size());
-    for (size_t i = 0; i < str.size(); ++i)
+    for (char c : str)
     {
-        result.push_back((wchar_t)str[i]);
+        result.push_back((wchar_t)c);
     }
     return result;
 }
@@ -63,9 +63,9 @@ std::string WideToChar(const std::wstring& str)
 {
     std::string result;
     result.reserve(str.size());
-    for (size_t i = 0; i < str.size(); ++i)
+    for (wchar_t c : str)
     {
-        result.push_back((char)str[i]);
+        result.push_back((char)c);
     }
     return result;
 }

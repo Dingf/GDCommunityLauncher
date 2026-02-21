@@ -1,8 +1,8 @@
-#include <unordered_map>
+/*#include <unordered_map>
 #include <filesystem>
 #include <cpprest/filestream.h>
 #include <cpprest/http_client.h>
-#include "Client.h"
+#include "SeasonClient.h"
 #include "EventManager.h"
 #include "ThreadManager.h"
 #include "EngineAPI.h"
@@ -74,8 +74,7 @@ std::string GetMultipartJSONData(const std::string& name, const web::json::value
 
 ServerSync::ServerSync()
 {
-    Client& client = Client::GetInstance();
-    if (!client.IsOfflineMode())
+    if (!spClient->IsOfflineMode())
     {
         EventManager::Subscribe(GDCL_EVENT_INITIALIZE,            &ServerSync::OnInitializeEvent);
         EventManager::Subscribe(GDCL_EVENT_SHUTDOWN,              &ServerSync::OnShutdownEvent);
@@ -93,14 +92,14 @@ ServerSync::ServerSync()
         EventManager::Subscribe(GDCL_EVENT_CHARACTER_POST_SAVE,   &ServerSync::OnCharacterPostSaveEvent);
         EventManager::Subscribe(GDCL_EVENT_DELETE_FILE,           &ServerSync::OnDeleteFileEvent);
 
-        /*if (Connection* connection = client.GetConnection())
+        if (Connection* connection = client.GetConnection())
         {
             connection->Register("AddSeasonParticipant",          &ServerSync::OnAddParticipant);
             connection->Register("GetParticipantCharacter",       &ServerSync::OnGetCharacterInfo);
             connection->Register("GetParticipantCharacters",      &ServerSync::OnGetCharacterList);
             connection->Register("GetParticipantSharedStash",     &ServerSync::OnGetStashInfo);
             connection->Register("ConnectionStatus",              &ServerSync::OnConnectionStatus);
-        }*/
+        }
     }
 }
 
@@ -117,14 +116,13 @@ uint32_t ServerSync::GetParticipantID(bool hardcore)
 
     try
     {
-        Client& client = Client::GetInstance();
-        URI endpoint = client.GetServerGameURL() / "Season" / "profile";
-        endpoint.AddParam("branch", client.GetBranchName());
+        URI endpoint = spClient->GetServerGameURL() / "Season" / "profile";
+        endpoint.AddParam("branch", spClient->GetBranchName());
 
         web::http::client::http_client httpClient((utility::string_t)endpoint);
         web::http::http_request request(web::http::methods::GET);
 
-        std::string bearerToken = "Bearer " + client.GetAuthToken();
+        std::string bearerToken = "Bearer " + spClient->GetAuthToken();
         request.headers().add(U("Authorization"), bearerToken.c_str());
 
         web::http::http_response response = httpClient.request(request).get();
@@ -1970,7 +1968,7 @@ void ServerSync::OnTransferPostSaveEvent()
 
 void ServerSync::OnCharacterPreSaveEvent(void* player)
 {
-    /*if (player)
+    if (player)
     {
         std::filesystem::path playerFile = GameAPI::GetPlayerSaveFile(player);
         if (GameAPI::IsPlayerInMainQuest(player))
@@ -1981,7 +1979,7 @@ void ServerSync::OnCharacterPreSaveEvent(void* player)
                 GetInstance().RegisterSeasonParticipant(GameAPI::IsPlayerHardcore(player));
             }
         }
-    }*/
+    }
 }
 
 void ServerSync::OnCharacterPostSaveEvent(void* player)
@@ -2116,4 +2114,4 @@ void ServerSync::OnGetStashInfo(const signalr::value& value, const std::vector<v
 void ServerSync::OnConnectionStatus(const signalr::value& value, const std::vector<void*> args)
 {
     // No need to do anything here; calling the method is enough for checking connection status
-}
+}*/

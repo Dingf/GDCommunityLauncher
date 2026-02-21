@@ -1,7 +1,6 @@
 #ifndef INC_GDCL_GAME_GD_DATA_BLOCK_H
 #define INC_GDCL_GAME_GD_DATA_BLOCK_H
 
-#include "JSONObject.h"
 #include "FileReader.h"
 #include "FileWriter.h"
 
@@ -11,12 +10,10 @@ enum GDDataBlockFlags
     GD_DATA_BLOCK_FLAG_VERSION = 0x02
 };
 
-class GDDataBlock : public JSONObject
+class GDDataBlock
 {
     public:
         GDDataBlock(uint32_t ID, uint32_t versionMask) : _blockID(ID), _blockVersionMask(versionMask) {}
-
-        virtual web::json::value ToJSON() const;
 
         uint32_t GetBlockID()          const { return _blockID; }
         uint32_t GetBlockVersion()     const { return _blockVersion; }

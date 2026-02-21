@@ -4,19 +4,19 @@
 #include <memory>
 #include <string>
 #include "FileData.h"
-#include "JSONObject.h"
+#include "JSON.h"
 
-struct Item : public FileData, public JSONObject
+struct Item : public FileData
 {
     public:
         Item() {}
         Item(EncodedFileReader* reader) { Read(reader); }
-        Item(const web::json::value& val);
         Item(const Item& item) { *this = item; }
 
         Item& operator=(const Item& item);
 
-        web::json::value ToJSON() const;
+        friend void to_json(json& j, const Item& data);
+        friend void from_json(const json& j, Item& data);
 
         void Read(EncodedFileReader* reader);
         void Write(EncodedFileWriter* writer);

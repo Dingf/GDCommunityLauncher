@@ -1,6 +1,7 @@
 #ifndef INC_GDCL_WEBSOCKET_H
 #define INC_GDCL_WEBSOCKET_H
 
+#include <atomic>
 #include <boost/asio/ssl.hpp>
 #include <boost/asio/strand.hpp>
 #include <boost/asio/thread_pool.hpp>
@@ -11,6 +12,8 @@
 #include <boost/scoped_ptr.hpp>
 #include "ThreadSafeQueue.h"
 #include "Log.h"
+
+#include <iostream>
 
 namespace asio      = boost::asio;
 namespace beast     = boost::beast;
@@ -24,12 +27,12 @@ class Websocket
     public:
         typedef beast::websocket::stream<ssl::stream<tcp::socket>> WebsocketStream;
 
-        Websocket(T& handler) : _handler(handler), _connected(false)
+        Websocket(asio::io_context& ioc, ssl::context& ssl, T& handler) : _ioc(ioc), _ssl(ssl), _timer(ioc), _handler(handler), _connected(false)
         {
-            _ws.reset(new WebsocketStream(_ioc, _ctx));
+            _ws.reset(new WebsocketStream(_ioc, _ssl));
             // TODO: Make these configurable?
             _ws->write_buffer_bytes(262144);
-            _ws->set_option(websocket::stream_base::timeout({std::chrono::seconds(30), std::chrono::seconds(10), false}));
+            _ws->set_option(websocket::stream_base::timeout({std::chrono::seconds(30), websocket::stream_base::none(), false}));
         }
 
         bool IsConnected() const { return _connected; }
@@ -58,7 +61,7 @@ class Websocket
                 }
 
                 _ws->next_layer().handshake(ssl::stream_base::client);
-                _ws->handshake(host + ":" + std::to_string(endpoint.port()), target);
+                _ws->handshake(host, target);
                 _connected = true;
 
                 Read();
@@ -72,6 +75,23 @@ class Websocket
             }
         };
 
+        void Disconnect()
+        {
+            if (_connected)
+            {
+                _connected = false;
+                beast::get_lowest_layer(*_ws).close();
+                _ws.reset(new WebsocketStream(_ioc, _ssl));
+            }
+        }
+
+        /*template <typename... Ts>
+        void Send(Ts... args)
+        {
+            std::string message = _handler.OnWrite(args...);
+            Send(message);
+        }*/
+
         void Send(const std::string& message)
         {
             asio::post(_ws->get_executor(), [this, &message]()
@@ -83,15 +103,15 @@ class Websocket
         }
 
     private:
-        bool _connected;            // The current state of the connection
-        std::string _host;          // The last used hostname
-        std::string _port;          // The last used port number
-        std::string _target;        // The last used target
-        std::string _authToken;     // The last used auth token
+        std::atomic_bool _connected; // The current state of the connection
+        std::string _host;           // The last used hostname
+        std::string _port;           // The last used port number
+        std::string _target;         // The last used target
+        std::string _authToken;      // The last used auth token
 
-        ssl::context       _ctx{ssl::context::tlsv12_client};
-        asio::thread_pool  _ioc{1};
-        asio::steady_timer _timer{_ioc};
+        asio::io_context&  _ioc;
+        ssl::context&      _ssl;
+        asio::steady_timer _timer;
         beast::flat_buffer _buffer;
         boost::scoped_ptr<WebsocketStream> _ws;
 
@@ -110,6 +130,11 @@ class Websocket
                     _handler >> message;
                     Read();
                 }
+                else
+                {
+                    Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to read data from websocket: %", ec.what());
+                    Disconnect();
+                }
             });
         }
 
@@ -122,9 +147,13 @@ class Websocket
                 {
                     if (!ec)
                     {
-                        _handler << message;
                         _messageQueue.pop();
                         Write();
+                    }
+                    else
+                    {
+                        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to write data to websocket: %", ec.what());
+                        Disconnect();
                     }
                 });
             }
@@ -140,15 +169,12 @@ class Websocket
                 {
                     if (_connected)
                     {
-                        // TODO: Change this message
-                        _ws->async_ping("test", [this](const beast::error_code& ec)
+                        _ws->async_ping({}, [this](const beast::error_code& ec)
                         {
                             if (ec)
                             {
                                 // Reset the connection on error to allow the client to reconnect
-                                _connected = false;
-                                beast::get_lowest_layer(*_ws).close();
-                                _ws.reset(new WebsocketStream(_ioc, _ctx));
+                                Disconnect();
                             }
                             Ping();
                         });
@@ -158,6 +184,11 @@ class Websocket
                         if (!Connect(_host, _port, _target, _authToken))
                             Ping();
                     } 
+                }
+                else
+                {
+                    Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to ping websocket: %", ec.what());
+                    Disconnect();
                 }
             });
         }

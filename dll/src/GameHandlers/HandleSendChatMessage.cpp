@@ -7,10 +7,8 @@
 #include <regex>
 #include <cwctype>
 #include <filesystem>
-#include <cpprest/http_client.h>
 #include "GameHandler.h"
 #include "ChatManager.h"
-#include "JSONObject.h"
 #include "StringConvert.h"
 #include "URI.h"
 
@@ -63,7 +61,7 @@ bool HandleChatGlobalCommand(std::wstring& name, std::wstring& message, uint32_t
 {
     spChatManager->SetChatPrefix(L"/g ");
 
-    type = EngineAPI::UI::CHAT_TYPE_GLOBAL;
+    type = CHAT_TYPE_GLOBAL;
 
     std::wstring subcommand = message.substr(0, message.find(L" "));
     std::wstring args = (subcommand.size() == message.size()) ? L"" : message.substr(message.find(L" ") + 1);
@@ -74,12 +72,12 @@ bool HandleChatGlobalCommand(std::wstring& name, std::wstring& message, uint32_t
         if (channel == 0)
             channel = 1;
 
-        spChatManager->SetChannel(EngineAPI::UI::CHAT_TYPE_GLOBAL, channel);
+        spChatManager->SetChatChannel(CHAT_TYPE_GLOBAL, channel);
         return false;
     }
     else if ((subcommand == L"off") && (subcommand.size() == message.size()))
     {
-        spChatManager->SetChannel(EngineAPI::UI::CHAT_TYPE_GLOBAL, 0);
+        spChatManager->SetChatChannel(CHAT_TYPE_GLOBAL, 0);
         return false;
     }
     else if ((subcommand == L"color") || (subcommand == L"colour"))
@@ -113,7 +111,7 @@ bool HandleChatGlobalCommand(std::wstring& name, std::wstring& message, uint32_t
 
         if (colorCode != 0)
         {
-            if (spChatManager->SetChatColor(EngineAPI::UI::CHAT_TYPE_GLOBAL, colorCode))
+            if (spChatManager->SetChatColor(CHAT_TYPE_GLOBAL, colorCode))
             {
                 std::wstringstream outputStream;
                 outputStream << std::hex << std::uppercase << std::setfill(L'0') << std::setw(2) << (colorCode & 0x0000FF) << std::setw(2) << ((colorCode & 0x00FF00) >> 8) << std::setw(2) << ((colorCode & 0xFF0000) >> 16);
@@ -137,30 +135,28 @@ bool HandleChatGlobalCommand(std::wstring& name, std::wstring& message, uint32_t
     
     if (channel != 0)
     {
-        if (channel > EngineAPI::UI::CHAT_CHANNEL_MAX)
+        if (channel > ChatManager::CHAT_CHANNEL_MAX)
         {
             name = L"Server";
-            message = L"Invalid channel. The maximum number of channels is " + std::to_wstring(EngineAPI::UI::CHAT_CHANNEL_MAX) + L".";
+            message = L"Invalid channel. The maximum number of channels is " + std::to_wstring(ChatManager::CHAT_CHANNEL_MAX) + L".";
             return true;
         }
         else
         {
             if ((message.empty()) && (item == nullptr))
             {
-                spChatManager->SetChannel(EngineAPI::UI::CHAT_TYPE_GLOBAL, channel);
+                spChatManager->SetChatChannel(CHAT_TYPE_GLOBAL, channel);
             }
             else
             {
-                Client& client = Client::GetInstance();
-                name = std::wstring(client.GetUsername().begin(), client.GetUsername().end());
-
-                spChatManager->SetChannelAndSendMessage(EngineAPI::UI::CHAT_TYPE_GLOBAL, channel, name, message, item);
+                name = CharToWide(spClient->GetUsername());
+                spChatManager->SetChannelAndSendMessage(CHAT_TYPE_GLOBAL, channel, name, message, item);
             }
             return false;
         }
     }
 
-    uint8_t currentChannel = spChatManager->GetChannel(EngineAPI::UI::CHAT_TYPE_GLOBAL);
+    uint8_t currentChannel = spChatManager->GetChatChannel(CHAT_TYPE_GLOBAL);
     if (currentChannel > 0)
     {
         if ((message.empty()) && (item == nullptr))
@@ -170,9 +166,8 @@ bool HandleChatGlobalCommand(std::wstring& name, std::wstring& message, uint32_t
         }
         else
         {
-            Client& client = Client::GetInstance();
-            name = std::wstring(client.GetUsername().begin(), client.GetUsername().end());
-            spChatManager->SendChatMessage(EngineAPI::UI::CHAT_TYPE_GLOBAL, name, message, item);
+            name = CharToWide(spClient->GetUsername());
+            spChatManager->SendChatMessage(CHAT_TYPE_GLOBAL, name, message, item);
             return false;
         }
     }
@@ -188,7 +183,7 @@ bool HandleChatTradeCommand(std::wstring& name, std::wstring& message, uint32_t&
 {
     spChatManager->SetChatPrefix(L"/t ");
 
-    type = EngineAPI::UI::CHAT_TYPE_TRADE;
+    type = CHAT_TYPE_TRADE;
 
     std::wstring subcommand = message.substr(0, message.find(L" "));
     std::wstring args = (subcommand.size() == message.size()) ? L"" : message.substr(message.find(L" ") + 1);
@@ -199,12 +194,12 @@ bool HandleChatTradeCommand(std::wstring& name, std::wstring& message, uint32_t&
         if (channel == 0)
             channel = 1;
 
-        spChatManager->SetChannel(EngineAPI::UI::CHAT_TYPE_TRADE, channel);
+        spChatManager->SetChatChannel(CHAT_TYPE_TRADE, channel);
         return false;
     }
     else if ((subcommand == L"off") && (subcommand.size() == message.size()))
     {
-        spChatManager->SetChannel(EngineAPI::UI::CHAT_TYPE_TRADE, 0);
+        spChatManager->SetChatChannel(CHAT_TYPE_TRADE, 0);
         return false;
     }
     else if ((subcommand == L"color") || (subcommand == L"colour"))
@@ -238,7 +233,7 @@ bool HandleChatTradeCommand(std::wstring& name, std::wstring& message, uint32_t&
 
         if (colorCode != 0)
         {
-            if (spChatManager->SetChatColor(EngineAPI::UI::CHAT_TYPE_TRADE, colorCode))
+            if (spChatManager->SetChatColor(CHAT_TYPE_TRADE, colorCode))
             {
                 std::wstringstream outputStream;
                 outputStream << std::hex << std::uppercase << std::setfill(L'0') << std::setw(2) << (colorCode & 0x0000FF) << std::setw(2) << ((colorCode & 0x00FF00) >> 8) << std::setw(2) << ((colorCode & 0xFF0000) >> 16);
@@ -262,30 +257,28 @@ bool HandleChatTradeCommand(std::wstring& name, std::wstring& message, uint32_t&
 
     if (channel != 0)
     {
-        if (channel > EngineAPI::UI::CHAT_CHANNEL_MAX)
+        if (channel > ChatManager::CHAT_CHANNEL_MAX)
         {
             name = L"Server";
-            message = L"Invalid channel. The maximum number of channels is " + std::to_wstring(EngineAPI::UI::CHAT_CHANNEL_MAX) + L".";
+            message = L"Invalid channel. The maximum number of channels is " + std::to_wstring(ChatManager::CHAT_CHANNEL_MAX) + L".";
             return true;
         }
         else
         {
             if ((message.empty()) && (item == nullptr))
             {
-                spChatManager->SetChannel(EngineAPI::UI::CHAT_TYPE_TRADE, channel);
+                spChatManager->SetChatChannel(CHAT_TYPE_TRADE, channel);
             }
             else
             {
-                Client& client = Client::GetInstance();
-                name = std::wstring(client.GetUsername().begin(), client.GetUsername().end());
-
-                spChatManager->SetChannelAndSendMessage(EngineAPI::UI::CHAT_TYPE_TRADE, channel, name, message, item);
+                name = CharToWide(spClient->GetUsername());
+                spChatManager->SetChannelAndSendMessage(CHAT_TYPE_TRADE, channel, name, message, item);
             }
             return false;
         }
     }
 
-    uint8_t currentChannel = spChatManager->GetChannel(EngineAPI::UI::CHAT_TYPE_TRADE);
+    uint8_t currentChannel = spChatManager->GetChatChannel(CHAT_TYPE_TRADE);
     if (currentChannel > 0)
     {
         if ((message.empty()) && (item == nullptr))
@@ -295,9 +288,8 @@ bool HandleChatTradeCommand(std::wstring& name, std::wstring& message, uint32_t&
         }
         else
         {
-            Client& client = Client::GetInstance();
-            name = std::wstring(client.GetUsername().begin(), client.GetUsername().end());
-            spChatManager->SendChatMessage(EngineAPI::UI::CHAT_TYPE_TRADE, name, message, item);
+            name = CharToWide(spClient->GetUsername());
+            spChatManager->SendChatMessage(CHAT_TYPE_TRADE, name, message, item);
             return false;
         }
     }
@@ -311,7 +303,8 @@ bool HandleChatTradeCommand(std::wstring& name, std::wstring& message, uint32_t&
 
 bool HandleChatOnlineCommand(std::wstring& name, std::wstring& message, uint32_t& channel, uint8_t& type, void* item)
 {
-    Client& client = Client::GetInstance();
+    // TODO: Handle this with websockets
+    /*Client& client = Client::GetInstance();
     URI endpoint = client.GetServerChatURL() / "chat" / "connected-clients";
 
     web::http::http_request request(web::http::methods::GET);
@@ -342,12 +335,12 @@ bool HandleChatOnlineCommand(std::wstring& name, std::wstring& message, uint32_t
         {
             Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve online users: %", ex.what());
         }
-    });
+    });*/
 
     return false;
 }
 
-pplx::task<web::json::value> GetSeasonChallenges()
+/*pplx::task<web::json::value> GetSeasonChallenges()
 {
     Client& client = Client::GetInstance();
     if (client.IsPlayingSeason())
@@ -419,7 +412,7 @@ pplx::task<std::unordered_set<uint32_t>> GetCompletedChallengeIDs()
     }
 
     return pplx::task_from_result(std::unordered_set<uint32_t>());
-}
+}*/
 
 bool HandleChatChallengesCommand(std::wstring& name, std::wstring& message, uint32_t& channel, uint8_t& type, void* item)
 {
@@ -430,9 +423,7 @@ bool HandleChatChallengesCommand(std::wstring& name, std::wstring& message, uint
 
     std::thread challengesInfo([channel]()
     {
-        Client& client = Client::GetInstance();
-
-        web::json::value challenges = web::json::value::null();
+        json challenges;
         std::unordered_set<uint32_t> challengeIDs;
 
         try
@@ -447,21 +438,19 @@ bool HandleChatChallengesCommand(std::wstring& name, std::wstring& message, uint
 
         if (!challenges.is_null())
         {
-            web::json::array challengeList = challenges.as_array();
             if (channel == 0)
             {
                 std::wstring overview = L"Challenge overview for ";
-                overview += std::wstring(client.GetUsername().begin(), client.GetUsername().end());
+                overview += CharToWide(spClient->GetUsername());
                 overview += L": ";
-                GameAPI::SendChatMessage(L"Server", overview, EngineAPI::UI::CHAT_TYPE_NORMAL);
+                GameAPI::SendChatMessage(L"Server", overview, CHAT_TYPE_NORMAL);
 
                 std::unordered_map<uint32_t, uint32_t> challengeCount;
                 std::unordered_map<uint32_t, uint32_t> completedCount;
-                for (size_t i = 0; i < challengeList.size(); ++i)
+                for (json challenge : challenges)
                 {
-                    web::json::value challengeData = challengeList[i];
-                    std::string challengeCategory = JSONString(challengeData[U("categoryName")].serialize());
-                    uint32_t challengeID = challengeData[U("seasonChallengeId")].as_integer();
+                    std::string challengeCategory = challenge.at("categoryName").get<std::string>();
+                    uint32_t challengeID = challenge.at("seasonChallengeId").get<uint32_t>();
 
                     auto it = challengeCategoryMap.find(challengeCategory);
                     if (it != challengeCategoryMap.end())
@@ -483,14 +472,14 @@ bool HandleChatChallengesCommand(std::wstring& name, std::wstring& message, uint
                         message += std::to_wstring(i);
                         message += L" - ";
 
-                        message += std::wstring(it->first.begin(), it->first.end());
+                        message += CharToWide(it->first);
                         message += L" (";
                         message += std::to_wstring(completedCount[i]);
                         message += L"/";
                         message += std::to_wstring(challengeCount[i]);
                         message += L")";
 
-                        ChatType chatType = (completedCount[i] == challengeCount[i]) ? EngineAPI::UI::CHAT_TYPE_TRADE : EngineAPI::UI::CHAT_TYPE_NORMAL;
+                        ChatType chatType = (completedCount[i] == challengeCount[i]) ? CHAT_TYPE_TRADE : CHAT_TYPE_NORMAL;
                         GameAPI::SendChatMessage(L"Server", message, chatType);
                     }
                 }
@@ -500,36 +489,35 @@ bool HandleChatChallengesCommand(std::wstring& name, std::wstring& message, uint
                 auto it = std::find_if(challengeCategoryMap.begin(), challengeCategoryMap.end(), [&channel](const std::pair<std::string, uint32_t>& p) { return p.second == channel; });
                 if (it != challengeCategoryMap.end())
                 {
-                    std::wstring message = std::wstring(it->first.begin(), it->first.end());
+                    std::wstring message = CharToWide(it->first);
                     message += L" Challenges for ";
-                    message += std::wstring(client.GetUsername().begin(), client.GetUsername().end());
+                    message += CharToWide(spClient->GetUsername());
                     message += L": ";
-                    GameAPI::SendChatMessage(L"Server", message, EngineAPI::UI::CHAT_TYPE_NORMAL);
+                    GameAPI::SendChatMessage(L"Server", message, CHAT_TYPE_NORMAL);
                 }
                 else
                 {
                     std::wstring message = std::to_wstring(channel);
                     message += L" is not a valid challenge category.";
-                    GameAPI::SendChatMessage(L"Server", message, EngineAPI::UI::CHAT_TYPE_NORMAL);
+                    GameAPI::SendChatMessage(L"Server", message, CHAT_TYPE_NORMAL);
                     return;
                 }
 
-                for (size_t i = 0; i < challengeList.size(); ++i)
+                for (json challenge : challenges)
                 {
-                    web::json::value challengeData = challengeList[i];
-                    std::wstring challengeName = challengeData[U("challengeName")].as_string();
-                    std::wstring challengeDifficulty = challengeData[U("difficulties")].as_string();
-                    std::string challengeCategory = JSONString(challengeData[U("categoryName")].serialize());
+                    std::wstring challengeName = CharToWide(challenge.at("challengeName").get<std::string>());
+                    std::wstring challengeDifficulty = CharToWide(challenge.at("difficulties").get<std::string>());
+                    std::string challengeCategory = challenge.at("categoryName").get<std::string>();
 
                     auto it = challengeCategoryMap.find(challengeCategory);
                     if ((it != challengeCategoryMap.end()) && (it->second == channel))
                     {
                         uint32_t challengeLevel = 0;
-                        web::json::value maxLevelValue = challengeData[U("maxLevel")];
-                        if (!maxLevelValue.is_null())
-                            challengeLevel = maxLevelValue.as_integer();
-                        uint32_t challengePoints = challengeData[U("pointValue")].as_integer();
-                        uint32_t challengeID = challengeData[U("seasonChallengeId")].as_integer();
+                        if (challenge.contains("maxLevel"))
+                            challengeLevel = challenge.at("maxLevel").get<uint32_t>();
+
+                        uint32_t challengePoints = challenge.at("pointValue").get<uint32_t>();
+                        uint32_t challengeID = challenge.at("seasonChallengeId").get<uint32_t>();
 
                         bool complete = (challengeIDs.count(challengeID) > 0);
 
@@ -563,7 +551,7 @@ bool HandleChatChallengesCommand(std::wstring& name, std::wstring& message, uint
                         message += std::to_wstring(challengePoints);
                         message += L" points";
 
-                        ChatType chatType = complete ? EngineAPI::UI::CHAT_TYPE_TRADE : EngineAPI::UI::CHAT_TYPE_NORMAL;
+                        ChatType chatType = complete ? CHAT_TYPE_TRADE : CHAT_TYPE_NORMAL;
                         GameAPI::SendChatMessage(L"Server", message, chatType);
                     }
                 }
@@ -577,11 +565,10 @@ bool HandleChatChallengesCommand(std::wstring& name, std::wstring& message, uint
 
 bool HandleChatMuteCommand(std::wstring& name, std::wstring& message, uint32_t& channel, uint8_t& type, void* item)
 {
-    Client& client = Client::GetInstance();
     if (message.size() > 0)
     {
         std::wstring username = message.substr(0, message.find(L" "));
-        std::string clientUsername = client.GetUsername();
+        std::string clientUsername = spClient->GetUsername();
 
         if (username.size() == clientUsername.size())
         {
@@ -597,12 +584,13 @@ bool HandleChatMuteCommand(std::wstring& name, std::wstring& message, uint32_t& 
 
             if (matches)
             {
-                GameAPI::SendChatMessage(L"Server", L"You cannot mute yourself.", EngineAPI::UI::CHAT_TYPE_NORMAL);
+                GameAPI::SendChatMessage(L"Server", L"You cannot mute yourself.", CHAT_TYPE_NORMAL);
                 return false;
             }
         }
 
-        pplx::create_task([username]()
+        // TODO: Make this work with websockets
+        /*pplx::create_task([username]()
         {
             Client& client = Client::GetInstance();
             URI endpoint = client.GetServerChatURL() / "chat" / "mute" / username;
@@ -635,19 +623,19 @@ bool HandleChatMuteCommand(std::wstring& name, std::wstring& message, uint32_t& 
                     {
                         spChatManager->MutePlayer(username);
                         std::wstring message = username + L" is now muted.";
-                        GameAPI::SendChatMessage(L"Server", message, EngineAPI::UI::CHAT_TYPE_NORMAL);
+                        GameAPI::SendChatMessage(L"Server", message, CHAT_TYPE_NORMAL);
                         break;
                     }
                     case web::http::status_codes::BadRequest:
                     {
                         std::wstring message = username + L" is already muted.";
-                        GameAPI::SendChatMessage(L"Server", message, EngineAPI::UI::CHAT_TYPE_NORMAL);
+                        GameAPI::SendChatMessage(L"Server", message, CHAT_TYPE_NORMAL);
                         break;
                     }
                     case web::http::status_codes::InternalError:
                     {
                         std::wstring message = username + L" was not found on the server.";
-                        GameAPI::SendChatMessage(L"Server", message, EngineAPI::UI::CHAT_TYPE_NORMAL);
+                        GameAPI::SendChatMessage(L"Server", message, CHAT_TYPE_NORMAL);
                         break;
                     }
                 }
@@ -656,22 +644,22 @@ bool HandleChatMuteCommand(std::wstring& name, std::wstring& message, uint32_t& 
             {
                 Logger::LogMessage(LOG_LEVEL_WARN, "Failed to process chat mute command: %", ex.what());
             }
-        });
+        });*/
     }
     else
     {
         const std::unordered_set<std::wstring>& mutedList = spChatManager->GetMutedList();
         if (mutedList.size() == 0)
         {
-            GameAPI::SendChatMessage(L"Server", L"You have not muted any players.", EngineAPI::UI::CHAT_TYPE_NORMAL);
+            GameAPI::SendChatMessage(L"Server", L"You have not muted any players.", CHAT_TYPE_NORMAL);
         }
         else
         {
-            GameAPI::SendChatMessage(L"Server", L"You have muted the following players:", EngineAPI::UI::CHAT_TYPE_NORMAL);
+            GameAPI::SendChatMessage(L"Server", L"You have muted the following players:", CHAT_TYPE_NORMAL);
             for (const std::wstring& playerName : mutedList)
             {
                 std::wstring message = L"  " + playerName;
-                GameAPI::SendChatMessage(L"Server", message, EngineAPI::UI::CHAT_TYPE_NORMAL);
+                GameAPI::SendChatMessage(L"Server", message, CHAT_TYPE_NORMAL);
             }
         }
     }
@@ -683,7 +671,8 @@ bool HandleChatUnmuteCommand(std::wstring& name, std::wstring& message, uint32_t
 {
     if (message.size() > 0)
     {
-        std::wstring username = message.substr(0, message.find(L" "));
+        // TODO: Make this work with websockets
+        /*std::wstring username = message.substr(0, message.find(L" "));
         pplx::create_task([username]()
         {
             Client& client = Client::GetInstance();
@@ -717,19 +706,19 @@ bool HandleChatUnmuteCommand(std::wstring& name, std::wstring& message, uint32_t
                     {
                         spChatManager->UnmutePlayer(username);
                         std::wstring message = username + L" is now unmuted.";
-                        GameAPI::SendChatMessage(L"Server", message, EngineAPI::UI::CHAT_TYPE_NORMAL);
+                        GameAPI::SendChatMessage(L"Server", message, CHAT_TYPE_NORMAL);
                         break;
                     }
                     case web::http::status_codes::BadRequest:
                     {
                         std::wstring message = username + L" is already unmuted.";
-                        GameAPI::SendChatMessage(L"Server", message, EngineAPI::UI::CHAT_TYPE_NORMAL);
+                        GameAPI::SendChatMessage(L"Server", message, CHAT_TYPE_NORMAL);
                         break;
                     }
                     case web::http::status_codes::InternalError:
                     {
                         std::wstring message = username + L" was not found on the server.";
-                        GameAPI::SendChatMessage(L"Server", message, EngineAPI::UI::CHAT_TYPE_NORMAL);
+                        GameAPI::SendChatMessage(L"Server", message, CHAT_TYPE_NORMAL);
                         break;
                     }
                 }
@@ -738,7 +727,7 @@ bool HandleChatUnmuteCommand(std::wstring& name, std::wstring& message, uint32_t
             {
                 Logger::LogMessage(LOG_LEVEL_WARN, "Failed to process chat unmute command: %", ex.what());
             }
-        });
+        });*/
     }
 
     return false;
@@ -751,7 +740,8 @@ bool HandleChatWhisperCommand(std::wstring& name, std::wstring& message, uint32_
 
     if (!text.empty())
     {
-        pplx::create_task([username, text]()
+        // TODO: Make this work with websockets
+        /*pplx::create_task([username, text]()
         {
             Client& client = Client::GetInstance();
             URI endpoint = client.GetServerChatURL() / "chat" / "user" / username / "direct";
@@ -759,7 +749,7 @@ bool HandleChatWhisperCommand(std::wstring& name, std::wstring& message, uint32_
             web::json::value requestBody;
             requestBody[U("username")] = JSONString(client.GetUsername());
             requestBody[U("messageBody")] = JSONString(text);
-            requestBody[U("type")] = EngineAPI::UI::CHAT_TYPE_WHISPER;
+            requestBody[U("type")] = CHAT_TYPE_WHISPER;
 
             web::http::client::http_client httpClient((utility::string_t)endpoint);
             web::http::http_request request(web::http::methods::POST);
@@ -789,20 +779,20 @@ bool HandleChatWhisperCommand(std::wstring& name, std::wstring& message, uint32_
                     case web::http::status_codes::OK:
                     {
                         std::wstring user = L"[To " + username + L"]";
-                        GameAPI::SendChatMessage(user, text, EngineAPI::UI::CHAT_TYPE_NORMAL);
+                        GameAPI::SendChatMessage(user, text, CHAT_TYPE_NORMAL);
                         spChatManager->SetChatPrefix(L"/w " + username + L" ");
                         break;
                     }
                     case web::http::status_codes::BadRequest:
                     {
                         std::wstring message = username + L" is not currently online.";
-                        GameAPI::SendChatMessage(L"Server", message, EngineAPI::UI::CHAT_TYPE_NORMAL);
+                        GameAPI::SendChatMessage(L"Server", message, CHAT_TYPE_NORMAL);
                         break;
                     }
                     case web::http::status_codes::InternalError:
                     {
                         std::wstring message = username + L" was not found on the server.";
-                        GameAPI::SendChatMessage(L"Server", message, EngineAPI::UI::CHAT_TYPE_NORMAL);
+                        GameAPI::SendChatMessage(L"Server", message, CHAT_TYPE_NORMAL);
                         break;
                     }
                 }
@@ -811,7 +801,7 @@ bool HandleChatWhisperCommand(std::wstring& name, std::wstring& message, uint32_
             {
                 Logger::LogMessage(LOG_LEVEL_WARN, "Failed to send whisper message: %", ex.what());
             }
-        });
+        });*/
     }
 
     return false;
@@ -819,8 +809,7 @@ bool HandleChatWhisperCommand(std::wstring& name, std::wstring& message, uint32_
 
 bool IsBetaBranch()
 {
-    Client& client = Client::GetInstance();
-    return (client.GetBranch() == SEASON_BRANCH_BETA);
+    return (spClient->GetBranch() == SEASON_BRANCH_BETA);
 }
 
 bool HandleBetaAddItemCommand(std::wstring& name, std::wstring& message, uint32_t& channel, uint8_t& type, void* item)
@@ -910,7 +899,7 @@ bool HandleBetaDumpTagsCommand(std::wstring& name, std::wstring& message, uint32
             }
             out.close();
 
-            GameAPI::SendChatMessage(L"Server", std::wstring(L"Tags successfully written to ") + std::wstring(filename.begin(), filename.end()), EngineAPI::UI::CHAT_TYPE_NORMAL);
+            GameAPI::SendChatMessage(L"Server", std::wstring(L"Tags successfully written to ") + CharToWide(filename), CHAT_TYPE_NORMAL);
         }
 
         return false;
@@ -919,7 +908,7 @@ bool HandleBetaDumpTagsCommand(std::wstring& name, std::wstring& message, uint32
 }
 
 typedef bool (*ChatCommandInfoFilter)();
-typedef bool (*ChatCommandHandler)(ChatClient*, std::wstring&, std::wstring&, uint32_t&, uint8_t&, void*);
+typedef bool (*ChatCommandHandler)(std::wstring&, std::wstring&, uint32_t&, uint8_t&, void*);
 
 struct ChatCommandInfo
 {
@@ -1004,15 +993,15 @@ bool HandleChatHelpCommand(std::wstring& name, std::wstring& message, uint32_t& 
         }
 
         std::wstring message = L"The following chat commands are available:";
-        GameAPI::SendChatMessage(L"Server", message, EngineAPI::UI::CHAT_TYPE_NORMAL);
+        GameAPI::SendChatMessage(L"Server", message, CHAT_TYPE_NORMAL);
 
         for (const std::wstring& command : chatCommandStrings)
         {
-            GameAPI::SendChatMessage(L"Server", command, EngineAPI::UI::CHAT_TYPE_NORMAL);
+            GameAPI::SendChatMessage(L"Server", command, CHAT_TYPE_NORMAL);
         }
 
         message = L"Type /help <command> for more information about a specific chat command.";
-        GameAPI::SendChatMessage(L"Server", message, EngineAPI::UI::CHAT_TYPE_NORMAL);
+        GameAPI::SendChatMessage(L"Server", message, CHAT_TYPE_NORMAL);
     }
     else
     {
@@ -1024,7 +1013,7 @@ bool HandleChatHelpCommand(std::wstring& name, std::wstring& message, uint32_t& 
         {
             ChatCommandHandler handler = chatCommandHandlers.at(command);
             ChatCommandInfo info = chatCommandInfo.at(handler);
-            GameAPI::SendChatMessage(L"Server", info._detail, EngineAPI::UI::CHAT_TYPE_NORMAL);
+            GameAPI::SendChatMessage(L"Server", info._detail, CHAT_TYPE_NORMAL);
         }
         else if ((message == L"color") || (message == L"colour"))
         {
@@ -1047,17 +1036,17 @@ bool HandleChatHelpCommand(std::wstring& name, std::wstring& message, uint32_t& 
             }
 
             std::wstring message = L"The list of available color aliases are:";
-            GameAPI::SendChatMessage(L"Server", message, EngineAPI::UI::CHAT_TYPE_NORMAL);
+            GameAPI::SendChatMessage(L"Server", message, CHAT_TYPE_NORMAL);
 
             for (const std::wstring& command : chatColorStrings)
             {
-                GameAPI::SendChatMessage(L"Server", command, EngineAPI::UI::CHAT_TYPE_NORMAL);
+                GameAPI::SendChatMessage(L"Server", command, CHAT_TYPE_NORMAL);
             }
         }
         else
         {
             std::wstring message = L"Command \"" + command + L"\" was not found.";
-            GameAPI::SendChatMessage(L"Server", message, EngineAPI::UI::CHAT_TYPE_NORMAL);
+            GameAPI::SendChatMessage(L"Server", message, CHAT_TYPE_NORMAL);
         }
     }
     return false;
@@ -1084,7 +1073,7 @@ bool ProcessChatCommand(std::wstring& name, std::wstring& message, uint8_t& type
         if (chatCommandHandlers.count(command) > 0)
         {
             ChatCommandHandler handler = chatCommandHandlers.at(command);
-            if (!handler(this, name, message, channel, type, item))
+            if (!handler(name, message, channel, type, item))
                 return false;
         }
     }
@@ -1103,8 +1092,7 @@ void HandleSendChatMessage(void* _this, const std::wstring& name, const std::wst
         std::wstring realName = name;
         std::wstring realMessage = message;
 
-        Client& client = Client::GetInstance();
-        if (client.IsPlayingSeason())
+        if (spClient->IsPlayingSeason())
         {
             spChatManager->SetChatPrefix({});
 

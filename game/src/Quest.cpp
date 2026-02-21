@@ -217,7 +217,7 @@ void Quest::QuestData::Write(EncodedFileWriter* writer)
     GDDataBlock questDataBlock(0x00, 0x00);
     questDataBlock.WriteBlockStart(writer, GD_DATA_BLOCK_FLAG_ID);
 
-    uint32_t numTasks = _tasks.size();
+    uint32_t numTasks = (uint32_t)_tasks.size();
     writer->BufferInt32(numTasks);
     for (uint32_t i = 0; i < numTasks; ++i)
     {
@@ -245,7 +245,7 @@ void Quest::WriteTokensBlock(EncodedFileWriter* writer)
 {
     _tokensBlock.WriteBlockStart(writer);
 
-    uint32_t numTokens = _tokensBlock._questTokens.size();
+    uint32_t numTokens = (uint32_t)_tokensBlock._questTokens.size();
     writer->BufferInt32(numTokens);
     for (uint32_t i = 0; i < numTokens; ++i)
     {
@@ -259,7 +259,7 @@ void Quest::WriteDataBlock(EncodedFileWriter* writer)
 {
     _dataBlock.WriteBlockStart(writer);
 
-    uint32_t numQuests = _dataBlock._questData.size();
+    uint32_t numQuests = (uint32_t)_dataBlock._questData.size();
     writer->BufferInt32(numQuests);
     for (uint32_t i = 0; i < numQuests; ++i)
     {
@@ -269,85 +269,89 @@ void Quest::WriteDataBlock(EncodedFileWriter* writer)
     _dataBlock.WriteBlockEnd(writer);
 }
 
-web::json::value Quest::QuestTask::ToJSON() const
+void to_json(json& j, const Quest::QuestTask& data)
 {
-    web::json::value obj = web::json::value::object();
-
-    obj[U("ID1")] = _id1;
-    obj[U("ID2")] = _id2.ToJSON();
-    obj[U("State")] = _state;
-    obj[U("InProgress")] = _isInProgress;
-    obj[U("Unk1")] = _unk1;
-
-    web::json::value objectives = web::json::value::array();
-    for (uint32_t i = 0; i < _objectives.size(); ++i)
+    j = json
     {
-        objectives[i] = _objectives[i];
-    }
-    obj[U("Objectives")] = objectives;
-
-    return obj;
+        { "ID1",        data._id1 },
+        { "ID2",        data._id2 },
+        { "State",      data._state },
+        { "InProgress", data._isInProgress },
+        { "Unknown1",   data._unk1 },
+        { "Objectives", data._objectives },
+    };
 }
 
-web::json::value Quest::QuestData::ToJSON() const
+void from_json(const json& j, Quest::QuestTask& data)
 {
-    web::json::value obj = web::json::value::object();
-
-    obj[U("ID1")] = _id1;
-    obj[U("ID2")] = _id2.ToJSON();
-
-    web::json::value tasks = web::json::value::array();
-    for (uint32_t i = 0; i < _tasks.size(); ++i)
-    {
-        tasks[i] = _tasks[i].ToJSON();
-    }
-    obj[U("Tasks")] = tasks;
-
-    return obj;
+    j.at("ID1")       .get_to(data._id1);
+    j.at("ID2")       .get_to(data._id2);
+    j.at("State")     .get_to(data._state);
+    j.at("InProgress").get_to(data._isInProgress);
+    j.at("Unknown1")  .get_to(data._unk1);
+    j.at("Objectives").get_to(data._objectives);
 }
 
-web::json::value Quest::ToJSON() const
+void to_json(json& j, const Quest::QuestData& data)
 {
-    web::json::value obj = web::json::value::object();
-
-    obj[U("ID")] = _id.ToJSON();
-
-    obj[U("Tokens")] = _tokensBlock.ToJSON();
-    obj[U("Data")] = _dataBlock.ToJSON();
-
-    return obj;
+    j = json
+    {
+        { "ID1",   data._id1 },
+        { "ID2",   data._id2 },
+        { "Tasks", data._tasks },
+    };
 }
 
-web::json::value Quest::QuestTokensBlock::ToJSON() const
+void from_json(const json& j, Quest::QuestData& data)
 {
-    web::json::value obj = web::json::value::object();
-
-    obj[U("BlockID")] = GetBlockID();
-    obj[U("BlockVersion")] = GetBlockVersion();
-
-    web::json::value tokens = web::json::value::array();
-    for (uint32_t i = 0; i < _questTokens.size(); ++i)
-    {
-        tokens[i] = JSONString(_questTokens[i]);
-    }
-    obj[U("Tokens")] = tokens;
-
-    return obj;
+    j.at("ID1")  .get_to(data._id1);
+    j.at("ID2")  .get_to(data._id2);
+    j.at("Tasks").get_to(data._tasks);
 }
 
-web::json::value Quest::QuestDataBlock::ToJSON() const
+void to_json(json& j, const Quest& data)
 {
-    web::json::value obj = web::json::value::object();
-
-    obj[U("BlockID")] = GetBlockID();
-    obj[U("BlockVersion")] = GetBlockVersion();
-
-    web::json::value data = web::json::value::array();
-    for (uint32_t i = 0; i < _questData.size(); ++i)
+    j = json
     {
-        data[i] = _questData[i].ToJSON();
-    }
-    obj[U("Data")] = data;
+        { "ID",          data._id },
+        { "TokensBlock", data._tokensBlock },
+        { "DataBlock",   data._dataBlock },
+    };
+}
 
-    return obj;
+void from_json(const json& j, Quest& data)
+{
+    j.at("ID")         .get_to(data._id);
+    j.at("TokensBlock").get_to(data._tokensBlock);
+    j.at("DataBlock")  .get_to(data._dataBlock);
+}
+
+void to_json(json& j, const Quest::QuestTokensBlock& data)
+{
+    j = json
+    {
+        { "BlockID",      data.GetBlockID() },
+        { "BlockVersion", data.GetBlockVersion() },
+        { "Tokens",       data._questTokens },
+    };
+}
+
+void from_json(const json& j, Quest::QuestTokensBlock& data)
+{
+    j.at("Tokens").get_to(data._questTokens);
+}
+
+void to_json(json& j, const Quest::QuestDataBlock& data)
+{
+    j = json
+    {
+        { "BlockID",      data.GetBlockID() },
+        { "BlockVersion", data.GetBlockVersion() },
+        { "Data",         data._questData },
+    };
+}
+
+void from_json(const json& j, Quest::QuestDataBlock& data)
+{
+    j.at("Data").get_to(data._questData);
 }

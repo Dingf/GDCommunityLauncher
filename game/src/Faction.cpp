@@ -34,19 +34,29 @@ void Faction::Read(EncodedFileReader* reader)
     _factionNegativeBoost = reader->ReadFloat();
 }
 
-web::json::value Faction::ToJSON() const
+void to_json(json& j, const Faction& data)
 {
-    std::string factionName = (factionNameLookup.count(_factionID) > 0) ? factionNameLookup.at(_factionID) : "";
+    auto it = factionNameLookup.find(data._factionID);
+    std::string factionName = (it == factionNameLookup.end()) ? "Unknown" : it->second;
 
-    web::json::value obj = web::json::value::object();
-    
-    obj[U("FactionID")] = _factionID;
-    obj[U("FactionName")] = JSONString(factionName);
-    obj[U("IsModified")] = _factionIsModified;
-    obj[U("IsUnlocked")] = _factionIsUnlocked;
-    obj[U("Reputation")] = _factionRepValue;
-    obj[U("PositiveModifier")] = _factionPositiveBoost;
-    obj[U("NegativeModifier")] = _factionNegativeBoost;
+    j = 
+    {
+        { "FactionID",        data._factionID },
+        { "FactionName",      factionName },
+        { "IsModified",       data._factionIsModified },
+        { "IsUnlocked",       data._factionIsUnlocked },
+        { "Reputation",       data._factionRepValue },
+        { "PositiveModifier", data._factionPositiveBoost },
+        { "NegativeModifier", data._factionNegativeBoost },
+    };
+}
 
-    return obj;
+void from_json(const json& j, Faction& data)
+{
+    j.at("FactionID")       .get_to(data._factionID);
+    j.at("IsModified")      .get_to(data._factionIsModified);
+    j.at("IsUnlocked")      .get_to(data._factionIsUnlocked);
+    j.at("Reputation")      .get_to(data._factionRepValue);
+    j.at("PositiveModifier").get_to(data._factionPositiveBoost);
+    j.at("NegativeModifier").get_to(data._factionNegativeBoost);
 }

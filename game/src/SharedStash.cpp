@@ -130,15 +130,33 @@ void SharedStash::Write(EncodedFileWriter* writer)
     _headerBlock.WriteBlockEnd(writer);
 }
 
-web::json::value SharedStash::SharedStashHeaderBlock::ToJSON() const
+void to_json(json& j, const SharedStash& data)
 {
-    web::json::value obj = web::json::value::object();
+    to_json(j, (const Stash&)data);
+    j["HeaderBlock"] = data._headerBlock;
+}
 
-    obj[U("BlockID")] = GetBlockID();
-    obj[U("BlockVersion")] = GetBlockVersion();
-    obj[U("ModName")] = JSONString(_stashModName);
-    obj[U("Expansion")] = _stashExpansions;
-    obj[U("Unknown1")] = _unk1;
+void from_json(const json& j, SharedStash& data)
+{
+    from_json(j, (Stash&)data);
+    j.at("HeaderBlock").get_to(data._headerBlock);
+}
 
-    return obj;
+void to_json(json& j, const SharedStash::SharedStashHeaderBlock& data)
+{
+    j = json
+    {
+        { "BlockID",      data.GetBlockID() },
+        { "BlockVersion", data.GetBlockVersion() },
+        { "ModName",      data._stashModName },
+        { "Expansion",    data._stashExpansions },
+        { "Unknown1",     data._unk1 },
+    };
+}
+
+void from_json(const json& j, SharedStash::SharedStashHeaderBlock& data)
+{
+    j.at("ModName")  .get_to(data._stashModName);
+    j.at("Expansion").get_to(data._stashExpansions);
+    j.at("Unknown1") .get_to(data._unk1);
 }

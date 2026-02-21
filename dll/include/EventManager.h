@@ -34,7 +34,7 @@ class EventManager
         template <typename... Ts>
         static void Publish(GDCLEvent event, Ts... args)
         {
-            typedef bool (__thiscall* EventHandlerProto)(Ts...);
+            typedef void (__thiscall* EventHandlerProto)(Ts...);
             for (void* handler : GetInstance()._handlers[event])
             {
                 ((EventHandlerProto)handler)(args...);

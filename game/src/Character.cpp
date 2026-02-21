@@ -53,7 +53,7 @@ const std::unordered_map<CharacterClass, std::string> classNameLookup =
     { CHAR_CLASS_OPPRESSOR,     "Oppressor" },
 };
 
-std::string Character::GetCharacterClassName(CharacterClass charClass)
+std::string GetCharacterClassName(CharacterClass charClass)
 {
     if (classNameLookup.count(charClass) > 0)
     {
@@ -709,495 +709,541 @@ void Character::ReadStatsBlock(EncodedFileReader* reader)
     _statsBlock.ReadBlockEnd(reader);
 }
 
-web::json::value Character::ToJSON() const
+void to_json(json& j, const Character& data)
 {
-    web::json::value obj = web::json::value::object();
-
-    obj[U("HeaderBlock")] = _headerBlock.ToJSON();
-    obj[U("InfoBlock")] = _infoBlock.ToJSON();
-    obj[U("AttributesBlock")] = _attributesBlock.ToJSON();
-    obj[U("InventoryBlock")] = _inventoryBlock.ToJSON();
-    obj[U("StashBlock")] = _stashBlock.ToJSON();
-    obj[U("RespawnBlock")] = _respawnBlock.ToJSON();
-    obj[U("WaypointBlock")] = _waypointBlock.ToJSON();
-    obj[U("MarkerBlock")] = _markerBlock.ToJSON();
-    obj[U("ShrineBlock")] = _shrineBlock.ToJSON();
-    obj[U("SkillBlock")] = _skillBlock.ToJSON();
-    obj[U("NotesBlock")] = _notesBlock.ToJSON();
-    obj[U("FactionBlock")] = _factionBlock.ToJSON();
-    obj[U("UIBlock")] = _UIBlock.ToJSON();
-    obj[U("TutorialBlock")] = _tutorialBlock.ToJSON();
-    obj[U("StatsBlock")] = _statsBlock.ToJSON();
-
-    return obj;
+    j = json
+    {
+        { "HeaderBlock",     data._headerBlock },
+        { "InfoBlock",       data._infoBlock },
+        { "AttributesBlock", data._attributesBlock },
+        { "InventoryBlock",  data._inventoryBlock },
+        { "StashBlock",      data._stashBlock },
+        { "RespawnBlock",    data._respawnBlock },
+        { "WaypointBlock",   data._waypointBlock },
+        { "MarkerBlock",     data._markerBlock },
+        { "ShrineBlock",     data._shrineBlock },
+        { "SkillBlock",      data._skillBlock },
+        { "NotesBlock",      data._notesBlock },
+        { "FactionBlock",    data._factionBlock },
+        { "UIBlock",         data._UIBlock },
+        { "TutorialBlock",   data._tutorialBlock },
+        { "StatsBlock",      data._statsBlock },
+    };
 }
 
-web::json::value Character::CharacterHeaderBlock::ToJSON() const
+void from_json(const json& j, Character& data)
 {
-    std::string className = GetCharacterClassName(_charClass);
-
-    web::json::value obj = web::json::value::object();
-
-    obj[U("BlockID")] = GetBlockID();
-    obj[U("BlockVersion")] = GetBlockVersion();
-    obj[U("Name")] = web::json::value::string(_charName);
-    obj[U("Sex")] = _charSex;
-    obj[U("Level")] = _charLevel;
-    obj[U("Hardcore")] = _charIsHardcore;
-    obj[U("Expansions")] = _charExpansions;
-    obj[U("ClassName")] = JSONString(className);
-    obj[U("ClassID")] = _charClass;
-    obj[U("UID")] = _charUID.ToJSON();
-
-    return obj;
+    j.at("HeaderBlock")    .get_to(data._headerBlock);
+    j.at("InfoBlock")      .get_to(data._infoBlock);
+    j.at("AttributesBlock").get_to(data._attributesBlock);
+    j.at("InventoryBlock") .get_to(data._inventoryBlock);
+    j.at("StashBlock")     .get_to(data._stashBlock);
+    j.at("RespawnBlock")   .get_to(data._respawnBlock);
+    j.at("WaypointBlock")  .get_to(data._waypointBlock);
+    j.at("MarkerBlock")    .get_to(data._markerBlock);
+    j.at("ShrineBlock")    .get_to(data._shrineBlock);
+    j.at("SkillBlock")     .get_to(data._skillBlock);
+    j.at("NotesBlock")     .get_to(data._notesBlock);
+    j.at("FactionBlock")   .get_to(data._factionBlock);
+    j.at("UIBlock")        .get_to(data._UIBlock);
+    j.at("TutorialBlock")  .get_to(data._tutorialBlock);
+    j.at("StatsBlock")     .get_to(data._statsBlock);
 }
 
-web::json::value Character::CharacterInfoBlock::ToJSON() const
+void to_json(json& j, const Character::CharacterHeaderBlock& data)
 {
-    web::json::value obj = web::json::value::object();
-
-    obj[U("BlockID")] = GetBlockID();
-    obj[U("BlockVersion")] = GetBlockVersion();
-    obj[U("IsModCharacter")] = _charIsModded;
-    obj[U("IsInGame")] = _charIsInGame;
-    obj[U("CurrentDifficulty")] = _charDifficulty;
-    obj[U("MaxDifficulty")] = _charMaxDifficulty;
-    obj[U("Money")] = _charMoney;
-    obj[U("CrucibleDifficulty")] = _charCrucibleDifficulty;
-    obj[U("CrucibleTributes")] = _charCrucibleTributes;
-    obj[U("CompassState")] = _charCompassState;
-    obj[U("LootMode")] = _charLootMode;
-    obj[U("SkillWindowHelp")] = _charSkillWindowHelp;
-    obj[U("AlternateConfig")] = _charAlternateConfig;
-    obj[U("AlternateConfigEnabled")] = _charIsAlternateConfigEnabled;
-    obj[U("Texture")] = JSONString(_charTexture);
-
-    web::json::value lootFilter = web::json::value::array();
-    for (uint32_t i = 0; i < _charLootFilters.size(); ++i)
+    j = json
     {
-        lootFilter[i] = _charLootFilters[i];
-    }
-    obj[U("LootFilter")] = lootFilter;
-
-    return obj;
+        { "BlockID",      data.GetBlockID() },
+        { "BlockVersion", data.GetBlockVersion() },
+        { "Name",         data._charName },
+        { "Sex",          data._charSex },
+        { "Level",        data._charLevel },
+        { "Hardcore",     data._charIsHardcore },
+        { "Expansions",   data._charExpansions },
+        { "ClassName",    GetCharacterClassName(data._charClass) },
+        { "ClassID",      data._charClass },
+        { "UID",          data._charUID },
+    };
 }
 
-web::json::value Character::CharacterAttributesBlock::ToJSON() const
+void from_json(const json& j, Character::CharacterHeaderBlock& data)
 {
-    web::json::value obj = web::json::value::object();
-
-    obj[U("BlockID")] = GetBlockID();
-    obj[U("BlockVersion")] = GetBlockVersion();
-    obj[U("Level")] = _charLevel;
-    obj[U("Experience")] = _charExperience;
-    obj[U("AttributePoints")] = _charAttributePoints;
-    obj[U("SkillPoints")] = _charSkillPoints;
-    obj[U("DevotionPoints")] = _charDevotionPoints;
-    obj[U("TotalDevotionPoints")] = _charTotalDevotionPoints;
-    obj[U("Physique")] = _charPhysique;
-    obj[U("Cunning")] = _charCunning;
-    obj[U("Spirit")] = _charSpirit;
-    obj[U("Health")] = _charHealth;
-    obj[U("Energy")] = _charEnergy;
-
-    return obj;
+    j.at("Name")      .get_to(data._charName);
+    j.at("Sex")       .get_to(data._charSex);
+    j.at("Level")     .get_to(data._charLevel);
+    j.at("Hardcore")  .get_to(data._charIsHardcore);
+    j.at("Expansions").get_to(data._charExpansions);
+    j.at("ClassID")   .get_to(data._charClass);
+    j.at("UID")       .get_to(data._charUID);
 }
 
-web::json::value Character::CharacterInventoryBlock::ToJSON() const
+void to_json(json& j, const Character::CharacterInfoBlock& data)
 {
-    web::json::value obj = web::json::value::object();
-
-    obj[U("BlockID")] = GetBlockID();
-    obj[U("BlockVersion")] = GetBlockVersion();
-
-    web::json::value inventory = _charInventory.ToJSON();
-    inventory[U("FocusedTab")] = _charInventory.GetFocusedTab();
-    inventory[U("SelectedTab")] = _charInventory.GetSelectedTab();
-    obj[U("Inventory")] = inventory;
-
-    uint32_t i = 0;
-    web::json::value equipped = web::json::value::object();
-    web::json::value equippedItems = web::json::value::array();
-    for (auto pair : _charEquipped.GetItemList())
+    j = json
     {
-        uint32_t index = (pair.second & 0xFFFFFFFF);
-        web::json::value item = pair.first->ToJSON();
-        item[U("Slot")] = index;
-        item[U("Attached")] = _charEquipped.GetAttachState(index);
-        equippedItems[i++] = item;
-    }
-    equipped[U("Items")] = equippedItems;
-    equipped[U("WeaponSwap")] = _charEquipped.IsUsingSecondaryWeaponSet();
-    obj[U("Equipped")] = equipped;
-
-    return obj;
+        { "BlockID",                data.GetBlockID() },
+        { "BlockVersion",           data.GetBlockVersion() },
+        { "IsModCharacter",         data._charIsModded },
+        { "IsInGame",               data._charIsInGame },
+        { "CurrentDifficulty",      data._charDifficulty },
+        { "MaxDifficulty",          data._charMaxDifficulty },
+        { "Money",                  data._charMoney },
+        { "CrucibleDifficulty",     data._charCrucibleDifficulty },
+        { "CrucibleTributes",       data._charCrucibleTributes },
+        { "CompassState",           data._charCompassState },
+        { "LootMode",               data._charLootMode },
+        { "SkillWindowHelp",        data._charSkillWindowHelp },
+        { "AlternateConfig",        data._charAlternateConfig },
+        { "AlternateConfigEnabled", data._charIsAlternateConfigEnabled },
+        { "Texture",                data._charTexture },
+        { "LootFilter",             data._charLootFilters },
+    };
 }
 
-web::json::value Character::CharacterStashBlock::ToJSON() const
+void from_json(const json& j, Character::CharacterInfoBlock& data)
 {
-    web::json::value obj = web::json::value::object();
-
-    obj[U("BlockID")] = GetBlockID();
-    obj[U("BlockVersion")] = GetBlockVersion();
-    obj[U("Stash")] = _charStash.ToJSON();
-
-    return obj;
+    j.at("IsModCharacter")        .get_to(data._charIsModded);
+    j.at("IsInGame")              .get_to(data._charIsInGame);
+    j.at("CurrentDifficulty")     .get_to(data._charDifficulty);
+    j.at("MaxDifficulty")         .get_to(data._charMaxDifficulty);
+    j.at("Money")                 .get_to(data._charMoney);
+    j.at("CrucibleDifficulty")    .get_to(data._charCrucibleDifficulty);
+    j.at("CrucibleTributes")      .get_to(data._charCrucibleTributes);
+    j.at("CompassState")          .get_to(data._charCompassState);
+    j.at("LootMode")              .get_to(data._charLootMode);
+    j.at("SkillWindowHelp")       .get_to(data._charSkillWindowHelp);
+    j.at("AlternateConfig")       .get_to(data._charAlternateConfig);
+    j.at("AlternateConfigEnabled").get_to(data._charIsAlternateConfigEnabled);
+    j.at("Texture")               .get_to(data._charTexture);
+    j.at("LootFilter")            .get_to(data._charLootFilters);
 }
 
-web::json::value Character::CharacterRespawnBlock::ToJSON() const
+void to_json(json& j, const Character::CharacterAttributesBlock& data)
 {
-    web::json::value obj = web::json::value::object();
-
-    obj[U("BlockID")] = GetBlockID();
-    obj[U("BlockVersion")] = GetBlockVersion();
-
-    web::json::value respawnsNormal = web::json::value::array();
-    for (uint32_t i = 0; i < _charRespawnsNormal.size(); ++i)
+    j = json
     {
-        respawnsNormal[i] = _charRespawnsNormal[i].ToJSON();
-    }
-    obj[U("RespawnsNormal")] = respawnsNormal;
-
-    web::json::value respawnsElite = web::json::value::array();;
-    for (uint32_t i = 0; i < _charRespawnsElite.size(); ++i)
-    {
-        respawnsElite[i] = _charRespawnsElite[i].ToJSON();
-    }
-    obj[U("RespawnsElite")] = respawnsElite;
-
-    web::json::value respawnsUltimate = web::json::value::array();;
-    for (uint32_t i = 0; i < _charRespawnsUltimate.size(); ++i)
-    {
-        respawnsUltimate[i] = _charRespawnsUltimate[i].ToJSON();
-    }
-    obj[U("RespawnsUltimate")] = respawnsUltimate;
-
-    obj[U("CurrentRespawnNormal")] = _charCurrentRespawnNormal.ToJSON();
-    obj[U("CurrentRespawnElite")] = _charCurrentRespawnElite.ToJSON();
-    obj[U("CurrentRespawnUltimate")] = _charCurrentRespawnUltimate.ToJSON();
-
-    return obj;
+        { "BlockID",             data.GetBlockID() },
+        { "BlockVersion",        data.GetBlockVersion() },
+        { "Level",               data._charLevel },
+        { "Experience",          data._charExperience },
+        { "AttributePoints",     data._charAttributePoints },
+        { "SkillPoints",         data._charSkillPoints },
+        { "DevotionPoints",      data._charDevotionPoints },
+        { "TotalDevotionPoints", data._charTotalDevotionPoints },
+        { "Physique",            data._charPhysique },
+        { "Cunning",             data._charCunning },
+        { "Spirit",              data._charSpirit },
+        { "Health",              data._charHealth },
+        { "Energy",              data._charEnergy },
+    };
 }
 
-web::json::value Character::CharacterWaypointBlock::ToJSON() const
+void from_json(const json& j, Character::CharacterAttributesBlock& data)
 {
-    web::json::value obj = web::json::value::object();
-
-    obj[U("BlockID")] = GetBlockID();
-    obj[U("BlockVersion")] = GetBlockVersion();
-
-    web::json::value waypointsNormal = web::json::value::array();
-    for (uint32_t i = 0; i < _charWaypointsNormal.size(); ++i)
-    {
-        waypointsNormal[i] = _charWaypointsNormal[i].ToJSON();
-    }
-    obj[U("WaypointsNormal")] = waypointsNormal;
-
-    web::json::value waypointsElite = web::json::value::array();
-    for (uint32_t i = 0; i < _charWaypointsElite.size(); ++i)
-    {
-        waypointsElite[i] = _charWaypointsElite[i].ToJSON();
-    }
-    obj[U("WaypointsElite")] = waypointsElite;
-
-    web::json::value waypointsUltimate = web::json::value::array();
-    for (uint32_t i = 0; i < _charWaypointsUltimate.size(); ++i)
-    {
-        waypointsUltimate[i] = _charWaypointsUltimate[i].ToJSON();
-    }
-    obj[U("WaypointsUltimate")] = waypointsUltimate;
-
-    return obj;
+    j.at("Level")              .get_to(data._charLevel);
+    j.at("Experience")         .get_to(data._charExperience);
+    j.at("AttributePoints")    .get_to(data._charAttributePoints);
+    j.at("SkillPoints")        .get_to(data._charSkillPoints);
+    j.at("DevotionPoints")     .get_to(data._charDevotionPoints);
+    j.at("TotalDevotionPoints").get_to(data._charTotalDevotionPoints);
+    j.at("Physique")           .get_to(data._charPhysique);
+    j.at("Cunning")            .get_to(data._charCunning);
+    j.at("Spirit")             .get_to(data._charSpirit);
+    j.at("Health")             .get_to(data._charHealth);
+    j.at("Energy")             .get_to(data._charEnergy);
 }
 
-web::json::value Character::CharacterMarkerBlock::ToJSON() const
+void to_json(json& j, const Character::CharacterInventoryBlock& data)
 {
-    web::json::value obj = web::json::value::object();
-
-    obj[U("BlockID")] = GetBlockID();
-    obj[U("BlockVersion")] = GetBlockVersion();
-
-    web::json::value markersNormal = web::json::value::array();
-    for (uint32_t i = 0; i < _charMarkersNormal.size(); ++i)
+    json equippedItems;
+    for (auto pair : data._charEquipped.GetItemList())
     {
-        markersNormal[i] = _charMarkersNormal[i].ToJSON();
+        uint32_t slot = (pair.second & 0xFFFFFFFF);
+        json item = *pair.first;
+        item["Slot"] = slot;
+        item["Attached"] = data._charEquipped.GetAttachState(slot);
+        equippedItems.push_back(item);
     }
-    obj[U("MarkersNormal")] = markersNormal;
 
-    web::json::value markersElite = web::json::value::array();
-    for (uint32_t i = 0; i < _charMarkersElite.size(); ++i)
+    j = json
     {
-        markersElite[i] = _charMarkersElite[i].ToJSON();
-    }
-    obj[U("MarkersElite")] = markersElite;
-
-    web::json::value markersUltimate = web::json::value::array();
-    for (uint32_t i = 0; i < _charMarkersUltimate.size(); ++i)
-    {
-        markersUltimate[i] = _charMarkersUltimate[i].ToJSON();
-    }
-    obj[U("MarkersUltimate")] = markersUltimate;
-
-    return obj;
+        { "BlockID",      data.GetBlockID() },
+        { "BlockVersion", data.GetBlockVersion() },
+        { "FocusedTab",   data._charInventory.GetFocusedTab() },
+        { "SelectedTab",  data._charInventory.GetSelectedTab() },
+        { "Inventory",    data._charInventory },
+        { "Equipped", {
+            { "Items",      equippedItems },
+            { "WeaponSwap", data._charEquipped.IsUsingSecondaryWeaponSet() }
+        }},
+    };
 }
 
-web::json::value Character::CharacterShrineBlock::ToJSON() const
+void from_json(const json& j, Character::CharacterInventoryBlock& data)
 {
-    web::json::value obj = web::json::value::object();
-
-    obj[U("BlockID")] = GetBlockID();
-    obj[U("BlockVersion")] = GetBlockVersion();
-
-    web::json::value shrinesNormalRestored = web::json::value::array();
-    for (uint32_t i = 0; i < _charShrines[0].size(); ++i)
+    j.at("Inventory").get_to(data._charInventory);
+    data._charInventory.SetFocusedTab(j.at("FocusedTab").get<uint32_t>());
+    data._charInventory.SetSelectedTab(j.at("SelectedTab").get<uint32_t>());
+    
+    json equippedItems = j.at("Equipped").at("Items");
+    for (auto it = equippedItems.begin(); it != equippedItems.end(); ++it)
     {
-        shrinesNormalRestored[i] = _charShrines[0][i].ToJSON();
-    }
-    obj[U("ShrinesNormalRestored")] = shrinesNormalRestored;
+        Item item = it->get<Item>();
+        uint32_t slot = it->at("Slot");
 
-    web::json::value shrinesNormalDiscovered = web::json::value::array();
-    for (uint32_t i = 0; i < _charShrines[1].size(); ++i)
-    {
-        shrinesNormalDiscovered[i] = _charShrines[1][i].ToJSON();
+        data._charEquipped.AddItem(item, 0, slot);
+        data._charEquipped.SetAttachState(slot, it->at("Attached"));
     }
-    obj[U("ShrinesNormalDiscovered")] = shrinesNormalDiscovered;
-
-    web::json::value shrinesEliteRestored = web::json::value::array();
-    for (uint32_t i = 0; i < _charShrines[2].size(); ++i)
-    {
-        shrinesEliteRestored[i] = _charShrines[2][i].ToJSON();
-    }
-    obj[U("ShrinesEliteRestored")] = shrinesEliteRestored;
-
-    web::json::value shrinesEliteDiscovered = web::json::value::array();
-    for (uint32_t i = 0; i < _charShrines[3].size(); ++i)
-    {
-        shrinesEliteDiscovered[i] = _charShrines[3][i].ToJSON();
-    }
-    obj[U("ShrinesEliteDiscovered")] = shrinesEliteDiscovered;
-
-    web::json::value shrinesUltimateRestored = web::json::value::array();
-    for (uint32_t i = 0; i < _charShrines[4].size(); ++i)
-    {
-        shrinesUltimateRestored[i] = _charShrines[4][i].ToJSON();
-    }
-    obj[U("ShrinesUltimateRestored")] = shrinesUltimateRestored;
-
-    web::json::value shrinesUltimateDiscovered = web::json::value::array();
-    for (uint32_t i = 0; i < _charShrines[5].size(); ++i)
-    {
-        shrinesUltimateDiscovered[i] = _charShrines[5][i].ToJSON();
-    }
-    obj[U("ShrinesUltimateDiscovered")] = shrinesUltimateDiscovered;
-
-    return obj;
+    data._charEquipped.SetActiveWeaponSet(j.at("Equipped").at("WeaponSwap").get<bool>());
 }
 
-web::json::value Character::CharacterSkillBlock::ToJSON() const
+void to_json(json& j, const Character::CharacterStashBlock& data)
 {
-    web::json::value obj = web::json::value::object();
-
-    obj[U("BlockID")] = GetBlockID();
-    obj[U("BlockVersion")] = GetBlockVersion();
-    obj[U("MasteriesAllowed")] = _charMasteriesAllowed;
-    obj[U("SkillPointsReclaimed")] = _charSkillReclaimed;
-    obj[U("DevotionPointsReclaimed")] = _charDevotionReclaimed;
-
-    web::json::value classSkills = web::json::value::array();
-    for (uint32_t i = 0; i < _charClassSkills.size(); ++i)
+    j = json
     {
-        classSkills[i] = _charClassSkills[i].ToJSON();
-    }
-    obj[U("ClassSkills")] = classSkills;
-
-    web::json::value itemSkills = web::json::value::array();
-    for (uint32_t i = 0; i < _charItemSkills.size(); ++i)
-    {
-        itemSkills[i] = _charItemSkills[i].ToJSON();
-    }
-    obj[U("ItemSkills")] = itemSkills;
-
-    return obj;
+        { "BlockID",      data.GetBlockID() },
+        { "BlockVersion", data.GetBlockVersion() },
+        { "Stash",        data._charStash },
+    };
 }
 
-web::json::value Character::CharacterNotesBlock::ToJSON() const
+void from_json(const json& j, Character::CharacterStashBlock& data)
 {
-    web::json::value obj = web::json::value::object();
-
-    obj[U("BlockID")] = GetBlockID();
-    obj[U("BlockVersion")] = GetBlockVersion();
-
-    web::json::value notes = web::json::value::array();
-    for (uint32_t i = 0; i < _charNotes.size(); ++i)
-    {
-        notes[i] = JSONString(_charNotes[i]);
-    }
-    obj[U("Notes")] = notes;
-
-    return obj;
+    j.at("Stash").get_to(data._charStash);
 }
 
-web::json::value Character::CharacterFactionBlock::ToJSON() const
+void to_json(json& j, const Character::CharacterRespawnBlock& data)
 {
-    web::json::value obj = web::json::value::object();
-
-    obj[U("BlockID")] = GetBlockID();
-    obj[U("BlockVersion")] = GetBlockVersion();
-    obj[U("Unknown1")] = _unk1;
-
-    web::json::value factions = web::json::value::array();
-    for (uint32_t i = 0; i < _charFactions.size(); ++i)
+    j = json
     {
-        factions[i] = _charFactions[i].ToJSON();
-    }
-    obj[U("Factions")] = factions;
-
-    return obj;
+        { "BlockID",                data.GetBlockID() },
+        { "BlockVersion",           data.GetBlockVersion() },
+        { "RespawnsNormal",         data._charRespawnsNormal },
+        { "RespawnsElite",          data._charRespawnsElite },
+        { "RespawnsUltimate",       data._charRespawnsUltimate },
+        { "CurrentRespawnNormal",   data._charCurrentRespawnNormal },
+        { "CurrentRespawnElite",    data._charCurrentRespawnElite },
+        { "CurrentRespawnUltimate", data._charCurrentRespawnUltimate },
+    };
 }
 
-web::json::value Character::CharacterUIBlock::CharacterUIUnkData::ToJSON() const
+void from_json(const json& j, Character::CharacterRespawnBlock& data)
 {
-    web::json::value obj = web::json::value::object();
-
-    obj[U("UnknownData1")] = JSONString(_unk1);
-    obj[U("UnknownData2")] = JSONString(_unk2);
-    obj[U("UnknownData3")] = _unk3;
-
-    return obj;
+    j.at("RespawnsNormal")        .get_to(data._charRespawnsNormal);
+    j.at("RespawnsElite")         .get_to(data._charRespawnsElite);
+    j.at("RespawnsUltimate")      .get_to(data._charRespawnsUltimate);
+    j.at("CurrentRespawnNormal")  .get_to(data._charCurrentRespawnNormal);
+    j.at("CurrentRespawnElite")   .get_to(data._charCurrentRespawnElite);
+    j.at("CurrentRespawnUltimate").get_to(data._charCurrentRespawnUltimate);
 }
 
-web::json::value Character::CharacterUIBlock::CharacterUISlot::ToJSON() const
+void to_json(json& j, const Character::CharacterWaypointBlock& data)
 {
-    web::json::value obj = web::json::value::object();
-
-    obj[U("SlotType")] = _slotType;
-    obj[U("SkillName")] = JSONString(_slotSkillName);
-    obj[U("ItemName")] = JSONString(_slotItemName);
-    obj[U("IsItemSkill")] = _slotIsItemSkill;
-    obj[U("EquipSlot")] = _slotEquip;
-    obj[U("BitmapUp")] = JSONString(_slotBitmapUp);
-    obj[U("BitmapDown")] = JSONString(_slotBitmapDown);
-    obj[U("Label")] = web::json::value::string(_slotLabel);
-
-    return obj;
+    j = json
+    {
+        { "BlockID",           data.GetBlockID() },
+        { "BlockVersion",      data.GetBlockVersion() },
+        { "WaypointsNormal",   data._charWaypointsNormal },
+        { "WaypointsElite",    data._charWaypointsElite },
+        { "WaypointsUltimate", data._charWaypointsUltimate },
+    };
 }
 
-web::json::value Character::CharacterUIBlock::ToJSON() const
+void from_json(const json& j, Character::CharacterWaypointBlock& data)
 {
-    web::json::value obj = web::json::value::object();
-
-    obj[U("BlockID")] = GetBlockID();
-    obj[U("BlockVersion")] = GetBlockVersion();
-    obj[U("Unknown1")] = _unk1;
-    obj[U("Unknown2")] = _unk2;
-    obj[U("Unknown3")] = _unk3;
-    obj[U("CameraDistance")] = _charCameraDistance;
-
-    web::json::value unknown = web::json::value::array();
-    for (uint32_t i = 0; i < _unk4.size(); ++i)
-    {
-        unknown[i] = _unk4[i].ToJSON();
-    }
-    obj[U("Unknown")] = unknown;
-
-    web::json::value UISlots = web::json::value::array();
-    for (uint32_t i = 0; i < _charUISlots.size(); ++i)
-    {
-        UISlots[i] = _charUISlots[i].ToJSON();
-    }
-    obj[U("UISlots")] = UISlots;
-
-    return obj;
+    j.at("WaypointsNormal")  .get_to(data._charWaypointsNormal);
+    j.at("WaypointsElite")   .get_to(data._charWaypointsElite);
+    j.at("WaypointsUltimate").get_to(data._charWaypointsUltimate);
 }
 
-web::json::value Character::CharacterTutorialBlock::ToJSON() const
+void to_json(json& j, const Character::CharacterMarkerBlock& data)
 {
-    web::json::value obj = web::json::value::object();
-
-    obj[U("BlockID")] = GetBlockID();
-    obj[U("BlockVersion")] = GetBlockVersion();
-
-    web::json::value tutorials = web::json::value::array();
-    for (uint32_t i = 0; i < _charTutorials.size(); ++i)
+    j = json
     {
-        tutorials[i] = _charTutorials[i];
-    }
-    obj[U("Tutorials")] = tutorials;
-
-    return obj;
+        { "BlockID",         data.GetBlockID() },
+        { "BlockVersion",    data.GetBlockVersion() },
+        { "MarkersNormal",   data._charMarkersNormal },
+        { "MarkersElite",    data._charMarkersElite },
+        { "MarkersUltimate", data._charMarkersUltimate },
+    };
 }
 
-web::json::value Character::CharacterStatsBlock::CharacterPerDifficultyStats::ToJSON() const
+void from_json(const json& j, Character::CharacterMarkerBlock& data)
 {
-    web::json::value obj = web::json::value::object();
-
-    obj[U("Difficulty")] = _difficulty;
-    obj[U("GreatestEnemyKilled")] = JSONString(_greatestEnemyKilled);
-    obj[U("GreatestEnemyLevel")] = _greatestEnemyLevel;
-    obj[U("GreatestEnemyHealth")] = _greatestEnemyHealth;
-    obj[U("LastAttacked")] = JSONString(_lastAttacked);
-    obj[U("LastAttackedBy")] = JSONString(_lastAttackedBy);
-    obj[U("NemesisKills")] = _nemesisKills;
-
-    return obj;
+    j.at("MarkersNormal")  .get_to(data._charMarkersNormal);
+    j.at("MarkersElite")   .get_to(data._charMarkersElite);
+    j.at("MarkersUltimate").get_to(data._charMarkersUltimate);
 }
 
-web::json::value Character::CharacterStatsBlock::ToJSON() const
+void to_json(json& j, const Character::CharacterShrineBlock& data)
 {
-    web::json::value obj = web::json::value::object();
-
-    obj[U("BlockID")] = GetBlockID();
-    obj[U("BlockVersion")] = GetBlockVersion();
-
-    obj[U("PlayedTime")] = _charPlayTime;
-    obj[U("Deaths")] = _charDeaths;
-    obj[U("Kills")] = _charKills;
-    obj[U("ExpFromKills")] = _charExpFromKills;
-    obj[U("HealthPotsUsed")] = _charHealthPotsUsed;
-    obj[U("ManaPotsUsed")] = _charManaPotsUsed;
-    obj[U("MaxLevel")] = _charMaxLevel;
-    obj[U("HitsReceived")] = _charHitsReceived;
-    obj[U("HitsInflicted")] = _charHitsInflicted;
-    obj[U("CritsReceived")] = _charCritsReceived;
-    obj[U("CritsInflicted")] = _charCritsInflicted;
-    obj[U("LargestHitReceived")] = _charGreatestDamageReceived;
-    obj[U("LargestHitInflicted")] = _charGreatestDamageInflicted;
-    obj[U("ChampionKills")] = _charChampionKills;
-    obj[U("HeroKills")] = _charHeroKills;
-    obj[U("ItemsCrafted")] = _charItemsCrafted;
-    obj[U("RelicsCrafted")] = _charRelicsCrafted;
-    obj[U("TranscendentRelicsCrafted")] = _charTranscendentRelicsCrafted;
-    obj[U("MythicalRelicsCrafted")] = _charMythicalRelicsCrafted;
-    obj[U("ShrinesRestored")] = _charShrinesRestored;
-    obj[U("OneShotChestsOpened")] = _charOneShotChestsOpened;
-    obj[U("LoreNotesCollected")] = _charLoreNotesCollected;
-    obj[U("Unknown1")] = _unk1;
-    obj[U("Unknown2")] = _unk2;
-    obj[U("LastAttackedDA")] = _charLastAttackedDA;
-    obj[U("LastAttackedByOA")] = _charLastAttackedByOA;
-
-    web::json::value perDifficultyStats = web::json::value::array();
-    for (uint32_t i = 0; i < 3; ++i)
+    j = json
     {
-        perDifficultyStats[i] = _charDifficultyStats[i].ToJSON();
-    }
-    obj[U("PerDifficultyStats")] = perDifficultyStats;
+        { "BlockID",                   data.GetBlockID() },
+        { "BlockVersion",              data.GetBlockVersion() },
+        { "ShrinesNormalRestored",     data._charShrines[0] },
+        { "ShrinesNormalDiscovered",   data._charShrines[1] },
+        { "ShrinesEliteRestored",      data._charShrines[2] },
+        { "ShrinesEliteDiscovered",    data._charShrines[3] },
+        { "ShrinesUltimateRestored",   data._charShrines[4] },
+        { "ShrinesUltimateDiscovered", data._charShrines[5] },
+    };
+}
 
-    obj[U("CrucibleGreatestWave")] = _charCrucibleGreatestWave;
-    obj[U("CrucibleGreatestScore")] = _charCrucibleGreatestScore;
-    obj[U("CrucibleDefensesBuilt")] = _charCrucibleDefensesBuilt;
-    obj[U("CrucibleBuffsUsed")] = _charCrucibleBuffsUsed;
+void from_json(const json& j, Character::CharacterShrineBlock& data)
+{
+    j.at("ShrinesNormalRestored")    .get_to(data._charShrines[0]);
+    j.at("ShrinesNormalDiscovered")  .get_to(data._charShrines[1]);
+    j.at("ShrinesEliteRestored")     .get_to(data._charShrines[2]);
+    j.at("ShrinesEliteDiscovered")   .get_to(data._charShrines[3]);
+    j.at("ShrinesUltimateRestored")  .get_to(data._charShrines[4]);
+    j.at("ShrinesUltimateDiscovered").get_to(data._charShrines[5]);
+}
 
-    uint32_t j = 0;
-    web::json::value SRShrinesUsed = web::json::value::object();
-    for (std::pair<std::string, uint32_t> pair : _charSRShrinesUsed)
+void to_json(json& j, const Character::CharacterSkillBlock& data)
+{
+    j = json
     {
-        SRShrinesUsed[utility::conversions::to_utf16string(pair.first)] = pair.second;
-    }
-    obj[U("SRShrinesUsed")] = SRShrinesUsed;
-    obj[U("SRSoulsCollected")] = _charSRSoulsCollected;
-    obj[U("SRFlag")] = _charSRFlag;
-    obj[U("MeritUsed")] = _charMeritUsed;
+        { "BlockID",                 data.GetBlockID() },
+        { "BlockVersion",            data.GetBlockVersion() },
+        { "MasteriesAllowed",        data._charMasteriesAllowed },
+        { "SkillPointsReclaimed",    data._charSkillReclaimed },
+        { "DevotionPointsReclaimed", data._charDevotionReclaimed },
+        { "ClassSkills",             data._charClassSkills },
+        { "ItemSkills",              data._charItemSkills },
+    };
+}
 
-    return obj;
+void from_json(const json& j, Character::CharacterSkillBlock& data)
+{
+    j.at("MasteriesAllowed")       .get_to(data._charMasteriesAllowed);
+    j.at("SkillPointsReclaimed")   .get_to(data._charSkillReclaimed);
+    j.at("DevotionPointsReclaimed").get_to(data._charDevotionReclaimed);
+    j.at("ClassSkills")            .get_to(data._charClassSkills);
+    j.at("ItemSkills")             .get_to(data._charItemSkills);
+}
+
+void to_json(json& j, const Character::CharacterNotesBlock& data)
+{
+    j = json
+    {
+        { "BlockID",      data.GetBlockID() },
+        { "BlockVersion", data.GetBlockVersion() },
+        { "Notes",        data._charNotes },
+    };
+}
+
+void from_json(const json& j, Character::CharacterNotesBlock& data)
+{
+    j.at("Notes").get_to(data._charNotes);
+}
+
+void to_json(json& j, const Character::CharacterFactionBlock& data)
+{
+    j = json
+    {
+        { "BlockID",      data.GetBlockID() },
+        { "BlockVersion", data.GetBlockVersion() },
+        { "Unknown1",     data._unk1 },
+        { "Factions",     data._charFactions },
+    };
+}
+
+void from_json(const json& j, Character::CharacterFactionBlock& data)
+{
+    j.at("Unknown1").get_to(data._unk1);
+    j.at("Factions").get_to(data._charFactions);
+}
+
+void to_json(json& j, const Character::CharacterUIBlock& data)
+{
+    j = json
+    {
+        { "BlockID",        data.GetBlockID() },
+        { "BlockVersion",   data.GetBlockVersion() },
+        { "Unknown1",       data._unk1 },
+        { "Unknown2",       data._unk2 },
+        { "Unknown3",       data._unk3 },
+        { "CameraDistance", data._charCameraDistance },
+        { "Unknown4",       data._unk4 },
+        { "UISlots",        data._charUISlots },
+    };
+}
+
+void from_json(const json& j, Character::CharacterUIBlock& data)
+{
+    j.at("Unknown1")      .get_to(data._unk1);
+    j.at("Unknown2")      .get_to(data._unk2);
+    j.at("Unknown3")      .get_to(data._unk3);
+    j.at("CameraDistance").get_to(data._charCameraDistance);
+    j.at("Unknown4")      .get_to(data._unk4);
+    j.at("UISlots")       .get_to(data._charUISlots);
+}
+
+void to_json(json& j, const Character::CharacterUIBlock::CharacterUIUnkData& data)
+{
+    j = 
+    {
+        { "Unknown1", data._unk1 },
+        { "Unknown2", data._unk2 },
+        { "Unknown3", data._unk3 },
+    };
+}
+
+void from_json(const json& j, Character::CharacterUIBlock::CharacterUIUnkData& data)
+{
+    j.at("Unknown1").get_to(data._unk1);
+    j.at("Unknown2").get_to(data._unk2);
+    j.at("Unknown3").get_to(data._unk3);
+}
+
+void to_json(json& j, const Character::CharacterUIBlock::CharacterUISlot& data)
+{
+    j = 
+    {
+        { "SlotType",    data._slotType },
+        { "SkillName",   data._slotSkillName },
+        { "ItemName",    data._slotItemName },
+        { "IsItemSkill", data._slotIsItemSkill },
+        { "EquipSlot",   data._slotEquip },
+        { "BitmapUp",    data._slotBitmapUp },
+        { "BitmapDown",  data._slotBitmapDown },
+        { "Label",       data._slotLabel },
+    };
+}
+
+void from_json(const json& j, Character::CharacterUIBlock::CharacterUISlot& data)
+{
+    j.at("SlotType")   .get_to(data._slotType);
+    j.at("SkillName")  .get_to(data._slotSkillName);
+    j.at("ItemName")   .get_to(data._slotItemName);
+    j.at("IsItemSkill").get_to(data._slotIsItemSkill);
+    j.at("EquipSlot")  .get_to(data._slotEquip);
+    j.at("BitmapUp")   .get_to(data._slotBitmapUp);
+    j.at("BitmapDown") .get_to(data._slotBitmapDown);
+    j.at("Label")      .get_to(data._slotLabel);
+}
+
+void to_json(json& j, const Character::CharacterTutorialBlock& data)
+{
+    j = json
+    {
+        { "BlockID",      data.GetBlockID() },
+        { "BlockVersion", data.GetBlockVersion() },
+        { "Tutorials",    data._charTutorials },
+    };
+}
+
+void from_json(const json& j, Character::CharacterTutorialBlock& data)
+{
+    j.at("Tutorials").get_to(data._charTutorials);
+}
+
+void to_json(json& j, const Character::CharacterStatsBlock& data)
+{
+    j = json
+    {
+        { "BlockID",                   data.GetBlockID() },
+        { "BlockVersion",              data.GetBlockVersion() },
+        { "PlayedTime",                data._charPlayTime },
+        { "Deaths",                    data._charDeaths },
+        { "Kills",                     data._charKills },
+        { "ExpFromKills",              data._charExpFromKills },
+        { "HealthPotsUsed",            data._charHealthPotsUsed },
+        { "ManaPotsUsed",              data._charManaPotsUsed },
+        { "MaxLevel",                  data._charMaxLevel },
+        { "HitsReceived",              data._charHitsReceived },
+        { "HitsInflicted",             data._charHitsInflicted },
+        { "CritsReceived",             data._charCritsReceived },
+        { "CritsInflicted",            data._charCritsInflicted },
+        { "LargestHitReceived",        data._charGreatestDamageReceived },
+        { "LargestHitInflicted",       data._charGreatestDamageInflicted },
+        { "ChampionKills",             data._charChampionKills },
+        { "HeroKills",                 data._charHeroKills },
+        { "ItemsCrafted",              data._charItemsCrafted },
+        { "RelicsCrafted",             data._charRelicsCrafted },
+        { "TranscendentRelicsCrafted", data._charTranscendentRelicsCrafted },
+        { "MythicalRelicsCrafted",     data._charMythicalRelicsCrafted },
+        { "ShrinesRestored",           data._charShrinesRestored },
+        { "OneShotChestsOpened",       data._charOneShotChestsOpened },
+        { "LoreNotesCollected",        data._charLoreNotesCollected },
+        { "Unknown1",                  data._unk1 },
+        { "Unknown2",                  data._unk2 },
+        { "LastAttackedDA",            data._charLastAttackedDA },
+        { "LastAttackedByOA",          data._charLastAttackedByOA },
+        { "PerDifficultyStats",        data._charDifficultyStats },
+        { "CrucibleGreatestWave",      data._charCrucibleGreatestWave },
+        { "CrucibleGreatestScore",     data._charCrucibleGreatestScore },
+        { "CrucibleDefensesBuilt",     data._charCrucibleDefensesBuilt },
+        { "CrucibleBuffsUsed",         data._charCrucibleBuffsUsed },
+        { "SRShrinesUsed",             data._charSRShrinesUsed },
+        { "SRSoulsCollected",          data._charSRSoulsCollected },
+        { "SRFlag",                    data._charSRFlag },
+        { "MeritUsed",                 data._charMeritUsed },
+    };
+}
+
+void from_json(const json& j, Character::CharacterStatsBlock& data)
+{
+    j.at("PlayedTime")               .get_to(data._charPlayTime);
+    j.at("Deaths")                   .get_to(data._charDeaths);
+    j.at("Kills")                    .get_to(data._charKills);
+    j.at("ExpFromKills")             .get_to(data._charExpFromKills);
+    j.at("HealthPotsUsed")           .get_to(data._charHealthPotsUsed);
+    j.at("ManaPotsUsed")             .get_to(data._charManaPotsUsed);
+    j.at("MaxLevel")                 .get_to(data._charMaxLevel);
+    j.at("HitsReceived")             .get_to(data._charHitsReceived);
+    j.at("HitsInflicted")            .get_to(data._charHitsInflicted);
+    j.at("CritsReceived")            .get_to(data._charCritsReceived);
+    j.at("CritsInflicted")           .get_to(data._charCritsInflicted);
+    j.at("LargestHitReceived")       .get_to(data._charGreatestDamageReceived);
+    j.at("LargestHitInflicted")      .get_to(data._charGreatestDamageInflicted);
+    j.at("ChampionKills")            .get_to(data._charChampionKills);
+    j.at("HeroKills")                .get_to(data._charHeroKills);
+    j.at("ItemsCrafted")             .get_to(data._charItemsCrafted);
+    j.at("RelicsCrafted")            .get_to(data._charRelicsCrafted);
+    j.at("TranscendentRelicsCrafted").get_to(data._charTranscendentRelicsCrafted);
+    j.at("MythicalRelicsCrafted")    .get_to(data._charMythicalRelicsCrafted);
+    j.at("ShrinesRestored")          .get_to(data._charShrinesRestored);
+    j.at("OneShotChestsOpened")      .get_to(data._charOneShotChestsOpened);
+    j.at("LoreNotesCollected")       .get_to(data._charLoreNotesCollected);
+    j.at("Unknown1")                 .get_to(data._unk1);
+    j.at("Unknown2")                 .get_to(data._unk2);
+    j.at("LastAttackedDA")           .get_to(data._charLastAttackedDA);
+    j.at("LastAttackedByOA")         .get_to(data._charLastAttackedByOA);
+    j.at("PerDifficultyStats")       .get_to(data._charDifficultyStats);
+    j.at("CrucibleGreatestWave")     .get_to(data._charCrucibleGreatestWave);
+    j.at("CrucibleGreatestScore")    .get_to(data._charCrucibleGreatestScore);
+    j.at("CrucibleDefensesBuilt")    .get_to(data._charCrucibleDefensesBuilt);
+    j.at("CrucibleBuffsUsed")        .get_to(data._charCrucibleBuffsUsed);
+    j.at("SRShrinesUsed")            .get_to(data._charSRShrinesUsed);
+    j.at("SRSoulsCollected")         .get_to(data._charSRSoulsCollected);
+    j.at("SRFlag")                   .get_to(data._charSRFlag);
+    j.at("MeritUsed")                .get_to(data._charMeritUsed);
+}
+
+void to_json(json& j, const Character::CharacterStatsBlock::CharacterPerDifficultyStats& data)
+{
+    j = json
+    {
+        { "Difficulty",          data._difficulty },
+        { "GreatestEnemyKilled", data._greatestEnemyKilled },
+        { "GreatestEnemyLevel",  data._greatestEnemyLevel },
+        { "GreatestEnemyHealth", data._greatestEnemyHealth },
+        { "LastAttacked",        data._lastAttacked },
+        { "LastAttackedBy",      data._lastAttackedBy },
+        { "NemesisKills",        data._nemesisKills },
+    };
+}
+
+void from_json(const json& j, Character::CharacterStatsBlock::CharacterPerDifficultyStats& data)
+{
+    j.at("Difficulty")         .get_to(data._difficulty);
+    j.at("GreatestEnemyKilled").get_to(data._greatestEnemyKilled);
+    j.at("GreatestEnemyLevel") .get_to(data._greatestEnemyLevel);
+    j.at("GreatestEnemyHealth").get_to(data._greatestEnemyHealth);
+    j.at("LastAttacked")       .get_to(data._lastAttacked);
+    j.at("LastAttackedBy")     .get_to(data._lastAttackedBy);
+    j.at("NemesisKills")       .get_to(data._nemesisKills);
 }

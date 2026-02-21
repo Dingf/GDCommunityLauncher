@@ -1,10 +1,9 @@
+#include <random>
 #include <Windows.h>
 #include "EngineAPI/Engine.h"
 #include "EngineAPI/Graphics.h"
 #include "GameAPI.h"
 #include "Item.h"
-
-#include "Log.h"
 
 namespace GameAPI
 {

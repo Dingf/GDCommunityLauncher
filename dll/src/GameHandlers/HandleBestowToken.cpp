@@ -1,14 +1,13 @@
 #include <filesystem>
-#include <cpprest/http_client.h>
 #include "GameAPI/TriggerToken.h"
+#include "SeasonClient.h"
 #include "GameHandler.h"
 #include "URI.h"
 
 bool HandleParticipationToken(const std::string& tokenString)
 {
-    Client& client = Client::GetInstance();
-    const SeasonInfo* seasonInfo = client.GetActiveSeason();
-    if (tokenString == seasonInfo->_participationToken)
+    std::string seasonToken = spClient->GetActiveSeasonToken();
+    if (tokenString == seasonToken)
     {
         if (EngineAPI::IsMultiplayer())
         {
@@ -21,7 +20,7 @@ bool HandleParticipationToken(const std::string& tokenString)
 
         // If this is a new character, set the character as the active character so that they can participate in the season
         void* mainPlayer = GameAPI::GetMainPlayer();
-        client.SetActiveCharacter(GameAPI::GetPlayerName(mainPlayer));
+        spClient->SetActiveCharacter(GameAPI::GetPlayerName(mainPlayer));
         return true;
     }
     return false;
@@ -29,8 +28,7 @@ bool HandleParticipationToken(const std::string& tokenString)
 
 bool HandleUnlockToken(const std::string& tokenString)
 {
-    Client& client = Client::GetInstance();
-    if ((tokenString == "unlock_all_diff") && (client.IsPlayingSeason()))
+    if ((tokenString == "unlock_all_diff") && (spClient->IsPlayingSeason()))
     {
         // Unlock all difficulties after obtaining the unlock token
         void* mainPlayer = GameAPI::GetMainPlayer();
@@ -42,15 +40,14 @@ bool HandleUnlockToken(const std::string& tokenString)
 
 bool HandleSeasonPointToken(const std::string& tokenString)
 {
-    Client& client = Client::GetInstance();
-    if ((tokenString.find("gdl_", 0) == 0) && (client.IsPlayingSeason()))
+    // TODO: Make this work with websockets
+    /*if ((tokenString.find("gdl_", 0) == 0) && (spClient->IsPlayingSeason()))
     {
-        Client& client = Client::GetInstance();
         void* mainPlayer = GameAPI::GetMainPlayer();
 
         // Otherwise if it's a season token, pass it along to the server and update the points/rank
-        URI endpoint = client.GetServerGameURL() / "Season" / "participant" / std::to_string(client.GetCurrentParticipantID()) / "quest-tag" / tokenString;
-        endpoint.AddParam("branch", client.GetBranchName());
+        URI endpoint = spClient->GetServerGameURL() / "Season" / "participant" / std::to_string(spClient->GetCurrentParticipantID()) / "quest-tag" / tokenString;
+        endpoint.AddParam("branch", spClient->GetBranchName());
 
         web::http::http_request request(web::http::methods::POST);
 
@@ -60,7 +57,7 @@ bool HandleSeasonPointToken(const std::string& tokenString)
         requestBody[U("maxDifficulty")] = GameAPI::GetPlayerMaxDifficulty(mainPlayer);
         request.set_body(requestBody);
 
-        std::string bearerToken = "Bearer " + client.GetAuthToken();
+        std::string bearerToken = "Bearer " + spClient->GetAuthToken();
         request.headers().add(U("Authorization"), bearerToken.c_str());
 
         web::http::client::http_client httpClient((utility::string_t)endpoint);
@@ -76,7 +73,7 @@ bool HandleSeasonPointToken(const std::string& tokenString)
             try
             {
                 if (task.get())
-                    Client::GetInstance().UpdateSeasonStanding();
+                    spClient->UpdateSeasonStanding();
             }
             catch (std::exception& ex)
             {
@@ -84,7 +81,7 @@ bool HandleSeasonPointToken(const std::string& tokenString)
             }
         });
         return true;
-    }
+    }*/
     return false;
 }
 
@@ -103,19 +100,17 @@ void HandleBestowToken(void* _this, const GameAPI::TriggerToken& token)
     BestowTokenProto callback = (BestowTokenProto)HookManager::GetOriginalFunction(GAME_DLL, GameAPI::GAPI_NAME_BESTOW_TOKEN);
     if (callback)
     {
-        Client& client = Client::GetInstance();
         std::string modName = EngineAPI::GetModName();
         void* mainPlayer = GameAPI::GetMainPlayer();
-        const SeasonInfo* seasonInfo = client.GetActiveSeason();
 
-        if ((modName.empty()) && (mainPlayer) && (seasonInfo))
+        if ((modName.empty()) && (mainPlayer) && (spClient->IsInActiveSeason()))
         {
             std::string tokenString = token;
             for (char& c : tokenString)
                 c = std::tolower(c);
 
             // Prevent tokens from being updated in multiplayer season games (except for starting item token, to avoid receiving the starting items multiple times)
-            if (((EngineAPI::IsMultiplayer()) || (GameAPI::IsCloudStorageEnabled())) && (tokenString != "received_start_items") && (tokenString != seasonInfo->_participationToken))
+            if (((EngineAPI::IsMultiplayer()) || (GameAPI::IsCloudStorageEnabled())) && (tokenString != "received_start_items") && (tokenString != spClient->GetActiveSeasonToken()))
                 return;
 
             for (size_t i = 0; i < tokenHandlers.size(); ++i)

@@ -1,3 +1,4 @@
+#include "SeasonClient.h"
 #include "GameHandler.h"
 #include "Version.h"
 
@@ -10,10 +11,10 @@ void BuildVersionInfoText()
     message += "\n{^F}GDCL v";
     message += GDCL_VERSION;
     message += " (";
-    if (IsOfflineMode())
+    if (spClient->IsOfflineMode())
         message += "Offline Mode";
     else
-        message += GetUsername();
+        message += spClient->GetUsername();
     message += ")";
     versionInfoText = message;
 }

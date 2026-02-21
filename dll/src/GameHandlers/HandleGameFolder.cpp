@@ -18,7 +18,6 @@ std::string HandleGetRootSavePath()
     {
         std::string result = callback();
 
-        Client& client = Client::GetInstance();
         const std::string& prefix = GameAPI::GetRootPrefix();
         if (!prefix.empty())
         {
@@ -51,9 +50,7 @@ std::string& HandleGetUserSaveFolder(void* _this, void* unk1)
     {
         std::string& result = callback(_this, unk1);
 
-        Client& client = Client::GetInstance();
         const std::string& prefix = GameAPI::GetRootPrefix();
-
         if (!prefix.empty())
         {
             size_t index = result.find("save");
@@ -89,9 +86,7 @@ std::string& HandleGetPlayerFolder1(void* _this, void* unk1, const std::string& 
     {
         std::string& result = callback(_this, unk1, playerName, unk2, unk3);
 
-        Client& client = Client::GetInstance();
         const std::string& prefix = GameAPI::GetRootPrefix();
-
         if (!prefix.empty())
         {
             size_t index = result.find("save" + separator);
@@ -114,9 +109,7 @@ std::string& HandleGetPlayerFolder2(void* _this, void* unk1, void* player)
     {
         std::string& result = callback(_this, unk1, player);
 
-        Client& client = Client::GetInstance();
         const std::string& prefix = GameAPI::GetRootPrefix();
-
         if (!prefix.empty())
         {
             size_t index = result.find("save" + separator);
@@ -139,9 +132,7 @@ std::string& HandleGetMapFolder(void* _this, void* unk1, const std::string& name
     {
         std::string& result = callback(_this, unk1, name, player);
 
-        Client& client = Client::GetInstance();
         const std::string& prefix = GameAPI::GetRootPrefix();
-
         if (!prefix.empty())
         {
             size_t index = result.find("save" + separator);
@@ -177,9 +168,7 @@ void HandleGetSharedSavePath(void* _this, GameAPI::SharedSaveType type, std::str
     {
         callback(_this, type, path, unk1, unk2, unk3, unk4);
 
-        Client& client = Client::GetInstance();
         const std::string& prefix = GameAPI::GetRootPrefix();
-
         if (!prefix.empty())
         {
             size_t index = path.find("Grim Dawn" + separator + "save");

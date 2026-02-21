@@ -4,13 +4,11 @@
 #include <minizip/unzip.h>
 #include "SeasonClient.h"
 #include "GameHandler.h"
-#include "ChatConnection.h"
 #include "HookManager.h"
 #include "EventManager.h"
 #include "ThreadManager.h"
 #include "DeathRecap.h"
 #include "ServerSync.h"
-#include "JSONObject.h"
 #include "URI.h"
 #include "Log.h"
 #include "Version.h"
@@ -127,7 +125,7 @@ bool ReadWideStringFromPipe(HANDLE pipe, std::wstring& str)
     return true;
 }
 
-bool ReadSeasonsFromPipe(HANDLE pipe, std::vector<SeasonInfo>& seasons)
+bool ReadSeasonsFromPipe(HANDLE pipe, std::vector<SeasonClient::SeasonInfo>& seasons)
 {
     uint32_t count;
     if (!ReadInt32FromPipe(pipe, count))
@@ -135,14 +133,16 @@ bool ReadSeasonsFromPipe(HANDLE pipe, std::vector<SeasonInfo>& seasons)
 
     for (uint32_t i = 0; i < count; ++i)
     {
-        SeasonInfo season;
+        uint32_t seasonType;
+        SeasonClient::SeasonInfo season;
 
         if (!ReadInt32FromPipe(pipe, season._seasonID) ||
-            !ReadInt32FromPipe(pipe, season._seasonType) ||
+            !ReadInt32FromPipe(pipe, seasonType) ||
             !ReadStringFromPipe(pipe, season._displayName) ||
             !ReadStringFromPipe(pipe, season._participationToken))
             return false;
 
+        season._seasonType = (SeasonType)seasonType;
         seasons.push_back(season);
     }
     return true;
@@ -255,11 +255,11 @@ void SeasonClient::SetActiveSeason(bool hardcore)
     //UpdateLeagueInfoText();
 }
 
-void SeasonClient::SetParticipantID(uint32_t participantID)
-{
-    _participantID = participantID;
+//void SeasonClient::SetParticipantID(uint32_t participantID)
+//{
+    //_participantID = participantID;
     //UpdateSeasonStanding();
-}
+//}
 
 /*void Client::UpdateSeasonStanding()
 {

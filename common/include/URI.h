@@ -2,9 +2,8 @@
 #define INC_GDCL_URL_H
 
 #include <string>
+#include <sstream>
 #include <unordered_map>
-#include <cpprest/uri.h>
-#include "JSONObject.h"
 
 class URI
 {
@@ -13,7 +12,6 @@ class URI
         URI(std::string str) { _data = str; }
         URI(std::wstring str) { *this = str; }
         URI(const char* str) { _data = str; }
-        URI(JSONString& str) { _data = (std::string)str; }
 
         URI& operator=(const URI& uri)
         {
@@ -63,12 +61,6 @@ class URI
         friend URI operator+(const URI& left, T&& right)
         {
             return URI(left) += URI(right);
-        }
-
-        operator utility::string_t() const
-        {
-            std::string result = operator std::string();
-            return utility::string_t(result.begin(), result.end());
         }
 
         operator std::string() const

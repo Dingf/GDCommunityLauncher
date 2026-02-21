@@ -9,11 +9,10 @@ void HandleSyncDungeonProgress(void* _this, int unk1)
     {
         callback(_this, unk1);
 
-        Client& client = Client::GetInstance();
         std::string modName = EngineAPI::GetModName();
         void* mainPlayer = GameAPI::GetMainPlayer();
 
-        if ((modName.empty()) && (mainPlayer) && (client.IsPlayingSeason()))
+        if ((modName.empty()) && (mainPlayer) && (spClient->IsPlayingSeason()))
         {
             if ((GameAPI::GetCurrentChunk() == 3) && (GameAPI::IsBossChunk()))
             {
