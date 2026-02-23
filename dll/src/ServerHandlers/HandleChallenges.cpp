@@ -3,11 +3,12 @@
 #include "JSON.h"
 #include "Log.h"
 
-std::string HandleWriteGetChallenges(uint32_t participantID, uint32_t seasonID)
+std::string HandleWriteGetChallenges(uint32_t requestID, uint32_t participantID, uint32_t seasonID)
 {
     json request = 
     {
         { "RequestName", "GetParticipantChallenges" },
+        { "RequestId", requestID },
         { "Arguments", {
             { "SeasonId", seasonID },
             { "SeasonParticipantId", participantID }
@@ -16,7 +17,7 @@ std::string HandleWriteGetChallenges(uint32_t participantID, uint32_t seasonID)
     return request.dump();
 }
 
-void HandleReadGetChallenges(json response)
+void HandleReadGetChallenges(json response, uint32_t participantID, uint32_t seasonID)
 {
     // TODO: This is actually the wrong endpoint; this one should be for the completed challenges. Make sure to move when there is a new endpoint for all challenges
     std::string status = response.at("Status").get<std::string>();

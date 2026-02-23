@@ -1,9 +1,12 @@
 #ifndef INC_GDCL_DLL_SERVER_HANDLER_H
 #define INC_GDCL_DLL_SERVER_HANDLER_H
 
+#include <atomic>
+#include <functional>
 #include <unordered_map>
 #include "ServerCache.h"
 #include "Websocket.h"
+#include "JSON.h"
 #include "Log.h"
 
 class ServerHandler
@@ -19,26 +22,36 @@ class ServerHandler
         template <typename... Ts>
         std::string OnWrite(const std::string& name, Ts... args)
         {
-            typedef std::string (__thiscall* WriteHandlerProto)(Ts...);
+            typedef std::string (__thiscall* WriteHandlerProto)(uint32_t, Ts...);
+            typedef void (__thiscall* ReadHandlerProto)(json, Ts...);
 
             auto it = _handlers.find(name);
             if (it != _handlers.end())
             {
-                return ((WriteHandlerProto)it->_writeFunction)(args...);
+                uint32_t requestID = _requestCount++;
+                ReadHandlerProto read = (ReadHandlerProto)it->second._readHandler;
+
+                // Store the bound read function callback so that we can call it later upon receiving a response from the server
+                _callbacks[requestID] = [read, args...](json j) { read(j, args...); };
+
+                return ((WriteHandlerProto)it->second._writeHandler)(requestID, args...);
             }
             else
             {
-                Logger::LogMessage(LOG_LEVEL_ERROR, "No write handler found for \"%\".", name);
+                Logger::LogMessage(LOG_LEVEL_ERROR, "No handler found for \"%\".", name);
+                return {};
             }
         }
 
         void OnRead(const std::string& data);
 
     private:
-        struct ServerHandlerFunctions
+        typedef std::function<void(json)> ReadHandlerCallback;
+
+        struct ServerHandlerPair
         {
-            void* _writeFunction;
-            void* _readFunction;
+            void* _writeHandler;
+            void* _readHandler;
         };
 
         ServerHandler();
@@ -48,9 +61,12 @@ class ServerHandler
         //void OnInitializeEvent();
         //void OnShutdownEvent();
 
-        static const std::unordered_map<std::string, ServerHandlerFunctions> _handlers;
+        std::atomic_uint32_t _requestCount;      // Request counter used to assign each request a unique ID
+        std::unordered_map<uint32_t, ReadHandlerCallback> _callbacks;
+
+        static const std::unordered_map<std::string, ServerHandlerPair> _handlers;
 };
 
-#define spServerSocket ServerHandler::GetSocket();
+#define spServer ServerHandler::GetSocket();
 
 #endif//INC_GDCL_DLL_SERVER_HANDLER_H

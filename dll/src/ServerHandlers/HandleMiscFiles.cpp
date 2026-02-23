@@ -2,11 +2,12 @@
 #include "GameAPI/Difficulty.h"
 #include "JSON.h"
 
-std::string HandleWriteGetTagFile(uint32_t participantID)
+std::string HandleWriteGetTagFile(uint32_t requestID, uint32_t participantID)
 {
     json request = 
     {
         { "RequestName", "GetParticipantTagFile" },
+        { "RequestId", requestID },
         { "Arguments", {
             { "SeasonParticipantId", participantID },
         }}
@@ -14,11 +15,12 @@ std::string HandleWriteGetTagFile(uint32_t participantID)
     return request.dump();
 }
 
-std::string HandleWriteSaveTagFile(uint32_t participantID, std::string base64Data)
+std::string HandleWriteSaveTagFile(uint32_t requestID, uint32_t participantID, std::string base64Data)
 {
     json request = 
     {
         { "RequestName", "SaveParticipantTagFile" },
+        { "RequestId", requestID },
         { "Arguments", {
             { "SeasonParticipantId", participantID },
         }},
@@ -27,11 +29,12 @@ std::string HandleWriteSaveTagFile(uint32_t participantID, std::string base64Dat
     return request.dump();
 }
 
-std::string HandleWriteGetTransmuteFile(uint32_t participantID)
+std::string HandleWriteGetTransmuteFile(uint32_t requestID, uint32_t participantID)
 {
     json request = 
     {
         { "RequestName", "GetParticipantTransmutes" },
+        { "RequestId", requestID },
         { "Arguments", {
             { "SeasonParticipantId", participantID },
         }}
@@ -39,11 +42,12 @@ std::string HandleWriteGetTransmuteFile(uint32_t participantID)
     return request.dump();
 }
 
-std::string HandleWriteSaveTransmuteFile(uint32_t participantID, std::string base64Data)
+std::string HandleWriteSaveTransmuteFile(uint32_t requestID, uint32_t participantID, std::string base64Data)
 {
     json request = 
     {
         { "RequestName", "SaveParticipantTransmutes" },
+        { "RequestId", requestID },
         { "Arguments", {
             { "SeasonParticipantId", participantID },
         }},
@@ -52,11 +56,12 @@ std::string HandleWriteSaveTransmuteFile(uint32_t participantID, std::string bas
     return request.dump();
 }
 
-std::string HandleWriteGetFormulasFile(uint32_t participantID)
+std::string HandleWriteGetFormulasFile(uint32_t requestID, uint32_t participantID)
 {
     json request = 
     {
         { "RequestName", "GetParticipantFormulas" },
+        { "RequestId", requestID },
         { "Arguments", {
             { "SeasonParticipantId", participantID },
         }}
@@ -64,11 +69,12 @@ std::string HandleWriteGetFormulasFile(uint32_t participantID)
     return request.dump();
 }
 
-std::string HandleWriteSaveFormulasFile(uint32_t participantID, std::string base64Data)
+std::string HandleWriteSaveFormulasFile(uint32_t requestID, uint32_t participantID, std::string base64Data)
 {
     json request = 
     {
         { "RequestName", "SaveParticipantFormulas" },
+        { "RequestId", requestID },
         { "Arguments", {
             { "SeasonParticipantId", participantID },
         }},
@@ -77,11 +83,12 @@ std::string HandleWriteSaveFormulasFile(uint32_t participantID, std::string base
     return request.dump();
 }
 
-std::string HandleWriteGetQuestFile(uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty)
+std::string HandleWriteGetQuestFile(uint32_t requestID, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty)
 {
     json request = 
     {
         { "RequestName", "GetParticipantCharacterQuestFile" },
+        { "RequestId", requestID },
         { "Arguments", {
             { "SeasonParticipantId", participantID },
             { "CharacterName", characterName },
@@ -91,11 +98,12 @@ std::string HandleWriteGetQuestFile(uint32_t participantID, std::wstring charact
     return request.dump();
 }
 
-std::string HandleWriteSaveQuestFile(uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty, std::string base64Data)
+std::string HandleWriteSaveQuestFile(uint32_t requestID, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty, std::string base64Data)
 {
     json request = 
     {
         { "RequestName", "SaveParticipantCharacterQuestFile" },
+        { "RequestId", requestID },
         { "Arguments", {
             { "SeasonParticipantId", participantID },
             { "CharacterName", characterName },
@@ -106,11 +114,12 @@ std::string HandleWriteSaveQuestFile(uint32_t participantID, std::wstring charac
     return request.dump();
 }
 
-std::string HandleWriteGetConversationFile(uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty)
+std::string HandleWriteGetConversationFile(uint32_t requestID, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty)
 {
     json request = 
     {
         { "RequestName", "GetParticipantCharacterConversationsFile" },
+        { "RequestId", requestID },
         { "Arguments", {
             { "SeasonParticipantId", participantID },
             { "CharacterName", characterName },
@@ -120,11 +129,12 @@ std::string HandleWriteGetConversationFile(uint32_t participantID, std::wstring 
     return request.dump();
 }
 
-std::string HandleWriteSaveConversationFile(uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty, std::string base64Data)
+std::string HandleWriteSaveConversationFile(uint32_t requestID, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty, std::string base64Data)
 {
     json request = 
     {
         { "RequestName", "SaveParticipantCharacterConversationsFile" },
+        { "RequestId", requestID },
         { "Arguments", {
             { "SeasonParticipantId", participantID },
             { "CharacterName", characterName },
@@ -135,11 +145,12 @@ std::string HandleWriteSaveConversationFile(uint32_t participantID, std::wstring
     return request.dump();
 }
 
-std::string HandleWriteGetMapFile(uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty)
+std::string HandleWriteGetMapFile(uint32_t requestID, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty)
 {
     json request = 
     {
         { "RequestName", "GetParticipantCharacterMapDatFile" },
+        { "RequestId", requestID },
         { "Arguments", {
             { "SeasonParticipantId", participantID },
             { "CharacterName", characterName },
@@ -149,11 +160,12 @@ std::string HandleWriteGetMapFile(uint32_t participantID, std::wstring character
     return request.dump();
 }
 
-std::string HandleWriteSaveMapFile(uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty, std::string base64Data)
+std::string HandleWriteSaveMapFile(uint32_t requestID, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty, std::string base64Data)
 {
     json request = 
     {
         { "RequestName", "SaveParticipantCharacterMapDatFile" },
+        { "RequestId", requestID },
         { "Arguments", {
             { "SeasonParticipantId", participantID },
             { "CharacterName", characterName },
@@ -164,11 +176,12 @@ std::string HandleWriteSaveMapFile(uint32_t participantID, std::wstring characte
     return request.dump();
 }
 
-std::string HandleWriteGetFOWFile(uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty)
+std::string HandleWriteGetFOWFile(uint32_t requestID, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty)
 {
     json request = 
     {
         { "RequestName", "GetParticipantCharacterMapFowFile" },
+        { "RequestId", requestID },
         { "Arguments", {
             { "SeasonParticipantId", participantID },
             { "CharacterName", characterName },
@@ -178,11 +191,12 @@ std::string HandleWriteGetFOWFile(uint32_t participantID, std::wstring character
     return request.dump();
 }
 
-std::string HandleWriteSaveFOWFile(uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty, std::string base64Data)
+std::string HandleWriteSaveFOWFile(uint32_t requestID, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty, std::string base64Data)
 {
     json request = 
     {
         { "RequestName", "SaveParticipantCharacterMapFowFile" },
+        { "RequestId", requestID },
         { "Arguments", {
             { "SeasonParticipantId", participantID },
             { "CharacterName", characterName },
@@ -193,72 +207,72 @@ std::string HandleWriteSaveFOWFile(uint32_t participantID, std::wstring characte
     return request.dump();
 }
 
-void HandleReadGetTagFile(json response)
+void HandleReadGetTagFile(json response, uint32_t participantID)
 {
     // TODO
 }
 
-void HandleReadSaveTagFile(json response)
+void HandleReadSaveTagFile(json response, uint32_t participantID, std::string base64Data)
 {
     // TODO
 }
 
-void HandleReadGetTransmuteFile(json response)
+void HandleReadGetTransmuteFile(json response, uint32_t participantID)
 {
     // TODO
 }
 
-void HandleReadSaveTransmuteFile(json response)
+void HandleReadSaveTransmuteFile(json response, uint32_t participantID, std::string base64Data)
 {
     // TODO
 }
 
-void HandleReadGetFormulasFile(json response)
+void HandleReadGetFormulasFile(json response, uint32_t participantID)
 {
     // TODO
 }
 
-void HandleReadSaveFormulasFile(json response)
+void HandleReadSaveFormulasFile(json response, uint32_t participantID, std::string base64Data)
 {
     // TODO
 }
 
-void HandleReadGetQuestFile(json response)
+void HandleReadGetQuestFile(json response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty)
 {
     // TODO
 }
 
-void HandleReadSaveQuestFile(json response)
+void HandleReadSaveQuestFile(json response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty, std::string base64Data)
 {
     // TODO
 }
 
-void HandleReadGetConversationFile(json response)
+void HandleReadGetConversationFile(json response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty)
 {
     // TODO
 }
 
-void HandleReadSaveConversationFile(json response)
+void HandleReadSaveConversationFile(json response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty, std::string base64Data)
 {
     // TODO
 }
 
-void HandleReadGetMapFile(json response)
+void HandleReadGetMapFile(json response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty)
 {
     // TODO
 }
 
-void HandleReadSaveMapFile(json response)
+void HandleReadSaveMapFile(json response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty, std::string base64Data)
 {
     // TODO
 }
 
-void HandleReadGetFOWFile(json response)
+void HandleReadGetFOWFile(json response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty)
 {
     // TODO
 }
 
-void HandleReadSaveFOWFile(json response)
+void HandleReadSaveFOWFile(json response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty, std::string base64Data)
 {
     // TODO
 }

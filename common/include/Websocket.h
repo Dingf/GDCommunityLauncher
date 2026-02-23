@@ -2,6 +2,8 @@
 #define INC_GDCL_WEBSOCKET_H
 
 #include <atomic>
+#include <memory>
+#include <string>
 #include <boost/asio/ssl.hpp>
 #include <boost/asio/strand.hpp>
 #include <boost/asio/thread_pool.hpp>
@@ -12,8 +14,6 @@
 #include <boost/scoped_ptr.hpp>
 #include "ThreadSafeQueue.h"
 #include "Log.h"
-
-#include <iostream>
 
 namespace asio      = boost::asio;
 namespace beast     = boost::beast;
@@ -85,16 +85,11 @@ class Websocket
             }
         }
 
-        /*template <typename... Ts>
+        template <typename... Ts>
         void Send(Ts... args)
         {
-            std::string message = _handler.OnWrite(args...);
-            Send(message);
-        }*/
-
-        void Send(const std::string& message)
-        {
-            asio::post(_ws->get_executor(), [this, &message]()
+            std::shared_ptr<std::string> message = std::make_shared<std::string>(_handler.OnWrite(args...));
+            asio::post(_ws->get_executor(), [this, message]()
             {
                 _messageQueue.emplace(message);
                 if (_messageQueue.size() == 1)
@@ -115,7 +110,7 @@ class Websocket
         beast::flat_buffer _buffer;
         boost::scoped_ptr<WebsocketStream> _ws;
 
-        ThreadSafeQueue<std::string> _messageQueue;
+        ThreadSafeQueue<std::shared_ptr<std::string>> _messageQueue;
 
         T& _handler;
 
@@ -127,7 +122,7 @@ class Websocket
                 {
                     std::string message = beast::buffers_to_string(_buffer.data()).substr(0, n);
                     _buffer.consume(n);
-                    _handler >> message;
+                    _handler.OnRead(message);
                     Read();
                 }
                 else
@@ -140,10 +135,10 @@ class Websocket
 
         void Write()
         {
-            std::string message;
+            std::shared_ptr<std::string> message;
             if (_messageQueue.front(message))
             {
-                _ws->async_write(asio::buffer(message), [this, message](const beast::error_code& ec, size_t n)
+                _ws->async_write(asio::buffer(*message), [this](const beast::error_code& ec, size_t n)
                 {
                     if (!ec)
                     {

@@ -3,11 +3,12 @@
 #include "Item.h"
 #include "JSON.h"
 
-std::string HandleWriteGetStashFile(uint32_t participantID)
+std::string HandleWriteGetStashFile(uint32_t requestID, uint32_t participantID)
 {
     json request = 
     {
         { "RequestName", "GetParticipantStashFile" },
+        { "RequestId", requestID },
         { "Arguments", {
             { "SeasonParticipantId", participantID },
         }}
@@ -15,11 +16,12 @@ std::string HandleWriteGetStashFile(uint32_t participantID)
     return request.dump();
 }
 
-std::string HandleWriteSaveStashFile(uint32_t participantID, std::string base64Data)
+std::string HandleWriteSaveStashFile(uint32_t requestID, uint32_t participantID, std::string base64Data)
 {
     json request = 
     {
         { "RequestName", "SaveParticipantStashFile" },
+        { "RequestId", requestID },
         { "Arguments", {
             { "SeasonParticipantId", participantID },
         }},
@@ -28,20 +30,22 @@ std::string HandleWriteSaveStashFile(uint32_t participantID, std::string base64D
     return request.dump();
 }
 
-std::string HandleWriteStashCapacity()
+std::string HandleWriteStashCapacity(uint32_t requestID)
 {
     json request = 
     {
-        { "RequestName", "GetParticipantSharedStashCapacity" }
+        { "RequestName", "GetParticipantSharedStashCapacity" },
+        { "RequestId", requestID },
     };
     return request.dump();
 }
 
-std::string HandleWriteTransferItems(uint32_t participantID, std::vector<uint32_t> itemIDs)
+std::string HandleWriteTransferItems(uint32_t requestID, uint32_t participantID, std::vector<uint32_t> itemIDs)
 {
     json request = 
     {
         { "RequestName", "TransferParticipantItems" },
+        { "RequestId", requestID },
         { "Arguments", {
             { "SeasonParticipantId", participantID },
             { "ParticipantItemIds", itemIDs },
@@ -51,7 +55,7 @@ std::string HandleWriteTransferItems(uint32_t participantID, std::vector<uint32_
     return request.dump();
 }
 
-std::string HandleWriteStoreItems(uint32_t participantID, std::vector<Item> items)
+std::string HandleWriteStoreItems(uint32_t requestID, uint32_t participantID, std::vector<Item> items)
 {
     std::vector<json> itemList;
     for (size_t i = 0; i < items.size(); ++i)
@@ -65,6 +69,7 @@ std::string HandleWriteStoreItems(uint32_t participantID, std::vector<Item> item
     json request = 
     {
         { "RequestName", "StoreParticipantStashItems" },
+        { "RequestId", requestID },
         { "Arguments", {
             { "SeasonParticipantId", participantID },
             { "Branch", spClient->GetBranchName() }
@@ -74,11 +79,12 @@ std::string HandleWriteStoreItems(uint32_t participantID, std::vector<Item> item
     return request.dump();
 }
 
-std::string HandleWriteTransferQueue(uint32_t participantID)
+std::string HandleWriteTransferQueue(uint32_t requestID, uint32_t participantID)
 {
     json request = 
     {
         { "RequestName", "GetParticipantTransferQueue" },
+        { "RequestId", requestID },
         { "Arguments", {
             { "SeasonParticipantId", participantID },
             { "Branch", spClient->GetBranchName() }
@@ -87,12 +93,12 @@ std::string HandleWriteTransferQueue(uint32_t participantID)
     return request.dump();
 }
 
-void HandleReadGetStashFile(json response)
+void HandleReadGetStashFile(json response, uint32_t participantID)
 {
     // TODO
 }
 
-void HandleReadSaveStashFile(json response)
+void HandleReadSaveStashFile(json response, uint32_t participantID, std::string base64Data)
 {
     // TODO
 }
@@ -102,17 +108,17 @@ void HandleReadStashCapacity(json response)
     // TODO
 }
 
-void HandleReadTransferItems(json response)
+void HandleReadTransferItems(json response, uint32_t participantID, std::vector<uint32_t> itemIDs)
 {
     // TODO
 }
 
-void HandleReadStoreItems(json response)
+void HandleReadStoreItems(json response, uint32_t participantID, std::vector<Item> items)
 {
     // TODO
 }
 
-void HandleReadTransferQueue(json response)
+void HandleReadTransferQueue(json response, uint32_t participantID)
 {
     // TODO
 }

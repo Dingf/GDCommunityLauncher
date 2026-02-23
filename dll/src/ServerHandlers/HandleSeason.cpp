@@ -4,11 +4,12 @@
 #include "JSON.h"
 #include "Log.h"
 
-std::string HandleWriteGetSeasons()
+std::string HandleWriteGetSeasons(uint32_t requestID)
 {
     json request = 
     {
         { "RequestName", "GetSeasons" },
+        { "RequestId", requestID },
         { "Arguments", {
             { "Branch", spClient->GetBranchName() }
         }}
@@ -16,11 +17,12 @@ std::string HandleWriteGetSeasons()
     return request.dump();
 }
 
-std::string HandleWriteGetPoints(uint32_t participantID)
+std::string HandleWriteGetPoints(uint32_t requestID, uint32_t participantID)
 {
     json request = 
     {
         { "RequestName", "GetParticipantPoints" },
+        { "RequestId", requestID },
         { "Arguments", {
             { "SeasonParticipantId", participantID }
         }}
@@ -28,11 +30,12 @@ std::string HandleWriteGetPoints(uint32_t participantID)
     return request.dump();
 }
 
-std::string HandleWriteGetTradeNotifications(uint32_t participantID)
+std::string HandleWriteGetTradeNotifications(uint32_t requestID, uint32_t participantID)
 {
     json request = 
     {
         { "RequestName", "GetNewTradeNotificationCount" },
+        { "RequestId", requestID },
         { "Arguments", {
             { "SeasonParticipantId", participantID },
             { "Branch", spClient->GetBranchName() }
@@ -41,11 +44,12 @@ std::string HandleWriteGetTradeNotifications(uint32_t participantID)
     return request.dump();
 }
 
-std::string HandleWriteAddParticipant(uint32_t seasonID)
+std::string HandleWriteAddParticipant(uint32_t requestID, uint32_t seasonID)
 {
     json request = 
     {
         { "RequestName", "AddParticipant" },
+        { "RequestId", requestID },
         { "Arguments", {
             { "SeasonId", seasonID }
         }}
@@ -78,17 +82,17 @@ void HandleReadGetSeasons(json response)
     }
 }
 
-void HandleReadGetPoints(json response)
+void HandleReadGetPoints(json response, uint32_t participantID)
 {
     // TODO
 }
 
-void HandleReadGetTradeNotifications(json response)
+void HandleReadGetTradeNotifications(json response, uint32_t participantID)
 {
     // TODO
 }
 
-void HandleReadAddParticipant(json response)
+void HandleReadAddParticipant(json response, uint32_t seasonID)
 {
     std::string status = response.at("Status").get<std::string>();
     if (status == "Ok")

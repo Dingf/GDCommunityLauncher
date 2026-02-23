@@ -2,11 +2,12 @@
 #include "SeasonClient.h"
 #include "JSON.h"
 
-std::string HandleWriteGetCharacters(uint32_t participantID)
+std::string HandleWriteGetCharacters(uint32_t requestID, uint32_t participantID)
 {
     json request = 
     {
         { "RequestName", "GetParticipantCharacters" },
+        { "RequestId", requestID },
         { "Arguments", {
             { "SeasonParticipantId", participantID }
         }}
@@ -14,11 +15,12 @@ std::string HandleWriteGetCharacters(uint32_t participantID)
     return request.dump();
 }
 
-std::string HandleWriteGetCharacterData(uint32_t participantID, std::wstring characterName)
+std::string HandleWriteGetCharacterData(uint32_t requestID, uint32_t participantID, std::wstring characterName)
 {
     json request = 
     {
         { "RequestName", "GetCharacterData" },
+        { "RequestId", requestID },
         { "Arguments", {
             { "SeasonParticipantId", participantID },
             { "CharacterName", characterName }
@@ -27,11 +29,12 @@ std::string HandleWriteGetCharacterData(uint32_t participantID, std::wstring cha
     return request.dump();
 }
 
-std::string HandleWriteGetCharacterFile(uint32_t participantID, std::wstring characterName)
+std::string HandleWriteGetCharacterFile(uint32_t requestID, uint32_t participantID, std::wstring characterName)
 {
     json request = 
     {
         { "RequestName", "GetCharacterFile" },
+        { "RequestId", requestID },
         { "Arguments", {
             { "SeasonParticipantId", participantID },
             { "CharacterName", characterName }
@@ -40,11 +43,12 @@ std::string HandleWriteGetCharacterFile(uint32_t participantID, std::wstring cha
     return request.dump();
 }
 
-std::string HandleWriteDeleteCharacter(uint32_t participantID, std::wstring characterName)
+std::string HandleWriteDeleteCharacter(uint32_t requestID, uint32_t participantID, std::wstring characterName)
 {
     json request = 
     {
         { "RequestName", "DeleteParticipantCharacter" },
+        { "RequestId", requestID },
         { "Arguments", {
             { "SeasonParticipantId", participantID },
             { "CharacterName", characterName },
@@ -54,22 +58,22 @@ std::string HandleWriteDeleteCharacter(uint32_t participantID, std::wstring char
     return request.dump();
 }
 
-void HandleReadGetCharacters(json response)
+void HandleReadGetCharacters(json response, uint32_t participantID)
 {
     // TODO
 }
 
-void HandleReadGetCharacterData(json response)
+void HandleReadGetCharacterData(json response, uint32_t participantID, std::wstring characterName)
 {
     // TODO
 }
 
-void HandleReadGetCharacterFile(json response)
+void HandleReadGetCharacterFile(json response, uint32_t participantID, std::wstring characterName)
 {
     // TODO
 }
 
-void HandleReadDeleteCharacter(json response)
+void HandleReadDeleteCharacter(json response, uint32_t participantID, std::wstring characterName)
 {
     // TODO
 }
