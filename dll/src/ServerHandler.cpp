@@ -5,6 +5,7 @@
 #include "SeasonClient.h"
 #include "ServerHandler.h"
 #include "Item.h"
+#include "JSON.h"
 
 // Write handlers
 std::string HandleWriteAddParticipant(uint32_t requestID, uint32_t seasonID);
@@ -105,8 +106,8 @@ ServerHandler::ServerHandler()
 {
     if (!spClient->IsOfflineMode())
     {
-        //EventManager::Subscribe(GDCL_EVENT_INITIALIZE,  &OnInitializeEvent);
-        //EventManager::Subscribe(GDCL_EVENT_SHUTDOWN,    &OnShutdownEvent);
+        EventManager::Subscribe(GDCL_EVENT_INITIALIZE,  &OnInitializeEvent);
+        EventManager::Subscribe(GDCL_EVENT_SHUTDOWN,    &OnShutdownEvent);
     }
 }
 
@@ -130,9 +131,9 @@ bool ServerHandler::Initialize()
     }
 }
 
-Websocket<ServerHandler>* ServerHandler::GetSocket()
+Websocket<ServerHandler, std::future<json>>* ServerHandler::GetSocket()
 {
-    static Websocket<ServerHandler> socket(ContextManager::GetIOContext(), ContextManager::GetSSLContext(), GetInstance());
+    static Websocket<ServerHandler, std::future<json>> socket(ContextManager::GetIOContext(), ContextManager::GetSSLContext(), GetInstance());
     return &socket;
 }
 
@@ -148,6 +149,9 @@ void ServerHandler::OnRead(const std::string& data)
         {
             it->second(response);
             _callbacks.erase(it);
+
+            _promises[requestID].set_value(response.at("Data"));
+            _promises.erase(requestID);
         }
         else
         {
@@ -160,13 +164,17 @@ void ServerHandler::OnRead(const std::string& data)
     }
 }
 
-/*void ServerHandler::OnInitializeEvent()
+void ServerHandler::OnInitializeEvent()
 {
     // Connect the client at game start; we can't do this when the DLL is loaded due to networking code
-    spServerSocket->Connect();
+    ContextManager::Run();
+
+    // TODO: Get the URL value from the client instead of hardcoding it here
+    spServer->Connect("gdcl-websocket.azurewebsites.net", "443", "/account/connect", spClient->GetAuthToken());
 }
 
 void ServerHandler::OnShutdownEvent()
 {
+    ContextManager::Stop();
     // TODO: Upload cached buffers here
-}*/
+}

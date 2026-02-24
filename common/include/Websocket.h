@@ -2,7 +2,6 @@
 #define INC_GDCL_WEBSOCKET_H
 
 #include <atomic>
-#include <memory>
 #include <string>
 #include <boost/asio/ssl.hpp>
 #include <boost/asio/strand.hpp>
@@ -21,7 +20,7 @@ namespace websocket = beast::websocket;
 namespace ssl       = boost::asio::ssl;
 using tcp           = asio::ip::tcp;
 
-template <class T>
+template <class T, typename U>
 class Websocket
 {
     public:
@@ -86,15 +85,21 @@ class Websocket
         }
 
         template <typename... Ts>
-        void Send(Ts... args)
+        U Send(Ts... args)
         {
-            std::shared_ptr<std::string> message = std::make_shared<std::string>(_handler.OnWrite(args...));
-            asio::post(_ws->get_executor(), [this, message]()
+            std::string message;
+            U result = _handler.OnWrite(message, args...);
+
+            if (!message.empty())
             {
-                _messageQueue.emplace(message);
-                if (_messageQueue.size() == 1)
-                    Write();
-            });
+                asio::post(_ws->get_executor(), [this, message]()
+                {
+                    _messageQueue.emplace(std::move(message));
+                    if (_messageQueue.size() == 1)
+                        Write();
+                });
+            }
+            return result;
         }
 
     private:
@@ -110,7 +115,7 @@ class Websocket
         beast::flat_buffer _buffer;
         boost::scoped_ptr<WebsocketStream> _ws;
 
-        ThreadSafeQueue<std::shared_ptr<std::string>> _messageQueue;
+        ThreadSafeQueue<std::string> _messageQueue;
 
         T& _handler;
 
@@ -135,10 +140,10 @@ class Websocket
 
         void Write()
         {
-            std::shared_ptr<std::string> message;
+            std::string message;
             if (_messageQueue.front(message))
             {
-                _ws->async_write(asio::buffer(*message), [this](const beast::error_code& ec, size_t n)
+                _ws->async_write(asio::buffer(message), [this](const beast::error_code& ec, size_t n)
                 {
                     if (!ec)
                     {

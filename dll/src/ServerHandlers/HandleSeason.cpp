@@ -1,3 +1,4 @@
+#include <future>
 #include <string>
 #include "ServerCache.h"
 #include "SeasonClient.h"
@@ -78,7 +79,7 @@ void HandleReadGetSeasons(json response)
     }
     else
     {
-        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to add season participant: %", response.at("ErrorMessage"));
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to get season data: %", response.at("ErrorMessage"));
     }
 }
 
@@ -95,15 +96,7 @@ void HandleReadGetTradeNotifications(json response, uint32_t participantID)
 void HandleReadAddParticipant(json response, uint32_t seasonID)
 {
     std::string status = response.at("Status").get<std::string>();
-    if (status == "Ok")
-    {
-        json data = response.at("Data");
-        uint32_t participantID = data.at("SeasonParticipantId").get<uint32_t>();
-        SeasonType seasonType = data.at("Season").at("SeasonTypeId").get<SeasonType>();
-
-        spServerCache->SetParticipantID(seasonType == SEASON_TYPE_HC_SSF, participantID);
-    }
-    else
+    if (status != "Ok")
     {
         Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to add season participant: %", response.at("ErrorMessage"));
     }

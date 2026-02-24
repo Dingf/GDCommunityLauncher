@@ -33,12 +33,10 @@ class ServerCache
 
         static ServerCache* GetInstance();
 
-        uint32_t GetParticipantID(bool hardcore) const;
-        uint32_t GetCharacterID(const std::wstring& playerName) const;
+        uint32_t GetParticipantID(bool hardcore);
+        uint32_t GetCharacterID(uint32_t participantID, const std::wstring& playerName);
 
-        void SetParticipantID(bool hardcore, uint32_t participantID);
-
-        void Reset();
+        void Clear();
 
     private:
         ServerCache();
@@ -47,9 +45,8 @@ class ServerCache
         std::unordered_map<std::wstring, uint32_t> _characterIDCache;
 
 
-
 };
 
-#define spServerCache ServerCache::GetInstance()
+#define spCache ServerCache::GetInstance()
 
 #endif//INC_GDCL_DLL_SERVER_CACHE_H

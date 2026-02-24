@@ -1,6 +1,8 @@
+#include <future>
 #include <string>
 #include "SeasonClient.h"
 #include "JSON.h"
+#include "Log.h"
 
 std::string HandleWriteGetCharacters(uint32_t requestID, uint32_t participantID)
 {
@@ -65,7 +67,11 @@ void HandleReadGetCharacters(json response, uint32_t participantID)
 
 void HandleReadGetCharacterData(json response, uint32_t participantID, std::wstring characterName)
 {
-    // TODO
+    std::string status = response.at("Status").get<std::string>();
+    if (status != "Ok")
+    {
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to get character data: %", response.at("ErrorMessage"));
+    }
 }
 
 void HandleReadGetCharacterFile(json response, uint32_t participantID, std::wstring characterName)
