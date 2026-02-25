@@ -69,6 +69,7 @@ class SeasonClient : public Client
         //static void OnRefreshToken(const signalr::value& value, const std::vector<void*> args);
         //static void OnUpdateSeasonStanding(const signalr::value& value, const std::vector<void*> args);
 
+        friend void HandleReadGetPoints(json response, uint32_t participantID);
         friend void HandleReadGetSeasons(json response);
 
         uint32_t _rank;

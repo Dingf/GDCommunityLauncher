@@ -1,5 +1,7 @@
 #include <future>
 #include <string>
+#include "GameAPI/Game.h"
+#include "ChatManager.h"
 #include "ServerCache.h"
 #include "SeasonClient.h"
 #include "JSON.h"
@@ -85,12 +87,40 @@ void HandleReadGetSeasons(json response)
 
 void HandleReadGetPoints(json response, uint32_t participantID)
 {
-    // TODO
+    const std::string status = response.at("Status").get<std::string>();
+    if (status == "Ok")
+    {
+        const json data = response.at("Data");
+        spClient->_points = data.at("PointTotal").get<uint32_t>();
+        spClient->_rank = data.at("Rank").get<uint32_t>();
+    }
+    else
+    {
+        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to update season standing: %", response.at("ErrorMessage"));
+    }
 }
 
 void HandleReadGetTradeNotifications(json response, uint32_t participantID)
 {
-    // TODO
+    const std::string status = response.at("Status").get<std::string>();
+    if (status == "Ok")
+    {
+        uint32_t notificationCount = response.at("Data").get<uint32_t>();
+        if (notificationCount > 0)
+        {
+            std::wstring message = L"You have " + std::to_wstring(notificationCount) + L" new trade notification";
+            if (notificationCount > 1)
+            {
+                message += L"s";
+            }
+            message += L".";
+            GameAPI::AddChatMessage(L"Server", message, static_cast<uint8_t>(ChatType::CHAT_TYPE_TRADE));
+        }
+    }
+    else
+    {
+        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve new trade notifications: %", response.at("ErrorMessage"));
+    }
 }
 
 void HandleReadAddParticipant(json response, uint32_t seasonID)
