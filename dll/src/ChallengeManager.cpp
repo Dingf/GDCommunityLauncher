@@ -2,13 +2,16 @@
 
 const std::unordered_map<std::string, uint32_t> challengeCategoryMap =
 {
-    { "Level Limited Challenges", 1 },
+    { "Skeleton Key Dungeons", 1 },
     { "Shattered Realm Clears", 2 },
-    { "Skeleton Key Dungeons", 3 },
-    { "World Bosses", 4 },
-    { "Super Bosses", 5 },
-    { "Nemesis Bosses", 6 },
-    { "Campaign/Story", 7 },
+    { "World Bosses", 3 },
+    { "Nemesis Bosses", 4 },
+    // No 5 or 6 in any challenge
+    { "Leveling Achievements", 7 },
+    { "Super Bosses", 8 },
+    { "Campaign/Story", 9 },
+    { "Tiebreakers", 10 },
+    { "Level Limited Challenges", 11 },
 };
 
 ChallengeManager* ChallengeManager::GetInstance()
@@ -29,11 +32,15 @@ const Challenge* ChallengeManager::GetChallenge(uint32_t challengeID) const
     return (it != _challengeList.end()) ? it->second.get() : nullptr;
 }
 
-void ChallengeManager::SetChallengeStatus(uint32_t challengeID, ChallengeStatus status)
+bool ChallengeManager::SetChallengeStatus(uint32_t challengeID, ChallengeStatus status)
 {
     auto it = _challengeList.find(challengeID);
     if (it != _challengeList.end())
+    {
         it->second->_status = status;
+        return true;
+    }
+    return false;
 }
 
 void ChallengeManager::AddChallenge(const Challenge& challenge)

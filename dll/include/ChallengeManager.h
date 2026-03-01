@@ -12,15 +12,25 @@ enum ChallengeStatus : uint32_t
     CHALLENGE_STATUS_HIDDEN = 2,
 };
 
+enum ChallengeDifficulty : uint32_t
+{
+    CHALLENGE_DIFFICULTY_UNDEFINED= 0x00,
+    CHALLENGE_DIFFICULTY_NORMAL   = 0x01,
+    CHALLENGE_DIFFICULTY_ELITE    = 0x02,
+    CHALLENGE_DIFFICULTY_ULTIMATE = 0x04
+};
+
 struct Challenge
 {
-    std::string     _name;
-    uint32_t        _category;
-    uint32_t        _challengeID;
-    uint32_t        _difficultyMask;
-    uint32_t        _maxLevel;
-    uint32_t        _points;
-    ChallengeStatus _status;
+    Challenge() = default;
+    std::string         _name;
+    uint32_t            _category;
+    uint32_t            _challengeID;
+    uint32_t            _maxLevel;
+    uint32_t            _points;
+    ChallengeStatus     _status;
+    uint32_t            _difficultyBitMask;
+    bool                _active;
 };
 
 class ChallengeManager
@@ -38,12 +48,12 @@ class ChallengeManager
         const Challenge* GetChallenge(uint32_t challengeID) const;
         const ChallengeList& GetChallengeList() const { return _challengeList; }
 
-        void SetChallengeStatus(uint32_t challengeID, ChallengeStatus status);
+        bool SetChallengeStatus(uint32_t challengeID, ChallengeStatus status);
 
         void AddChallenge(const Challenge& challenge);
 
     private:
-        ChallengeManager();
+        ChallengeManager() = default;
 
         ChallengeList _challengeList;
 };

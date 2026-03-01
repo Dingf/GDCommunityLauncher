@@ -14,6 +14,7 @@ std::string HandleWriteGetCharacters(uint32_t requestID, uint32_t participantID)
 std::string HandleWriteGetCharacterData(uint32_t requestID, uint32_t participantID, std::wstring characterName);
 std::string HandleWriteGetCharacterFile(uint32_t requestID, uint32_t participantID, std::wstring characterName);
 std::string HandleWriteGetSeasons(uint32_t requestID);
+std::string HandleWriteGetSeasonChallenges(uint32_t requestID, uint32_t seasonID);
 std::string HandleWriteGetPoints(uint32_t requestID, uint32_t participantID);
 std::string HandleWriteGetTradeNotifications(uint32_t requestID, uint32_t participantID);
 std::string HandleWriteGetTagFile(uint32_t requestID, uint32_t participantID);
@@ -45,6 +46,7 @@ void HandleReadGetCharacters(json response, uint32_t participantID);
 void HandleReadGetCharacterData(json response, uint32_t participantID, std::wstring characterName);
 void HandleReadGetCharacterFile(json response, uint32_t participantID, std::wstring characterName);
 void HandleReadGetSeasons(json response);
+void HandleReadGetSeasonChallenges(json response, uint32_t seasonID);
 void HandleReadGetPoints(json response, uint32_t participantID);
 void HandleReadGetTradeNotifications(json response, uint32_t participantID);
 void HandleReadGetTagFile(json response, uint32_t participantID);
@@ -77,6 +79,7 @@ const std::unordered_map<std::string, ServerHandler::ServerHandlerPair> ServerHa
     { "GetCharacterData",                          { HandleWriteGetCharacterData,      HandleReadGetCharacterData } },
     { "GetCharacterFile",                          { HandleWriteGetCharacterFile,      HandleReadGetCharacterFile } },
     { "GetSeasons",                                { HandleWriteGetSeasons,            HandleReadGetSeasons } },
+    { "GetSeasonChallenges",                       { HandleWriteGetSeasonChallenges,   HandleReadGetSeasonChallenges } },
     { "GetParticipantPoints",                      { HandleWriteGetPoints,             HandleReadGetPoints } },
     { "GetNewTradeNotificationCount",              { HandleWriteGetTradeNotifications, HandleReadGetTradeNotifications } },
     { "GetParticipantTagFile",                     { HandleWriteGetTagFile,            HandleReadGetTagFile } },
