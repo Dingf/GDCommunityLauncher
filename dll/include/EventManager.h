@@ -26,11 +26,13 @@ enum GDCLEvent
     GDCL_EVENT_CHARACTER_POST_SAVE,
     GDCL_EVENT_APPLY_DAMAGE,
     GDCL_EVENT_DELETE_FILE,
+    GDCL_EVENT_KEY_BUTTON_EVENT,
 };
 
 class EventManager
 {
     public:
+        // Publishes an event to all handlers subscribed to the event
         template <typename... Ts>
         static void Publish(GDCLEvent event, Ts... args)
         {
@@ -39,6 +41,21 @@ class EventManager
             {
                 ((EventHandlerProto)handler)(args...);
             }
+        }
+
+        // Publishes an event to all handlers subscribed to the event and checks the results
+        // Returns true if all of the handlers returned true, otherwise returns false
+        template <typename... Ts>
+        static bool Poll(GDCLEvent event, Ts... args)
+        {
+            bool result = true;
+            typedef bool (__thiscall* EventHandlerProto)(Ts...);
+            for (void* handler : GetInstance()._handlers[event])
+            {
+                if (!((EventHandlerProto)handler)(args...))
+                    result = false;
+            }
+            return result;
         }
 
         static void Subscribe(GDCLEvent event, void* handler);

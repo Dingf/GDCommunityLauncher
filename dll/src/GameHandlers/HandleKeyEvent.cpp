@@ -1,6 +1,6 @@
 #include <unordered_set>
+#include "EventManager.h"
 #include "GameHandler.h"
-#include "ChatManager.h"
 
 bool HandleKeyEvent(void* _this, EngineAPI::Input::KeyButtonEvent& event)
 {
@@ -13,13 +13,8 @@ bool HandleKeyEvent(void* _this, EngineAPI::Input::KeyButtonEvent& event)
         uint32_t unk1 = *((uint32_t*)(_this)+2);
         if (unk1 == 0x02)
         {
-            // Enable the chat window while playing the season in single player
-            if ((spClient->IsPlayingSeason()) && (!EngineAPI::IsMultiplayer()))
-            {
-                // TODO: Change this to be an event and have the chat manager subscribe to it?
-                if (spChatManager->HandleKeyEvent(event))
-                    return true;
-            }
+            if (EventManager::Poll(GDCL_EVENT_KEY_BUTTON_EVENT, event))
+                return true;
         }
 
         return callback(_this, event);

@@ -2,7 +2,7 @@
 #include "EngineAPI.h"
 #include "GameAPI.h"
 #include "ChatManager.h"
-#include "Client.h"
+#include "SeasonClient.h"
 #include "EventManager.h"
 #include "ThreadManager.h"
 #include "Configuration.h"
@@ -12,33 +12,6 @@
 #include "Log.h"
 
 // TODO: Fix all of the connection stuff with the chat manager
-
-void ChatManager::OnShutdownEvent()
-{
-    //spChatManager->Disconnect();
-}
-
-//void ChatManager::OnWorldPreLoadEvent(std::string mapName, bool modded)
-//{
-
-    // Connect the client at game start; we can't do this when the DLL is loaded due to networking code
-    //if ((!spChatManager->IsConnected()) && (spChatManager->Connect()))
-    //    spChatManager->Invoke("GetConnectionId");
-//}
-
-void ChatManager::OnWorldPreUnloadEvent()
-{
-    spChatManager->_visible = nullptr;
-    spChatManager->_colors = nullptr;
-}
-
-void ChatManager::OnSetMainPlayerEvent(void* player)
-{
-    spChatManager->FindMagicAddresses();
-    spChatManager->LoadConfig();
-    spChatManager->LoadMutedList();
-    //GetInstance().Invoke("Welcome");
-}
 
 /*void ChatManager::OnConnection(const signalr::value& value)
 {
@@ -160,11 +133,16 @@ ChatManager::ChatManager()
     _globalColor = EngineAPI::Color::ORANGE.GetColorCode();
     _visible = nullptr;
     _colors = nullptr;
+    _holdTime = 0;
+    _holdEvent._key = EngineAPI::Input::KEY_NONE;
 
     EventManager::Subscribe(GDCL_EVENT_SHUTDOWN,         &ChatManager::OnShutdownEvent);
     //EventManager::Subscribe(GDCL_EVENT_WORLD_PRE_LOAD,   &ChatManager::OnWorldPreLoadEvent);
     EventManager::Subscribe(GDCL_EVENT_WORLD_PRE_UNLOAD, &ChatManager::OnWorldPreUnloadEvent);
     EventManager::Subscribe(GDCL_EVENT_SET_MAIN_PLAYER,  &ChatManager::OnSetMainPlayerEvent);
+    EventManager::Subscribe(GDCL_EVENT_KEY_BUTTON_EVENT, &ChatManager::OnKeyButtonEvent);
+
+    _holdThread = std::make_unique<std::thread>([this](){ HoldThreadLoop(); });
 }
 
 ChatManager::~ChatManager()
@@ -173,6 +151,14 @@ ChatManager::~ChatManager()
     //EventManager::Unsubscribe(GDCL_EVENT_WORLD_PRE_LOAD,   &ChatManager::OnWorldPreLoadEvent);
     EventManager::Unsubscribe(GDCL_EVENT_WORLD_PRE_UNLOAD, &ChatManager::OnWorldPreUnloadEvent);
     EventManager::Unsubscribe(GDCL_EVENT_SET_MAIN_PLAYER,  &ChatManager::OnSetMainPlayerEvent);
+    EventManager::Unsubscribe(GDCL_EVENT_KEY_BUTTON_EVENT, &ChatManager::OnKeyButtonEvent);
+
+    if (_holdThread)
+    {
+        _holdTime = HOLD_THREAD_STOP; // This should have already been set in OnShutdownEvent(), but set it again just in case
+        _holdThread->join();
+        _holdThread.reset();
+    }
 }
 
 ChatManager* ChatManager::GetInstance()
@@ -219,11 +205,6 @@ uint8_t ChatManager::GetChatChannel(ChatType type) const
         default:
             return 0;
     }
-}
-
-const std::wstring& ChatManager::GetBufferText() const
-{
-    return *(std::wstring*)(_visible + 0xB0);
 }
 
 bool ChatManager::SetChatColor(ChatType type, uint32_t color)
@@ -463,41 +444,39 @@ void ChatManager::SaveConfig()
     }
 }
 
-uint32_t& ChatManager::GetCaratPosition() const
+uint32_t& ChatManager::GetCaratPosition()
 {
     return *(uint32_t*)(_visible + 0x160);
 }
 
-uint32_t& ChatManager::GetSelectStartPosition() const
+uint32_t& ChatManager::GetSelectStartPosition()
 {
     return *(uint32_t*)(_visible + 0x164);
 }
 
-uint32_t& ChatManager::GetSelectEndPosition() const
+uint32_t& ChatManager::GetSelectEndPosition()
 {
     return *(uint32_t*)(_visible + 0x168);
 }
 
-void ChatManager::SetCaratPosition(uint32_t position)
+const std::wstring& ChatManager::GetBufferText() const
 {
-    *(uint32_t*)(_visible + 0x160) = position;
+    return *(std::wstring*)(_visible + 0xB0);
 }
 
-void ChatManager::SetSelectStartPosition(uint32_t position)
+std::wstring& ChatManager::GetBufferText()
 {
-    *(uint32_t*)(_visible + 0x164) = position;
-}
-
-void ChatManager::SetSelectEndPosition(uint32_t position)
-{
-    *(uint32_t*)(_visible + 0x168) = position;
+    return *(std::wstring*)(_visible + 0xB0);
 }
 
 void ChatManager::SetBufferText(const std::wstring& text)
 {
-    std::wstring bufferText = (text.size() >= MAX_MESSAGE_SIZE) ? text.substr(0, MAX_MESSAGE_SIZE) : text;
-    *(std::wstring*)(_visible + 0xB0) = bufferText;
-    SetCaratPosition((uint32_t)bufferText.size());
+    std::wstring trimmedText = (text.size() >= MAX_MESSAGE_SIZE) ? text.substr(0, MAX_MESSAGE_SIZE) : text;
+    std::wstring& bufferText = GetBufferText();
+    uint32_t& caratPosition = GetCaratPosition();
+
+    bufferText = trimmedText;
+    caratPosition = (uint32_t)trimmedText.size();
 }
 
 void ChatManager::FindMagicAddresses()
@@ -529,7 +508,7 @@ void ChatManager::FindMagicAddresses()
 
 void ChatManager::ToggleWindowDisplay()
 {
-    if (_visible)
+    if (_visible != nullptr)
     {
         if ((*_visible == 0) && (!_prefix.empty()))
             SetBufferText(_prefix);
@@ -537,6 +516,190 @@ void ChatManager::ToggleWindowDisplay()
         *_visible ^= 1;
         *(_visible + 0xA9) = *_visible;
     }
+}
+
+void ChatManager::HoldThreadLoop()
+{
+    while (_holdTime >= 0)
+    {
+        if (_holdEvent._key != EngineAPI::Input::KEY_NONE)
+        {
+            int64_t now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+            if (now >= _holdTime)
+                HandleKeyPress(_holdEvent);
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+}
+
+void ChatManager::OnShutdownEvent()
+{
+    //spChatManager->Disconnect();
+    spChatManager->_holdTime = HOLD_THREAD_STOP; // This breaks the loop in the hold thread, allowing us to join it
+}
+
+//void ChatManager::OnWorldPreLoadEvent(std::string mapName, bool modded)
+//{
+
+// Connect the client at game start; we can't do this when the DLL is loaded due to networking code
+//if ((!spChatManager->IsConnected()) && (spChatManager->Connect()))
+//    spChatManager->Invoke("GetConnectionId");
+//}
+
+void ChatManager::OnWorldPreUnloadEvent()
+{
+    spChatManager->_visible = nullptr;
+    spChatManager->_colors = nullptr;
+}
+
+void ChatManager::OnSetMainPlayerEvent(void* player)
+{
+    spChatManager->FindMagicAddresses();
+    spChatManager->LoadConfig();
+    spChatManager->LoadMutedList();
+}
+
+// Special paste handler, since regular paste won't exceed the chat window length
+bool HandlePasteEvent(std::wstring& text, uint32_t& carat, uint32_t& selectStart, uint32_t& selectEnd)
+{
+    if (OpenClipboard(nullptr))
+    {
+        if (HANDLE data = GetClipboardData(CF_TEXT))
+        {
+            if (char* charData = (char*)GlobalLock(data))
+            {
+                int32_t select = (selectEnd >= selectStart) ? selectEnd - selectStart : 0;
+                size_t length = text.size() - select;
+                std::wstring pasteText;
+                while ((*charData != '\0') && (length < ChatManager::MAX_MESSAGE_SIZE))
+                {
+                    pasteText.push_back(*charData);
+                    charData++;
+                    length++;
+                }
+
+                if (select > 0)
+                {
+                    text.erase(selectStart, select);
+                    carat = selectStart;
+                    selectStart = 0;
+                    selectEnd = 0;
+                }
+
+                text.insert(carat, pasteText);
+                carat += (uint32_t)pasteText.size();
+
+                GlobalUnlock(data);
+                CloseClipboard();
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+typedef bool (*ControlKeyHandler)(std::wstring&, uint32_t&, uint32_t&, uint32_t&);
+const std::map<EngineAPI::Input::KeyCode, ControlKeyHandler> controlKeyHandlers =
+{
+    { EngineAPI::Input::KEY_V, &HandlePasteEvent },
+};
+
+bool ChatManager::HandleKeyPress(EngineAPI::Input::KeyButtonEvent& event)
+{
+    if (_visible != nullptr)
+    {
+        std::wstring& text = GetBufferText();
+        uint32_t& carat = GetCaratPosition();
+        uint32_t& selectStart = GetSelectStartPosition();
+        uint32_t& selectEnd = GetSelectEndPosition();
+        wchar_t output = (wchar_t)event._output;    // Cast to avoid endianness issues between different OS
+
+        switch (event._key)
+        {
+            case EngineAPI::Input::KEY_TAB:
+            case EngineAPI::Input::KEY_ESC:
+                return false;
+            case EngineAPI::Input::KEY_BACKSPACE:
+                if (IsWindowVisible())
+                {
+                    int32_t select = selectEnd - selectStart;
+                    if (select > 0)
+                    {
+                        text.erase(selectStart, select);
+                        carat = selectStart;
+                        selectStart = 0;
+                        selectEnd = 0;
+                    }
+                    else if (carat > 0)
+                    {
+                        text.erase(--carat, 1);
+                    }
+                    return true;
+                }
+                return false;
+            case EngineAPI::Input::KEY_ENTER:
+            {
+                if (!IsWindowVisible())
+                {
+                    ToggleWindowDisplay();
+                    return true;
+                }
+                return false;
+            }
+            default:
+            {
+                if ((IsWindowVisible()) && (output != 0) && (text.size() < MAX_MESSAGE_SIZE))
+                {
+                    // Ctrl + key usually has output, but shouldn't actually print a character to the window
+                    // Most of the time, just let the main program handle it
+                    if (event._modifier & EngineAPI::Input::KEY_MODIFIER_CTRL)
+                    {
+                        auto pair = controlKeyHandlers.find(event._key);
+                        if (pair != controlKeyHandlers.end())
+                        {
+                            ControlKeyHandler handler = pair->second;
+                            return handler(text, carat, selectStart, selectEnd);
+                        }
+                        return false;
+                    }
+
+                    int32_t select = selectEnd - selectStart;
+                    if (select > 0)
+                    {
+                        text.erase(selectStart, select);
+                        carat = selectStart;
+                        selectStart = 0;
+                        selectEnd = 0;
+                    }
+
+                    text.insert(carat, 1, output);
+                    carat++;
+                    return true;
+                }
+                return false;
+            }
+        }
+    }
+    return false;
+}
+
+bool ChatManager::OnKeyButtonEvent(EngineAPI::Input::KeyButtonEvent& event)
+{
+    if ((spClient->IsPlayingSeason()) && (!EngineAPI::IsMultiplayer()))
+    {
+        if (event._state == EngineAPI::Input::KEY_STATE_DOWN)
+        {
+            // This needs to be set here because the hold event also calls HandleKeyPress() to handle the repeated inputs
+            spChatManager->_holdEvent = event;
+            spChatManager->_holdTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() + 500;
+            return spChatManager->HandleKeyPress(event);
+        }
+        else
+        {
+            spChatManager->_holdEvent._key = EngineAPI::Input::KEY_NONE;
+        }
+    }
+    return false;
 }
 
 void ChatManager::LoadMutedList()

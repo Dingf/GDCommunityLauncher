@@ -142,28 +142,29 @@ Websocket<ServerHandler, std::future<json>>* ServerHandler::GetSocket()
 
 void ServerHandler::OnRead(const std::string& data)
 {
-    try
-    {
-        json response = json::parse(data);
-        uint32_t requestID = response.at("RequestId").get<uint32_t>();
+    json response = json::parse(data);
+    uint32_t requestID = response.at("RequestId").get<uint32_t>();
 
-        auto it = _callbacks.find(requestID);
-        if (it != _callbacks.end())
+    auto it = _callbacks.find(requestID);
+    if (it != _callbacks.end())
+    {
+        try
         {
             it->second(response);
-            _callbacks.erase(it);
-
-            _promises[requestID].set_value(response.at("Data"));
-            _promises.erase(requestID);
         }
-        else
+        catch (const std::exception& ex)
         {
-            throw std::runtime_error("Could not find bound handler with requestID " + requestID);
+            Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to read server response: %\n%", ex.what(), data);
         }
+
+        _callbacks.erase(it);
+
+        _promises[requestID].set_value(response.at("Data"));
+        _promises.erase(requestID);
     }
-    catch (const std::exception& ex)
+    else
     {
-        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to read server response: %\n%", ex.what(), data);
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Could not find bound handler with requestID %", requestID);
     }
 }
 
