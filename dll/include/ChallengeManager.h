@@ -14,13 +14,15 @@ enum ChallengeStatus : uint32_t
 
 struct Challenge
 {
-    std::string     _name;
-    uint32_t        _category;
-    uint32_t        _challengeID;
-    uint32_t        _difficultyMask;
-    uint32_t        _maxLevel;
-    uint32_t        _points;
-    ChallengeStatus _status;
+    Challenge() = default;
+    std::string         _name;
+    uint32_t            _category;
+    uint32_t            _challengeID;
+    uint32_t            _maxLevel;
+    uint32_t            _points;
+    ChallengeStatus     _status;
+    uint32_t            _difficultyBitMask;
+    bool                _active;
 };
 
 class ChallengeManager
@@ -38,12 +40,12 @@ class ChallengeManager
         const Challenge* GetChallenge(uint32_t challengeID) const;
         const ChallengeList& GetChallengeList() const { return _challengeList; }
 
-        void SetChallengeStatus(uint32_t challengeID, ChallengeStatus status);
+        bool SetChallengeStatus(uint32_t challengeID, ChallengeStatus status);
 
         void AddChallenge(const Challenge& challenge);
 
     private:
-        ChallengeManager();
+        ChallengeManager() = default;
 
         ChallengeList _challengeList;
 };

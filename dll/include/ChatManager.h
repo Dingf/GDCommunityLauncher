@@ -6,7 +6,7 @@
 #include <memory>
 #include "Connection.h"
 
-enum ChatType
+enum ChatType : uint8_t
 {
     CHAT_TYPE_NORMAL = 0,
     CHAT_TYPE_TRADE = 1,
