@@ -17,8 +17,8 @@ bool HandleKeyEvent(void* _this, EngineAPI::Input::KeyButtonEvent& event)
             if ((spClient->IsPlayingSeason()) && (!EngineAPI::IsMultiplayer()))
             {
                 // TODO: Change this to be an event and have the chat manager subscribe to it?
-                if (spChatManager->HandleKeyEvent(event))
-                    return true;
+                //if (spChatManager->HandleKeyEvent(event))
+                //    return true;
             }
         }
 

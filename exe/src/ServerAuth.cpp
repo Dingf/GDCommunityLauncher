@@ -6,7 +6,8 @@ ServerAuthResult ServerAuthenticate(ServerAuthCallback callback)
 {
     ServerAuthResult result = SERVER_AUTH_TIMEOUT;
 
-    Client& client = Client::GetInstance();
+    // TODO Refactor
+    /*Client& client = Client::GetInstance();
     if (Connection* connection = client.GetConnection())
     {
         if (!connection->Connect())
@@ -32,7 +33,7 @@ ServerAuthResult ServerAuthenticate(ServerAuthCallback callback)
                 result = SERVER_AUTH_OK;
             }
         }
-    }
+    }*/
 
     if (callback)
         callback(result);

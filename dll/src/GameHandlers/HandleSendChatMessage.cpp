@@ -421,6 +421,8 @@ bool HandleChatChallengesCommand(std::wstring& name, std::wstring& message, uint
     // the dependencies are already tasks so it can be turned into a task if REALLY needed, but it would
     // (for this particular function) make the code much more complicated and harder to follow.
 
+    // TODO Use new ChallengeManager and assume data is already filled in - by the time /challenges can be used, this should be the case
+    /*
     std::thread challengesInfo([channel]()
     {
         json challenges;
@@ -559,7 +561,7 @@ bool HandleChatChallengesCommand(std::wstring& name, std::wstring& message, uint
         }
     });
 
-    challengesInfo.detach();
+    challengesInfo.detach();*/
     return false;
 }
 

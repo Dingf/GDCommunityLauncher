@@ -1,10 +1,11 @@
 #include <filesystem>
-#include "Client.h"
+#include "LauncherClient.h"
 #include "Log.h"
+#include "dll/include/SeasonClient.h"
 
-Client& Client::GetInstance()
+LauncherClient& LauncherClient::GetInstance()
 {
-    static Client instance;
+    static LauncherClient instance;
     return instance;
 }
 
@@ -83,7 +84,7 @@ bool WriteSeasonsToPipe(HANDLE pipe, const std::vector<SeasonInfo>& seasons)
     return true;
 }
 
-bool Client::WriteDataToPipe(HANDLE pipe) const
+bool LauncherClient::WriteDataToPipe(HANDLE pipe) const
 {
     if (!WriteStringToPipe(pipe, _username) ||
         !WriteStringToPipe(pipe, _password) ||
@@ -93,8 +94,8 @@ bool Client::WriteDataToPipe(HANDLE pipe) const
         !WriteStringToPipe(pipe, _gameURL) ||
         !WriteStringToPipe(pipe, _chatURL) ||
         !WriteInt32ToPipe(pipe, _branch) ||
-        !WriteByteToPipe(pipe, (uint8_t)_launcher._hasUpdate) ||
-        !WriteSeasonsToPipe(pipe, _seasons))
+        !WriteByteToPipe(pipe, (uint8_t)_info._hasUpdate) ||
+        !WriteSeasonsToPipe(pipe, SeasonClient::GetInstance()->GetSeasonList())) // TODO correct refactor?
     {
         Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to write client data to the stdin pipe.");
         return false;
@@ -104,7 +105,8 @@ bool Client::WriteDataToPipe(HANDLE pipe) const
     return TRUE;
 }
 
-void Client::CreateConnection(const std::string& url)
+/* TODO?
+void LauncherClient::CreateConnection(const std::string& url)
 {
     _gameURL = url;
     _connection = std::make_unique<Connection>(_gameURL);
@@ -114,21 +116,29 @@ void Client::CreateConnection(const std::string& url)
     _connection->Register("GetLatestSeason", Client::OnGetSeasonData);
     _connection->Register("GetLauncherFile", Client::OnGetLauncherVersion);
     _connection->Register("GetLeagueFiles", Client::OnGetSeasonFiles);
-}
+}*/
 
-void Client::OnLogin(const signalr::value& value)
+void LauncherClient::OnLogin(const signalr::value& value)
 {
-    Client& client = Client::GetInstance();
+    LauncherClient& client = LauncherClient::GetInstance();
     if (value.is_array())
     {
         try
         {
-            web::json::value loginJSON = web::json::value::parse(value.as_array()[0].as_string());
+            json responseJSON = json::parse(value.as_string());
+            client._authToken = responseJSON.at("access_token").get<std::string>();
+            client._refreshToken = responseJSON.at("refresh_token").get<std::string>();
+            if (responseJSON.count("role") > 0)
+            {
+                client._role = responseJSON.at("role").get<std::string>();
+            }
+            // TODO Test if above code refactors the below
+            /*web::json::value loginJSON = web::json::value::parse(value.as_array()[0].as_string());
             client._authToken = JSONString(loginJSON.at(U("access_token")).serialize());
             client._refreshToken = JSONString(loginJSON.at(U("refresh_token")).serialize());
 
             if (loginJSON.has_string_field(U("role")))
-                client._role = JSONString(loginJSON.at(U("role")).serialize());
+                client._role = JSONString(loginJSON.at(U("role")).serialize());*/
         }
         catch (std::exception& ex)
         {
@@ -137,9 +147,9 @@ void Client::OnLogin(const signalr::value& value)
     }
 }
 
-void Client::OnGetChatUrl(const signalr::value& value)
+void LauncherClient::OnGetChatUrl(const signalr::value& value)
 {
-    Client& client = Client::GetInstance();
+    LauncherClient& client = LauncherClient::GetInstance();
     if (value.is_array())
     {
         try
@@ -153,9 +163,9 @@ void Client::OnGetChatUrl(const signalr::value& value)
     }
 }
 
-void Client::OnGetSeasonName(const signalr::value& value)
+void LauncherClient::OnGetSeasonName(const signalr::value& value)
 {
-    Client& client = Client::GetInstance();
+    LauncherClient& client = LauncherClient::GetInstance();
     if (value.is_array())
     {
         try
@@ -169,9 +179,10 @@ void Client::OnGetSeasonName(const signalr::value& value)
     }
 }
 
-void Client::OnGetSeasonData(const signalr::value& value)
+void LauncherClient::OnGetSeasonData(const signalr::value& value)
 {
-    Client& client = Client::GetInstance();
+    /* TODO Refactor to GetSeasons ws
+    SeasonClient* client = SeasonClient::GetInstance();
     if (value.is_array())
     {
         std::vector<signalr::value> seasonList = value.as_array()[0].as_array();
@@ -183,7 +194,7 @@ void Client::OnGetSeasonData(const signalr::value& value)
 
                 SeasonInfo seasonInfo;
                 seasonInfo._seasonID = seasonJSON.at(U("SeasonId")).as_integer();
-                seasonInfo._seasonType = seasonJSON.at(U("SeasonTypeId")).as_integer();
+                seasonInfo._seasonType = static_cast<SeasonType>(seasonJSON.at(U("SeasonTypeId")).as_integer());
 
                 std::string modName = JSONString(seasonJSON.at(U("ModName")).serialize());
                 std::string displayName = JSONString(seasonJSON.at(U("DisplayName")).serialize());
@@ -203,30 +214,39 @@ void Client::OnGetSeasonData(const signalr::value& value)
                 seasonInfo._displayName = displayName;
                 seasonInfo._participationToken = participationToken;
 
-                client._seasons.push_back(seasonInfo);
+                //TODO client->_seasons.push_back(seasonInfo);
             }
             catch (std::exception& ex)
             {
                 Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve season data from server: %", ex.what());
             }
         }
-    }
+    }*/
 }
 
-void Client::OnGetLauncherVersion(const signalr::value& value)
+void LauncherClient::OnGetLauncherVersion(const signalr::value& value)
 {
-    Client& client = Client::GetInstance();
+    LauncherClient& client = LauncherClient::GetInstance();
     if (value.is_array())
     {
         try
         {
+            json responseJSON = json::parse(value.as_string());
+            client._info._size = responseJSON.at("FileSize").get<uint32_t>();
+            client._info._filename = responseJSON.at("FileName").get<std::string>();
+            client._info._checksum = responseJSON.at("Checksum").get<std::string>();
+            client._info._version = responseJSON.at("Version").get<std::string>();
+            client._info._downloadURL = responseJSON.at("DownloadUrl").get<std::string>();
+            client._info._hasUpdate = (client._info._version != GDCL_VERSION);
+            // TODO Test if above code refactors the below
+            /*
             web::json::value launcherJSON = web::json::value::parse(value.as_array()[0].as_string());
-            client._launcher._size = launcherJSON.at(U("FileSize")).as_integer();
-            client._launcher._filename = JSONString(launcherJSON.at(U("FileName")).serialize());
-            client._launcher._checksum = JSONString(launcherJSON.at(U("Checksum")).serialize());
-            client._launcher._version = JSONString(launcherJSON.at(U("Version")).serialize());
-            client._launcher._downloadURL = JSONString(launcherJSON.at(U("DownloadUrl")).serialize());
-            client._launcher._hasUpdate = (client._launcher._version != GDCL_VERSION);
+            client._info._size = launcherJSON.at(U("FileSize")).as_integer();
+            client._info._filename = JSONString(launcherJSON.at(U("FileName")).serialize());
+            client._info._checksum = JSONString(launcherJSON.at(U("Checksum")).serialize());
+            client._info._version = JSONString(launcherJSON.at(U("Version")).serialize());
+            client._info._downloadURL = JSONString(launcherJSON.at(U("DownloadUrl")).serialize());
+            client._info._hasUpdate = (client._launcher._version != GDCL_VERSION);*/
         }
         catch (std::exception& ex)
         {
@@ -235,9 +255,10 @@ void Client::OnGetLauncherVersion(const signalr::value& value)
     }
 }
 
-void Client::OnGetSeasonFiles(const signalr::value& value)
+void LauncherClient::OnGetSeasonFiles(const signalr::value& value)
 {
-    Client& client = Client::GetInstance();
+    /* TODO Refactor 
+    LauncherClient& client = LauncherClient::GetInstance();
     if (value.is_array())
     {
         std::string seasonName = client.GetSeasonName();
@@ -272,10 +293,10 @@ void Client::OnGetSeasonFiles(const signalr::value& value)
             }
         }
 
-        if (client.HasLauncherUpdate())
+        if (client.HasUpdate())
         {
-            std::filesystem::path filenamePath = std::filesystem::current_path() / client._launcher._filename;
-            client._downloadList[filenamePath.wstring()] = client._launcher._downloadURL;
+            std::filesystem::path filenamePath = std::filesystem::current_path() / client._info._filename;
+            client._downloadList[filenamePath.wstring()] = client._info._downloadURL;
         }
-    }
+    }*/
 }

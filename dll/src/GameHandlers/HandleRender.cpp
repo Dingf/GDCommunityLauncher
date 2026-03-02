@@ -7,7 +7,7 @@
 
 void BuildLeagueInfoText(std::wstring& message)
 {
-    const SeasonClient::SeasonInfo* activeSeason = spClient->GetActiveSeason();
+    const SeasonInfo* activeSeason = spClient->GetActiveSeason();
     if (spClient->IsOfflineMode())
     {
         std::string versionText = GDCL_VERSION;

@@ -5,7 +5,7 @@
 #include <shlobj.h>
 #include <minizip/unzip.h>
 #include "GameLauncher.h"
-#include "Client.h"
+#include "LauncherClient.h"
 #include "Log.h"
 
 bool InjectDLL(HANDLE process, const std::filesystem::path& dllPath)
@@ -152,14 +152,15 @@ bool ExtractZIPUpdate()
 
 HANDLE GameLauncher::LaunchProcess(const std::filesystem::path& exePath, const std::filesystem::path& dllPath, LPWSTR cmdArgs)
 {
-    Client& client = Client::GetInstance();
+    LauncherClient& client = LauncherClient::GetInstance();
 
     // Need to disconnect manually here because SignalR is dumb and will cause the process to hang if it's done in the destructor
+    /* TODO Refactor
     if (Connection* connection = client.GetConnection())
-        connection->Disconnect();
+        connection->Disconnect();*/
 
     // If we need to update the launcher, unload the DLL and then overwrite it with the copy from the .zip file
-    if (client.HasLauncherUpdate() && !ExtractZIPUpdate())
+    if (client.HasUpdate() && !ExtractZIPUpdate())
     {
         Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to update GDCommunityLauncher.dll");
         return NULL;

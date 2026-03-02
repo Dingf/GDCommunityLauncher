@@ -9,11 +9,10 @@
 #include <cpprest/http_client.h>
 #include <Windows.h>
 #include <CommCtrl.h>
-#include "Client.h"
+#include "LauncherClient.h"
 #include "ServerAuth.h"
 #include "UpdateDialog.h"
 #include "Date.h"
-#include "JSONObject.h"
 #include "URI.h"
 #include "Version.h"
 #include "Log.h"
@@ -30,20 +29,22 @@ typedef void (*DownloadValueCallback)(size_t);
 
 const std::unordered_map<std::wstring, std::string>& GetDownloadList()
 {
-    Client& client = Client::GetInstance();
-    if (Connection* connection = client.GetConnection())
+    LauncherClient& client = LauncherClient::GetInstance();
+    // TODO Refactor
+    /*if (Connection* connection = client.GetConnection())
     {
         if (!connection->Invoke("GetLeagueFiles", client.GetAuthToken(), client.GetBranchName()))
         {
             SendMessage(UpdateDialog::_window, WM_UPDATE_FAIL, NULL, NULL);
         }
-    }
+    }*/
     return client.GetDownloadList();
 }
 
 bool DownloadFile(const std::filesystem::path& filenamePath, const URI& downloadURL, DownloadValueCallback totalSizeCallback, DownloadValueCallback downloadSizeCallback)
 {
-    web::http::client::http_client httpClient((utility::string_t)downloadURL);
+    // TODO Refactor away from cpprest to boost::asio
+    /*web::http::client::http_client httpClient((utility::string_t)downloadURL);
     web::http::http_request request(web::http::methods::GET);
 
     try
@@ -87,7 +88,8 @@ bool DownloadFile(const std::filesystem::path& filenamePath, const URI& download
     {
         Logger::LogMessage(LOG_LEVEL_WARN, "Failed to download file %: %", filenamePath.filename(), ex.what());
         return false;
-    }
+    }*/
+    return false;
 }
 
 bool VerifyBaseGameFiles(std::string& expectedVersion)
@@ -97,11 +99,12 @@ bool VerifyBaseGameFiles(std::string& expectedVersion)
     std::vector<std::string> paths = { "database/database.arz", "gdx1/database/GDX1.arz", "gdx2/database/GDX2.arz" };
     try
     {
-        Client& client = Client::GetInstance();
+        LauncherClient& client = LauncherClient::GetInstance();
         URI endpoint = client.GetServerGameURL() / "File" / "base-game" / "file-sizes";
         endpoint.AddParam("branch", client.GetBranchName());
 
-        web::http::client::http_client httpClient((utility::string_t)endpoint);
+        // TODO Refactor to boost::asio
+        /*web::http::client::http_client httpClient((utility::string_t)endpoint);
         web::http::http_request request(web::http::methods::POST);
 
         uint32_t index = 0;
@@ -132,7 +135,7 @@ bool VerifyBaseGameFiles(std::string& expectedVersion)
         else
         {
             throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-        }
+        }*/
     }
     catch (const std::exception& ex)
     {
@@ -283,7 +286,7 @@ bool UpdateDialog::Update()
     auto progressTask = std::async(SetUpdateDialogProgress);
     auto updateTask   = std::async([]()
     {
-        Client& client = Client::GetInstance();
+        LauncherClient& client = LauncherClient::GetInstance();
         std::string seasonName = client.GetSeasonName();
         if (seasonName.empty())
         {

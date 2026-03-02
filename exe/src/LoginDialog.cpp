@@ -1,7 +1,8 @@
 #include <string>
 #include <future>
 #include <Windows.h>
-#include "Client.h"
+#include "LauncherClient.h"
+#include "dll/include/SeasonClient.h"
 #include "Configuration.h"
 #include "ServerAuth.h"
 #include "LoginDialog.h"
@@ -45,7 +46,7 @@ void SetDialogState(HWND hwnd, BOOL state)
 
 bool InitializeClient()
 {
-    Client& client = Client::GetInstance();
+    LauncherClient& client = LauncherClient::GetInstance();
     if (!client.IsOfflineMode() && (!SelectorDialog::Select()))
         return false;
 
@@ -59,14 +60,13 @@ void LoginValidateCallback(ServerAuthResult result)
 {
     if (LoginDialog::_window)
     {
-        Client& client = Client::GetInstance();
         switch (result)
         {
             case SERVER_AUTH_OK:
             {
                 if (!InitializeClient())
                     SendMessage(LoginDialog::_window, WM_LOGIN_OTHER_ERROR, NULL, NULL);
-                else if (!client.HasSeasons())
+                else if (!SeasonClient::GetInstance()->HasSeasons())
                     SendMessage(LoginDialog::_window, WM_LOGIN_INVALID_SEASONS, NULL, NULL);
                 else
                     SendMessage(LoginDialog::_window, WM_LOGIN_OK, NULL, NULL);
@@ -132,6 +132,7 @@ INT_PTR CALLBACK LoginDialogHandler(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
     {
         case WM_COMMAND:
         {
+            LauncherClient& client = LauncherClient::GetInstance();
             switch (wp)
             {
                 case IDOK:
@@ -142,11 +143,10 @@ INT_PTR CALLBACK LoginDialogHandler(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
                     const Value* hostValue = LoginDialog::_config->GetValue("Login", "hostname");
                     if ((hostValue) && (hostValue->GetType() == VALUE_TYPE_STRING))
                     {
-                        Client& client = Client::GetInstance();
 
                         client.SetUsername(username);
                         client.SetPassword(password);
-                        client.CreateConnection(hostValue->ToString());
+                        //TODO client.CreateConnection(hostValue->ToString());
 
                         std::thread t(&ServerAuthenticate, LoginValidateCallback);
                         t.detach();
@@ -161,7 +161,6 @@ INT_PTR CALLBACK LoginDialogHandler(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
                 }
                 case IDHELP:
                 {
-                    Client& client = Client::GetInstance();
                     client.SetBranch(SEASON_BRANCH_OFFLINE);
                     client.SetSeasonName(OFFLINE_SEASON_NAME);
 
@@ -284,7 +283,7 @@ bool LoginDialog::Login(void* configPointer)
         const Value* autoLoginValue = _config->GetValue("Login", "autologin");
         if ((autoLoginValue) && (autoLoginValue->GetType() == VALUE_TYPE_BOOL) && (autoLoginValue->ToBool()))
         {
-            Client& client = Client::GetInstance();
+            LauncherClient& client = LauncherClient::GetInstance();
 
             std::string hostName;
             const Value* hostValue = _config->GetValue("Login", "hostname");
@@ -328,7 +327,7 @@ bool LoginDialog::Login(void* configPointer)
                 client.SetUsername(username);
                 client.SetPassword(password);
                 client.SetBranch(branch);
-                client.CreateConnection(hostName);
+                //TODO client.CreateConnection(hostName);
 
                 std::future<ServerAuthResult> future = std::async(&ServerAuthenticate, nullptr);
                 ServerAuthResult loginResult = future.get();
@@ -339,7 +338,7 @@ bool LoginDialog::Login(void* configPointer)
                         DisplayLoginErrorMessageBox(NULL, LOGIN_RESULT_OTHER_ERROR);
                         return false;
                     }
-                    else if (!client.HasSeasons())
+                    else if (!SeasonClient::GetInstance()->HasSeasons())
                     {
                         DisplayLoginErrorMessageBox(NULL, LOGIN_RESULT_INVALID_SEASONS);
                         return false;
@@ -380,7 +379,7 @@ bool LoginDialog::Login(void* configPointer)
             }
         }
 
-        Client& client = Client::GetInstance();
+        LauncherClient& client = LauncherClient::GetInstance();
         if ((client.GetAuthToken().empty()) && (!client.IsOfflineMode()))
         {
             MessageBox(NULL, TEXT("Failed to retrieve data from the server."), NULL, MB_OK | MB_ICONERROR);

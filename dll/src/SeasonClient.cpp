@@ -125,7 +125,7 @@ bool ReadWideStringFromPipe(HANDLE pipe, std::wstring& str)
     return true;
 }
 
-bool ReadSeasonsFromPipe(HANDLE pipe, std::vector<SeasonClient::SeasonInfo>& seasons)
+bool ReadSeasonsFromPipe(HANDLE pipe, std::vector<SeasonInfo>& seasons)
 {
     uint32_t count;
     if (!ReadInt32FromPipe(pipe, count))
@@ -134,7 +134,7 @@ bool ReadSeasonsFromPipe(HANDLE pipe, std::vector<SeasonClient::SeasonInfo>& sea
     for (uint32_t i = 0; i < count; ++i)
     {
         uint32_t seasonType;
-        SeasonClient::SeasonInfo season;
+        SeasonInfo season;
 
         if (!ReadInt32FromPipe(pipe, season._seasonID) ||
             !ReadInt32FromPipe(pipe, seasonType) ||

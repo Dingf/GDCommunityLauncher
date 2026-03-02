@@ -13,17 +13,17 @@ enum SeasonType : uint32_t
     SEASON_TYPE_HC_SSF = 2,
 };
 
+struct SeasonInfo
+{
+    uint32_t    _seasonID;
+    SeasonType  _seasonType;
+    std::string _displayName;
+    std::string _participationToken;
+};
+
 class SeasonClient : public Client
 {
     public:
-        struct SeasonInfo
-        {
-            uint32_t    _seasonID;
-            SeasonType  _seasonType;
-            std::string _displayName;
-            std::string _participationToken;
-        };
-
         SeasonClient(SeasonClient&) = delete;
         void operator=(const SeasonClient&) = delete;
 

@@ -1,5 +1,5 @@
 #include <Windows.h>
-#include "Client.h"
+#include "LauncherClient.h"
 #include "SelectorDialog.h"
 #include "Log.h"
 
@@ -15,41 +15,45 @@ inline bool HasOffSeasonAccess(const std::string& role)
 
 bool CheckLauncherVersion()
 {
-    Client& client = Client::GetInstance();
+    // TODO Refactor
+    /*Client& client = Client::GetInstance();
     if (Connection* connection = client.GetConnection())
     {
         return connection->Invoke("GetLauncherFile", client.GetAuthToken(), client.GetBranchName());
-    }
+    }*/
     return false;
 }
 
 bool GetChatAPI()
 {
-    Client& client = Client::GetInstance();
+    // TODO Refactor
+    /*Client& client = Client::GetInstance();
     if (Connection* connection = client.GetConnection())
     {
         return connection->Invoke("GetChatUrl");
-    }
+    }*/
     return false;
 }
 
 bool GetSeasonName()
 {
-    Client& client = Client::GetInstance();
+    // TODO Refactor
+    /*Client& client = Client::GetInstance();
     if (Connection* connection = client.GetConnection())
     {
         return connection->Invoke("GetLatestSeasonName", client.GetBranchName());
-    }
+    }*/
     return false;
 }
 
 bool GetSeasonData()
 {
-    Client& client = Client::GetInstance();
+    // TODO Refactor
+    /*Client& client = Client::GetInstance();
     if (Connection* connection = client.GetConnection())
     {
         return connection->Invoke("GetLatestSeason", client.GetAuthToken(), false, client.GetBranchName());
-    }
+    }*/
     return false;
 }
 
@@ -80,7 +84,7 @@ INT_PTR CALLBACK SelectorDialogHandler(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp
                 }
                 case IDOK:
                 {
-                    Client& client = Client::GetInstance();
+                    LauncherClient& client = LauncherClient::GetInstance();
                     if (IsDlgButtonChecked(hwnd, IDC_RADIO1))
                         client.SetBranch(SEASON_BRANCH_RELEASE);
                     else if (IsDlgButtonChecked(hwnd, IDC_RADIO2))
@@ -116,7 +120,7 @@ INT_PTR CALLBACK SelectorDialogHandler(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp
 
 bool SelectorDialog::Select()
 {
-    Client& client = Client::GetInstance();
+    LauncherClient& client = LauncherClient::GetInstance();
     if (HasBetaAccess(client.GetRole()))
     {
         HINSTANCE instance = GetModuleHandle(NULL);
