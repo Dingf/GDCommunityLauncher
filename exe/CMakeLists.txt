@@ -10,4 +10,7 @@ target_link_libraries(exe PRIVATE microsoft-signalr::microsoft-signalr)
 target_link_libraries(exe PRIVATE minizip::minizip)
 target_link_libraries(exe PRIVATE common)
 
-set_target_properties(exe PROPERTIES OUTPUT_NAME "GDCommunityLauncher")
+set_target_properties(exe PROPERTIES
+    OUTPUT_NAME "GDCommunityLauncher"
+    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
+)

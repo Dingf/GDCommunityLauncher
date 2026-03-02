@@ -9,4 +9,7 @@ target_link_libraries(extractor PRIVATE common)
 target_link_libraries(extractor PRIVATE game)
 target_link_libraries(extractor PRIVATE ${lz4_LIBRARY})
 
-set_target_properties(extractor PROPERTIES OUTPUT_NAME "extractor")
+set_target_properties(extractor PROPERTIES
+    OUTPUT_NAME "extractor"
+    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
+)

@@ -16,4 +16,7 @@ if (WIN32)
     target_compile_definitions(dll PRIVATE WIN32_LEAN_AND_MEAN)   
 endif()
 
-set_target_properties(dll PROPERTIES OUTPUT_NAME "GDCommunityLauncher")
+set_target_properties(dll PROPERTIES
+    OUTPUT_NAME "GDCommunityLauncher"
+    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
+)
