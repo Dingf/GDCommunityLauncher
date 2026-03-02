@@ -2,12 +2,13 @@
 #include "ChallengeManager.h"
 #include "JSON.h"
 #include "Log.h"
+#include "GameAPI/Difficulty.h"
 
-const std::unordered_map<std::string, ChallengeDifficulty> challengeDifficultyMap =
+const std::unordered_map<std::string, uint32_t> challengeDifficultyMap =
 {
-    { "Normal", CHALLENGE_DIFFICULTY_NORMAL },
-    { "Elite", CHALLENGE_DIFFICULTY_ELITE },
-    { "Ultimate", CHALLENGE_DIFFICULTY_ULTIMATE }
+    { "Normal", (1 << GameAPI::GAME_DIFFICULTY_NORMAL) },
+    { "Elite", (1 << GameAPI::GAME_DIFFICULTY_ELITE) },
+    { "Ultimate", (1 << GameAPI::GAME_DIFFICULTY_ULTIMATE) }
 };
 
 std::string HandleWriteGetChallenges(uint32_t requestID, uint32_t participantID, uint32_t seasonID)
@@ -64,6 +65,7 @@ void HandleReadGetSeasonChallenges(json response, uint32_t seasonID)
     if (status == "Ok")
     {
         json challenges = response.at("Data");
+        // TODO Change once Hidden has its own field or is otherwise defined
         const uint32_t hidden_category = spChallengeManager->GetChallengeCategory("Tiebreakers");
         for (const json& challenge : challenges)
         {
@@ -105,7 +107,7 @@ void HandleReadGetSeasonChallenges(json response, uint32_t seasonID)
                         newChallenge._difficultyBitMask |= difficultyEntry.second;
                     }
                 }
-                if (newChallenge._difficultyBitMask == CHALLENGE_DIFFICULTY_UNDEFINED)
+                if (newChallenge._difficultyBitMask == 0)
                 {
                     Logger::LogMessage(LOG_LEVEL_WARN, "Challenge \"%\" (ID: %) has unknown difficulty: %", newChallenge._name, challengeID, difficultyNames);
                 }

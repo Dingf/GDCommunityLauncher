@@ -12,14 +12,6 @@ enum ChallengeStatus : uint32_t
     CHALLENGE_STATUS_HIDDEN = 2,
 };
 
-enum ChallengeDifficulty : uint32_t
-{
-    CHALLENGE_DIFFICULTY_UNDEFINED= 0x00,
-    CHALLENGE_DIFFICULTY_NORMAL   = 0x01,
-    CHALLENGE_DIFFICULTY_ELITE    = 0x02,
-    CHALLENGE_DIFFICULTY_ULTIMATE = 0x04
-};
-
 struct Challenge
 {
     Challenge() = default;
