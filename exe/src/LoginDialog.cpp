@@ -2,7 +2,6 @@
 #include <future>
 #include <Windows.h>
 #include "LauncherClient.h"
-#include "dll/include/SeasonClient.h"
 #include "Configuration.h"
 #include "ServerAuth.h"
 #include "LoginDialog.h"
@@ -66,7 +65,7 @@ void LoginValidateCallback(ServerAuthResult result)
             {
                 if (!InitializeClient())
                     SendMessage(LoginDialog::_window, WM_LOGIN_OTHER_ERROR, NULL, NULL);
-                else if (!SeasonClient::GetInstance()->HasSeasons())
+                else if (!spClient.HasSeasons())
                     SendMessage(LoginDialog::_window, WM_LOGIN_INVALID_SEASONS, NULL, NULL);
                 else
                     SendMessage(LoginDialog::_window, WM_LOGIN_OK, NULL, NULL);
@@ -338,7 +337,7 @@ bool LoginDialog::Login(void* configPointer)
                         DisplayLoginErrorMessageBox(NULL, LOGIN_RESULT_OTHER_ERROR);
                         return false;
                     }
-                    else if (!SeasonClient::GetInstance()->HasSeasons())
+                    else if (!spClient.HasSeasons())
                     {
                         DisplayLoginErrorMessageBox(NULL, LOGIN_RESULT_INVALID_SEASONS);
                         return false;

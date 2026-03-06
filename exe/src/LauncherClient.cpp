@@ -95,7 +95,7 @@ bool LauncherClient::WriteDataToPipe(HANDLE pipe) const
         !WriteStringToPipe(pipe, _chatURL) ||
         !WriteInt32ToPipe(pipe, _branch) ||
         !WriteByteToPipe(pipe, (uint8_t)_info._hasUpdate) ||
-        !WriteSeasonsToPipe(pipe, SeasonClient::GetInstance()->GetSeasonList())) // TODO correct refactor?
+        !WriteSeasonsToPipe(pipe, spClient->GetSeasonList())) // TODO correct refactor?
     {
         Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to write client data to the stdin pipe.");
         return false;

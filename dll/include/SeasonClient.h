@@ -15,6 +15,7 @@ enum SeasonType : uint32_t
 
 struct SeasonInfo
 {
+    SeasonInfo() = default;
     uint32_t    _seasonID;
     SeasonType  _seasonType;
     std::string _displayName;
