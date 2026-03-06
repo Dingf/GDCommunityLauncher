@@ -1,7 +1,9 @@
 #ifndef INC_GDCL_DATE_H
 #define INC_GDCL_DATE_H
 
-#include <ctime>
+// TODO: This is probably obsolete (date checking for seasons is handled by the server now) so delete this
+
+/*#include <ctime>
 #include <string>
 #include <sstream>
 #include <iomanip>
@@ -62,6 +64,6 @@ class Date
     private:
         std::time_t _time;
 };
-
+*/
 
 #endif//INC_GDCL_DATE_H

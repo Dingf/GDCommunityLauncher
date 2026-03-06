@@ -1,5 +1,5 @@
-#ifndef INC_GDCL_DLL_CONTEXT_MANAGER_H
-#define INC_GDCL_DLL_CONTEXT_MANAGER_H
+#ifndef INC_GDCL_CONTEXT_MANAGER_H
+#define INC_GDCL_CONTEXT_MANAGER_H
 
 #include <thread>
 #include <memory>
@@ -25,4 +25,4 @@ class ContextManager
         static std::thread _thread;
 };
 
-#endif//INC_GDCL_DLL_CONTEXT_MANAGER_H
+#endif//INC_GDCL_CONTEXT_MANAGER_H

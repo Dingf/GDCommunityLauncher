@@ -2,7 +2,7 @@
 #include <cpprest/http_client.h>
 #include <Windows.h>
 #include <minizip/unzip.h>
-#include "SeasonClient.h"
+#include "DllClient.h"
 #include "GameHandler.h"
 #include "HookManager.h"
 #include "EventManager.h"
@@ -13,18 +13,18 @@
 #include "Log.h"
 #include "Version.h"
 
-SeasonClient::SeasonClient() : _activeSeason(nullptr)
+DllClient::DllClient() : _activeSeason(nullptr)
 {
     ReadDataFromPipe();
 }
 
-SeasonClient* SeasonClient::GetInstance()
+DllClient* DllClient::GetInstance()
 {
-    static SeasonClient instance;
+    static DllClient instance;
     return &instance;
 }
 
-bool SeasonClient::Initialize()
+bool DllClient::Initialize()
 {
     try
     {
@@ -33,7 +33,7 @@ bool SeasonClient::Initialize()
     }
     catch (const std::exception& ex)
     {
-        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to initialize SeasonClient module: %", ex.what());
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to initialize DllClient module: %", ex.what());
         return false;
     }
 }
@@ -125,7 +125,7 @@ bool ReadWideStringFromPipe(HANDLE pipe, std::wstring& str)
     return true;
 }
 
-bool ReadSeasonsFromPipe(HANDLE pipe, std::vector<SeasonClient::SeasonInfo>& seasons)
+bool ReadSeasonsFromPipe(HANDLE pipe, std::vector<SeasonInfo>& seasons)
 {
     uint32_t count;
     if (!ReadInt32FromPipe(pipe, count))
@@ -134,7 +134,7 @@ bool ReadSeasonsFromPipe(HANDLE pipe, std::vector<SeasonClient::SeasonInfo>& sea
     for (uint32_t i = 0; i < count; ++i)
     {
         uint32_t seasonType;
-        SeasonClient::SeasonInfo season;
+        SeasonInfo season;
 
         if (!ReadInt32FromPipe(pipe, season._seasonID) ||
             !ReadInt32FromPipe(pipe, seasonType) ||
@@ -194,7 +194,7 @@ bool ExtractZIPUpdate()
     }
 }
 
-void SeasonClient::ReadDataFromPipe()
+void DllClient::ReadDataFromPipe()
 {
     HANDLE pipe = GetStdHandle(STD_INPUT_HANDLE);
 
@@ -240,7 +240,7 @@ void SeasonClient::ReadDataFromPipe()
     }
 }
 
-void SeasonClient::SetActiveSeason(bool hardcore)
+void DllClient::SetActiveSeason(bool hardcore)
 {
     _activeSeason = nullptr;
     for (size_t i = 0; i < _seasons.size(); ++i)

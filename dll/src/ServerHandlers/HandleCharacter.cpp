@@ -1,6 +1,6 @@
 #include <future>
 #include <string>
-#include "SeasonClient.h"
+#include "DllClient.h"
 #include "JSON.h"
 #include "Log.h"
 
@@ -60,12 +60,12 @@ std::string HandleWriteDeleteCharacter(uint32_t requestID, uint32_t participantI
     return request.dump();
 }
 
-void HandleReadGetCharacters(json response, uint32_t participantID)
+void HandleReadGetCharacters(const json& response, uint32_t participantID)
 {
     // TODO
 }
 
-void HandleReadGetCharacterData(json response, uint32_t participantID, std::wstring characterName)
+void HandleReadGetCharacterData(const json& response, uint32_t participantID, std::wstring characterName)
 {
     std::string status = response.at("Status").get<std::string>();
     if (status != "Ok")
@@ -74,12 +74,12 @@ void HandleReadGetCharacterData(json response, uint32_t participantID, std::wstr
     }
 }
 
-void HandleReadGetCharacterFile(json response, uint32_t participantID, std::wstring characterName)
+void HandleReadGetCharacterFile(const json& response, uint32_t participantID, std::wstring characterName)
 {
     // TODO
 }
 
-void HandleReadDeleteCharacter(json response, uint32_t participantID, std::wstring characterName)
+void HandleReadDeleteCharacter(const json& response, uint32_t participantID, std::wstring characterName)
 {
     // TODO
 }

@@ -1,6 +1,5 @@
 #include <filesystem>
 #include "GameAPI/TriggerToken.h"
-#include "SeasonClient.h"
 #include "GameHandler.h"
 #include "URI.h"
 

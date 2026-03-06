@@ -1,5 +1,5 @@
 #include <string>
-#include "SeasonClient.h"
+#include "DllClient.h"
 #include "Item.h"
 #include "JSON.h"
 
@@ -93,32 +93,32 @@ std::string HandleWriteTransferQueue(uint32_t requestID, uint32_t participantID)
     return request.dump();
 }
 
-void HandleReadGetStashFile(json response, uint32_t participantID)
+void HandleReadGetStashFile(const json& response, uint32_t participantID)
 {
     // TODO
 }
 
-void HandleReadSaveStashFile(json response, uint32_t participantID, std::string base64Data)
+void HandleReadSaveStashFile(const json& response, uint32_t participantID, std::string base64Data)
 {
     // TODO
 }
 
-void HandleReadStashCapacity(json response)
+void HandleReadStashCapacity(const json& response)
 {
     // TODO
 }
 
-void HandleReadTransferItems(json response, uint32_t participantID, std::vector<uint32_t> itemIDs)
+void HandleReadTransferItems(const json& response, uint32_t participantID, std::vector<uint32_t> itemIDs)
 {
     // TODO
 }
 
-void HandleReadStoreItems(json response, uint32_t participantID, std::vector<Item> items)
+void HandleReadStoreItems(const json& response, uint32_t participantID, std::vector<Item> items)
 {
     // TODO
 }
 
-void HandleReadTransferQueue(json response, uint32_t participantID)
+void HandleReadTransferQueue(const json& response, uint32_t participantID)
 {
     // TODO
 }

@@ -1,6 +1,6 @@
 #include <filesystem>
 #include <windows.h>
-#include "SeasonClient.h"
+#include "DllClient.h"
 #include "GameHandler.h"
 #include "ServerHandler.h"
 #include "ChatManager.h"
@@ -20,7 +20,7 @@ BOOL APIENTRY DllMain(HINSTANCE hInstDLL, DWORD fdwReason, LPVOID lpReserved)
         switch (fdwReason)
         {
             case DLL_PROCESS_ATTACH:
-                if (!SeasonClient::Initialize() ||
+                if (!DllClient::Initialize() ||
                     !GameHandler::Initialize() ||
                     !ServerHandler::Initialize() ||
                     !ChatManager::Initialize())

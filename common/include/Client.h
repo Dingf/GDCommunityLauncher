@@ -12,6 +12,22 @@ enum SeasonBranch
     SEASON_BRANCH_BETA = 2,
 };
 
+enum SeasonType : uint32_t
+{
+    SEASON_TYPE_NONE = 0,
+    SEASON_TYPE_SC_TRADE = 1,
+    SEASON_TYPE_HC_SSF = 2,
+};
+
+struct SeasonInfo
+{
+    uint32_t    _seasonID;
+    SeasonType  _seasonType;
+    std::string _modName;
+    std::string _displayName;
+    std::string _participationToken;
+};
+
 constexpr char OFFLINE_SEASON_NAME[] = "GrimLeagueS07";
 
 class Client
@@ -42,8 +58,8 @@ class Client
             }
         }
 
-        const URI& GetServerGameURL() const { return _gameURL; }
-        const URI& GetServerChatURL() const { return _chatURL; }
+        const URI& GetHostName() const { return _host; }
+        const URI& GetServerChatURL() const { return _chatURL; }    // TODO: This may be obsolete if chat gets merged into the server websocket; delete if so
 
     protected:
         Client() : _branch(SEASON_BRANCH_RELEASE) {}
@@ -54,7 +70,7 @@ class Client
         std::string  _refreshToken;
         std::string  _seasonName;
         SeasonBranch _branch;
-        URI          _gameURL;
+        URI          _host;
         URI          _chatURL;
 };
 

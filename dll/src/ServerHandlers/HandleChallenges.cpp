@@ -38,12 +38,12 @@ std::string HandleWriteGetSeasonChallenges(uint32_t requestID, uint32_t seasonID
     return request.dump();
 }
 
-void HandleReadGetChallenges(json response, uint32_t participantID, uint32_t seasonID)
+void HandleReadGetChallenges(const json& response, uint32_t participantID, uint32_t seasonID)
 {
     std::string status = response.at("Status").get<std::string>();
     if (status == "Ok")
     {
-        json challenges = response.at("Data");
+        const json& challenges = response.at("Data");
         for (const json& challenge : challenges)
         {
             uint32_t challengeID = challenge.at("SeasonChallengeId").get<uint32_t>();
@@ -59,12 +59,12 @@ void HandleReadGetChallenges(json response, uint32_t participantID, uint32_t sea
     }
 }
 
-void HandleReadGetSeasonChallenges(json response, uint32_t seasonID)
+void HandleReadGetSeasonChallenges(const json& response, uint32_t seasonID)
 {
     std::string status = response.at("Status").get<std::string>();
     if (status == "Ok")
     {
-        json challenges = response.at("Data");
+        const json& challenges = response.at("Data");
         // TODO Change once Hidden has its own field or is otherwise defined
         const uint32_t hidden_category = spChallengeManager->GetChallengeCategory("Tiebreakers");
         for (const json& challenge : challenges)

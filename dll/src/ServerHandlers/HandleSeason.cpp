@@ -3,7 +3,7 @@
 #include "GameAPI/Game.h"
 #include "ChatManager.h"
 #include "ServerCache.h"
-#include "SeasonClient.h"
+#include "DllClient.h"
 #include "JSON.h"
 #include "Log.h"
 
@@ -60,15 +60,15 @@ std::string HandleWriteAddParticipant(uint32_t requestID, uint32_t seasonID)
     return request.dump();
 }
 
-void HandleReadGetSeasons(json response)
+void HandleReadGetSeasons(const json& response)
 {
     std::string status = response.at("Status").get<std::string>();
     if (status == "Ok")
     {
         spClient->_seasons.clear();
 
-        json seasons = response.at("Data");
-        for (json season : seasons)
+        const json& seasons = response.at("Data");
+        for (const json& season : seasons)
         {
             spClient->_seasons.push_back({});
             auto& seasonInfo = spClient->_seasons.back();
@@ -85,12 +85,12 @@ void HandleReadGetSeasons(json response)
     }
 }
 
-void HandleReadGetPoints(json response, uint32_t participantID)
+void HandleReadGetPoints(const json& response, uint32_t participantID)
 {
     const std::string status = response.at("Status").get<std::string>();
     if (status == "Ok")
     {
-        const json data = response.at("Data");
+        const json& data = response.at("Data");
         spClient->_points = data.at("PointTotal").get<uint32_t>();
         spClient->_rank = data.at("Rank").get<uint32_t>();
     }
@@ -100,7 +100,7 @@ void HandleReadGetPoints(json response, uint32_t participantID)
     }
 }
 
-void HandleReadGetTradeNotifications(json response, uint32_t participantID)
+void HandleReadGetTradeNotifications(const json& response, uint32_t participantID)
 {
     const std::string status = response.at("Status").get<std::string>();
     if (status == "Ok")
@@ -123,7 +123,7 @@ void HandleReadGetTradeNotifications(json response, uint32_t participantID)
     }
 }
 
-void HandleReadAddParticipant(json response, uint32_t seasonID)
+void HandleReadAddParticipant(const json& response, uint32_t seasonID)
 {
     std::string status = response.at("Status").get<std::string>();
     if (status != "Ok")

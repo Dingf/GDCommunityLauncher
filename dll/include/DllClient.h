@@ -1,33 +1,18 @@
-#ifndef INC_GDCL_DLL_SEASON_CLIENT_H
-#define INC_GDCL_DLL_SEASON_CLIENT_H
+#ifndef INC_GDCL_DLL_CLIENT_H
+#define INC_GDCL_DLL_CLIENT_H
 
 #include <stdint.h>
 #include <string>
 #include "Client.h"
 #include "JSON.h"
 
-enum SeasonType : uint32_t
-{
-    SEASON_TYPE_NONE = 0,
-    SEASON_TYPE_SC_TRADE = 1,
-    SEASON_TYPE_HC_SSF = 2,
-};
-
-class SeasonClient : public Client
+class DllClient : public Client
 {
     public:
-        struct SeasonInfo
-        {
-            uint32_t    _seasonID;
-            SeasonType  _seasonType;
-            std::string _displayName;
-            std::string _participationToken;
-        };
+        DllClient(DllClient&) = delete;
+        void operator=(const DllClient&) = delete;
 
-        SeasonClient(SeasonClient&) = delete;
-        void operator=(const SeasonClient&) = delete;
-
-        static SeasonClient* GetInstance();
+        static DllClient* GetInstance();
 
         static bool Initialize();
 
@@ -59,7 +44,7 @@ class SeasonClient : public Client
         const std::vector<SeasonInfo>& GetSeasonList() const { return _seasons; }
 
     private:
-        SeasonClient();
+        DllClient();
 
         void ReadDataFromPipe();
 
@@ -83,6 +68,6 @@ class SeasonClient : public Client
         //std::unique_ptr<Connection> _connection;
 };
 
-#define spClient SeasonClient::GetInstance()
+#define spClient DllClient::GetInstance()
 
-#endif//INC_GDCL_DLL_GAME_CLIENT_H
+#endif//INC_GDCL_DLL_CLIENT_H
