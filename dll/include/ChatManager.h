@@ -1,10 +1,13 @@
 #ifndef INC_GDCL_DLL_CHAT_MANAGER_H
 #define INC_GDCL_DLL_CHAT_MANAGER_H
 
+#include <atomic>
 #include <unordered_set>
 #include <string>
 #include <memory>
+#include <thread>
 #include "Connection.h"
+#include "EngineAPI/Input/KeyButtonEvent.h"
 
 enum ChatType : uint8_t
 {
@@ -52,6 +55,8 @@ class ChatManager
         bool UnmutePlayer(std::wstring playerName);
 
     private:
+        static constexpr int32_t HOLD_THREAD_STOP = -1;
+
         ChatManager();
         ~ChatManager();
 
@@ -59,6 +64,7 @@ class ChatManager
         //static void OnWorldPreLoadEvent(std::string mapName, bool modded);
         static void OnWorldPreUnloadEvent();
         static void OnSetMainPlayerEvent(void* player);
+        static bool OnKeyButtonEvent(EngineAPI::Input::KeyButtonEvent& event);
 
         /*static void OnConnection(const signalr::value& value);
         static void OnReceiveMessage(const signalr::value& value);
@@ -70,13 +76,11 @@ class ChatManager
         void LoadConfig();
         void SaveConfig();
 
-        uint32_t& GetCaratPosition() const;
-        uint32_t& GetSelectStartPosition() const;
-        uint32_t& GetSelectEndPosition() const;
+        uint32_t& GetCaratPosition();
+        uint32_t& GetSelectStartPosition();
+        uint32_t& GetSelectEndPosition();
+        std::wstring& GetBufferText();
 
-        void SetCaratPosition(uint32_t position);
-        void SetSelectStartPosition(uint32_t position);
-        void SetSelectEndPosition(uint32_t position);
         void SetBufferText(const std::wstring& text);
 
         void FindMagicAddresses();
@@ -84,6 +88,10 @@ class ChatManager
 
         void LoadMutedList();
         void DisplayNewTradeNotifications();
+
+        void HoldThreadLoop();
+
+        bool HandleKeyPress(EngineAPI::Input::KeyButtonEvent& event);
 
         uint8_t  _channels;     // Current chat channels; lower 4 bits are for trade chat, higher 4 bits are for global chat
         uint32_t _tradeColor;   // Color used for trade chat
@@ -93,6 +101,11 @@ class ChatManager
         std::wstring _prefix;   // Last used chat prefix
         std::wstring _saved;    // Saved buffer text, used for linking items in chat
         std::unordered_set<std::wstring> _mutedList;    // List of muted players by the current user
+
+        std::atomic_int64_t              _holdTime;     // Timestamp after which the thread should repeat inputs, by default +500ms after the original event
+        EngineAPI::Input::KeyButtonEvent _holdEvent;    // Last down key event recorded; used by the hold thread to repeat key inputs
+        std::unique_ptr<std::thread>     _holdThread;   // Thread used to repeat key inputs from held down keys
+
 };
 
 #define spChatManager ChatManager::GetInstance()

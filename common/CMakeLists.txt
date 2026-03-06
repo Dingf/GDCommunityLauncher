@@ -5,4 +5,7 @@ add_library(common ${INCLUDE} ${SOURCE})
 
 target_include_directories(common PRIVATE include)
 
-set_target_properties(common PROPERTIES OUTPUT_NAME "common")
+set_target_properties(common PROPERTIES
+    OUTPUT_NAME "common"
+    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
+)

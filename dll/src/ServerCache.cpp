@@ -31,12 +31,21 @@ uint32_t ServerCache::GetParticipantID(bool hardcore)
 
     if (seasonID)
     {
-        json result = spServer->Send("AddParticipant", seasonID).get();
-        uint32_t participantID = result.at("SeasonParticipantId").get<uint32_t>();
+        auto future = spServer->Send("AddParticipant", seasonID);
+        auto timeout = std::chrono::system_clock::now() + std::chrono::seconds(5);
+        if (future.wait_until(timeout) == std::future_status::ready)
+        {
+            json result = future.get();
+            uint32_t participantID = result.at("SeasonParticipantId").get<uint32_t>();
 
-        _participantIDCache[hardcore] = participantID;
+            _participantIDCache[hardcore] = participantID;
 
-        return participantID;
+            return participantID;
+        }
+        else
+        {
+            Logger::LogMessage(LOG_LEVEL_WARN, "AddParticipant request to server timed out.");
+        }
     }
 
     return 0;
@@ -48,15 +57,26 @@ uint32_t ServerCache::GetCharacterID(uint32_t participantID, const std::wstring&
     if (it != _characterIDCache.end())
         return it->second;
 
-    json result = spServer->Send("GetCharacterData", participantID, playerName).get();
-    uint32_t characterID = result.at("ParticipantCharacterId").get<uint32_t>();
-    std::string characterChecksum = result.at("LastChecksum").get<std::string>();
+    auto future = spServer->Send("GetCharacterData", participantID, playerName);
+    auto timeout = std::chrono::system_clock::now() + std::chrono::seconds(5);
+    if (future.wait_until(timeout) == std::future_status::ready)
+    {
+        json result = future.get();
+        uint32_t characterID = result.at("ParticipantCharacterId").get<uint32_t>();
+        std::string characterChecksum = result.at("LastChecksum").get<std::string>();
 
-    _characterIDCache[playerName] = characterID;
+        _characterIDCache[playerName] = characterID;
 
-    // TODO: Also cache the last checksum value
+        // TODO: Also cache the last checksum value
 
-    return characterID;
+        return characterID;
+    }
+    else
+    {
+        Logger::LogMessage(LOG_LEVEL_WARN, "GetCharacterData request to server timed out.");
+    }
+
+    return 0;
 }
 
 void ServerCache::Clear()

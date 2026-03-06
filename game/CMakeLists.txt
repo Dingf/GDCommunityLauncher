@@ -7,4 +7,7 @@ target_include_directories(game PUBLIC include)
 target_link_libraries(game PRIVATE ${cpprestsdk_LIBRARY})
 target_link_libraries(game PRIVATE common)
 
-set_target_properties(game PROPERTIES OUTPUT_NAME "game")
+set_target_properties(game PROPERTIES
+    OUTPUT_NAME "game"
+    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>"
+)
