@@ -1,8 +1,8 @@
 #include "EngineAPI.h"
 #include "GameAPI/Difficulty.h"
 #include "ContextManager.h"
+#include "DllClient.h"
 #include "EventManager.h"
-#include "SeasonClient.h"
 #include "ServerHandler.h"
 #include "Item.h"
 #include "JSON.h"
@@ -40,36 +40,36 @@ std::string HandleWriteTransferQueue(uint32_t requestID, uint32_t participantID)
 std::string HandleWriteDeleteCharacter(uint32_t requestID, uint32_t participantID, std::wstring characterName);
 
 // Read Handlers
-void HandleReadAddParticipant(json response, uint32_t seasonID);
-void HandleReadGetChallenges(json response, uint32_t participantID, uint32_t seasonID);
-void HandleReadGetCharacters(json response, uint32_t participantID);
-void HandleReadGetCharacterData(json response, uint32_t participantID, std::wstring characterName);
-void HandleReadGetCharacterFile(json response, uint32_t participantID, std::wstring characterName);
-void HandleReadGetSeasons(json response);
-void HandleReadGetSeasonChallenges(json response, uint32_t seasonID);
-void HandleReadGetPoints(json response, uint32_t participantID);
-void HandleReadGetTradeNotifications(json response, uint32_t participantID);
-void HandleReadGetTagFile(json response, uint32_t participantID);
-void HandleReadSaveTagFile(json response, uint32_t participantID, std::string base64Data);
-void HandleReadGetStashFile(json response, uint32_t participantID);
-void HandleReadSaveStashFile(json response, uint32_t participantID, std::string base64Data);
-void HandleReadGetTransmuteFile(json response, uint32_t participantID);
-void HandleReadSaveTransmuteFile(json response, uint32_t participantID, std::string base64Data);
-void HandleReadGetFormulasFile(json response, uint32_t participantID);
-void HandleReadSaveFormulasFile(json response, uint32_t participantID, std::string base64Data);
-void HandleReadGetQuestFile(json response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty);
-void HandleReadSaveQuestFile(json response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty, std::string base64Data);
-void HandleReadGetConversationFile(json response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty);
-void HandleReadSaveConversationFile(json response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty, std::string base64Data);
-void HandleReadGetMapFile(json response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty);
-void HandleReadSaveMapFile(json response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty, std::string base64Data);
-void HandleReadGetFOWFile(json response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty);
-void HandleReadSaveFOWFile(json response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty, std::string base64Data);
-void HandleReadStashCapacity(json response);
-void HandleReadTransferItems(json response, uint32_t participantID, std::vector<uint32_t> itemIDs);
-void HandleReadStoreItems(json response, uint32_t participantID, std::vector<Item> items);
-void HandleReadTransferQueue(json response, uint32_t participantID);
-void HandleReadDeleteCharacter(json response, uint32_t participantID, std::wstring characterName);
+void HandleReadAddParticipant(const json& response, uint32_t seasonID);
+void HandleReadGetChallenges(const json& response, uint32_t participantID, uint32_t seasonID);
+void HandleReadGetCharacters(const json& response, uint32_t participantID);
+void HandleReadGetCharacterData(const json& response, uint32_t participantID, std::wstring characterName);
+void HandleReadGetCharacterFile(const json& response, uint32_t participantID, std::wstring characterName);
+void HandleReadGetSeasons(const json& response);
+void HandleReadGetSeasonChallenges(const json& response, uint32_t seasonID);
+void HandleReadGetPoints(const json& response, uint32_t participantID);
+void HandleReadGetTradeNotifications(const json& response, uint32_t participantID);
+void HandleReadGetTagFile(const json& response, uint32_t participantID);
+void HandleReadSaveTagFile(const json& response, uint32_t participantID, std::string base64Data);
+void HandleReadGetStashFile(const json& response, uint32_t participantID);
+void HandleReadSaveStashFile(const json& response, uint32_t participantID, std::string base64Data);
+void HandleReadGetTransmuteFile(const json& response, uint32_t participantID);
+void HandleReadSaveTransmuteFile(const json& response, uint32_t participantID, std::string base64Data);
+void HandleReadGetFormulasFile(const json& response, uint32_t participantID);
+void HandleReadSaveFormulasFile(const json& response, uint32_t participantID, std::string base64Data);
+void HandleReadGetQuestFile(const json& response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty);
+void HandleReadSaveQuestFile(const json& response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty, std::string base64Data);
+void HandleReadGetConversationFile(const json& response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty);
+void HandleReadSaveConversationFile(const json& response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty, std::string base64Data);
+void HandleReadGetMapFile(const json& response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty);
+void HandleReadSaveMapFile(const json& response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty, std::string base64Data);
+void HandleReadGetFOWFile(const json& response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty);
+void HandleReadSaveFOWFile(const json& response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty, std::string base64Data);
+void HandleReadStashCapacity(const json& response);
+void HandleReadTransferItems(const json& response, uint32_t participantID, std::vector<uint32_t> itemIDs);
+void HandleReadStoreItems(const json& response, uint32_t participantID, std::vector<Item> items);
+void HandleReadTransferQueue(const json& response, uint32_t participantID);
+void HandleReadDeleteCharacter(const json& response, uint32_t participantID, std::wstring characterName);
 
 const std::unordered_map<std::string, ServerHandler::ServerHandlerPair> ServerHandler::_handlers =
 {

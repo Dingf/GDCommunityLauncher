@@ -2,7 +2,7 @@
 #include "EngineAPI.h"
 #include "GameAPI.h"
 #include "ChatManager.h"
-#include "SeasonClient.h"
+#include "DllClient.h"
 #include "EventManager.h"
 #include "ThreadManager.h"
 #include "Configuration.h"

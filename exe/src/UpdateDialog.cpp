@@ -1,18 +1,18 @@
+#include <atomic>
 #include <string>
 #include <sstream>
 #include <vector>
 #include <unordered_map>
 #include <filesystem>
-#include <thread>
 #include <future>
-#include <cpprest/filestream.h>
-#include <cpprest/http_client.h>
+#include <boost/asio.hpp>
+#include <boost/lexical_cast.hpp>
 #include <Windows.h>
 #include <CommCtrl.h>
-#include "LauncherClient.h"
 #include "ServerAuth.h"
 #include "UpdateDialog.h"
-#include "Date.h"
+#include "ExeClient.h"
+#include "HTTP.h"
 #include "URI.h"
 #include "Version.h"
 #include "Log.h"
@@ -21,134 +21,153 @@ namespace UpdateDialog
 {
     HWND _window = NULL;
     bool _result = false;
-    std::shared_ptr<size_t> _totalSize = std::make_shared<size_t>(0);
-    std::shared_ptr<size_t> _downloadSize = std::make_shared<size_t>(0);
+    std::shared_ptr<std::atomic_uint64_t> _totalSize = std::make_shared<std::atomic_uint64_t>(0);
+    std::shared_ptr<std::atomic_uint64_t> _downloadSize = std::make_shared<std::atomic_uint64_t>(0);
 }
 
 typedef void (*DownloadValueCallback)(size_t);
 
-const std::unordered_map<std::wstring, std::string>& GetDownloadList()
+bool GetDownloadList(std::unordered_map<std::wstring, std::string>& downloadList)
 {
-    LauncherClient& client = LauncherClient::GetInstance();
-    // TODO Refactor
-    /*if (Connection* connection = client.GetConnection())
+    HTTPRequest request(HTTP_GET, "/File/filenames?branch=" + spClient->GetBranchName());
+    request.AddHeader("Authorization", "Bearer " + spClient->GetAuthToken());
+ 
+    try
     {
-        if (!connection->Invoke("GetLeagueFiles", client.GetAuthToken(), client.GetBranchName()))
+        HTTPResponse response = request.Send(spClient->GetHostName(), "443");
+        switch (response.GetStatus())
         {
-            SendMessage(UpdateDialog::_window, WM_UPDATE_FAIL, NULL, NULL);
+            case 200:
+            {
+                std::string seasonName = spClient->GetSeasonName();
+                json responseJSON = json::parse(response.GetBody());
+
+                for (const json& file : responseJSON)
+                {
+                    std::string filename = file.at("fileName").get<std::string>();
+                    std::string downloadURL = file.at("downloadUrl").get<std::string>();
+                    uint64_t fileSize = file.at("fileSize").get<uint64_t>();
+
+                    // Generate the filename path based on the file extension and mod name
+                    std::filesystem::path filenamePath(filename);
+                    if (filenamePath.extension() == ".arc")
+                        filenamePath = std::filesystem::current_path() / "mods" / seasonName / "resources" / filenamePath;
+                    else if (filenamePath.extension() == ".arz")
+                        filenamePath = std::filesystem::current_path() / "mods" / seasonName / "database" / filenamePath;
+                    else
+                        filenamePath = std::filesystem::current_path() / filenamePath;
+
+                    // If the file doesn't exist or the file sizes don't match, add it to the list of files to download
+                    if ((!std::filesystem::is_regular_file(filenamePath)) || (std::filesystem::file_size(filenamePath) != fileSize))
+                        downloadList[filenamePath.wstring()] = downloadURL;
+                }
+                return true;
+            }
+            default:
+                throw std::runtime_error("Server responded with status code " + std::to_string(response.GetStatus()));
         }
-    }*/
-    return client.GetDownloadList();
+    }
+    catch (const std::exception& ex)
+    {
+        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve download file list: %", ex.what());
+    }
+
+    return false;
 }
 
 bool DownloadFile(const std::filesystem::path& filenamePath, const URI& downloadURL, DownloadValueCallback totalSizeCallback, DownloadValueCallback downloadSizeCallback)
 {
-    // TODO Refactor away from cpprest to boost::asio
-    /*web::http::client::http_client httpClient((utility::string_t)downloadURL);
-    web::http::http_request request(web::http::methods::GET);
+    HTTPRequest request(HTTP_GET, downloadURL);
 
     try
     {
-        web::http::http_response response = httpClient.request(request).get();
-        web::http::status_code status = response.status_code();
-
-        if (status == web::http::status_codes::OK)
+        HTTPResponse response = request.Send(spClient->GetHostName(), "443");
+        switch (response.GetStatus())
         {
-            totalSizeCallback(response.headers().content_length());
-
-            // Create the parent directory if it does not exist already
-            std::filesystem::path parentPath = filenamePath.parent_path();
-            if (!std::filesystem::is_directory(parentPath))
-                std::filesystem::create_directories(parentPath);
-
-            std::filesystem::path tempPath = filenamePath;
-            tempPath += ".tmp";
-
-            concurrency::streams::ostream fileStream = concurrency::streams::fstream::open_ostream(tempPath).get();
-            concurrency::streams::istream body = response.body();
-
-            size_t bytesRead = 0;
-            do
+            case 200:
             {
-                bytesRead = body.read(fileStream.streambuf(), 1024).get();
-                downloadSizeCallback(bytesRead);
-            }
-            while (bytesRead > 0);
+                size_t size = boost::lexical_cast<size_t>(response.GetHeaders().at("Content-Length"));
+                totalSizeCallback(size);
 
-            fileStream.close().wait();
-            std::filesystem::rename(tempPath, filenamePath);
-            return true;
-        }
-        else
-        {
-            throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
+                // Create the parent directory if it does not exist already
+                std::filesystem::path parentPath = filenamePath.parent_path();
+                if (!std::filesystem::is_directory(parentPath))
+                    std::filesystem::create_directories(parentPath);
+
+                std::filesystem::path tempPath = filenamePath;
+                tempPath += ".tmp";
+
+                std::ofstream out(tempPath, std::ofstream::binary | std::ofstream::out);
+                auto in = response.GetStream();
+
+                boost::system::error_code ec;
+                do
+                {
+                    char buffer[1024];
+                    size_t bytesRead = in->read_some(asio::buffer(buffer), ec);
+                    if (!ec)
+                        out.write(buffer, bytesRead);
+                } while (!ec);
+
+                out.close();
+                std::filesystem::rename(tempPath, filenamePath);
+                return true;
+            }
+            default:
+                throw std::runtime_error("Server responded with status code " + std::to_string(response.GetStatus()));
         }
     }
     catch (const std::exception& ex)
     {
         Logger::LogMessage(LOG_LEVEL_WARN, "Failed to download file %: %", filenamePath.filename(), ex.what());
         return false;
-    }*/
+    }
     return false;
 }
 
 bool VerifyBaseGameFiles(std::string& expectedVersion)
 {
-    std::vector<pplx::task<bool>> tasks;
-    // TODO: Make this more scalable, like store it as a list in a file or something
     std::vector<std::string> paths = { "database/database.arz", "gdx1/database/GDX1.arz", "gdx2/database/GDX2.arz" };
+
+    json body = json::array();
+    for (const auto& path : paths)
+    {
+        body.push_back({
+            { "filename", path },
+            { "filesize", std::filesystem::file_size(std::filesystem::current_path() / path) }
+        });
+    }
+
+    HTTPRequest request(HTTP_POST, "/File/base-game/file-sizes?branch=" + spClient->GetBranchName());
+    request.AddHeader("Authorization", "Bearer " + spClient->GetAuthToken());
+    request.SetBody(body);
+
     try
     {
-        LauncherClient& client = LauncherClient::GetInstance();
-        URI endpoint = client.GetServerGameURL() / "File" / "base-game" / "file-sizes";
-        endpoint.AddParam("branch", client.GetBranchName());
-
-        // TODO Refactor to boost::asio
-        /*web::http::client::http_client httpClient((utility::string_t)endpoint);
-        web::http::http_request request(web::http::methods::POST);
-
-        uint32_t index = 0;
-        web::json::value requestBody = web::json::value::array();
-        for (std::filesystem::path path : paths)
+        HTTPResponse response = request.Send(spClient->GetHostName(), "443");
+        switch (response.GetStatus())
         {
-            web::json::value fileData;
-            fileData[U("filename")] = JSONString(path.string());
-            fileData[U("filesize")] = std::filesystem::file_size(std::filesystem::current_path() / path);
-            requestBody[index++] = fileData;
+            case 200:
+                return true;
+            case 400:
+            {
+                expectedVersion = response.GetBody();
+                throw std::runtime_error("File size mismatch. Server expects game version " + expectedVersion);
+            }
+            default:
+                throw std::runtime_error("Server responed with status code " + response.GetStatus());
         }
-
-        request.set_body(requestBody);
-
-        std::string bearerToken = "Bearer " + client.GetAuthToken();
-        request.headers().add(U("Authorization"), bearerToken.c_str());
-
-        web::http::http_response response = httpClient.request(request).get();
-        if (response.status_code() == web::http::status_codes::OK)
-        {
-            return true;
-        }
-        else if (response.status_code() == web::http::status_codes::BadRequest)
-        {
-            expectedVersion = response.extract_utf8string().get();
-            throw std::runtime_error("File size mismatch. Server expects game version " + expectedVersion);
-        }
-        else
-        {
-            throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-        }*/
     }
-    catch (const std::exception& ex)
+    catch (std::exception& ex)
     {
         Logger::LogMessage(LOG_LEVEL_WARN, "Failed to verify base game files: %", ex.what());
-        return false;
     }
+
+    return false;
 }
 
 void DownloadFiles(const std::unordered_map<std::wstring, std::string>& downloadList)
 {
-    std::shared_ptr<size_t> totalSize = UpdateDialog::_totalSize;
-    std::shared_ptr<size_t> downloadSize = UpdateDialog::_downloadSize;
-
     std::vector<std::future<bool>> tasks;
     for (const auto& it : downloadList)
     {
@@ -234,8 +253,8 @@ void SetUpdateDialogProgress()
 {
     while (UpdateDialog::_window)
     {
-        size_t downloadSize = *UpdateDialog::_downloadSize;
-        size_t totalSize = *UpdateDialog::_totalSize;
+        uint64_t downloadSize = *UpdateDialog::_downloadSize;
+        uint64_t totalSize = *UpdateDialog::_totalSize;
 
         HWND textField = GetDlgItem(UpdateDialog::_window, IDC_STATIC);
         HWND progressBar = GetDlgItem(UpdateDialog::_window, IDC_PROGRESS1);
@@ -286,8 +305,7 @@ bool UpdateDialog::Update()
     auto progressTask = std::async(SetUpdateDialogProgress);
     auto updateTask   = std::async([]()
     {
-        LauncherClient& client = LauncherClient::GetInstance();
-        std::string seasonName = client.GetSeasonName();
+        std::string seasonName = spClient->GetSeasonName();
         if (seasonName.empty())
         {
             SendMessage(UpdateDialog::_window, WM_UPDATE_NO_SEASON, NULL, NULL);
@@ -301,8 +319,8 @@ bool UpdateDialog::Update()
             return;
         }
 
-        const std::unordered_map<std::wstring, std::string>& downloadList = GetDownloadList();
-        if (downloadList.size() > 0)
+        std::unordered_map<std::wstring, std::string> downloadList;
+        if (GetDownloadList(downloadList) && (downloadList.size() > 0))
         {
             DownloadFiles(downloadList);
         }

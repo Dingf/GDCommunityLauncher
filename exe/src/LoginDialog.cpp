@@ -1,8 +1,8 @@
 #include <string>
 #include <future>
 #include <Windows.h>
-#include "LauncherClient.h"
 #include "Configuration.h"
+#include "ExeClient.h"
 #include "ServerAuth.h"
 #include "LoginDialog.h"
 #include "SelectorDialog.h"
@@ -45,12 +45,11 @@ void SetDialogState(HWND hwnd, BOOL state)
 
 bool InitializeClient()
 {
-    LauncherClient& client = LauncherClient::GetInstance();
-    if (!client.IsOfflineMode() && (!SelectorDialog::Select()))
+    if (!spClient->IsOfflineMode() && (!SelectorDialog::Select()))
         return false;
 
     if (LoginDialog::_config)
-        LoginDialog::_config->SetValue("Login", "branch", client.GetBranch());
+        LoginDialog::_config->SetValue("Login", "branch", spClient->GetBranch());
 
     return true;
 }
@@ -65,7 +64,7 @@ void LoginValidateCallback(ServerAuthResult result)
             {
                 if (!InitializeClient())
                     SendMessage(LoginDialog::_window, WM_LOGIN_OTHER_ERROR, NULL, NULL);
-                else if (!spClient.HasSeasons())
+                else if (!spClient->HasSeasons())
                     SendMessage(LoginDialog::_window, WM_LOGIN_INVALID_SEASONS, NULL, NULL);
                 else
                     SendMessage(LoginDialog::_window, WM_LOGIN_OK, NULL, NULL);
@@ -131,7 +130,6 @@ INT_PTR CALLBACK LoginDialogHandler(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
     {
         case WM_COMMAND:
         {
-            LauncherClient& client = LauncherClient::GetInstance();
             switch (wp)
             {
                 case IDOK:
@@ -142,10 +140,9 @@ INT_PTR CALLBACK LoginDialogHandler(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
                     const Value* hostValue = LoginDialog::_config->GetValue("Login", "hostname");
                     if ((hostValue) && (hostValue->GetType() == VALUE_TYPE_STRING))
                     {
-
-                        client.SetUsername(username);
-                        client.SetPassword(password);
-                        //TODO client.CreateConnection(hostValue->ToString());
+                        spClient->SetUsername(username);
+                        spClient->SetPassword(password);
+                        spClient->SetHostName(hostValue->ToString());
 
                         std::thread t(&ServerAuthenticate, LoginValidateCallback);
                         t.detach();
@@ -160,8 +157,8 @@ INT_PTR CALLBACK LoginDialogHandler(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp)
                 }
                 case IDHELP:
                 {
-                    client.SetBranch(SEASON_BRANCH_OFFLINE);
-                    client.SetSeasonName(OFFLINE_SEASON_NAME);
+                    spClient->SetBranch(SEASON_BRANCH_OFFLINE);
+                    spClient->SetSeasonName(OFFLINE_SEASON_NAME);
 
                     if (!InitializeClient())
                         return FALSE;
@@ -282,8 +279,6 @@ bool LoginDialog::Login(void* configPointer)
         const Value* autoLoginValue = _config->GetValue("Login", "autologin");
         if ((autoLoginValue) && (autoLoginValue->GetType() == VALUE_TYPE_BOOL) && (autoLoginValue->ToBool()))
         {
-            LauncherClient& client = LauncherClient::GetInstance();
-
             std::string hostName;
             const Value* hostValue = _config->GetValue("Login", "hostname");
             if ((hostValue) && (hostValue->GetType() == VALUE_TYPE_STRING))
@@ -310,8 +305,8 @@ bool LoginDialog::Login(void* configPointer)
 
             if (branch == SEASON_BRANCH_OFFLINE)
             {
-                client.SetBranch(SEASON_BRANCH_OFFLINE);
-                client.SetSeasonName(OFFLINE_SEASON_NAME);
+                spClient->SetBranch(SEASON_BRANCH_OFFLINE);
+                spClient->SetSeasonName(OFFLINE_SEASON_NAME);
 
                 if (!InitializeClient())
                 {
@@ -323,10 +318,10 @@ bool LoginDialog::Login(void* configPointer)
             }
             else if ((!hostName.empty()) && (!username.empty()) && (!password.empty()))
             {
-                client.SetUsername(username);
-                client.SetPassword(password);
-                client.SetBranch(branch);
-                //TODO client.CreateConnection(hostName);
+                spClient->SetUsername(username);
+                spClient->SetPassword(password);
+                spClient->SetBranch(branch);
+                spClient->SetHostName(hostName);
 
                 std::future<ServerAuthResult> future = std::async(&ServerAuthenticate, nullptr);
                 ServerAuthResult loginResult = future.get();
@@ -337,7 +332,7 @@ bool LoginDialog::Login(void* configPointer)
                         DisplayLoginErrorMessageBox(NULL, LOGIN_RESULT_OTHER_ERROR);
                         return false;
                     }
-                    else if (!spClient.HasSeasons())
+                    else if (!spClient->HasSeasons())
                     {
                         DisplayLoginErrorMessageBox(NULL, LOGIN_RESULT_INVALID_SEASONS);
                         return false;
@@ -365,8 +360,8 @@ bool LoginDialog::Login(void* configPointer)
         _window = CreateDialogParam(instance, MAKEINTRESOURCE(IDD_DIALOG1), 0, LoginDialogHandler, (LPARAM)_config);
 
         // Increase the maximum length of the username/password fields
-        SendMessage (GetDlgItem(_window, IDC_EDIT1), EM_SETLIMITTEXT, 32767, 0);
-        SendMessage (GetDlgItem(_window, IDC_EDIT2), EM_SETLIMITTEXT, 32767, 0);
+        SendMessage(GetDlgItem(_window, IDC_EDIT1), EM_SETLIMITTEXT, 32767, 0);
+        SendMessage(GetDlgItem(_window, IDC_EDIT2), EM_SETLIMITTEXT, 32767, 0);
 
         MSG message;
         while (GetMessage(&message, 0, 0, 0))
@@ -378,8 +373,7 @@ bool LoginDialog::Login(void* configPointer)
             }
         }
 
-        LauncherClient& client = LauncherClient::GetInstance();
-        if ((client.GetAuthToken().empty()) && (!client.IsOfflineMode()))
+        if ((spClient->GetAuthToken().empty()) && (!spClient->IsOfflineMode()))
         {
             MessageBox(NULL, TEXT("Failed to retrieve data from the server."), NULL, MB_OK | MB_ICONERROR);
             return FALSE;

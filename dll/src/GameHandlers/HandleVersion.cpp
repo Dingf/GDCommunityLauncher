@@ -1,4 +1,4 @@
-#include "SeasonClient.h"
+#include "DllClient.h"
 #include "GameHandler.h"
 #include "Version.h"
 

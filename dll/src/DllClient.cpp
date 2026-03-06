@@ -2,7 +2,7 @@
 #include <cpprest/http_client.h>
 #include <Windows.h>
 #include <minizip/unzip.h>
-#include "SeasonClient.h"
+#include "DllClient.h"
 #include "GameHandler.h"
 #include "HookManager.h"
 #include "EventManager.h"
@@ -13,18 +13,18 @@
 #include "Log.h"
 #include "Version.h"
 
-SeasonClient::SeasonClient() : _activeSeason(nullptr)
+DllClient::DllClient() : _activeSeason(nullptr)
 {
     ReadDataFromPipe();
 }
 
-SeasonClient* SeasonClient::GetInstance()
+DllClient* DllClient::GetInstance()
 {
-    static SeasonClient instance;
+    static DllClient instance;
     return &instance;
 }
 
-bool SeasonClient::Initialize()
+bool DllClient::Initialize()
 {
     try
     {
@@ -33,7 +33,7 @@ bool SeasonClient::Initialize()
     }
     catch (const std::exception& ex)
     {
-        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to initialize SeasonClient module: %", ex.what());
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to initialize DllClient module: %", ex.what());
         return false;
     }
 }
@@ -194,12 +194,12 @@ bool ExtractZIPUpdate()
     }
 }
 
-void SeasonClient::ReadDataFromPipe()
+void DllClient::ReadDataFromPipe()
 {
     HANDLE pipe = GetStdHandle(STD_INPUT_HANDLE);
 
     uint8_t updateFlag;
-    std::string gameURL;
+    std::string host;
     std::string chatURL;
     uint32_t branch;
 
@@ -208,7 +208,7 @@ void SeasonClient::ReadDataFromPipe()
         !ReadStringFromPipe(pipe, _authToken) ||
         !ReadStringFromPipe(pipe, _refreshToken) ||
         !ReadStringFromPipe(pipe, _seasonName) ||
-        !ReadStringFromPipe(pipe, gameURL) ||
+        !ReadStringFromPipe(pipe, host) ||
         !ReadStringFromPipe(pipe, chatURL) ||
         !ReadInt32FromPipe(pipe, branch) ||
         !ReadByteFromPipe(pipe, updateFlag) ||
@@ -219,7 +219,7 @@ void SeasonClient::ReadDataFromPipe()
 
     CloseHandle(pipe);
 
-    _gameURL = URI(gameURL);
+    _host = URI(host);
     _chatURL = URI(chatURL);
     _branch = static_cast<SeasonBranch>(branch);
     if ((updateFlag != 0) && (!ExtractZIPUpdate()))
@@ -240,7 +240,7 @@ void SeasonClient::ReadDataFromPipe()
     }
 }
 
-void SeasonClient::SetActiveSeason(bool hardcore)
+void DllClient::SetActiveSeason(bool hardcore)
 {
     _activeSeason = nullptr;
     for (size_t i = 0; i < _seasons.size(); ++i)

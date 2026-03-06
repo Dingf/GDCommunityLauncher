@@ -1,11 +1,13 @@
 #include <filesystem>
-#include <windows.h>
+#include <boost/asio.hpp>
+#include <Windows.h>
 #include "Configuration.h"
 #include "LoginDialog.h"
 #include "SelectorDialog.h"
 #include "UpdateDialog.h"
 #include "GameLauncher.h"
-#include "LauncherClient.h"
+#include "ContextManager.h"
+#include "ExeClient.h"
 #include "Log.h"
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmdShow)
@@ -39,7 +41,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
     else
     {
         // If the file doesn't exist, create it using some default values
-        config.SetValue("Login", "hostname", "https://gdcl-api.azurewebsites.net/");
+        config.SetValue("Login", "hostname", "gdcl-api.azurewebsites.net");
         config.SetValue("Login", "username", "");
         config.SetValue("Login", "password", "");
         config.SetValue("Login", "autologin", false);
@@ -47,19 +49,23 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
         config.Save(configPath);
     }
 
+    ContextManager::Run();
+
     // Display the login window or automatically login the user if autologin is enabled
     if (!LoginDialog::Login(&config))
-        return EXIT_FAILURE;
-
-    // Get the list of files from the server and download any files that need to be updated
-    LauncherClient& client = LauncherClient::GetInstance();
-    if ((!client.IsOfflineMode()) && (!UpdateDialog::Update()))
     {
-        // TODO Refactor
-        /*if (Connection* connection = client.GetConnection())
-            connection->Disconnect();*/
+        ContextManager::Stop();
         return EXIT_FAILURE;
     }
+
+    // Get the list of files from the server and download any files that need to be updated
+    if ((!spClient->IsOfflineMode()) && (!UpdateDialog::Update()))
+    {
+        ContextManager::Stop();
+        return EXIT_FAILURE;
+    }
+
+    ContextManager::Stop();
 
     config.Save(configPath);
     if (!GameLauncher::LaunchProcess(grimDawnPath, libraryPath, pCmdLine))

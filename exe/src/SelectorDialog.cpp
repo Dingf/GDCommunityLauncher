@@ -1,6 +1,8 @@
+#include <boost/asio.hpp>
 #include <Windows.h>
-#include "LauncherClient.h"
+#include "ExeClient.h"
 #include "SelectorDialog.h"
+#include "HTTP.h"
 #include "Log.h"
 
 inline bool HasBetaAccess(const std::string& role)
@@ -8,52 +10,122 @@ inline bool HasBetaAccess(const std::string& role)
     return (role == "admin") || (role == "tester");
 }
 
-inline bool HasOffSeasonAccess(const std::string& role)
+bool CheckLauncherUpdates()
 {
-    return (HasBetaAccess(role)) || (role == "patreon_supporter");
-}
+    HTTPRequest request(HTTP_GET, "/File/launcher?branch=" + spClient->GetBranchName());
+    request.AddHeader("Authorization", "Bearer " + spClient->GetAuthToken());
 
-bool CheckLauncherVersion()
-{
-    // TODO Refactor
-    /*Client& client = Client::GetInstance();
-    if (Connection* connection = client.GetConnection())
+    try
     {
-        return connection->Invoke("GetLauncherFile", client.GetAuthToken(), client.GetBranchName());
-    }*/
+        HTTPResponse response = request.Send(spClient->GetHostName(), "443");
+        switch (response.GetStatus())
+        {
+            case 200:
+            {
+                std::string version = response.GetBody();
+                spClient->SetHasUpdate(version != GDCL_VERSION);
+                return true;
+            }
+            default:
+                throw std::runtime_error("Server responded with status code " + std::to_string(response.GetStatus()) + " " + response.GetBody());
+        }
+    }
+    catch (const std::exception& ex)
+    {
+        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve launcher version: %", ex.what());
+    }
     return false;
 }
 
 bool GetChatAPI()
 {
-    // TODO Refactor
-    /*Client& client = Client::GetInstance();
-    if (Connection* connection = client.GetConnection())
+    HTTPRequest request(HTTP_GET, "/Admin/chat-url");
+    request.AddHeader("Authorization", "Bearer " + spClient->GetAuthToken());
+
+    try
     {
-        return connection->Invoke("GetChatUrl");
-    }*/
+        HTTPResponse response = request.Send(spClient->GetHostName(), "443");
+        switch (response.GetStatus())
+        {
+            case 200:
+            {
+                spClient->SetChatURL(response.GetBody());
+                return true;
+            }
+            default:
+                throw std::runtime_error("Server responded with status code " + std::to_string(response.GetStatus()));
+        }
+    }
+    catch (const std::exception& ex)
+    {
+        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve chat API: %", ex.what());
+    }
     return false;
 }
 
 bool GetSeasonName()
 {
-    // TODO Refactor
-    /*Client& client = Client::GetInstance();
-    if (Connection* connection = client.GetConnection())
+    HTTPRequest request(HTTP_GET, "/Season/latest/season-name?branch=" + spClient->GetBranchName());
+
+    try
     {
-        return connection->Invoke("GetLatestSeasonName", client.GetBranchName());
-    }*/
+        HTTPResponse response = request.Send(spClient->GetHostName(), "443");
+        switch (response.GetStatus())
+        {
+            case 200:
+            {
+                spClient->SetSeasonName(response.GetBody());
+                return true;
+            }
+            default:
+                throw std::runtime_error("Server responded with status code " + std::to_string(response.GetStatus()));
+        }
+    }
+    catch (const std::exception& ex)
+    {
+        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve season name: %", ex.what());
+    }
     return false;
 }
 
 bool GetSeasonData()
 {
-    // TODO Refactor
-    /*Client& client = Client::GetInstance();
-    if (Connection* connection = client.GetConnection())
+    HTTPRequest request(HTTP_GET, "/Season/latest?branch=" + spClient->GetBranchName());
+    request.AddHeader("Authorization", "Bearer " + spClient->GetAuthToken());
+
+    try
     {
-        return connection->Invoke("GetLatestSeason", client.GetAuthToken(), false, client.GetBranchName());
-    }*/
+        HTTPResponse response = request.Send(spClient->GetHostName(), "443");
+        switch (response.GetStatus())
+        {
+            case 200:
+            {
+                json responseJSON = json::parse(response.GetBody());
+                for (const json& season : responseJSON)
+                {
+                    SeasonInfo seasonInfo;
+                    seasonInfo._seasonID = season.at("seasonId").get<uint32_t>();
+                    seasonInfo._seasonType = season.at("seasonTypeId").get<SeasonType>();
+                    seasonInfo._modName = season.at("modName").get<std::string>();
+                    seasonInfo._displayName = season.at("displayName").get<std::string>();
+                    seasonInfo._participationToken = season.at("participationTag").get<std::string>();
+
+                    // Set the participation token to lower case for standardization
+                    for (char& c : seasonInfo._participationToken)
+                        c = std::tolower(c);
+
+                    spClient->AddSeason(seasonInfo);
+                }
+                return true;
+            }
+            default:
+                throw std::runtime_error("Server responded with status code " + std::to_string(response.GetStatus()));
+        }
+    }
+    catch (const std::exception& ex)
+    {
+        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve season data: %", ex.what());
+    }
     return false;
 }
 
@@ -84,11 +156,10 @@ INT_PTR CALLBACK SelectorDialogHandler(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp
                 }
                 case IDOK:
                 {
-                    LauncherClient& client = LauncherClient::GetInstance();
                     if (IsDlgButtonChecked(hwnd, IDC_RADIO1))
-                        client.SetBranch(SEASON_BRANCH_RELEASE);
+                        spClient->SetBranch(SEASON_BRANCH_RELEASE);
                     else if (IsDlgButtonChecked(hwnd, IDC_RADIO2))
-                        client.SetBranch(SEASON_BRANCH_BETA);
+                        spClient->SetBranch(SEASON_BRANCH_BETA);
 
                     DestroyWindow(hwnd);
                     return TRUE;
@@ -120,8 +191,7 @@ INT_PTR CALLBACK SelectorDialogHandler(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp
 
 bool SelectorDialog::Select()
 {
-    LauncherClient& client = LauncherClient::GetInstance();
-    if (HasBetaAccess(client.GetRole()))
+    if (HasBetaAccess(spClient->GetRole()))
     {
         HINSTANCE instance = GetModuleHandle(NULL);
         HWND hwnd = CreateDialogParam(instance, MAKEINTRESOURCE(IDD_DIALOG3), 0, SelectorDialogHandler, 0);
@@ -136,9 +206,9 @@ bool SelectorDialog::Select()
             }
         }
     }
-    else if (client.GetBranch() == SEASON_BRANCH_BETA)
+    else if (spClient->GetBranch() == SEASON_BRANCH_BETA)
     {
-        client.SetBranch(SEASON_BRANCH_RELEASE);
+        spClient->SetBranch(SEASON_BRANCH_RELEASE);
     }
 
     if (!GetChatAPI())
@@ -159,7 +229,7 @@ bool SelectorDialog::Select()
         return false;
     }
     
-    if (!CheckLauncherVersion())
+    if (!CheckLauncherUpdates())
     {
         Logger::LogMessage(LOG_LEVEL_WARN, "Could not retrieve launcher version from the server.");
         return false;

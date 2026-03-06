@@ -207,72 +207,72 @@ std::string HandleWriteSaveFOWFile(uint32_t requestID, uint32_t participantID, s
     return request.dump();
 }
 
-void HandleReadGetTagFile(json response, uint32_t participantID)
+void HandleReadGetTagFile(const json& response, uint32_t participantID)
 {
     // TODO
 }
 
-void HandleReadSaveTagFile(json response, uint32_t participantID, std::string base64Data)
+void HandleReadSaveTagFile(const json& response, uint32_t participantID, std::string base64Data)
 {
     // TODO
 }
 
-void HandleReadGetTransmuteFile(json response, uint32_t participantID)
+void HandleReadGetTransmuteFile(const json& response, uint32_t participantID)
 {
     // TODO
 }
 
-void HandleReadSaveTransmuteFile(json response, uint32_t participantID, std::string base64Data)
+void HandleReadSaveTransmuteFile(const json& response, uint32_t participantID, std::string base64Data)
 {
     // TODO
 }
 
-void HandleReadGetFormulasFile(json response, uint32_t participantID)
+void HandleReadGetFormulasFile(const json& response, uint32_t participantID)
 {
     // TODO
 }
 
-void HandleReadSaveFormulasFile(json response, uint32_t participantID, std::string base64Data)
+void HandleReadSaveFormulasFile(const json& response, uint32_t participantID, std::string base64Data)
 {
     // TODO
 }
 
-void HandleReadGetQuestFile(json response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty)
+void HandleReadGetQuestFile(const json& response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty)
 {
     // TODO
 }
 
-void HandleReadSaveQuestFile(json response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty, std::string base64Data)
+void HandleReadSaveQuestFile(const json& response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty, std::string base64Data)
 {
     // TODO
 }
 
-void HandleReadGetConversationFile(json response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty)
+void HandleReadGetConversationFile(const json& response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty)
 {
     // TODO
 }
 
-void HandleReadSaveConversationFile(json response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty, std::string base64Data)
+void HandleReadSaveConversationFile(const json& response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty, std::string base64Data)
 {
     // TODO
 }
 
-void HandleReadGetMapFile(json response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty)
+void HandleReadGetMapFile(const json& response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty)
 {
     // TODO
 }
 
-void HandleReadSaveMapFile(json response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty, std::string base64Data)
+void HandleReadSaveMapFile(const json& response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty, std::string base64Data)
 {
     // TODO
 }
 
-void HandleReadGetFOWFile(json response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty)
+void HandleReadGetFOWFile(const json& response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty)
 {
     // TODO
 }
 
-void HandleReadSaveFOWFile(json response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty, std::string base64Data)
+void HandleReadSaveFOWFile(const json& response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty, std::string base64Data)
 {
     // TODO
 }

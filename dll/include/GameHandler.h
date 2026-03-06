@@ -7,9 +7,8 @@
 #include "EngineAPI.h"
 #include "GameAPI.h"
 #include "WindowsAPI.h"
-#include "SeasonClient.h"
+#include "DllClient.h"
 #include "Log.h"
-
 
 class GameHandler
 {
@@ -22,7 +21,6 @@ class GameHandler
     private:
         GameHandler();
         ~GameHandler();
-
 };
 
 #endif//INC_GDCL_DLL_GAME_HANDLER_H
