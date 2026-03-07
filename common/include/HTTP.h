@@ -1,5 +1,5 @@
-#ifndef INC_GDCL_HTTP_REQUEST_H
-#define INC_GDCL_HTTP_REQUEST_H
+#ifndef INC_GDCL_HTTP_H
+#define INC_GDCL_HTTP_H
 
 #include <string>
 #include <memory>
@@ -65,4 +65,4 @@ class HTTPRequest
 
 };
 
-#endif//INC_GDCL_HTTP_REQUEST_H
+#endif//INC_GDCL_HTTP_H

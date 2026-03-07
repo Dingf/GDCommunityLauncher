@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <future>
 #include <boost/asio.hpp>
+#include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
 #include <Windows.h>
 #include <CommCtrl.h>
@@ -75,13 +76,29 @@ bool GetDownloadList(std::unordered_map<std::wstring, std::string>& downloadList
     return false;
 }
 
-bool DownloadFile(const std::filesystem::path& filenamePath, const URI& downloadURL, DownloadValueCallback totalSizeCallback, DownloadValueCallback downloadSizeCallback)
+bool DownloadFile(const std::filesystem::path& filenamePath, const std::string& downloadURL, DownloadValueCallback totalSizeCallback, DownloadValueCallback downloadSizeCallback)
 {
-    HTTPRequest request(HTTP_GET, downloadURL);
-
     try
     {
-        HTTPResponse response = request.Send(spClient->GetHostName(), "443");
+        std::string filename = filenamePath.filename().string();
+        boost::replace_all(filename, " ", "%20");               // Replace spaces with '%20' for web URLs
+
+        size_t index = downloadURL.find(filename);
+        if (index == std::string::npos)
+        {
+            throw std::runtime_error("Could not parse download URL");
+            return false;
+        }
+
+        std::string host = downloadURL.substr(0, index - 1);
+        std::string target = downloadURL.substr(index - 1);
+
+        if (boost::algorithm::starts_with(host, "https://"))    // Trim https:// if it's in the hostname
+            host = host.substr(8);
+
+        HTTPRequest request(HTTP_GET, target);
+
+        HTTPResponse response = request.Send(host, "443");
         switch (response.GetStatus())
         {
             case 200:
@@ -106,8 +123,12 @@ bool DownloadFile(const std::filesystem::path& filenamePath, const URI& download
                     char buffer[1024];
                     size_t bytesRead = in->read_some(asio::buffer(buffer), ec);
                     if (!ec)
+                    {
                         out.write(buffer, bytesRead);
-                } while (!ec);
+                        downloadSizeCallback(bytesRead);
+                    }
+                }
+                while (!ec);
 
                 out.close();
                 std::filesystem::rename(tempPath, filenamePath);

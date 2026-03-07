@@ -54,6 +54,31 @@ const std::string& HTTPResponse::GetBody()
                 _body.append(buffer, bytesRead);
         }
         while (!ec);
+
+        // Special case for chunked encoding
+        auto it = _headers.find("Transfer-Encoding");
+        if (it != _headers.end())
+        {
+            std::string contentType = it->second;
+            if (contentType == "chunked")
+            {
+                size_t size = 0;
+                std::string newBody;
+                std::stringstream bodyStream(_body);
+
+                do
+                {
+                    bodyStream >> std::hex >> size;
+                    bodyStream.ignore(2);
+                    bodyStream.read(buffer, size);
+                    bodyStream.ignore(2);
+                    newBody.append(buffer, size);
+                }
+                while (size > 0);
+
+                _body = newBody;
+            }
+        }
     }
     return _body;
 }
