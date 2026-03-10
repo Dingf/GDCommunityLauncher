@@ -1,12 +1,15 @@
 #ifndef INC_GDCL_DLL_THREAD_MANAGER_H
 #define INC_GDCL_DLL_THREAD_MANAGER_H
 
+// TODO: This is probably obsolete; delete if so
+
 #include <string>
 #include <unordered_map>
 #include <memory>
 #include <functional>
 #include <future>
 #include <atomic>
+#include <chrono>
 
 class ThreadManager
 {

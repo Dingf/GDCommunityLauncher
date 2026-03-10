@@ -1,5 +1,6 @@
 #include "ServerCache.h"
 #include "ServerHandler.h"
+#include "DllClient.h"
 #include "JSON.h"
 #include "DllClient.h"
 
@@ -12,6 +13,13 @@ ServerCache* ServerCache::GetInstance()
 {
     static ServerCache instance;
     return &instance;
+}
+
+bool ServerCache::IsParticipantHardcore(uint32_t participantID) const
+{
+    // This code assumes that if you have the participant ID, then it's already been cached earlier
+    // Otherwise, a participant ID that doesn't match either will return false (which shouldn't happen)
+    return (_participantIDCache[1] == participantID);
 }
 
 uint32_t ServerCache::GetParticipantID(bool hardcore)

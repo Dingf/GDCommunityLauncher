@@ -22,8 +22,8 @@ class ServerHandler
         template <typename... Ts>
         std::future<json> OnWrite(std::string& message, const std::string& name, Ts... args)
         {
-            typedef std::string (__thiscall* WriteHandlerProto)(uint32_t, Ts...);
-            typedef void (__thiscall* ReadHandlerProto)(json, Ts...);
+            typedef std::string (*WriteHandlerProto)(uint32_t, Ts...);
+            typedef void (*ReadHandlerProto)(json, Ts...);
 
             auto it = _handlers.find(name);
             if (it != _handlers.end())

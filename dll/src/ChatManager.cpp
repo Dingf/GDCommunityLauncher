@@ -534,7 +534,6 @@ void ChatManager::HoldThreadLoop()
 
 void ChatManager::OnShutdownEvent()
 {
-    //spChatManager->Disconnect();
     spChatManager->_holdTime = HOLD_THREAD_STOP; // This breaks the loop in the hold thread, allowing us to join it
 }
 

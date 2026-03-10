@@ -33,6 +33,8 @@ class ServerCache
 
         static ServerCache* GetInstance();
 
+        bool IsParticipantHardcore(uint32_t participantID) const;
+
         uint32_t GetParticipantID(bool hardcore);
         uint32_t GetCharacterID(uint32_t participantID, const std::wstring& playerName);
 

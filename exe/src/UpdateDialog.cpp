@@ -141,8 +141,8 @@ bool DownloadFile(const std::filesystem::path& filenamePath, const std::string& 
     catch (const std::exception& ex)
     {
         Logger::LogMessage(LOG_LEVEL_WARN, "Failed to download file %: %", filenamePath.filename(), ex.what());
-        return false;
     }
+
     return false;
 }
 

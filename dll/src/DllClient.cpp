@@ -1,5 +1,4 @@
 #include <filesystem>
-#include <cpprest/http_client.h>
 #include <Windows.h>
 #include <minizip/unzip.h>
 #include "DllClient.h"

@@ -1,7 +1,5 @@
 #include "ThreadManager.h"
 
-#include <chrono>
-
 ThreadManager::~ThreadManager()
 {
     DeleteAllThreads();

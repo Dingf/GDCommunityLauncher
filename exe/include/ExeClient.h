@@ -18,8 +18,6 @@ class ExeClient : public Client
 
         const std::unordered_map<std::wstring, std::string>& GetDownloadList() const { return _downloadList; }
 
-        //Connection* GetConnection() { return _connection.get(); }
-
         void SetHasUpdate(bool hasUpdate) { _hasUpdate = hasUpdate; }
         void SetRole(const std::string& role) { _role = role; }
         void SetUsername(const std::string& username) { _username = username; }
@@ -34,13 +32,6 @@ class ExeClient : public Client
         void AddSeason(const SeasonInfo& seasonInfo) { _seasons.push_back(seasonInfo); }
 
         bool WriteDataToPipe(void* pipe) const;
-
-        /*static void OnLogin(const signalr::value& value);
-        static void OnGetChatUrl(const signalr::value& value);
-        static void OnGetSeasonName(const signalr::value& value);
-        static void OnGetSeasonData(const signalr::value& value);
-        static void OnGetLauncherVersion(const signalr::value& value);
-        static void OnGetSeasonFiles(const signalr::value& value);*/
 
     private:
         ExeClient() {}

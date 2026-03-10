@@ -6,7 +6,6 @@
 #include <string>
 #include <memory>
 #include <thread>
-#include "Connection.h"
 #include "EngineAPI/Input/KeyButtonEvent.h"
 
 enum ChatType : uint8_t

@@ -44,13 +44,15 @@ class EventManager
         }
 
         // Publishes an event to all handlers subscribed to the event and checks the results
-        // Returns true if all of the handlers returned true, otherwise returns false
+        // Returns true if there is at least one handler and all of the handlers returned true, otherwise returns false
         template <typename... Ts>
         static bool Poll(GDCLEvent event, Ts... args)
         {
-            bool result = true;
+            const auto& handlers = GetInstance()._handlers[event];
+            bool result = (handlers.size() > 0);
+
             typedef bool (__thiscall* EventHandlerProto)(Ts...);
-            for (void* handler : GetInstance()._handlers[event])
+            for (void* handler : handlers)
             {
                 if (!((EventHandlerProto)handler)(args...))
                     result = false;
