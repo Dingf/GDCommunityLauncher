@@ -143,6 +143,7 @@ bool DownloadFile(const std::filesystem::path& filenamePath, const std::string& 
         Logger::LogMessage(LOG_LEVEL_WARN, "Failed to download file %: %", filenamePath.filename(), ex.what());
         return false;
     }
+    return false;
 }
 
 bool VerifyBaseGameFiles(std::string& expectedVersion)

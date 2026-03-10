@@ -1,6 +1,7 @@
 #include "ServerCache.h"
 #include "ServerHandler.h"
 #include "JSON.h"
+#include "DllClient.h"
 
 ServerCache::ServerCache()
 {

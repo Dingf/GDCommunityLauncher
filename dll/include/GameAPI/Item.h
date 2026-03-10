@@ -55,7 +55,7 @@ enum ItemClassification : uint32_t
 
 struct ItemReplicaInfo
 {
-    ItemReplicaInfo() {}
+    ItemReplicaInfo() = default;
 
     uint32_t    _itemID;
     std::string _itemName;

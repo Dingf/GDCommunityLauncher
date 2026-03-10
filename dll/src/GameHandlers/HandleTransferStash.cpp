@@ -4,7 +4,6 @@
 #include <mutex>
 #include "GameHandler.h"
 #include "EventManager.h"
-#include "ServerSync.h"
 
 void HandleSaveTransferStash(void* _this)
 {
@@ -32,8 +31,8 @@ void HandleLoadTransferStash(void* _this)
         // If it is synced, then don't load the stash as the in-game version should still be accurate
         // This prevents some potential abuse cases with modifying the stash while offline
         // TODO: Move this to SeasonClient?
-        if (!ServerSync::IsStashSynced())
-            callback(_this);
+        //if (!ServerSync::IsStashSynced())
+        //    callback(_this);
 
         EventManager::Publish(GDCL_EVENT_TRANSFER_POST_LOAD);
     }
@@ -43,11 +42,13 @@ void HandleCaravanInteract(void* _this, uint32_t caravanID, bool unk2, bool unk3
 {
     typedef void (__thiscall* OnCaravanInteractProto)(void*, uint32_t, bool, bool);
 
-    if (((spClient->IsInActiveSeason()) && (!spClient->IsPlayingSeason())) || (ServerSync::IsStashLocked()))
+    // TODO Move this to SeasonClient?
+    // if (((spClient->IsInActiveSeason()) && (!spClient->IsPlayingSeason())) || (ServerSync::IsStashLocked()))
         return;
 
     // If the stash was not synced, try to sync again and don't let the user open the stash to prevent access to any cheated items
-    if (!ServerSync::IsStashSynced())
+    // TODO Move this so SeasonClient?
+    //if (!ServerSync::IsStashSynced())
     {
         GameAPI::LoadTransferStash();
         return;

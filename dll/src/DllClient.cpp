@@ -199,7 +199,7 @@ void DllClient::ReadDataFromPipe()
     HANDLE pipe = GetStdHandle(STD_INPUT_HANDLE);
 
     uint8_t updateFlag;
-    std::string gameURL;
+    std::string host;
     std::string chatURL;
     uint32_t branch;
 
@@ -208,7 +208,7 @@ void DllClient::ReadDataFromPipe()
         !ReadStringFromPipe(pipe, _authToken) ||
         !ReadStringFromPipe(pipe, _refreshToken) ||
         !ReadStringFromPipe(pipe, _seasonName) ||
-        !ReadStringFromPipe(pipe, gameURL) ||
+        !ReadStringFromPipe(pipe, host) ||
         !ReadStringFromPipe(pipe, chatURL) ||
         !ReadInt32FromPipe(pipe, branch) ||
         !ReadByteFromPipe(pipe, updateFlag) ||
@@ -219,7 +219,7 @@ void DllClient::ReadDataFromPipe()
 
     CloseHandle(pipe);
 
-    _gameURL = URI(gameURL);
+    _host = URI(host);
     _chatURL = URI(chatURL);
     _branch = static_cast<SeasonBranch>(branch);
     if ((updateFlag != 0) && (!ExtractZIPUpdate()))
