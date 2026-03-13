@@ -12,9 +12,6 @@
 class ServerHandler
 {
     public:
-        ServerHandler(ServerHandler&) = delete;
-        void operator=(const ServerHandler&) = delete;
-
         static bool Initialize();
 
         static Websocket<ServerHandler, std::future<json>>* GetSocket();
@@ -58,6 +55,8 @@ class ServerHandler
         };
 
         ServerHandler();
+        ServerHandler(ServerHandler&) = delete;
+        void operator=(const ServerHandler&) = delete;
 
         static ServerHandler& GetInstance();
 

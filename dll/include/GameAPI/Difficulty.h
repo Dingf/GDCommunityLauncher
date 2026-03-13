@@ -14,14 +14,18 @@ constexpr char GAPI_NAME_GET_GAME_DIFFICULTY[] = "?GetGameDifficulty@GameEngine@
 
 enum Difficulty : int32_t
 {
-    GAME_DIFFICULTY_NORMAL,
-    GAME_DIFFICULTY_ELITE,
-    GAME_DIFFICULTY_ULTIMATE,
+    GAME_DIFFICULTY_UNKNOWN = -1,
+    GAME_DIFFICULTY_NORMAL = 0,
+    GAME_DIFFICULTY_ELITE = 1,
+    GAME_DIFFICULTY_ULTIMATE = 2,
+    //GAME_DIFFICULTY_ASCENDANT = 3,
+    GAME_DIFFICULTY_MAX,
 };
 
 const GameAPI::Difficulty GAME_DIFFICULTIES[] = { GameAPI::GAME_DIFFICULTY_NORMAL, GameAPI::GAME_DIFFICULTY_ELITE, GameAPI::GAME_DIFFICULTY_ULTIMATE };
 
 Difficulty GetGameDifficulty();
+Difficulty GetGameDifficultyByName(const std::string& difficultyName);
 std::string GetGameDifficultyName(Difficulty difficulty);
 std::string GetCurrentGameDifficultyName();
 

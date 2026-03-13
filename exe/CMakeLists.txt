@@ -5,14 +5,8 @@ file(GLOB_RECURSE SOURCE "src/*.cpp")
 add_executable(exe WIN32 ${INCLUDE} ${RESOURCE} ${SOURCE})
 
 target_include_directories(exe PRIVATE include)
-target_link_libraries(exe PRIVATE cpprestsdk::cpprest)
-target_link_libraries(exe PRIVATE microsoft-signalr::microsoft-signalr)
 target_link_libraries(exe PRIVATE OpenSSL::SSL)
-if (USE_OLD_CMAKEFINDS)
-	target_link_libraries(exe PRIVATE minizip::minizip)
-else()
-	target_link_libraries(exe PRIVATE unofficial::minizip::minizip)
-endif()
+target_link_libraries(exe PRIVATE unofficial::minizip::minizip)
 target_link_libraries(exe PRIVATE common)
 
 set_target_properties(exe PROPERTIES

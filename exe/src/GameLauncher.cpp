@@ -41,10 +41,6 @@ LPVOID BuildEnvironmentVariables()
     // If Steam is present, we need to build a whole slew of environment variables to bypass Steam's launcher
     if (std::filesystem::is_regular_file(steamApiFile))
     {
-        std::filesystem::path commonDir = installDir.parent_path();
-        std::filesystem::path steamappsDir = commonDir.parent_path();
-        std::filesystem::path steamDir = steamappsDir.parent_path();
-
         std::vector<std::wstring> env =
         {
             L"SteamEnv=1",

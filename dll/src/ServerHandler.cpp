@@ -180,5 +180,4 @@ void ServerHandler::OnInitializeEvent()
 void ServerHandler::OnShutdownEvent()
 {
     ContextManager::Stop();
-    // TODO: Upload cached buffers here
 }

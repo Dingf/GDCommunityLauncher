@@ -1,5 +1,4 @@
 #include <string>
-#include <boost/algorithm/string.hpp>
 #include "GameAPI.h"
 #include "ServerCache.h"
 #include "FileReader.h"
@@ -352,7 +351,7 @@ void HandleReadGetQuestFile(const json& response, uint32_t participantID, std::w
             for (const auto& token : questData._tokensBlock._questTokens)
             {
                 // Skip loading these, as they will be loaded from the tags file
-                if (boost::algorithm::starts_with(token, "GDIP_"))
+                if (token.starts_with("GDIP_"))
                     continue;
 
                 GameAPI::BestowTokenNow(mainPlayer, token);

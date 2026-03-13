@@ -28,7 +28,7 @@ bool IsCloudStorageEnabled()
 
     HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
     if (!gameDLL)
-        return nullptr;
+        return false;
 
     IsCloudStorageEnabledProto callback = (IsCloudStorageEnabledProto)GetProcAddress(gameDLL, GAPI_NAME_IS_CLOUD_STORAGE);
     void** gameEngine = GetGameEngineHandle();

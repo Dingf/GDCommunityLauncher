@@ -1,6 +1,9 @@
 #ifndef INC_GDCL_FILE_DATA_H
 #define INC_GDCL_FILE_DATA_H
 
+// TODO: We don't really use modified time anymore, just the checksum
+//       So this class can probably be deprecated
+
 #include <string>
 #include <chrono>
 #include "FileReader.h"

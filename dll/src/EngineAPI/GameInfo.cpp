@@ -103,7 +103,7 @@ bool IsHardcore()
     void* gameInfo = GetGameInfo();
 
     if ((!callback) || (!gameInfo))
-        return nullptr;
+        return false;
 
     return callback(gameInfo);
 }
@@ -114,13 +114,13 @@ bool IsMultiplayer()
 
     HMODULE engineDLL = GetModuleHandle(TEXT(ENGINE_DLL));
     if (!engineDLL)
-        return nullptr;
+        return false;
 
     GetIsMultiplayerProto callback = (GetIsMultiplayerProto)GetProcAddress(engineDLL, EAPI_NAME_GET_IS_MULTIPLAYER);
     void* gameInfo = GetGameInfo();
 
     if ((!callback) || (!gameInfo))
-        return nullptr;
+        return false;
 
     return callback(gameInfo);
 }

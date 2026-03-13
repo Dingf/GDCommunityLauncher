@@ -11,7 +11,7 @@ void* GetDungeonGenerator()
 
     HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
     if (!gameDLL)
-        return false;
+        return nullptr;
 
     GetDungeonGeneratorProto callback = (GetDungeonGeneratorProto)GetProcAddress(gameDLL, GameAPI::GAPI_NAME_GET_DUNGEON_GENERATOR);
     void** gameEngine = GameAPI::GetGameEngineHandle();

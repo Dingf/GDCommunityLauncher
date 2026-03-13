@@ -94,11 +94,11 @@ bool PlayerHasToken(void* player, std::string token)
 
     HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
     if ((!gameDLL) || (!player))
-        return nullptr;
+        return false;
 
     HasTokenProto callback = (HasTokenProto)GetProcAddress(gameDLL, GAPI_NAME_HAS_TOKEN);
     if (!callback)
-        return nullptr;
+        return false;
 
     return callback((void*)player, token);
 }
@@ -109,11 +109,11 @@ bool IsPlayerHardcore(void* player)
 
     HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
     if ((!gameDLL) || (!player))
-        return nullptr;
+        return false;
 
     IsPlayerHardcoreProto callback = (IsPlayerHardcoreProto)GetProcAddress(gameDLL, GAPI_NAME_IS_PLAYER_HARDCORE);
     if (!callback)
-        return nullptr;
+        return false;
 
     return callback((void*)player);
 }
@@ -124,11 +124,11 @@ bool IsPlayerInMainQuest(void* player)
 
     HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
     if ((!gameDLL) || (!player))
-        return nullptr;
+        return false;
 
     IsPlayerInMainQuestProto callback = (IsPlayerInMainQuestProto)GetProcAddress(gameDLL, GAPI_NAME_IS_PLAYER_IN_MAIN_QUEST);
     if (!callback)
-        return nullptr;
+        return false;
 
     return callback((void*)player);
 }
@@ -139,11 +139,11 @@ bool HasPlayerBeenInGame(void* player)
 
     HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
     if ((!gameDLL) || (!player))
-        return nullptr;
+        return false;
 
     HasPlayerBeenInGameProto callback = (HasPlayerBeenInGameProto)GetProcAddress(gameDLL, GAPI_NAME_GET_PLAYER_HAS_BEEN_IN_GAME);
     if (!callback)
-        return nullptr;
+        return false;
 
     return callback((void*)player);
 }

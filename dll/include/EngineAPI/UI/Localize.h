@@ -22,12 +22,12 @@ constexpr char EAPI_NAME_LOAD_TAGS[] = "?LoadTags@LocalizationManager@GAME@@AAEX
 void* GetLocalizationManager();
 void LoadLocalizationTags(bool keepExisting);
 
-template <typename... T>
-const wchar_t* Localize(const char* tag, T... args)
+template <typename... Ts>
+const wchar_t* Localize(const char* tag, Ts... args)
 {
-    typedef const wchar_t* (__cdecl* LocalizeProto)(void*, const char*, ...);
+    typedef const wchar_t* (__cdecl* LocalizeProto)(void*, const char*, Ts...);
 
-    HMODULE engineDLL = GetModuleHandle(TEXT(ENGINE_DLL));
+    HMODULE engineDLL = GetModuleHandle(TEXT("Engine.dll"));
     if (!engineDLL)
         return nullptr;
 

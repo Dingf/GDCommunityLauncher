@@ -128,7 +128,7 @@ void FileWriter::WriteToFile(const std::filesystem::path& filename)
         }
         else
         {
-            throw std::runtime_error(std::string("Could not open file ") + filename.u8string() + " for writing");
+            throw std::runtime_error(std::string("Could not open file ") + filename.string() + " for writing");
         }
     }
 }

@@ -93,7 +93,7 @@ bool DownloadFile(const std::filesystem::path& filenamePath, const std::string& 
         std::string host = downloadURL.substr(0, index - 1);
         std::string target = downloadURL.substr(index - 1);
 
-        if (boost::algorithm::starts_with(host, "https://"))    // Trim https:// if it's in the hostname
+        if (host.starts_with("https://"))    // Trim https:// if it's in the hostname
             host = host.substr(8);
 
         HTTPRequest request(HTTP_GET, target);

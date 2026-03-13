@@ -2,6 +2,7 @@
 #include <windows.h>
 #include "DllClient.h"
 #include "GameHandler.h"
+#include "ServerCoordinator.h"
 #include "ServerHandler.h"
 #include "ChatManager.h"
 #include "Log.h"
@@ -23,6 +24,7 @@ BOOL APIENTRY DllMain(HINSTANCE hInstDLL, DWORD fdwReason, LPVOID lpReserved)
                 if (!DllClient::Initialize() ||
                     !GameHandler::Initialize() ||
                     !ServerHandler::Initialize() ||
+                    !ServerCoordinator::Initialize() ||
                     !ChatManager::Initialize())
                     return FALSE;
                 break;

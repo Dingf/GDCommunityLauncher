@@ -1,8 +1,16 @@
+#include <unordered_map>
 #include <Windows.h>
 #include "GameAPI.h"
 
 namespace GameAPI
 {
+
+std::unordered_map<std::string, Difficulty> _difficultyNameMap =
+{
+    { "Normal",   GAME_DIFFICULTY_NORMAL },
+    { "Elite",    GAME_DIFFICULTY_ELITE },
+    { "Ultimate", GAME_DIFFICULTY_ULTIMATE },
+};
 
 Difficulty GetGameDifficulty()
 {
@@ -16,9 +24,22 @@ Difficulty GetGameDifficulty()
     void** gameEngine = GetGameEngineHandle();
 
     if ((!callback) || (!gameEngine))
-        return GAME_DIFFICULTY_NORMAL;
+        return GAME_DIFFICULTY_UNKNOWN;
 
     return callback(*gameEngine);
+}
+
+Difficulty GetGameDifficultyByName(const std::string& difficultyName)
+{
+    auto it = _difficultyNameMap.find(difficultyName);
+    if (it != _difficultyNameMap.end())
+    {
+        return it->second;
+    }
+    else
+    {
+        return GAME_DIFFICULTY_UNKNOWN;
+    }
 }
 
 std::string GetGameDifficultyName(Difficulty difficulty)
