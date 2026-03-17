@@ -23,20 +23,6 @@ DllClient* DllClient::GetInstance()
     return &instance;
 }
 
-bool DllClient::Initialize()
-{
-    try
-    {
-        GetInstance();
-        return true;
-    }
-    catch (const std::exception& ex)
-    {
-        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to initialize DllClient module: %", ex.what());
-        return false;
-    }
-}
-
 bool ReadByteFromPipe(HANDLE pipe, uint8_t& value)
 {
     DWORD bytesRead;

@@ -184,16 +184,8 @@ GameHandler::~GameHandler()
     }
 }
 
-bool GameHandler::Initialize()
+GameHandler* GameHandler::GetInstance()
 {
-    try
-    {
-        static GameHandler instance;
-        return true;
-    }
-    catch (const std::exception& ex)
-    {
-        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to initialize GameHandler module: %", ex.what());
-        return false;
-    }
+    static GameHandler instance;
+    return &instance;
 }

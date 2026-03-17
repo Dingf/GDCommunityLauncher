@@ -1,7 +1,7 @@
 #include <future>
 #include <string>
 #include "GameAPI/Game.h"
-#include "ChatManager.h"
+#include "ChatAPI.h"
 #include "ServerCache.h"
 #include "DllClient.h"
 #include "JSON.h"
@@ -114,7 +114,7 @@ void HandleReadGetTradeNotifications(const json& response, uint32_t participantI
                 message += L"s";
             }
             message += L".";
-            GameAPI::AddChatMessage(L"Server", message, static_cast<uint8_t>(ChatType::CHAT_TYPE_TRADE));
+            GameAPI::AddChatMessage(L"Server", message, static_cast<uint8_t>(ChatAPI::CHAT_TYPE_SYSTEM));
         }
     }
     else

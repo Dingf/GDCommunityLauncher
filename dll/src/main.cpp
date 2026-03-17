@@ -1,11 +1,55 @@
 #include <filesystem>
-#include <windows.h>
+#include <Windows.h>
 #include "DllClient.h"
+#include "ChatHandler.h"
 #include "GameHandler.h"
-#include "ServerCoordinator.h"
 #include "ServerHandler.h"
-#include "ChatManager.h"
+#include "ServerCoordinator.h"
+#include "ChatAPI.h"
+#include "LuaAPI.h"
 #include "Log.h"
+
+bool InitializeModules()
+{
+    try { DllClient::GetInstance(); }
+    catch (const std::exception& ex)
+    {
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to initialize DllClient module: %", ex.what());
+        return false;
+    }
+
+    try {  GameHandler::GetInstance();  }
+    catch (const std::exception& ex)
+    {
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to initialize GameHandler module: %", ex.what());
+        return false;
+    }
+
+    try { ServerHandler::GetInstance(); }
+    catch (const std::exception& ex)
+    {
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to initialize ServerHandler module: %", ex.what());
+        return false;
+    }
+
+    try { ChatHandler::GetInstance(); }
+    catch (const std::exception& ex)
+    {
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to initialize ChatHandler module: %", ex.what());
+        return false;
+    }
+
+    try { ServerCoordinator::GetInstance(); }
+    catch (const std::exception& ex)
+    {
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to initialize ServerCoordinator module: %", ex.what());
+        return false;
+    }
+
+    ChatAPI::Initialize();
+    LuaAPI::Initialize();
+    return true;
+}
 
 BOOL APIENTRY DllMain(HINSTANCE hInstDLL, DWORD fdwReason, LPVOID lpReserved)
 {
@@ -21,11 +65,7 @@ BOOL APIENTRY DllMain(HINSTANCE hInstDLL, DWORD fdwReason, LPVOID lpReserved)
         switch (fdwReason)
         {
             case DLL_PROCESS_ATTACH:
-                if (!DllClient::Initialize() ||
-                    !GameHandler::Initialize() ||
-                    !ServerHandler::Initialize() ||
-                    !ServerCoordinator::Initialize() ||
-                    !ChatManager::Initialize())
+                if (!InitializeModules())
                     return FALSE;
                 break;
             case DLL_PROCESS_DETACH:

@@ -25,20 +25,6 @@ ServerCoordinator* ServerCoordinator::GetInstance()
     return &instance;
 }
 
-bool ServerCoordinator::Initialize()
-{
-    try
-    {
-        GetInstance();
-        return true;
-    }
-    catch (const std::exception& ex)
-    {
-        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to initialize ServerCoordinator module: %", ex.what());
-        return false;
-    }
-}
-
 void ServerCoordinator::OnShutdownEvent()
 {
     // TODO: Upload cached buffers here

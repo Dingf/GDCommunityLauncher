@@ -14,8 +14,6 @@ class DllClient : public Client
 
         static DllClient* GetInstance();
 
-        static bool Initialize();
-
         bool HasSeasons() const { return !_seasons.empty(); }
 
         // TODO: Clean up this and the other functions below

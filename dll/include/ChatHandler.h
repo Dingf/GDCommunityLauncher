@@ -1,5 +1,5 @@
-#ifndef INC_GDCL_DLL_SERVER_HANDLER_H
-#define INC_GDCL_DLL_SERVER_HANDLER_H
+#ifndef INC_GDCL_CHAT_HANDLER_H
+#define INC_GDCL_CHAT_HANDLER_H
 
 #include <string>
 #include <future>
@@ -8,22 +8,22 @@
 #include "Websocket.h"
 #include "JSON.h"
 
-class ServerHandler : public CallbackHandler
+class ChatHandler : public CallbackHandler
 {
     public:
-        static Websocket<ServerHandler, std::future<json>>* GetSocket();
+        static Websocket<ChatHandler, std::future<json>>* GetSocket();
 
     private:
-        ServerHandler();
-        ServerHandler(ServerHandler&) = delete;
-        void operator=(const ServerHandler&) = delete;
+        ChatHandler();
+        ChatHandler(ChatHandler&) = delete;
+        void operator=(const ChatHandler&) = delete;
 
         friend bool InitializeModules();
 
         const std::unordered_map<std::string, HandlerPair>& GetHandlers() const { return _handlers; }
         void SetPromiseData(std::promise<json>& promise, const json& json);
 
-        static ServerHandler& GetInstance();
+        static ChatHandler& GetInstance();
 
         static void OnInitializeEvent();
         static void OnShutdownEvent();
@@ -31,6 +31,6 @@ class ServerHandler : public CallbackHandler
         static const std::unordered_map<std::string, HandlerPair> _handlers;
 };
 
-#define spServer ServerHandler::GetSocket()
+#define spChat ChatHandler::GetSocket()
 
-#endif//INC_GDCL_DLL_SERVER_HANDLER_H
+#endif//INC_GDCL_CHAT_HANDLER_H

@@ -67,7 +67,9 @@ void LoadDatabaseValues()
             Logger::LogMessage(LOG_LEVEL_WARN, "Failed to load dungeon database from DLL. Dungeon scaling will not be displayed properly!");
     }
 
-    CraftingDatabase& craftingDB = CraftingDatabase::GetInstance();
+
+    // TODO: This will probably need to be overhauled with FoA's crafting system
+    /*CraftingDatabase& craftingDB = CraftingDatabase::GetInstance();
     if (!craftingDB.IsLoaded())
     {
         if (HRSRC res = FindResource(launcherDLL, MAKEINTRESOURCE(IDR_CRAFTINGDB), RT_RCDATA))
@@ -83,7 +85,7 @@ void LoadDatabaseValues()
 
         if (!craftingDB.IsLoaded())
             Logger::LogMessage(LOG_LEVEL_WARN, "Failed to load crafting database from DLL. Item crafting will not function properly!");
-    }
+    }*/
 }
 
 void LoadSeasonModAssets(const std::string& seasonName)
@@ -122,15 +124,7 @@ bool HandleLoadWorld(void* _this, const char* map, bool unk1, bool modded)
             if (EngineAPI::IsMainCampaignOrCrucible())
             {
                 LoadSeasonModAssets(seasonName);
-
-                if (isMainMenu)
-                {
-                    LoadDatabaseValues();
-                }
-                else
-                {
-                    LuaAPI::Initialize();
-                }
+                LoadDatabaseValues();
 
                 // Load the mod scripts only in the main campaign
                 if (EngineAPI::IsMainCampaign())
@@ -180,10 +174,7 @@ void HandleUnloadWorld(void* _this)
         callback(_this);
 
         if (spClient->IsPlayingSeason())
-        {
             spClient->SetActiveCharacter({});
-            LuaAPI::Shutdown();
-        }
 
         EventManager::Publish(GDCL_EVENT_WORLD_POST_UNLOAD);
     }

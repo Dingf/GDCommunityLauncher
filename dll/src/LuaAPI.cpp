@@ -1,9 +1,12 @@
 #include "LuaAPI.h"
+#include "EngineAPI/GameInfo.h"
+#include "EventManager.h"
 #include "HookManager.h"
 
 namespace LuaAPI
 {
 
+bool _initialized = false;
 void* _state = NULL;
 
 void lua_settop(void* L, int index)
@@ -201,15 +204,28 @@ int HandleLuaGetTop(void* L)
     return 0;
 }
 
-void Initialize()
+void OnWorldPostLoad(std::string mapName, bool modded)
 {
-    HookManager::CreateHook(LUA_DLL, "lua_gettop", &HandleLuaGetTop);
+    if (EngineAPI::IsMainCampaignOrCrucible())
+        HookManager::CreateHook(LUA_DLL, "lua_gettop", &HandleLuaGetTop);
 }
 
-void Shutdown()
+void OnWorldPostUnload()
 {
     HookManager::DeleteHook(LUA_DLL, "lua_gettop");
     _state = NULL;
+}
+
+bool Initialize()
+{
+    if (!_initialized)
+    {
+        EventManager::Subscribe(GDCL_EVENT_WORLD_POST_LOAD,   OnWorldPostLoad);
+        EventManager::Subscribe(GDCL_EVENT_WORLD_POST_UNLOAD, OnWorldPostUnload);
+        _initialized = true;
+        return true;
+    }
+    return false;
 }
 
 void* GetState()

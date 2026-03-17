@@ -1,5 +1,6 @@
 #include <unordered_map>
 #include "GameHandler.h"
+#include "ServerHandler.h"
 #include "DeathRecap.h"
 #include "DungeonDatabase.h"
 #include "StringConvert.h"
@@ -27,8 +28,7 @@ void BuildLeagueInfoText(std::wstring& message)
     {
         message += L" {^L}(Offline Mode)";
     }
-    // TODO: The online check needs to be for the websocket connection to the server (spServerSocket)
-    else if (/*(_online) && */(activeSeason))
+    else if ((spServer->IsConnected()) && (activeSeason))
     {
         if (GameAPI::IsCloudStorageEnabled())
         {

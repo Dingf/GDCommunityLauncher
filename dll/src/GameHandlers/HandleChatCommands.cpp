@@ -7,8 +7,9 @@
 #include <regex>
 #include <cwctype>
 #include <filesystem>
+#include "ChatAPI.h"
+#include "ChatHandler.h"
 #include "GameHandler.h"
-#include "ChatManager.h"
 #include "StringConvert.h"
 #include "URI.h"
 
@@ -59,9 +60,9 @@ bool HandleChatHelpCommand(std::wstring& name, std::wstring& message, uint32_t& 
 
 bool HandleChatGlobalCommand(std::wstring& name, std::wstring& message, uint32_t& channel, uint8_t& type, void* item)
 {
-    spChatManager->SetChatPrefix(L"/g ");
+    ChatAPI::SetChatPrefix(L"/g ");
 
-    type = CHAT_TYPE_GLOBAL;
+    type = ChatAPI::CHAT_TYPE_GLOBAL;
 
     std::wstring subcommand = message.substr(0, message.find(L" "));
     std::wstring args = (subcommand.size() == message.size()) ? L"" : message.substr(message.find(L" ") + 1);
@@ -72,12 +73,12 @@ bool HandleChatGlobalCommand(std::wstring& name, std::wstring& message, uint32_t
         if (channel == 0)
             channel = 1;
 
-        spChatManager->SetChatChannel(CHAT_TYPE_GLOBAL, channel);
+        ChatAPI::SetChatChannel(channel);
         return false;
     }
     else if ((subcommand == L"off") && (subcommand.size() == message.size()))
     {
-        spChatManager->SetChatChannel(CHAT_TYPE_GLOBAL, 0);
+        ChatAPI::SetChatChannel(0);
         return false;
     }
     else if ((subcommand == L"color") || (subcommand == L"colour"))
@@ -111,7 +112,7 @@ bool HandleChatGlobalCommand(std::wstring& name, std::wstring& message, uint32_t
 
         if (colorCode != 0)
         {
-            if (spChatManager->SetChatColor(CHAT_TYPE_GLOBAL, colorCode))
+            if (ChatAPI::SetChatColor(ChatAPI::CHAT_TYPE_GLOBAL, colorCode))
             {
                 std::wstringstream outputStream;
                 outputStream << std::hex << std::uppercase << std::setfill(L'0') << std::setw(2) << (colorCode & 0x0000FF) << std::setw(2) << ((colorCode & 0x00FF00) >> 8) << std::setw(2) << ((colorCode & 0xFF0000) >> 16);
@@ -135,28 +136,20 @@ bool HandleChatGlobalCommand(std::wstring& name, std::wstring& message, uint32_t
     
     if (channel != 0)
     {
-        if (channel > ChatManager::CHAT_CHANNEL_MAX)
+        if (channel > ChatAPI::CHAT_CHANNEL_MAX)
         {
             name = L"Server";
-            message = L"Invalid channel. The maximum number of channels is " + std::to_wstring(ChatManager::CHAT_CHANNEL_MAX) + L".";
+            message = L"Invalid channel. The maximum number of channels is " + std::to_wstring(ChatAPI::CHAT_CHANNEL_MAX) + L".";
             return true;
         }
         else
         {
-            if ((message.empty()) && (item == nullptr))
-            {
-                spChatManager->SetChatChannel(CHAT_TYPE_GLOBAL, channel);
-            }
-            else
-            {
-                name = CharToWide(spClient->GetUsername());
-                spChatManager->SetChannelAndSendMessage(CHAT_TYPE_GLOBAL, channel, name, message, item);
-            }
+            spChat->Send("JoinChannel", channel).get();
             return false;
         }
     }
 
-    uint8_t currentChannel = spChatManager->GetChatChannel(CHAT_TYPE_GLOBAL);
+    uint8_t currentChannel = ChatAPI::GetChatChannel();
     if (currentChannel > 0)
     {
         if ((message.empty()) && (item == nullptr))
@@ -167,7 +160,7 @@ bool HandleChatGlobalCommand(std::wstring& name, std::wstring& message, uint32_t
         else
         {
             name = CharToWide(spClient->GetUsername());
-            spChatManager->SendChatMessage(CHAT_TYPE_GLOBAL, name, message, item);
+            spChat->Send("Send", channel, message, std::wstring(), item);
             return false;
         }
     }
@@ -179,7 +172,8 @@ bool HandleChatGlobalCommand(std::wstring& name, std::wstring& message, uint32_t
     return true;
 }
 
-bool HandleChatTradeCommand(std::wstring& name, std::wstring& message, uint32_t& channel, uint8_t& type, void* item)
+// TODO: Delete me
+/*bool HandleChatTradeCommand(std::wstring& name, std::wstring& message, uint32_t& channel, uint8_t& type, void* item)
 {
     spChatManager->SetChatPrefix(L"/t ");
 
@@ -299,44 +293,11 @@ bool HandleChatTradeCommand(std::wstring& name, std::wstring& message, uint32_t&
         message = L"Trade chat is currently disabled. You can enable it by typing /trade ON.";
     }
     return true;
-}
+}*/
 
 bool HandleChatOnlineCommand(std::wstring& name, std::wstring& message, uint32_t& channel, uint8_t& type, void* item)
 {
-    // TODO: Handle this with websockets
-    /*Client& client = Client::GetInstance();
-    URI endpoint = client.GetServerChatURL() / "chat" / "connected-clients";
-
-    web::http::http_request request(web::http::methods::GET);
-
-    std::string bearerToken = "Bearer " + client.GetAuthToken();
-    request.headers().add(U("Authorization"), bearerToken.c_str());
-
-    web::http::client::http_client httpClient((utility::string_t)endpoint);
-    httpClient.request(request).then([](web::http::http_response response)
-    {
-        if (response.status_code() == web::http::status_codes::OK)
-            return response.extract_json();
-        else
-            throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-    })
-    .then([](concurrency::task<web::json::value> task)
-    {
-        try
-        {
-            // can use get here since taking the task as continuation parameter ensures it is finished
-            web::json::value responseBody = task.get(); 
-            web::json::array usersArray = responseBody.as_array();
-
-            std::wstring message = L"There are " + std::to_wstring(usersArray.size()) + L" users currently online.";
-            GameAPI::SendChatMessage(L"Server", message, EngineAPI::UI::CHAT_TYPE_NORMAL);
-        }
-        catch (std::exception& ex)
-        {
-            Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve online users: %", ex.what());
-        }
-    });*/
-
+    spChat->Send("Online");
     return false;
 }
 
@@ -586,82 +547,27 @@ bool HandleChatMuteCommand(std::wstring& name, std::wstring& message, uint32_t& 
 
             if (matches)
             {
-                GameAPI::SendChatMessage(L"Server", L"You cannot mute yourself.", CHAT_TYPE_NORMAL);
+                GameAPI::SendChatMessage(L"Server", L"You cannot mute yourself.", ChatAPI::CHAT_TYPE_NORMAL);
                 return false;
             }
         }
 
-        // TODO: Make this work with websockets
-        /*pplx::create_task([username]()
-        {
-            Client& client = Client::GetInstance();
-            URI endpoint = client.GetServerChatURL() / "chat" / "mute" / username;
-
-            web::http::client::http_client httpClient((utility::string_t)endpoint);
-            web::http::http_request request(web::http::methods::POST);
-
-            std::string bearerToken = "Bearer " + client.GetAuthToken();
-            request.headers().add(U("Authorization"), bearerToken.c_str());
-
-            web::http::http_response response = httpClient.request(request).get();
-            web::http::status_code status = response.status_code();
-            switch (status)
-            {
-                case web::http::status_codes::OK:
-                case web::http::status_codes::BadRequest:
-                case web::http::status_codes::InternalError:
-                    return status;
-                default:
-                    throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-            }
-        })
-        .then([username](pplx::task<web::http::status_code> task)
-        {
-            try
-            {
-                switch (task.get())
-                {
-                    case web::http::status_codes::OK:
-                    {
-                        spChatManager->MutePlayer(username);
-                        std::wstring message = username + L" is now muted.";
-                        GameAPI::SendChatMessage(L"Server", message, CHAT_TYPE_NORMAL);
-                        break;
-                    }
-                    case web::http::status_codes::BadRequest:
-                    {
-                        std::wstring message = username + L" is already muted.";
-                        GameAPI::SendChatMessage(L"Server", message, CHAT_TYPE_NORMAL);
-                        break;
-                    }
-                    case web::http::status_codes::InternalError:
-                    {
-                        std::wstring message = username + L" was not found on the server.";
-                        GameAPI::SendChatMessage(L"Server", message, CHAT_TYPE_NORMAL);
-                        break;
-                    }
-                }
-            }
-            catch (std::exception& ex)
-            {
-                Logger::LogMessage(LOG_LEVEL_WARN, "Failed to process chat mute command: %", ex.what());
-            }
-        });*/
+        spChat->Send("Mute", username);
     }
     else
     {
-        const std::unordered_set<std::wstring>& mutedList = spChatManager->GetMutedList();
+        const std::unordered_set<std::wstring>& mutedList = ChatAPI::GetMutedList();
         if (mutedList.size() == 0)
         {
-            GameAPI::SendChatMessage(L"Server", L"You have not muted any players.", CHAT_TYPE_NORMAL);
+            GameAPI::SendChatMessage(L"Server", L"You have not muted any players.", ChatAPI::CHAT_TYPE_NORMAL);
         }
         else
         {
-            GameAPI::SendChatMessage(L"Server", L"You have muted the following players:", CHAT_TYPE_NORMAL);
+            GameAPI::SendChatMessage(L"Server", L"You have muted the following players:", ChatAPI::CHAT_TYPE_NORMAL);
             for (const std::wstring& playerName : mutedList)
             {
                 std::wstring message = L"  " + playerName;
-                GameAPI::SendChatMessage(L"Server", message, CHAT_TYPE_NORMAL);
+                GameAPI::SendChatMessage(L"Server", message, ChatAPI::CHAT_TYPE_NORMAL);
             }
         }
     }
@@ -673,65 +579,9 @@ bool HandleChatUnmuteCommand(std::wstring& name, std::wstring& message, uint32_t
 {
     if (message.size() > 0)
     {
-        // TODO: Make this work with websockets
-        /*std::wstring username = message.substr(0, message.find(L" "));
-        pplx::create_task([username]()
-        {
-            Client& client = Client::GetInstance();
-            URI endpoint = client.GetServerChatURL() / "chat" / "unmute" / username;
-
-            web::http::client::http_client httpClient((utility::string_t)endpoint);
-            web::http::http_request request(web::http::methods::POST);
-
-            std::string bearerToken = "Bearer " + client.GetAuthToken();
-            request.headers().add(U("Authorization"), bearerToken.c_str());
-
-            web::http::http_response response = httpClient.request(request).get();
-            web::http::status_code status = response.status_code();
-            switch (status)
-            {
-                case web::http::status_codes::OK:
-                case web::http::status_codes::BadRequest:
-                case web::http::status_codes::InternalError:
-                    return status;
-                default:
-                    throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-            }
-        })
-        .then([username](pplx::task<web::http::status_code> task)
-        {
-            try
-            {
-                switch (task.get())
-                {
-                    case web::http::status_codes::OK:
-                    {
-                        spChatManager->UnmutePlayer(username);
-                        std::wstring message = username + L" is now unmuted.";
-                        GameAPI::SendChatMessage(L"Server", message, CHAT_TYPE_NORMAL);
-                        break;
-                    }
-                    case web::http::status_codes::BadRequest:
-                    {
-                        std::wstring message = username + L" is already unmuted.";
-                        GameAPI::SendChatMessage(L"Server", message, CHAT_TYPE_NORMAL);
-                        break;
-                    }
-                    case web::http::status_codes::InternalError:
-                    {
-                        std::wstring message = username + L" was not found on the server.";
-                        GameAPI::SendChatMessage(L"Server", message, CHAT_TYPE_NORMAL);
-                        break;
-                    }
-                }
-            }
-            catch (std::exception& ex)
-            {
-                Logger::LogMessage(LOG_LEVEL_WARN, "Failed to process chat unmute command: %", ex.what());
-            }
-        });*/
+        std::wstring username = message.substr(0, message.find(L" "));
+        spChat->Send("Unmute", username);
     }
-
     return false;
 }
 
@@ -742,6 +592,8 @@ bool HandleChatWhisperCommand(std::wstring& name, std::wstring& message, uint32_
 
     if (!text.empty())
     {
+        spChat->Send("Send", channel, text, name, item);
+
         // TODO: Make this work with websockets
         /*pplx::create_task([username, text]()
         {
@@ -901,7 +753,7 @@ bool HandleBetaDumpTagsCommand(std::wstring& name, std::wstring& message, uint32
             }
             out.close();
 
-            GameAPI::SendChatMessage(L"Server", std::wstring(L"Tags successfully written to ") + CharToWide(filename), CHAT_TYPE_NORMAL);
+            GameAPI::SendChatMessage(L"Server", std::wstring(L"Tags successfully written to ") + CharToWide(filename), ChatAPI::CHAT_TYPE_NORMAL);
         }
 
         return false;
@@ -927,9 +779,8 @@ const std::unordered_map<ChatCommandHandler, ChatCommandInfo> chatCommandInfo =
     { HandleChatHelpCommand,       { nullptr,      L"Displays available commands and their usage.", L"Usage: /h, /help [command]\n\nDisplays a detailed usage message for a chat command. If no arguments are specified, displays all available chat commands.\n\n    [command] - Specifies the command to display help information on.\n\n" } },
     { HandleChatMuteCommand,       { nullptr,      L"Blocks all incoming messages from a user.", L"Usage: /m, /mute [user]\n\nBlocks all incoming messages from a user. If no arguments are specified, displays the list of users that you have currently muted.\n\n    [user] - Specifies the username to be blocked.\n\n" } },
     { HandleChatOnlineCommand,     { nullptr,      L"Displays the number of online users.", L"Usage: /o, /online\n\nDisplays the number of concurrent online users.\n\n" } },
-    { HandleChatTradeCommand,      { nullptr,      L"Sends a message to trade chat.", L"Usage: /t, /trade[channel] [on|off|color] ...\n\nSends a message to the current trade chat channel. If no arguments are specified, displays the current trade chat channel.\n\n    [channel] - Sets or switches the current trade chat channel. Valid values are 1-15.\n\n    [on/off] - Enables or disables trade chat.\n\n    [color] - Sets the color of trade chat to a color alias or a 6-digit hex code. Type \"/h color\" for a list of color aliases.\n\n" } },
     { HandleChatUnmuteCommand,     { nullptr,      L"Unblocks all incoming messages from a user.", L"Usage: /u, /unmute <user>\n\nUnblocks a user that was previously blocked, allowing you to see their messages again.\n\n    <user> - Specifies the username to be unblocked.\n\n" } },
-    { HandleChatWhisperCommand,    { nullptr,      L"Sends a direct message to a user.", L"Usage: /w, /whisper <user> ...\n\nSends a direct message to a user.\n\n    <user> - Specifies the username to send a message to.\n\n" } },
+    { HandleChatWhisperCommand,    { nullptr,      L"Sends a direct message to a user.", L"Usage: /t, /tell <user> ...\n\nSends a direct message to a user.\n\n    <user> - Specifies the username to send a message to.\n\n" } },
     
     // Beta testing commands
     { HandleBetaAddItemCommand,    { IsBetaBranch, L"Adds an item directly into the user's inventory.", L"Usage: /item <dbr_name> <stack_count>\n\nAdds an item directly into the user's inventory.\n\n    <dbr_name> - The full path of the item DBR to add.\n\n    <stack_count> - The stack count of the item. If not specified, this value will be 1.\n\n" } },
@@ -943,8 +794,8 @@ const std::unordered_map<std::wstring, ChatCommandHandler> chatCommandHandlers =
     { L"h",          HandleChatHelpCommand },
     { L"global",     HandleChatGlobalCommand },
     { L"g",          HandleChatGlobalCommand },
-    { L"trade",      HandleChatTradeCommand },
-    { L"t",          HandleChatTradeCommand },
+    { L"tell",       HandleChatWhisperCommand },
+    { L"t",          HandleChatWhisperCommand },
     { L"online",     HandleChatOnlineCommand },
     { L"o",          HandleChatOnlineCommand },
     { L"challenges", HandleChatChallengesCommand },
@@ -953,8 +804,6 @@ const std::unordered_map<std::wstring, ChatCommandHandler> chatCommandHandlers =
     { L"m",          HandleChatMuteCommand },
     { L"unmute",     HandleChatUnmuteCommand },
     { L"u",          HandleChatUnmuteCommand },
-    { L"whisper",    HandleChatWhisperCommand },
-    { L"w",          HandleChatWhisperCommand },
 
     // Beta testing commands
     { L"item",       HandleBetaAddItemCommand },
@@ -995,15 +844,15 @@ bool HandleChatHelpCommand(std::wstring& name, std::wstring& message, uint32_t& 
         }
 
         std::wstring message = L"The following chat commands are available:";
-        GameAPI::SendChatMessage(L"Server", message, CHAT_TYPE_NORMAL);
+        GameAPI::SendChatMessage(L"Server", message, ChatAPI::CHAT_TYPE_NORMAL);
 
         for (const std::wstring& command : chatCommandStrings)
         {
-            GameAPI::SendChatMessage(L"Server", command, CHAT_TYPE_NORMAL);
+            GameAPI::SendChatMessage(L"Server", command, ChatAPI::CHAT_TYPE_NORMAL);
         }
 
         message = L"Type /help <command> for more information about a specific chat command.";
-        GameAPI::SendChatMessage(L"Server", message, CHAT_TYPE_NORMAL);
+        GameAPI::SendChatMessage(L"Server", message, ChatAPI::CHAT_TYPE_NORMAL);
     }
     else
     {
@@ -1015,7 +864,7 @@ bool HandleChatHelpCommand(std::wstring& name, std::wstring& message, uint32_t& 
         {
             ChatCommandHandler handler = chatCommandHandlers.at(command);
             ChatCommandInfo info = chatCommandInfo.at(handler);
-            GameAPI::SendChatMessage(L"Server", info._detail, CHAT_TYPE_NORMAL);
+            GameAPI::SendChatMessage(L"Server", info._detail, ChatAPI::CHAT_TYPE_NORMAL);
         }
         else if ((message == L"color") || (message == L"colour"))
         {
@@ -1038,17 +887,17 @@ bool HandleChatHelpCommand(std::wstring& name, std::wstring& message, uint32_t& 
             }
 
             std::wstring message = L"The list of available color aliases are:";
-            GameAPI::SendChatMessage(L"Server", message, CHAT_TYPE_NORMAL);
+            GameAPI::SendChatMessage(L"Server", message, ChatAPI::CHAT_TYPE_NORMAL);
 
             for (const std::wstring& command : chatColorStrings)
             {
-                GameAPI::SendChatMessage(L"Server", command, CHAT_TYPE_NORMAL);
+                GameAPI::SendChatMessage(L"Server", command, ChatAPI::CHAT_TYPE_NORMAL);
             }
         }
         else
         {
             std::wstring message = L"Command \"" + command + L"\" was not found.";
-            GameAPI::SendChatMessage(L"Server", message, CHAT_TYPE_NORMAL);
+            GameAPI::SendChatMessage(L"Server", message, ChatAPI::CHAT_TYPE_NORMAL);
         }
     }
     return false;
@@ -1096,11 +945,11 @@ void HandleSendChatMessage(void* _this, const std::wstring& name, const std::wst
 
         if (spClient->IsPlayingSeason())
         {
-            spChatManager->SetChatPrefix({});
+            ChatAPI::SetChatPrefix({});
 
             // If an item is linked, load the saved chat window text from before the window was closed
             if (itemID != 0)
-                realMessage = spChatManager->GetSavedText();
+                realMessage = ChatAPI::GetSavedText();
 
             // If handling an interrupting chat command, return so we don't print the message
             void* item = EngineAPI::FindObjectByID(itemID);

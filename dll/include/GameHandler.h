@@ -12,15 +12,15 @@
 
 class GameHandler
 {
-    public:
-        GameHandler(GameHandler&) = delete;
-        void operator=(const GameHandler&) = delete;
-
-        static bool Initialize();
-
     private:
         GameHandler();
         ~GameHandler();
+        GameHandler(GameHandler&) = delete;
+        void operator=(const GameHandler&) = delete;
+
+        friend bool InitializeModules();
+
+        static GameHandler* GetInstance();
 };
 
 #endif//INC_GDCL_DLL_GAME_HANDLER_H

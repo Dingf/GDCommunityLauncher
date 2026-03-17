@@ -71,7 +71,7 @@ void HandleReadStoreItems(const json& response, uint32_t participantID, std::vec
 void HandleReadTransferQueue(const json& response, uint32_t participantID);
 void HandleReadDeleteCharacter(const json& response, uint32_t participantID, std::wstring characterName);
 
-const std::unordered_map<std::string, ServerHandler::ServerHandlerPair> ServerHandler::_handlers =
+const std::unordered_map<std::string, ServerHandler::HandlerPair> ServerHandler::_handlers =
 {
     { "AddParticipant",                            { HandleWriteAddParticipant,        HandleReadAddParticipant } },
     { "GetParticipantChallenges",                  { HandleWriteGetChallenges,         HandleReadGetChallenges } },
@@ -120,52 +120,15 @@ ServerHandler& ServerHandler::GetInstance()
     return instance;
 }
 
-bool ServerHandler::Initialize()
-{
-    try
-    {
-        GetInstance();
-        return true;
-    }
-    catch (const std::exception& ex)
-    {
-        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to initialize ServerHandler module: %", ex.what());
-        return false;
-    }
-}
-
 Websocket<ServerHandler, std::future<json>>* ServerHandler::GetSocket()
 {
     static Websocket<ServerHandler, std::future<json>> socket(ContextManager::GetIOContext(), ContextManager::GetSSLContext(), GetInstance());
     return &socket;
 }
 
-void ServerHandler::OnRead(const std::string& data)
+void ServerHandler::SetPromiseData(std::promise<json>& promise, const json& json)
 {
-    json response = json::parse(data);
-    uint32_t requestID = response.at("RequestId").get<uint32_t>();
-
-    auto it = _callbacks.find(requestID);
-    if (it != _callbacks.end())
-    {
-        try
-        {
-            it->second(response);
-        }
-        catch (const std::exception& ex)
-        {
-            Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to read server response: %\n%", ex.what(), data);
-        }
-
-        _callbacks.erase(it);
-
-        _promises[requestID].set_value(response.at("Data"));
-        _promises.erase(requestID);
-    }
-    else
-    {
-        Logger::LogMessage(LOG_LEVEL_ERROR, "Could not find bound handler with requestID %", requestID);
-    }
+    promise.set_value(json.at("Data"));
 }
 
 void ServerHandler::OnInitializeEvent()
@@ -179,5 +142,6 @@ void ServerHandler::OnInitializeEvent()
 
 void ServerHandler::OnShutdownEvent()
 {
+    spServer->Disconnect();
     ContextManager::Stop();
 }

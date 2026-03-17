@@ -1,3 +1,4 @@
+#include "ChatAPI.h"
 #include "GameHandler.h"
 #include "EventManager.h"
 #include "Quest.h"
