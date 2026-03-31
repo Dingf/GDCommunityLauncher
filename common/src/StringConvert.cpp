@@ -74,7 +74,7 @@ std::string BinaryToBase64(const std::vector<uint8_t>& str)
 {
     std::string result;
     size_t size = str.size();
-    for (size_t i = 0; i < str.size(); i += 3)
+    for (size_t i = 0; i < size; i += 3)
     {
         int8_t v1 = str[i];
         result.push_back(_base64Chars[(v1 & 0xFC) >> 2]);
@@ -102,7 +102,40 @@ std::string BinaryToBase64(const std::vector<uint8_t>& str)
             result.push_back('=');
         }
     }
+    return result;
+}
 
+std::string BinaryToBase64(const uint8_t* data, size_t size)
+{
+    std::string result;
+    for (size_t i = 0; i < size; i += 3)
+    {
+        int8_t v1 = data[i];
+        result.push_back(_base64Chars[(v1 & 0xFC) >> 2]);
+        if ((i + 1) < size)
+        {
+            int8_t v2 = data[i+1];
+            result.push_back(_base64Chars[((v1 & 0x03) << 4) | ((v2 & 0xF0) >> 4)]);
+
+            if ((i + 2) < size)
+            {
+                int8_t v3 = data[i+2];
+                result.push_back(_base64Chars[((v2 & 0x0F) << 2) | ((v3 & 0xC0) >> 6)]);
+                result.push_back(_base64Chars[(v3 & 0x3F)]);
+            }
+            else
+            {
+                result.push_back(_base64Chars[((v2 & 0x0F) << 2)]);
+                result.push_back('=');
+            }
+        }
+        else
+        {
+            result.push_back(_base64Chars[((v1 & 0x03) << 4)]);
+            result.push_back('=');
+            result.push_back('=');
+        }
+    }
     return result;
 }
 

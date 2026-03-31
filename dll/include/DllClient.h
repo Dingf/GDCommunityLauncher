@@ -16,29 +16,22 @@ class DllClient : public Client
 
         bool HasSeasons() const { return !_seasons.empty(); }
 
-        // TODO: Clean up this and the other functions below
         uint32_t GetPoints() const { return _points; }
         uint32_t GetRank() const { return _rank; }
-        //uint32_t GetParticipantID() const { return _participantID; }
 
-        //const std::wstring& GetLeagueInfoText()  const { return _leagueInfoText; }
+        void SetPoints(uint32_t points) { _points = points; }
+        void SetRank(uint32_t rank) { _rank = rank; }
 
-        std::string GetActiveSeasonToken() const { return IsInActiveSeason() ? _activeSeason->_participationToken : std::string(); }
         const SeasonInfo* GetActiveSeason() const { return _activeSeason; }
-        //std::wstring GetActiveCharacter() const { return _activeCharacter; }
+        const SeasonInfo* GetSeasonByType(SeasonType type);
+        const SeasonInfo* GetSeasonByType(bool hardcore);
 
-        //Connection* GetConnection() { return _connection.get(); }
+        bool IsPlayingSeason() const { return _activeSeason != nullptr; }
+        bool IsPlayingSeasonOrOffline() const { return IsPlayingSeason() || IsOfflineMode(); }
 
-        bool IsInActiveSeason() const { return _activeSeason != nullptr; }
-        bool IsPlayingSeasonOnline() const { return IsInActiveSeason() && !_activeCharacter.empty(); }
-        bool IsPlayingSeason() const { return IsOfflineMode() || IsPlayingSeasonOnline(); }
+        void SetActiveSeason(uint32_t seasonID);
 
-        void SetActiveSeason(bool hardcore);
-        void SetActiveCharacter(const std::wstring& character) { _activeCharacter = character; }
-
-        //void SetParticipantID(uint32_t participantID);
-        //void UpdateSeasonStanding();
-
+              std::vector<SeasonInfo>& GetSeasonList()       { return _seasons; }
         const std::vector<SeasonInfo>& GetSeasonList() const { return _seasons; }
 
     private:
@@ -46,24 +39,11 @@ class DllClient : public Client
 
         void ReadDataFromPipe();
 
-        //static int64_t UpdateRefreshToken();
-        //static int64_t UpdateConnectionStatus();
-
-        //static void OnRefreshToken(const signalr::value& value, const std::vector<void*> args);
-        //static void OnUpdateSeasonStanding(const signalr::value& value, const std::vector<void*> args);
-
-        friend void HandleReadGetPoints(const json& response, uint32_t participantID);
-        friend void HandleReadGetSeasons(const json& response);
-
         uint32_t _rank;
         uint32_t _points;
-        //uint32_t _participantID;
-        std::wstring _activeCharacter;
 
         std::vector<SeasonInfo> _seasons;
         const SeasonInfo* _activeSeason;
-
-        //std::unique_ptr<Connection> _connection;
 };
 
 #define spClient DllClient::GetInstance()

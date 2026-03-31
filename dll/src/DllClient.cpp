@@ -1,16 +1,9 @@
 #include <filesystem>
 #include <Windows.h>
 #include <minizip/unzip.h>
+#include "GameAPI/GameFolder.h"
 #include "DllClient.h"
-#include "GameHandler.h"
-#include "HookManager.h"
-#include "EventManager.h"
-#include "ThreadManager.h"
-#include "DeathRecap.h"
-#include "ServerSync.h"
-#include "URI.h"
 #include "Log.h"
-#include "Version.h"
 
 DllClient::DllClient() : _activeSeason(nullptr)
 {
@@ -225,19 +218,40 @@ void DllClient::ReadDataFromPipe()
     }
 }
 
-void DllClient::SetActiveSeason(bool hardcore)
+const SeasonInfo* DllClient::GetSeasonByType(SeasonType type)
 {
-    _activeSeason = nullptr;
     for (size_t i = 0; i < _seasons.size(); ++i)
     {
         SeasonInfo& season = _seasons[i];
-        if ((1 + hardcore) == season._seasonType)
+        if (season._seasonType == type)
         {
-            _activeSeason = &season;
-            break;
+            return &season;
         }
     }
-    //UpdateLeagueInfoText();
+    return nullptr;
+}
+
+const SeasonInfo* DllClient::GetSeasonByType(bool hardcore)
+{
+    SeasonType seasonType = hardcore ? SEASON_TYPE_HC_SSF : SEASON_TYPE_SC_TRADE;
+    return GetSeasonByType(seasonType);
+}
+
+void DllClient::SetActiveSeason(uint32_t seasonID)
+{
+    _activeSeason = nullptr;
+    if (seasonID != 0)
+    {
+        for (size_t i = 0; i < _seasons.size(); ++i)
+        {
+            SeasonInfo& season = _seasons[i];
+            if (season._seasonID == seasonID)
+            {
+                _activeSeason = &season;
+                break;
+            }
+        }
+    }
 }
 
 //void SeasonClient::SetParticipantID(uint32_t participantID)

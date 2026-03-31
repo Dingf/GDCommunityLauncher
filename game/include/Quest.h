@@ -57,7 +57,7 @@ class Quest : public FileData
         friend void from_json(const json& j, Quest& data);
 
         bool ReadFromFile(const std::filesystem::path& path);
-        bool ReadFromBuffer(uint8_t* data, size_t size);
+        bool ReadFromBuffer(const uint8_t* data, size_t size);
         bool WriteToFile(const std::filesystem::path& path);
         bool WriteToBuffer(uint8_t* data, size_t size);
 

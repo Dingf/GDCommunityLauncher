@@ -4,8 +4,6 @@
 #include <atomic>
 #include <string>
 #include <boost/asio/ssl.hpp>
-#include <boost/asio/strand.hpp>
-#include <boost/asio/thread_pool.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/websocket.hpp>
 #include <boost/beast/websocket/error.hpp>
@@ -78,9 +76,14 @@ class Websocket
         {
             if (_connected)
             {
-                _connected = false;
-                beast::get_lowest_layer(*_ws).close();
-                _ws.reset(new WebsocketStream(_ioc, _ssl));
+                auto& socket = beast::get_lowest_layer(*_ws);
+                socket.cancel();
+                socket.shutdown(tcp::socket::shutdown_both);
+                _ws->async_close(websocket::close_code::normal, [&](const beast::error_code& ec)
+                {
+                    _ws.reset(new WebsocketStream(_ioc, _ssl));
+                    _connected = false;
+                });
             }
         }
 

@@ -8,11 +8,12 @@
 #include "JSON.h"
 
 // Write handlers
-std::string HandleWriteAddParticipant(uint32_t requestID, uint32_t seasonID);
+std::string HandleWriteAddParticipant(uint32_t requestID, bool hardcore);
 std::string HandleWriteGetChallenges(uint32_t requestID, uint32_t participantID, uint32_t seasonID);
 std::string HandleWriteGetCharacters(uint32_t requestID, uint32_t participantID);
 std::string HandleWriteGetCharacterData(uint32_t requestID, uint32_t participantID, std::wstring characterName);
 std::string HandleWriteGetCharacterFile(uint32_t requestID, uint32_t participantID, std::wstring characterName);
+std::string HandleWriteSaveCharacterFile(uint32_t requestID, uint32_t participantID, std::wstring characterName, std::string base64Data);
 std::string HandleWriteGetSeasons(uint32_t requestID);
 std::string HandleWriteGetSeasonChallenges(uint32_t requestID, uint32_t seasonID);
 std::string HandleWriteGetPoints(uint32_t requestID, uint32_t participantID);
@@ -38,13 +39,15 @@ std::string HandleWriteTransferItems(uint32_t requestID, uint32_t participantID,
 std::string HandleWriteStoreItems(uint32_t requestID, uint32_t participantID, std::vector<Item> items);
 std::string HandleWriteTransferQueue(uint32_t requestID, uint32_t participantID);
 std::string HandleWriteDeleteCharacter(uint32_t requestID, uint32_t participantID, std::wstring characterName);
+std::string HandleWriteSaveTag(uint32_t requestID, uint32_t participantID, std::string tagName, uint32_t level, GameAPI::Difficulty difficulty);
 
 // Read Handlers
-void HandleReadAddParticipant(const json& response, uint32_t seasonID);
+void HandleReadAddParticipant(const json& response, bool hardcore);
 void HandleReadGetChallenges(const json& response, uint32_t participantID, uint32_t seasonID);
 void HandleReadGetCharacters(const json& response, uint32_t participantID);
 void HandleReadGetCharacterData(const json& response, uint32_t participantID, std::wstring characterName);
 void HandleReadGetCharacterFile(const json& response, uint32_t participantID, std::wstring characterName);
+void HandleReadSaveCharacterFile(const json& response, uint32_t participantID, std::wstring characterName, std::string base64Data);
 void HandleReadGetSeasons(const json& response);
 void HandleReadGetSeasonChallenges(const json& response, uint32_t seasonID);
 void HandleReadGetPoints(const json& response, uint32_t participantID);
@@ -70,6 +73,7 @@ void HandleReadTransferItems(const json& response, uint32_t participantID, std::
 void HandleReadStoreItems(const json& response, uint32_t participantID, std::vector<Item> items);
 void HandleReadTransferQueue(const json& response, uint32_t participantID);
 void HandleReadDeleteCharacter(const json& response, uint32_t participantID, std::wstring characterName);
+void HandleReadSaveTag(const json& response, uint32_t participantID, std::string tagName, uint32_t level, GameAPI::Difficulty difficulty);
 
 const std::unordered_map<std::string, ServerHandler::HandlerPair> ServerHandler::_handlers =
 {
@@ -78,6 +82,7 @@ const std::unordered_map<std::string, ServerHandler::HandlerPair> ServerHandler:
     { "GetParticipantCharacters",                  { HandleWriteGetCharacters,         HandleReadGetCharacters } },
     { "GetCharacterData",                          { HandleWriteGetCharacterData,      HandleReadGetCharacterData } },
     { "GetCharacterFile",                          { HandleWriteGetCharacterFile,      HandleReadGetCharacterFile } },
+    { "SaveCharacterFile",                         { HandleWriteSaveCharacterFile,     HandleReadSaveCharacterFile } },
     { "GetSeasons",                                { HandleWriteGetSeasons,            HandleReadGetSeasons } },
     { "GetSeasonChallenges",                       { HandleWriteGetSeasonChallenges,   HandleReadGetSeasonChallenges } },
     { "GetParticipantPoints",                      { HandleWriteGetPoints,             HandleReadGetPoints } },
@@ -103,9 +108,10 @@ const std::unordered_map<std::string, ServerHandler::HandlerPair> ServerHandler:
     { "StoreParticipantStashItems",                { HandleWriteStoreItems,            HandleReadStoreItems } },
     { "GetParticipantTransferQueue",               { HandleWriteTransferQueue,         HandleReadTransferQueue } },
     { "DeleteParticipantCharacter",                { HandleWriteDeleteCharacter,       HandleReadDeleteCharacter } },
+    { "SaveParticipantTag",                        { HandleWriteSaveTag,               HandleReadSaveTag }},
 };
 
-ServerHandler::ServerHandler()
+ServerHandler::ServerHandler(uint32_t threadCount) : CallbackHandler(threadCount)
 {
     if (!spClient->IsOfflineMode())
     {
@@ -114,9 +120,9 @@ ServerHandler::ServerHandler()
     }
 }
 
-ServerHandler& ServerHandler::GetInstance()
+ServerHandler& ServerHandler::GetInstance(uint32_t threadCount)
 {
-    static ServerHandler instance;
+    static ServerHandler instance(threadCount);
     return instance;
 }
 

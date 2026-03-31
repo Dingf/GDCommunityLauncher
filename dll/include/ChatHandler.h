@@ -1,9 +1,13 @@
 #ifndef INC_GDCL_CHAT_HANDLER_H
 #define INC_GDCL_CHAT_HANDLER_H
 
-#include <string>
+#include <atomic>
 #include <future>
+#include <memory>
+#include <string>
+#include <thread>
 #include <unordered_map>
+#include "EngineAPI/Input/KeyButtonEvent.h"
 #include "CallbackHandler.h"
 #include "Websocket.h"
 #include "JSON.h"
@@ -14,7 +18,8 @@ class ChatHandler : public CallbackHandler
         static Websocket<ChatHandler, std::future<json>>* GetSocket();
 
     private:
-        ChatHandler();
+        ChatHandler(uint32_t threadCount);
+        ~ChatHandler();
         ChatHandler(ChatHandler&) = delete;
         void operator=(const ChatHandler&) = delete;
 
@@ -23,12 +28,27 @@ class ChatHandler : public CallbackHandler
         const std::unordered_map<std::string, HandlerPair>& GetHandlers() const { return _handlers; }
         void SetPromiseData(std::promise<json>& promise, const json& json);
 
-        static ChatHandler& GetInstance();
+        static ChatHandler& GetInstance(uint32_t threadCount = 1);
 
         static void OnInitializeEvent();
         static void OnShutdownEvent();
+        static bool OnKeyButtonEvent(EngineAPI::Input::KeyButtonEvent& event);
 
         static const std::unordered_map<std::string, HandlerPair> _handlers;
+
+        struct RepeatKeyThread
+        {
+            RepeatKeyThread();
+            ~RepeatKeyThread();
+
+            void operator()();
+
+            std::atomic_bool                 _running;
+            std::atomic_int64_t              _repeatTime;
+            EngineAPI::Input::KeyButtonEvent _repeatEvent;
+            std::unique_ptr<std::thread>     _thread;
+        }
+        _repeatThread;
 };
 
 #define spChat ChatHandler::GetSocket()

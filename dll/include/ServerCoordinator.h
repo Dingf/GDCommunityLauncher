@@ -16,9 +16,15 @@ class ServerCoordinator
 
         static void OnShutdownEvent();
         static void OnDirectReadEvent(std::string filename, void** data, size_t* size);
+        static void OnDirectWriteEvent(std::string filename, void* data, size_t size);
+        static void OnAddSaveJobEvent(std::string filename, void* data, size_t size);
         static void OnWorldPreLoadEvent(std::string mapName, bool unk1, bool modded);
-
-        // TODO: Load the muted list when the main player is set
+        static void OnWorldPreUnloadEvent();
+        static void OnSetMainPlayerEvent(void* player);
+        static void OnTransferPostLoadEvent();
+        static void OnTransferPreSaveEvent();
+        static void OnTransferPostSaveEvent();
+        static void OnDeleteFileEvent(const char* filename);
 };
 
 #endif//INC_GDCL_DLL_SERVER_COORDINATOR_H

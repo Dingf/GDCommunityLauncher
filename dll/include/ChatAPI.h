@@ -33,6 +33,7 @@ const std::unordered_set<std::wstring>& GetMutedList();
 
 bool IsPlayerMuted(std::wstring playerName);
 bool IsWindowVisible();
+bool HasChatWindow();
 
 bool SetChatColor(ChatType type, uint32_t color);
 void SetChatChannel(uint8_t channel);
@@ -43,6 +44,7 @@ void SetSelectEndPosition(uint32_t position);
 
 void SetChatPrefix(const std::wstring& prefix);
 void SetBufferText(const std::wstring& text);
+void SetBufferTextDirect(const std::wstring& text);
 void SaveBufferText();
 
 bool MutePlayer(std::wstring playerName);

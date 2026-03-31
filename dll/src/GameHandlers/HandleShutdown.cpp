@@ -1,6 +1,5 @@
 #include "GameHandler.h"
 #include "EventManager.h"
-#include "ThreadManager.h"
 
 void HandleGameInitialize(void* _this)
 {
@@ -22,7 +21,6 @@ void HandleGameShutdown(void* _this)
     if (callback)
     {
         EventManager::Publish(GDCL_EVENT_SHUTDOWN);
-        ThreadManager::DeleteAllThreads();
         callback(_this);
     }
 }

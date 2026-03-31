@@ -92,7 +92,7 @@ class Character
         Character(const std::filesystem::path& path) { ReadFromFile(path); }
 
         bool ReadFromFile(const std::filesystem::path& path, bool headerOnly = false);
-        bool ReadFromBuffer(uint8_t* data, size_t size, bool headerOnly = false);
+        bool ReadFromBuffer(const uint8_t* data, size_t size, bool headerOnly = false);
 
         friend void to_json(json& j, const Character& data);
         friend void from_json(const json& j, Character& data);

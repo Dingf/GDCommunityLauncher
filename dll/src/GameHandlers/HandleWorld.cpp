@@ -13,7 +13,7 @@ void* prevRegion = nullptr;
 void UpdateDungeonData(std::map<std::string, DungeonDatabase::DungeonDBEntry>& database)
 {
     void* state = LuaAPI::GetState();
-    if ((spClient->IsPlayingSeason()) && (EngineAPI::IsMainCampaign()) && (state))
+    if ((spClient->IsPlayingSeasonOrOffline()) && (EngineAPI::IsMainCampaign()) && (state))
     {
         LuaAPI::lua_getglobal(state, "gd");
         LuaAPI::lua_pushstring(state, "GDLeague");
@@ -153,7 +153,7 @@ void HandleSetRegionOfNote(void* _this, void* region)
     SetRegionOfNoteProto callback = (SetRegionOfNoteProto)HookManager::GetOriginalFunction(ENGINE_DLL, EngineAPI::EAPI_NAME_SET_REGION_OF_NOTE);
     if (callback)
     {
-        if ((spClient->IsPlayingSeason()) && (EngineAPI::IsMainCampaign()) && (prevRegion != region))
+        if ((spClient->IsPlayingSeasonOrOffline()) && (EngineAPI::IsMainCampaign()) && (prevRegion != region))
         {
             DungeonDatabase::GetInstance().Update();
             prevRegion = region;
@@ -174,7 +174,7 @@ void HandleUnloadWorld(void* _this)
         callback(_this);
 
         if (spClient->IsPlayingSeason())
-            spClient->SetActiveCharacter({});
+            spClient->SetActiveSeason(0);
 
         EventManager::Publish(GDCL_EVENT_WORLD_POST_UNLOAD);
     }

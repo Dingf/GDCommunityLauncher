@@ -1,16 +1,14 @@
 #include "ServerCache.h"
-#include "ServerHandler.h"
 #include "DllClient.h"
 #include "JSON.h"
 #include "MD5.h"
 
 ServerCache::CacheBuffer::CacheBuffer(uint8_t* buffer, size_t size) : FileWriter(buffer, size)
 {
-    _participantID = 0;
     _checksum = GenerateBufferMD5(buffer, size);
 }
 
-ServerCache::ServerCache()
+ServerCache::ServerCache() : _stashCapacity(0)
 {
     Clear();
 }
@@ -25,135 +23,180 @@ bool ServerCache::IsParticipantHardcore(uint32_t participantID) const
 {
     // This code assumes that if you have the participant ID, then it's already been cached earlier
     // Otherwise, a participant ID that doesn't match either will return false (which shouldn't happen)
-    return (_participantID[1] == participantID);
+    auto it = _participantData.find(true);
+    if (it != _participantData.end())
+    {
+        return it->second._participantID == participantID;
+    }
+    return false;
 }
 
 uint32_t ServerCache::GetParticipantID(bool hardcore)
 {
-    if (_participantID[hardcore] != 0)
-        return _participantID[hardcore];
-
-    uint32_t seasonID = 0;
-    for (const auto& season : spClient->GetSeasonList())
-    {
-        if ((1 + hardcore) == season._seasonType)
-        {
-            seasonID = season._seasonID;
-            break;
-        }
-    }
-
-    if (seasonID)
-    {
-        auto future = spServer->Send("AddParticipant", seasonID);
-        auto timeout = std::chrono::system_clock::now() + std::chrono::seconds(5);
-        if (future.wait_until(timeout) == std::future_status::ready)
-        {
-            json result = future.get();
-            uint32_t participantID = result.at("SeasonParticipantId").get<uint32_t>();
-
-            _participantID[hardcore] = participantID;
-
-            return participantID;
-        }
-        else
-        {
-            Logger::LogMessage(LOG_LEVEL_WARN, "AddParticipant request to server timed out.");
-        }
-    }
-
-    return 0;
+    auto it = _participantData.find(hardcore);
+    return (it != _participantData.end()) ? it->second._participantID : 0;
 }
 
-uint32_t ServerCache::GetParticipantID(const std::wstring& playerName)
+uint32_t ServerCache::GetParticipantID(const std::wstring& characterName)
 {
-    if (const CacheBuffer* buffer = GetCharacterData(playerName))
-    {
-        return buffer->_participantID;
-    }
-    return 0;
+    auto it = _characterData.find(characterName);
+    return (it != _characterData.end()) ? it->second._participantID : 0;
 }
 
-const ServerCache::CacheBuffer* ServerCache::GetCharacterData(const std::wstring& playerName)
+uint32_t ServerCache::GetCharacterID(const std::wstring& characterName)
 {
-    auto it = _characterData.find(playerName);
-    return (it != _characterData.end()) ? it->second.get() : nullptr;
+    auto it = _characterData.find(characterName);
+    return (it != _characterData.end()) ? it->second._characterID : 0;
 }
 
-const ServerCache::CacheBuffer* ServerCache::GetQuestData(const std::wstring& playerName, GameAPI::Difficulty difficulty)
+void ServerCache::SetParticipantID(bool hardcore, uint32_t participantID)
 {
-    auto it = _questData.find(playerName);
-    if ((it != _questData.end()) && (difficulty != GameAPI::GAME_DIFFICULTY_UNKNOWN))
+    _participantData[hardcore]._participantID = participantID;
+}
+
+const ServerCache::CacheBuffer* ServerCache::GetCharacterData(const std::wstring& characterName) const
+{
+    auto it = _characterData.find(characterName);
+    return (it != _characterData.end()) ? it->second._character.get() : nullptr;
+}
+
+const ServerCache::CacheBuffer* ServerCache::GetQuestData(const std::wstring& characterName, GameAPI::Difficulty difficulty) const
+{
+    auto it = _characterData.find(characterName);
+    if ((it != _characterData.end()) && (difficulty != GameAPI::GAME_DIFFICULTY_UNKNOWN))
     {
-        return it->second._buffers[difficulty].get();
+        return it->second._quests->_buffers[difficulty].get();
     }
     return nullptr;
 }
 
-const ServerCache::CacheBuffer* ServerCache::GetConversationsData(const std::wstring& playerName, GameAPI::Difficulty difficulty)
+const ServerCache::CacheBuffer* ServerCache::GetConversationsData(const std::wstring& characterName, GameAPI::Difficulty difficulty) const
 {
-    auto it = _conversationsData.find(playerName);
-    if ((it != _conversationsData.end()) && (difficulty != GameAPI::GAME_DIFFICULTY_UNKNOWN))
+    auto it = _characterData.find(characterName);
+    if ((it != _characterData.end()) && (difficulty != GameAPI::GAME_DIFFICULTY_UNKNOWN))
     {
-        return it->second._buffers[difficulty].get();
+        return it->second._conversations->_buffers[difficulty].get();
     }
     return nullptr;
 }
 
-const ServerCache::CacheBuffer* ServerCache::GetMapData(const std::wstring& playerName, GameAPI::Difficulty difficulty)
+const ServerCache::CacheBuffer* ServerCache::GetMapData(const std::wstring& characterName, GameAPI::Difficulty difficulty) const
 {
-    auto it = _mapData.find(playerName);
-    if ((it != _mapData.end()) && (difficulty != GameAPI::GAME_DIFFICULTY_UNKNOWN))
+    auto it = _characterData.find(characterName);
+    if ((it != _characterData.end()) && (difficulty != GameAPI::GAME_DIFFICULTY_UNKNOWN))
     {
-        return it->second._buffers[difficulty].get();
+        return it->second._map->_buffers[difficulty].get();
     }
     return nullptr;
 }
 
-const ServerCache::CacheBuffer* ServerCache::GetFOWData(const std::wstring& playerName, GameAPI::Difficulty difficulty)
+const ServerCache::CacheBuffer* ServerCache::GetFOWData(const std::wstring& characterName, GameAPI::Difficulty difficulty) const
 {
-    auto it = _FOWData.find(playerName);
-    if ((it != _FOWData.end()) && (difficulty != GameAPI::GAME_DIFFICULTY_UNKNOWN))
+    auto it = _characterData.find(characterName);
+    if ((it != _characterData.end()) && (difficulty != GameAPI::GAME_DIFFICULTY_UNKNOWN))
     {
-        return it->second._buffers[difficulty].get();
+        return it->second._FOW->_buffers[difficulty].get();
     }
     return nullptr;
 }
 
-/*uint32_t ServerCache::GetCharacterID(uint32_t participantID, const std::wstring& playerName)
+const ServerCache::CacheBuffer* ServerCache::GetStashData(bool hardcore) const
 {
-    auto it = _characterIDs.find(playerName);
-    if (it != _characterIDs.end())
-        return it->second;
-
-    auto future = spServer->Send("GetCharacterData", participantID, playerName);
-    auto timeout = std::chrono::system_clock::now() + std::chrono::seconds(5);
-    if (future.wait_until(timeout) == std::future_status::ready)
+    auto it = _participantData.find(hardcore);
+    if (it != _participantData.end())
     {
-        json result = future.get();
-        uint32_t characterID = result.at("ParticipantCharacterId").get<uint32_t>();
-        std::string characterChecksum = result.at("LastChecksum").get<std::string>();
-
-        _characterIDs[playerName] = characterID;
-
-        // TODO: Also cache the last checksum value
-
-        return characterID;
+        return it->second._stash.get();
     }
-    else
+    return nullptr;
+}
+
+const ServerCache::CacheBuffer* ServerCache::GetFormulasData(bool hardcore) const
+{
+    auto it = _participantData.find(hardcore);
+    if (it != _participantData.end())
     {
-        Logger::LogMessage(LOG_LEVEL_WARN, "GetCharacterData request to server timed out.");
+        return it->second._formulas.get();
     }
+    return nullptr;
+}
 
-    return 0;
-}*/
+const ServerCache::CacheBuffer* ServerCache::GetTransmutesData(bool hardcore) const
+{
+    auto it = _participantData.find(hardcore);
+    if (it != _participantData.end())
+    {
+        return it->second._transmutes.get();
+    }
+    return nullptr;
+}
+
+const ServerCache::CacheBuffer* ServerCache::GetTagsData(bool hardcore) const
+{
+    auto it = _participantData.find(hardcore);
+    if (it != _participantData.end())
+    {
+        return it->second._tags.get();
+    }
+    return nullptr;
+}
+
+void ServerCache::SetCharacterID(const std::wstring& characterName, uint32_t participantID, uint32_t characterID)
+{
+    _characterData[characterName]._participantID = participantID;
+    _characterData[characterName]._characterID = characterID;
+}
+
+void ServerCache::SetCharacterData(const std::wstring& characterName, uint8_t* data, size_t size)
+{
+    _characterData[characterName]._character = std::make_unique<CacheBuffer>(data, size);
+}
+
+void ServerCache::SetQuestData(const std::wstring& characterName, GameAPI::Difficulty difficulty, uint8_t* data, size_t size)
+{
+    if (difficulty != GameAPI::GAME_DIFFICULTY_UNKNOWN)
+        _characterData[characterName]._quests->_buffers[difficulty] = std::make_unique<CacheBuffer>(data, size);
+}
+
+void ServerCache::SetConversationsData(const std::wstring& characterName, GameAPI::Difficulty difficulty, uint8_t* data, size_t size)
+{
+    if (difficulty != GameAPI::GAME_DIFFICULTY_UNKNOWN)
+        _characterData[characterName]._conversations->_buffers[difficulty] = std::make_unique<CacheBuffer>(data, size);
+}
+
+void ServerCache::SetMapData(const std::wstring& characterName, GameAPI::Difficulty difficulty, uint8_t* data, size_t size)
+{
+    if (difficulty != GameAPI::GAME_DIFFICULTY_UNKNOWN)
+        _characterData[characterName]._map->_buffers[difficulty] = std::make_unique<CacheBuffer>(data, size);
+}
+
+void ServerCache::SetFOWData(const std::wstring& characterName, GameAPI::Difficulty difficulty, uint8_t* data, size_t size)
+{
+    if (difficulty != GameAPI::GAME_DIFFICULTY_UNKNOWN)
+        _characterData[characterName]._FOW->_buffers[difficulty] = std::make_unique<CacheBuffer>(data, size);
+}
+
+void ServerCache::SetStashData(bool hardcore, uint8_t* data, size_t size)
+{
+    _participantData[hardcore]._stash = std::make_unique<CacheBuffer>(data, size);
+}
+
+void ServerCache::SetFormulasData(bool hardcore, uint8_t* data, size_t size)
+{
+    _participantData[hardcore]._formulas = std::make_unique<CacheBuffer>(data, size);
+}
+
+void ServerCache::SetTransmutesData(bool hardcore, uint8_t* data, size_t size)
+{
+    _participantData[hardcore]._transmutes = std::make_unique<CacheBuffer>(data, size);
+}
+
+void ServerCache::SetTagsData(bool hardcore, uint8_t* data, size_t size)
+{
+    _participantData[hardcore]._tags = std::make_unique<CacheBuffer>(data, size);
+}
 
 void ServerCache::Clear()
 {
-    memset(_participantID, 0, sizeof(uint32_t) * 2);
+    _participantData.clear();
     _characterData.clear();
-    _questData.clear();
-    _conversationsData.clear();
-    _mapData.clear();
-    _FOWData.clear();
 }

@@ -38,7 +38,7 @@ bool SharedStash::ReadFromFile(const std::filesystem::path& path)
     return false;
 }
 
-bool SharedStash::ReadFromBuffer(uint8_t* data, size_t size)
+bool SharedStash::ReadFromBuffer(const uint8_t* data, size_t size)
 {
     try
     {

@@ -1,6 +1,6 @@
 #include <future>
 #include <string>
-#include "GameAPI/Game.h"
+#include "GameAPI.h"
 #include "ChatAPI.h"
 #include "ServerCache.h"
 #include "DllClient.h"
@@ -47,8 +47,12 @@ std::string HandleWriteGetTradeNotifications(uint32_t requestID, uint32_t partic
     return request.dump();
 }
 
-std::string HandleWriteAddParticipant(uint32_t requestID, uint32_t seasonID)
+std::string HandleWriteAddParticipant(uint32_t requestID, bool hardcore)
 {
+    uint32_t seasonID = 0;
+    if (const SeasonInfo* season = spClient->GetSeasonByType(hardcore))
+        seasonID = season->_seasonID;
+
     json request = 
     {
         { "RequestName", "AddParticipant" },
@@ -60,18 +64,35 @@ std::string HandleWriteAddParticipant(uint32_t requestID, uint32_t seasonID)
     return request.dump();
 }
 
+std::string HandleWriteSaveTag(uint32_t requestID, uint32_t participantID, std::string tagName, uint32_t level, GameAPI::Difficulty difficulty)
+{
+    json request =
+    {
+        { "RequestName", "SaveParticipantTag" },
+        { "RequestId", requestID },
+        { "Arguments", {
+            { "SeasonParticipantId", participantID },
+            { "TagName", tagName },
+            { "Level", level },
+            { "CurrentDifficulty", GameAPI::GetGameDifficultyName(difficulty) },
+        }}
+    };
+    return request.dump();
+}
+
 void HandleReadGetSeasons(const json& response)
 {
     std::string status = response.at("Status").get<std::string>();
     if (status == "Ok")
     {
-        spClient->_seasons.clear();
+        auto& seasonList = spClient->GetSeasonList();
+        seasonList.clear();
 
         const json& seasons = response.at("Data");
         for (const json& season : seasons)
         {
-            spClient->_seasons.push_back({});
-            auto& seasonInfo = spClient->_seasons.back();
+            seasonList.push_back({});
+            auto& seasonInfo = seasonList.back();
 
             seasonInfo._seasonID = season.at("SeasonId").get<uint32_t>();
             seasonInfo._seasonType = season.at("SeasonTypeId").get<SeasonType>();
@@ -91,8 +112,8 @@ void HandleReadGetPoints(const json& response, uint32_t participantID)
     if (status == "Ok")
     {
         const json& data = response.at("Data");
-        spClient->_points = data.at("PointTotal").get<uint32_t>();
-        spClient->_rank = data.at("Rank").get<uint32_t>();
+        spClient->SetPoints(data.at("PointTotal").get<uint32_t>());
+        spClient->SetRank(data.at("Rank").get<uint32_t>());
     }
     else
     {
@@ -123,11 +144,31 @@ void HandleReadGetTradeNotifications(const json& response, uint32_t participantI
     }
 }
 
-void HandleReadAddParticipant(const json& response, uint32_t seasonID)
+void HandleReadAddParticipant(const json& response, bool hardcore)
 {
     std::string status = response.at("Status").get<std::string>();
-    if (status != "Ok")
+    if (status == "Ok")
+    {
+        const json& data = response.at("Data");
+        spCache->SetParticipantID(hardcore, data.at("SeasonParticipantId").get<uint32_t>());
+    }
+    else
     {
         Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to add season participant: %", response.at("ErrorMessage"));
+    }
+}
+
+void HandleReadSaveTag(const json& response, uint32_t participantID, std::string tagName, uint32_t level, GameAPI::Difficulty difficulty)
+{
+    const std::string status = response.at("Status").get<std::string>();
+    if (status == "Ok")
+    {
+        const json& data = response.at("Data");
+        spClient->SetPoints(data.at("PointTotal").get<uint32_t>());
+        spClient->SetRank(data.at("Rank").get<uint32_t>());
+    }
+    else
+    {
+        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to save season tag: %", response.at("ErrorMessage"));
     }
 }

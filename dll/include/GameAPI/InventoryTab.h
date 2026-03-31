@@ -77,6 +77,8 @@ const std::vector<void*>& GetPersonalTabs(void* player);
 const std::vector<void*>& GetTransferTabs();
 uint32_t GetEquippedItemID(void* equipment, EquipLocation slot);
 bool IsItemEquipped(void* equipment, uint32_t itemID);
+void SetTransferLocked(bool locked);
+bool IsTransferLocked();
 
 }
 

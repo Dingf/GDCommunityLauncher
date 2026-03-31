@@ -64,21 +64,20 @@ void HandleSetMainPlayer(void* _this, uint32_t unk1)
 
         EventManager::Publish(GDCL_EVENT_SET_MAIN_PLAYER, mainPlayer);
 
-        spClient->SetActiveSeason(GameAPI::IsPlayerHardcore(mainPlayer));
-        std::string seasonToken = spClient->GetActiveSeasonToken();
-
-        if ((mainPlayer) && (!seasonToken.empty()))
+        const SeasonInfo* seasonInfo = spClient->GetSeasonByType(GameAPI::IsPlayerHardcore(mainPlayer));
+        if ((mainPlayer) && (seasonInfo))
         {
-            std::wstring playerName = GameAPI::GetPlayerName(mainPlayer);
+            std::string seasonToken = seasonInfo->_participationToken;
+            std::wstring characterName = GameAPI::GetPlayerName(mainPlayer);
 
             bool hasSeasonToken = GameAPI::PlayerHasToken(mainPlayer, seasonToken) ||
-                                         HasParticipationTokenFromAPI(mainPlayer, seasonToken) || 
-                                         HasParticipationTokenFromFile(playerName, seasonToken);
+                                  HasParticipationTokenFromAPI(mainPlayer, seasonToken) || 
+                                  HasParticipationTokenFromFile(characterName, seasonToken);
 
-            if (hasSeasonToken)
+            if ((hasSeasonToken) || (!GameAPI::HasPlayerBeenInGame(mainPlayer)))
             {
-                GameAPI::BestowTokenNow(mainPlayer, seasonToken);       // Grant the token just in case because the character might have it from another difficulty/mode
-                spClient->SetActiveCharacter(playerName);
+                GameAPI::BestowTokenNow(mainPlayer, seasonToken);       // Grant the token just in case because the character might have it from another difficulty/mode or is new
+                spClient->SetActiveSeason(seasonInfo->_seasonID);
             }
         }
     }

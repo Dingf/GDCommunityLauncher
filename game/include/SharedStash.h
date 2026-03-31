@@ -32,7 +32,7 @@ class SharedStash : public Stash
         size_t GetBufferSize() const;
 
         bool ReadFromFile(const std::filesystem::path& path);
-        bool ReadFromBuffer(uint8_t* data, size_t size);
+        bool ReadFromBuffer(const uint8_t* data, size_t size);
         bool WriteToFile(const std::filesystem::path& path);
         bool WriteToBuffer(uint8_t* data, size_t size);
 

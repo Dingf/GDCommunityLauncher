@@ -3,6 +3,7 @@
 
 #include <string>
 #include <filesystem>
+#include "GameAPI/Difficulty.h"
 
 namespace GameAPI
 {
@@ -42,9 +43,9 @@ void SetRootPrefix(const std::string& prefix);
 const std::string& GetRootPrefix();
 std::filesystem::path GetBaseFolder();
 std::filesystem::path GetUserSaveFolder();
-std::filesystem::path GetPlayerFolder(const std::wstring& playerName);
+std::filesystem::path GetPlayerFolder(const std::wstring& characterName);
 std::filesystem::path GetPlayerFolder(void* player);
-std::filesystem::path GetPlayerSaveFile(const std::wstring& playerName);
+std::filesystem::path GetPlayerSaveFile(const std::wstring& characterName);
 std::filesystem::path GetPlayerSaveFile(void* player);
 std::filesystem::path GetSharedSavePath(GameAPI::SharedSaveType type);
 std::filesystem::path GetTransferStashPath(bool hardcore);

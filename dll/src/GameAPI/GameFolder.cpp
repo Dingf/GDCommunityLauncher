@@ -43,10 +43,10 @@ std::filesystem::path GetUserSaveFolder()
         return GetBaseFolder() / "save" / "";
 }
 
-std::filesystem::path GetPlayerFolder(const std::wstring& playerName)
+std::filesystem::path GetPlayerFolder(const std::wstring& characterName)
 {
     std::filesystem::path result = GetUserSaveFolder() / (EngineAPI::IsMainCampaignOrCrucible() ? "main" : "user") / "_";
-    result += playerName;
+    result += characterName;
     return result;
 }
 
@@ -57,9 +57,9 @@ std::filesystem::path GetPlayerFolder(void* player)
     return result;
 }
 
-std::filesystem::path GetPlayerSaveFile(const std::wstring& playerName)
+std::filesystem::path GetPlayerSaveFile(const std::wstring& characterName)
 {
-    return GetPlayerFolder(playerName) / "player.gdc";
+    return GetPlayerFolder(characterName) / "player.gdc";
 }
 
 std::filesystem::path GetPlayerSaveFile(void* player)

@@ -77,14 +77,14 @@ std::string& HandleGetFullSaveFolder(void* _this, void* unk1, void* player)
     return empty;
 }
 
-std::string& HandleGetPlayerFolder1(void* _this, void* unk1, const std::string& playerName, bool unk2, bool unk3)
+std::string& HandleGetPlayerFolder1(void* _this, void* unk1, const std::string& characterName, bool unk2, bool unk3)
 {
     typedef std::string& (__thiscall* GetPlayerFolderProto)(void*, void*, const std::string&, bool, bool);
 
     GetPlayerFolderProto callback = (GetPlayerFolderProto)HookManager::GetOriginalFunction(GAME_DLL, GameAPI::GAPI_NAME_GET_PLAYER_FOLDER_1);
     if (callback)
     {
-        std::string& result = callback(_this, unk1, playerName, unk2, unk3);
+        std::string& result = callback(_this, unk1, characterName, unk2, unk3);
 
         const std::string& prefix = GameAPI::GetRootPrefix();
         if (!prefix.empty())

@@ -1,9 +1,13 @@
+#include <atomic>
+#include <map>
+#include <vector>
 #include <Windows.h>
 #include "GameAPI.h"
 
 namespace GameAPI
 {
 
+std::atomic_bool transferLock = false;
 std::map<uint32_t, EngineAPI::Rect> defaultItemMap;
 std::vector<void*> defaultTabs;
 
@@ -254,6 +258,16 @@ bool IsItemEquipped(void* equipment, uint32_t itemID)
         return 0;
 
     return callback(equipment, itemID);
+}
+
+void SetTransferLocked(bool locked)
+{
+    transferLock = locked;
+}
+
+bool IsTransferLocked()
+{
+    return transferLock;
 }
 
 }

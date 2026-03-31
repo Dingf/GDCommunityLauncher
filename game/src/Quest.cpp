@@ -48,7 +48,7 @@ bool Quest::ReadFromFile(const std::filesystem::path& path)
     return false;
 }
 
-bool Quest::ReadFromBuffer(uint8_t* data, size_t size)
+bool Quest::ReadFromBuffer(const uint8_t* data, size_t size)
 {
     try
     {

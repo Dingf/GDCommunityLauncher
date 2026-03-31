@@ -14,7 +14,7 @@ class ServerHandler : public CallbackHandler
         static Websocket<ServerHandler, std::future<json>>* GetSocket();
 
     private:
-        ServerHandler();
+        ServerHandler(uint32_t threadCount);
         ServerHandler(ServerHandler&) = delete;
         void operator=(const ServerHandler&) = delete;
 
@@ -23,7 +23,7 @@ class ServerHandler : public CallbackHandler
         const std::unordered_map<std::string, HandlerPair>& GetHandlers() const { return _handlers; }
         void SetPromiseData(std::promise<json>& promise, const json& json);
 
-        static ServerHandler& GetInstance();
+        static ServerHandler& GetInstance(uint32_t threadCount = 1);
 
         static void OnInitializeEvent();
         static void OnShutdownEvent();

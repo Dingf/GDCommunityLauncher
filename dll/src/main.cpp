@@ -25,14 +25,16 @@ bool InitializeModules()
         return false;
     }
 
-    try { ServerHandler::GetInstance(); }
+    constexpr uint32_t serverHandlerThreads = 8;      // TODO: Load this from a config or something
+    try { ServerHandler::GetInstance(serverHandlerThreads); }
     catch (const std::exception& ex)
     {
         Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to initialize ServerHandler module: %", ex.what());
         return false;
     }
 
-    try { ChatHandler::GetInstance(); }
+    constexpr uint32_t chatHandlerThreads = 1;        // TODO: Load this from a config or something          
+    try { ChatHandler::GetInstance(chatHandlerThreads); }
     catch (const std::exception& ex)
     {
         Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to initialize ChatHandler module: %", ex.what());

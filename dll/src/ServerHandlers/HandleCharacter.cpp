@@ -1,6 +1,9 @@
 #include <future>
 #include <string>
+#include "GameAPI.h"
 #include "DllClient.h"
+#include "ServerCache.h"
+#include "StringConvert.h"
 #include "JSON.h"
 #include "Log.h"
 
@@ -45,6 +48,21 @@ std::string HandleWriteGetCharacterFile(uint32_t requestID, uint32_t participant
     return request.dump();
 }
 
+std::string HandleWriteSaveCharacterFile(uint32_t requestID, uint32_t participantID, std::wstring characterName, std::string base64Data)
+{
+    uint32_t characterID = spCache->GetCharacterID(characterName);
+    json request =
+    {
+        { "RequestName", "SaveCharacterFile" },
+        { "RequestId", requestID },
+        { "Arguments", {
+            { "SeasonParticipantId", participantID },
+            { "ParticipantCharacterId", characterID }
+        }}
+    };
+    return request.dump();
+}
+
 std::string HandleWriteDeleteCharacter(uint32_t requestID, uint32_t participantID, std::wstring characterName)
 {
     json request = 
@@ -62,24 +80,73 @@ std::string HandleWriteDeleteCharacter(uint32_t requestID, uint32_t participantI
 
 void HandleReadGetCharacters(const json& response, uint32_t participantID)
 {
-    // TODO
+    std::string status = response.at("Status").get<std::string>();
+    if (status != "Ok")
+    {
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to load character list: %", response.at("ErrorMessage"));
+    }
 }
 
 void HandleReadGetCharacterData(const json& response, uint32_t participantID, std::wstring characterName)
 {
-    std::string status = response.at("Status").get<std::string>();
-    if (status != "Ok")
+    try
     {
-        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to get character data: %", response.at("ErrorMessage"));
+        std::string status = response.at("Status").get<std::string>();
+        if (status != "Ok")
+            throw std::runtime_error(response.at("ErrorMessage"));
+
+        const json& data = response.at("Data");
+        uint32_t characterID = data.at("ParticipantCharacterId").get<uint32_t>();
+
+        spCache->SetCharacterID(characterName, participantID, characterID);
+    }
+    catch (const std::exception& ex)
+    {
+        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to load character data: %", ex.what());
     }
 }
 
 void HandleReadGetCharacterFile(const json& response, uint32_t participantID, std::wstring characterName)
 {
-    // TODO
+    try
+    {
+        std::string status = response.at("Status").get<std::string>();
+        if (status != "Ok")
+            throw std::runtime_error(response.at("ErrorMessage"));
+
+        const json& file = response.at("File");
+        if (file.is_null())
+            return;
+
+        std::string base64Data = file.get<std::string>();
+        std::vector<uint8_t> binaryData = Base64ToBinary(base64Data);
+
+        std::filesystem::path filePath = GameAPI::GetPlayerSaveFile(characterName);
+        FileWriter writer(&binaryData[0], binaryData.size());
+        writer.WriteToFile(filePath);
+
+        spCache->SetCharacterData(characterName, &binaryData[0], binaryData.size());
+    }
+    catch (const std::exception& ex)
+    {
+        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to load character file: %", ex.what());
+    }
+}
+
+void HandleReadSaveCharacterFile(const json& response, uint32_t participantID, std::wstring characterName, std::string base64Data)
+{
+    std::string status = response.at("Status").get<std::string>();
+    if (status != "Ok")
+    {
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to save character file: %", response.at("ErrorMessage"));
+    }
 }
 
 void HandleReadDeleteCharacter(const json& response, uint32_t participantID, std::wstring characterName)
 {
-    // TODO
+    std::string status = response.at("Status").get<std::string>();
+    if (status != "Ok")
+    {
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to delete character file: %", response.at("ErrorMessage"));
+    }
 }

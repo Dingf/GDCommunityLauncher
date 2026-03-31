@@ -96,6 +96,11 @@ bool IsWindowVisible()
     return (_visibleAddress) ? (*_visibleAddress != 0) : false;
 }
 
+bool HasChatWindow()
+{
+    return (_visibleAddress != nullptr);
+}
+
 bool SetChatColor(ChatType type, uint32_t color)
 {
     if (_colorAddress)
@@ -176,6 +181,14 @@ void SetBufferText(const std::wstring& text)
 
         bufferText = trimmedText;
         caratPosition = (uint32_t)trimmedText.size();
+    }
+}
+
+void SetBufferTextDirect(const std::wstring& text)
+{
+    if (_visibleAddress)
+    {
+        *(std::wstring*)(_visibleAddress + 0xB0) = text;
     }
 }
 

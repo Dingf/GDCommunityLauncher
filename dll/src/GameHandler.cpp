@@ -25,7 +25,7 @@ std::string HandleGetRootSavePath();
 std::string HandleGetBaseFolder(void* _this);
 std::string& HandleGetUserSaveFolder(void* _this, void* unk1);
 std::string& HandleGetFullSaveFolder(void* _this, void* unk1, void* player);
-std::string& HandleGetPlayerFolder1(void* _this, void* unk1, const std::string& playerName, bool unk2, bool unk3);
+std::string& HandleGetPlayerFolder1(void* _this, void* unk1, const std::string& characterName, bool unk2, bool unk3);
 std::string& HandleGetPlayerFolder2(void* _this, void* unk1, void* player);
 std::string& HandleGetMapFolder(void* _this, void* unk1, const std::string& name, void* player);
 std::string& HandleGetDifficultyFolder(void* _this, void* unk1, GameAPI::Difficulty difficulty, const std::string& mapName, void* player);

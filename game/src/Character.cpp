@@ -111,7 +111,7 @@ bool Character::ReadFromFile(const std::filesystem::path& path, bool headerOnly)
     return false;
 }
 
-bool Character::ReadFromBuffer(uint8_t* data, size_t size, bool headerOnly)
+bool Character::ReadFromBuffer(const uint8_t* data, size_t size, bool headerOnly)
 {
     EncodedFileReader reader(data, size);
     if (!reader.HasData())
