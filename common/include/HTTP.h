@@ -12,17 +12,26 @@ namespace asio      = boost::asio;
 namespace ssl       = boost::asio::ssl;
 using tcp           = asio::ip::tcp;
 
+// These aren't all of the methods/statuses, but only the ones that are relevant to us
 enum HTTPMethod
 {
-    HTTP_GET,
-    HTTP_POST,
-    HTTP_DELETE,
+    HTTP_METHOD_GET,
+    HTTP_METHOD_POST,
+    HTTP_METHOD_DELETE,
+};
+
+enum HTTPStatus
+{
+    HTTP_STATUS_OK = 200,
+    HTTP_STATUS_NO_CONTENT = 204,
+    HTTP_STATUS_BAD_REQUEST = 400,
+    HTTP_STATUS_INTERNAL_ERROR = 500
 };
 
 class HTTPResponse
 {
     public:
-        uint32_t GetStatus() const { return _status; }
+        HTTPStatus GetStatus() const { return _status; }
         const std::string& GetReason() const { return _reason; }
         const std::string& GetBody();
         std::shared_ptr<ssl::stream<tcp::socket>> GetStream() { return _stream; }
@@ -34,7 +43,7 @@ class HTTPResponse
 
         HTTPResponse(const std::string& response, std::shared_ptr<ssl::stream<tcp::socket>> stream);
 
-        uint32_t _status;
+        HTTPStatus _status;
         std::string _http;
         std::string _reason;
         std::string _body;

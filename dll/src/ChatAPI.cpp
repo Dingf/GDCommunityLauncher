@@ -243,7 +243,7 @@ void ToggleWindowDisplay()
     }
 }
 
-void FindMagicAddresses()
+static void FindMagicAddresses()
 {
     void* gameEngine = *GameAPI::GetGameEngineHandle();
     if (gameEngine)
@@ -270,7 +270,7 @@ void FindMagicAddresses()
     }
 }
 
-void LoadConfig()
+static void LoadConfig()
 {
     Configuration config;
     std::filesystem::path configPath = std::filesystem::current_path() / "GDCommunityLauncher.ini";
@@ -293,7 +293,7 @@ void LoadConfig()
     }
 }
 
-void SaveConfig()
+static void SaveConfig()
 {
     Configuration config;
     std::filesystem::path configPath = std::filesystem::current_path() / "GDCommunityLauncher.ini";
@@ -311,13 +311,13 @@ void SaveConfig()
     }
 }
 
-void OnSetMainPlayerEvent(void* player)
+static void OnSetMainPlayerEvent(void* player)
 {
     FindMagicAddresses();
     LoadConfig();
 }
 
-void OnWorldPreUnloadEvent()
+static void OnWorldPreUnloadEvent()
 {
     SaveConfig();
     _visibleAddress = nullptr;

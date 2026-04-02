@@ -3,7 +3,6 @@
 #include "EngineAPI/Engine.h"
 #include "EngineAPI/Graphics.h"
 #include "GameAPI.h"
-#include "Item.h"
 
 namespace GameAPI
 {
@@ -194,46 +193,6 @@ std::string GetItemSuffixTag(void* item)
 {
     //return *(std::string*)((uintptr_t)item + 0x798);    // Pre-version 1.2.0.5
     return *(std::string*)((uintptr_t)item + 0x7B0);      // Version 1.2.0.5
-}
-
-GameAPI::ItemReplicaInfo ItemToInfo(const Item& item)
-{
-    GameAPI::ItemReplicaInfo info;
-    info._itemName = item._itemName;
-    info._itemPrefix = item._itemPrefix;
-    info._itemSuffix = item._itemSuffix;
-    info._itemModifier = item._itemModifier;
-    info._itemIllusion = item._itemIllusion;
-    info._itemComponent = item._itemComponent;
-    info._itemCompletion = item._itemCompletion;
-    info._itemAugment = item._itemAugment;
-    info._itemSeed = item._itemSeed;
-    info._itemComponentSeed = item._itemComponentSeed;
-    info._unk3 = item._itemUnk1;
-    info._itemAugmentSeed = item._itemAugmentSeed;
-    info._unk4 = item._itemUnk2;
-    info._itemStackCount = item._itemStackCount;
-    return info;
-}
-
-Item InfoToItem(const GameAPI::ItemReplicaInfo& info)
-{
-    Item item;
-    item._itemName = info._itemName;
-    item._itemPrefix = info._itemPrefix;
-    item._itemSuffix = info._itemSuffix;
-    item._itemModifier = info._itemModifier;
-    item._itemIllusion = info._itemIllusion;
-    item._itemComponent = info._itemComponent;
-    item._itemCompletion = info._itemCompletion;
-    item._itemAugment = info._itemAugment;
-    item._itemSeed = info._itemSeed;
-    item._itemComponentSeed = info._itemComponentSeed;
-    item._itemUnk1 = info._unk3;
-    item._itemAugmentSeed = info._itemAugmentSeed;
-    item._itemUnk2 = info._unk4;
-    item._itemStackCount = info._itemStackCount;
-    return item;
 }
 
 }

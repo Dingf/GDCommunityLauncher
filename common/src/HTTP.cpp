@@ -7,11 +7,11 @@ inline std::string GetMethodName(HTTPMethod method)
 {
     switch (method)
     {
-        case HTTP_GET:
+        case HTTP_METHOD_GET:
             return "GET";
-        case HTTP_POST:
+        case HTTP_METHOD_POST:
             return "POST";
-        case HTTP_DELETE:
+        case HTTP_METHOD_DELETE:
             return "DELETE";
         default:
             return "";
@@ -23,7 +23,9 @@ HTTPResponse::HTTPResponse(const std::string& header, std::shared_ptr<ssl::strea
 {
     std::stringstream headerStream(header);
 
-    headerStream >> _http >> _status;
+    uint32_t status;
+    headerStream >> _http >> status;
+    _status = (HTTPStatus)status;
     headerStream.ignore(1);
     std::getline(headerStream, _reason, '\r');
     headerStream.ignore(1);

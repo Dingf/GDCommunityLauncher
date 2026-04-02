@@ -81,7 +81,7 @@ void Stash::ReadStashTabs(EncodedFileReader* reader, size_t count)
         uint32_t numItems = reader->ReadInt32();
         for (uint32_t j = 0; j < numItems; ++j)
         {
-            Item item(reader);
+            ItemReplicaInfo item(reader);
             if (type == ITEM_CONTAINER_CHAR_BAG)
             {
                 itemX = (uint16_t)reader->ReadInt32();
@@ -230,7 +230,7 @@ void from_json(const json& j, Stash::StashTabBlock& data)
     json items = j.at("Items");
     for (auto it = items.begin(); it != items.end(); ++it)
     {
-        Item item;
+        ItemReplicaInfo item;
         it->get_to(item);
 
         uint32_t itemX = it->at("X");

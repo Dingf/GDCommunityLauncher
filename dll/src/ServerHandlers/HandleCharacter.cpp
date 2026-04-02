@@ -4,10 +4,11 @@
 #include "DllClient.h"
 #include "ServerCache.h"
 #include "StringConvert.h"
+#include "HTTP.h"
 #include "JSON.h"
 #include "Log.h"
 
-std::string HandleWriteGetCharacters(uint32_t requestID, uint32_t participantID)
+std::string HandleWriteGetCharacters(uint32_t requestID, uint32_t& participantID)
 {
     json request = 
     {
@@ -20,7 +21,7 @@ std::string HandleWriteGetCharacters(uint32_t requestID, uint32_t participantID)
     return request.dump();
 }
 
-std::string HandleWriteGetCharacterData(uint32_t requestID, uint32_t participantID, std::wstring characterName)
+std::string HandleWriteGetCharacterData(uint32_t requestID, uint32_t& participantID, std::wstring& characterName)
 {
     json request = 
     {
@@ -34,7 +35,7 @@ std::string HandleWriteGetCharacterData(uint32_t requestID, uint32_t participant
     return request.dump();
 }
 
-std::string HandleWriteGetCharacterFile(uint32_t requestID, uint32_t participantID, std::wstring characterName)
+std::string HandleWriteGetCharacterFile(uint32_t requestID, uint32_t& participantID, std::wstring& characterName)
 {
     json request = 
     {
@@ -48,7 +49,7 @@ std::string HandleWriteGetCharacterFile(uint32_t requestID, uint32_t participant
     return request.dump();
 }
 
-std::string HandleWriteSaveCharacterFile(uint32_t requestID, uint32_t participantID, std::wstring characterName, std::string base64Data)
+std::string HandleWriteSaveCharacterFile(uint32_t requestID, uint32_t& participantID, std::wstring& characterName, std::string& base64Data)
 {
     uint32_t characterID = spCache->GetCharacterID(characterName);
     json request =
@@ -58,12 +59,14 @@ std::string HandleWriteSaveCharacterFile(uint32_t requestID, uint32_t participan
         { "Arguments", {
             { "SeasonParticipantId", participantID },
             { "ParticipantCharacterId", characterID }
-        }}
+        }},
+        { "File", base64Data }
     };
+    base64Data.clear();
     return request.dump();
 }
 
-std::string HandleWriteDeleteCharacter(uint32_t requestID, uint32_t participantID, std::wstring characterName)
+std::string HandleWriteDeleteCharacter(uint32_t requestID, uint32_t& participantID, std::wstring& characterName)
 {
     json request = 
     {
@@ -80,8 +83,8 @@ std::string HandleWriteDeleteCharacter(uint32_t requestID, uint32_t participantI
 
 void HandleReadGetCharacters(const json& response, uint32_t participantID)
 {
-    std::string status = response.at("Status").get<std::string>();
-    if (status != "Ok")
+    HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
+    if (status != HTTP_STATUS_OK)
     {
         Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to load character list: %", response.at("ErrorMessage"));
     }
@@ -91,14 +94,17 @@ void HandleReadGetCharacterData(const json& response, uint32_t participantID, st
 {
     try
     {
-        std::string status = response.at("Status").get<std::string>();
-        if (status != "Ok")
+        HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
+        if (status == HTTP_STATUS_OK)
+        {
+            const json& data = response.at("Data");
+            uint32_t characterID = data.at("ParticipantCharacterId").get<uint32_t>();
+            spCache->SetCharacterID(characterName, participantID, characterID);
+        }
+        else if (status != HTTP_STATUS_NO_CONTENT)
+        {
             throw std::runtime_error(response.at("ErrorMessage"));
-
-        const json& data = response.at("Data");
-        uint32_t characterID = data.at("ParticipantCharacterId").get<uint32_t>();
-
-        spCache->SetCharacterID(characterName, participantID, characterID);
+        }
     }
     catch (const std::exception& ex)
     {
@@ -110,22 +116,23 @@ void HandleReadGetCharacterFile(const json& response, uint32_t participantID, st
 {
     try
     {
-        std::string status = response.at("Status").get<std::string>();
-        if (status != "Ok")
+        HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
+        if (status == HTTP_STATUS_OK)
+        {
+            const json& file = response.at("File");
+            std::string base64Data = file.get<std::string>();
+            std::vector<uint8_t> binaryData = Base64ToBinary(base64Data);
+
+            std::filesystem::path filePath = GameAPI::GetPlayerSaveFile(characterName);
+            FileWriter writer(&binaryData[0], binaryData.size());
+            writer.WriteToFile(filePath);
+
+            spCache->SetCharacterData(characterName, &binaryData[0], binaryData.size());
+        }
+        else if (status != HTTP_STATUS_NO_CONTENT)
+        {
             throw std::runtime_error(response.at("ErrorMessage"));
-
-        const json& file = response.at("File");
-        if (file.is_null())
-            return;
-
-        std::string base64Data = file.get<std::string>();
-        std::vector<uint8_t> binaryData = Base64ToBinary(base64Data);
-
-        std::filesystem::path filePath = GameAPI::GetPlayerSaveFile(characterName);
-        FileWriter writer(&binaryData[0], binaryData.size());
-        writer.WriteToFile(filePath);
-
-        spCache->SetCharacterData(characterName, &binaryData[0], binaryData.size());
+        }
     }
     catch (const std::exception& ex)
     {
@@ -135,8 +142,8 @@ void HandleReadGetCharacterFile(const json& response, uint32_t participantID, st
 
 void HandleReadSaveCharacterFile(const json& response, uint32_t participantID, std::wstring characterName, std::string base64Data)
 {
-    std::string status = response.at("Status").get<std::string>();
-    if (status != "Ok")
+    HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
+    if (status != HTTP_STATUS_OK)
     {
         Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to save character file: %", response.at("ErrorMessage"));
     }
@@ -144,8 +151,8 @@ void HandleReadSaveCharacterFile(const json& response, uint32_t participantID, s
 
 void HandleReadDeleteCharacter(const json& response, uint32_t participantID, std::wstring characterName)
 {
-    std::string status = response.at("Status").get<std::string>();
-    if (status != "Ok")
+    HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
+    if (status != HTTP_STATUS_OK)
     {
         Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to delete character file: %", response.at("ErrorMessage"));
     }

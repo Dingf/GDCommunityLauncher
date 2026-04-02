@@ -4,42 +4,42 @@
 #include "DllClient.h"
 #include "EventManager.h"
 #include "ServerHandler.h"
-#include "Item.h"
+#include "ItemReplicaInfo.h"
 #include "JSON.h"
 
 // Write handlers
-std::string HandleWriteAddParticipant(uint32_t requestID, bool hardcore);
-std::string HandleWriteGetChallenges(uint32_t requestID, uint32_t participantID, uint32_t seasonID);
-std::string HandleWriteGetCharacters(uint32_t requestID, uint32_t participantID);
-std::string HandleWriteGetCharacterData(uint32_t requestID, uint32_t participantID, std::wstring characterName);
-std::string HandleWriteGetCharacterFile(uint32_t requestID, uint32_t participantID, std::wstring characterName);
-std::string HandleWriteSaveCharacterFile(uint32_t requestID, uint32_t participantID, std::wstring characterName, std::string base64Data);
+std::string HandleWriteAddParticipant(uint32_t requestID, bool& hardcore);
+std::string HandleWriteGetChallenges(uint32_t requestID, uint32_t& participantID, uint32_t& seasonID);
+std::string HandleWriteGetCharacters(uint32_t requestID, uint32_t& participantID);
+std::string HandleWriteGetCharacterData(uint32_t requestID, uint32_t& participantID, std::wstring& characterName);
+std::string HandleWriteGetCharacterFile(uint32_t requestID, uint32_t& participantID, std::wstring& characterName);
+std::string HandleWriteSaveCharacterFile(uint32_t requestID, uint32_t& participantID, std::wstring& characterName, std::string& base64Data);
 std::string HandleWriteGetSeasons(uint32_t requestID);
-std::string HandleWriteGetSeasonChallenges(uint32_t requestID, uint32_t seasonID);
-std::string HandleWriteGetPoints(uint32_t requestID, uint32_t participantID);
-std::string HandleWriteGetTradeNotifications(uint32_t requestID, uint32_t participantID);
-std::string HandleWriteGetTagFile(uint32_t requestID, uint32_t participantID);
-std::string HandleWriteSaveTagFile(uint32_t requestID, uint32_t participantID, std::string base64Data);
-std::string HandleWriteGetStashFile(uint32_t requestID, uint32_t participantID);
-std::string HandleWriteSaveStashFile(uint32_t requestID, uint32_t participantID, std::string base64Data);
-std::string HandleWriteGetTransmuteFile(uint32_t requestID, uint32_t participantID);
-std::string HandleWriteSaveTransmuteFile(uint32_t requestID, uint32_t participantID, std::string base64Data);
-std::string HandleWriteGetFormulasFile(uint32_t requestID, uint32_t participantID);
-std::string HandleWriteSaveFormulasFile(uint32_t requestID, uint32_t participantID, std::string base64Data);
-std::string HandleWriteGetQuestFile(uint32_t requestID, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty);
-std::string HandleWriteSaveQuestFile(uint32_t requestID, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty, std::string base64Data);
-std::string HandleWriteGetConversationFile(uint32_t requestID, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty);
-std::string HandleWriteSaveConversationFile(uint32_t requestID, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty, std::string base64Data);
-std::string HandleWriteGetMapFile(uint32_t requestID, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty);
-std::string HandleWriteSaveMapFile(uint32_t requestID, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty, std::string base64Data);
-std::string HandleWriteGetFOWFile(uint32_t requestID, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty);
-std::string HandleWriteSaveFOWFile(uint32_t requestID, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty, std::string base64Data);
+std::string HandleWriteGetSeasonChallenges(uint32_t requestID, uint32_t& seasonID);
+std::string HandleWriteGetPoints(uint32_t requestID, uint32_t& participantID);
+std::string HandleWriteGetTradeNotifications(uint32_t requestID, uint32_t& participantID);
+std::string HandleWriteGetTagFile(uint32_t requestID, uint32_t& participantID);
+std::string HandleWriteSaveTagFile(uint32_t requestID, uint32_t& participantID, std::string& base64Data);
+std::string HandleWriteGetStashFile(uint32_t requestID, uint32_t& participantID);
+std::string HandleWriteSaveStashFile(uint32_t requestID, uint32_t& participantID, std::string& base64Data);
+std::string HandleWriteGetTransmuteFile(uint32_t requestID, uint32_t& participantID);
+std::string HandleWriteSaveTransmuteFile(uint32_t requestID, uint32_t& participantID, std::string& base64Data);
+std::string HandleWriteGetFormulasFile(uint32_t requestID, uint32_t& participantID);
+std::string HandleWriteSaveFormulasFile(uint32_t requestID, uint32_t& participantID, std::string& base64Data);
+std::string HandleWriteGetQuestFile(uint32_t requestID, uint32_t& participantID, std::wstring& characterName, GameAPI::Difficulty& difficulty);
+std::string HandleWriteSaveQuestFile(uint32_t requestID, uint32_t& participantID, std::wstring& characterName, GameAPI::Difficulty& difficulty, std::string& base64Data);
+std::string HandleWriteGetConversationFile(uint32_t requestID, uint32_t& participantID, std::wstring& characterName, GameAPI::Difficulty& difficulty);
+std::string HandleWriteSaveConversationFile(uint32_t requestID, uint32_t& participantID, std::wstring& characterName, GameAPI::Difficulty& difficulty, std::string& base64Data);
+std::string HandleWriteGetMapFile(uint32_t requestID, uint32_t& participantID, std::wstring& characterName, GameAPI::Difficulty& difficulty);
+std::string HandleWriteSaveMapFile(uint32_t requestID, uint32_t& participantID, std::wstring& characterName, GameAPI::Difficulty& difficulty, std::string& base64Data);
+std::string HandleWriteGetFOWFile(uint32_t requestID, uint32_t& participantID, std::wstring& characterName, GameAPI::Difficulty& difficulty);
+std::string HandleWriteSaveFOWFile(uint32_t requestID, uint32_t& participantID, std::wstring& characterName, GameAPI::Difficulty& difficulty, std::string& base64Data);
 std::string HandleWriteStashCapacity(uint32_t requestID);
-std::string HandleWriteTransferItems(uint32_t requestID, uint32_t participantID, std::vector<uint32_t> itemIDs);
-std::string HandleWriteStoreItems(uint32_t requestID, uint32_t participantID, std::vector<Item> items);
-std::string HandleWriteTransferQueue(uint32_t requestID, uint32_t participantID);
-std::string HandleWriteDeleteCharacter(uint32_t requestID, uint32_t participantID, std::wstring characterName);
-std::string HandleWriteSaveTag(uint32_t requestID, uint32_t participantID, std::string tagName, uint32_t level, GameAPI::Difficulty difficulty);
+std::string HandleWriteTransferItems(uint32_t requestID, uint32_t& participantID, std::vector<uint32_t>& itemIDs);
+std::string HandleWriteStoreItems(uint32_t requestID, uint32_t& participantID, std::vector<ItemReplicaInfo>& items);
+std::string HandleWriteTransferQueue(uint32_t requestID, uint32_t& participantID);
+std::string HandleWriteDeleteCharacter(uint32_t requestID, uint32_t& participantID, std::wstring& characterName);
+std::string HandleWriteSaveTag(uint32_t requestID, uint32_t& participantID, std::string& tagName, uint32_t& level, GameAPI::Difficulty& difficulty);
 
 // Read Handlers
 void HandleReadAddParticipant(const json& response, bool hardcore);
@@ -70,7 +70,7 @@ void HandleReadGetFOWFile(const json& response, uint32_t participantID, std::wst
 void HandleReadSaveFOWFile(const json& response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty, std::string base64Data);
 void HandleReadStashCapacity(const json& response);
 void HandleReadTransferItems(const json& response, uint32_t participantID, std::vector<uint32_t> itemIDs);
-void HandleReadStoreItems(const json& response, uint32_t participantID, std::vector<Item> items);
+void HandleReadStoreItems(const json& response, uint32_t participantID, std::vector<ItemReplicaInfo> items);
 void HandleReadTransferQueue(const json& response, uint32_t participantID);
 void HandleReadDeleteCharacter(const json& response, uint32_t participantID, std::wstring characterName);
 void HandleReadSaveTag(const json& response, uint32_t participantID, std::string tagName, uint32_t level, GameAPI::Difficulty difficulty);

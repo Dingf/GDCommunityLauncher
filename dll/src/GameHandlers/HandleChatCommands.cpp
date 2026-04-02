@@ -591,72 +591,7 @@ bool HandleChatWhisperCommand(std::wstring& name, std::wstring& message, uint32_
     std::wstring text = (username.size() == message.size()) ? L"" : message.substr(message.find(L" ") + 1);
 
     if (!text.empty())
-    {
-        spChat->Send("Send", channel, text, name, item);
-
-        // TODO: Make this work with websockets
-        /*pplx::create_task([username, text]()
-        {
-            Client& client = Client::GetInstance();
-            URI endpoint = client.GetServerChatURL() / "chat" / "user" / username / "direct";
-
-            web::json::value requestBody;
-            requestBody[U("username")] = JSONString(client.GetUsername());
-            requestBody[U("messageBody")] = JSONString(text);
-            requestBody[U("type")] = CHAT_TYPE_WHISPER;
-
-            web::http::client::http_client httpClient((utility::string_t)endpoint);
-            web::http::http_request request(web::http::methods::POST);
-            request.set_body(requestBody);
-
-            std::string bearerToken = "Bearer " + client.GetAuthToken();
-            request.headers().add(U("Authorization"), bearerToken.c_str());
-
-            web::http::http_response response = httpClient.request(request).get();
-            web::http::status_code status = response.status_code();
-            switch (status)
-            {
-                case web::http::status_codes::OK:
-                case web::http::status_codes::BadRequest:
-                case web::http::status_codes::InternalError:
-                    return status;
-                default:
-                    throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-            }
-        })
-        .then([username, text](pplx::task<web::http::status_code> task)
-        {
-            try
-            {
-                switch (task.get())
-                {
-                    case web::http::status_codes::OK:
-                    {
-                        std::wstring user = L"[To " + username + L"]";
-                        GameAPI::SendChatMessage(user, text, CHAT_TYPE_NORMAL);
-                        spChatManager->SetChatPrefix(L"/w " + username + L" ");
-                        break;
-                    }
-                    case web::http::status_codes::BadRequest:
-                    {
-                        std::wstring message = username + L" is not currently online.";
-                        GameAPI::SendChatMessage(L"Server", message, CHAT_TYPE_NORMAL);
-                        break;
-                    }
-                    case web::http::status_codes::InternalError:
-                    {
-                        std::wstring message = username + L" was not found on the server.";
-                        GameAPI::SendChatMessage(L"Server", message, CHAT_TYPE_NORMAL);
-                        break;
-                    }
-                }
-            }
-            catch (std::exception& ex)
-            {
-                Logger::LogMessage(LOG_LEVEL_WARN, "Failed to send whisper message: %", ex.what());
-            }
-        });*/
-    }
+        spChat->Send("Send", channel, text, username, item);
 
     return false;
 }
@@ -682,7 +617,7 @@ bool HandleBetaAddItemCommand(std::wstring& name, std::wstring& message, uint32_
         }
         catch (std::exception&) {}
 
-        GameAPI::ItemReplicaInfo itemInfo;
+        ItemReplicaInfo itemInfo;
         itemInfo._itemID = EngineAPI::CreateObjectID();
         itemInfo._itemName = WideToChar(subcommand);
         itemInfo._itemStackCount = stackCount;

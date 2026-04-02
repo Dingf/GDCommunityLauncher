@@ -30,7 +30,7 @@ typedef void (*DownloadValueCallback)(size_t);
 
 bool GetDownloadList(std::unordered_map<std::wstring, std::string>& downloadList)
 {
-    HTTPRequest request(HTTP_GET, "/File/filenames?branch=" + spClient->GetBranchName());
+    HTTPRequest request(HTTP_METHOD_GET, "/File/filenames?branch=" + spClient->GetBranchName());
     request.AddHeader("Authorization", "Bearer " + spClient->GetAuthToken());
  
     try
@@ -96,7 +96,7 @@ bool DownloadFile(const std::filesystem::path& filenamePath, const std::string& 
         if (host.starts_with("https://"))    // Trim https:// if it's in the hostname
             host = host.substr(8);
 
-        HTTPRequest request(HTTP_GET, target);
+        HTTPRequest request(HTTP_METHOD_GET, target);
 
         HTTPResponse response = request.Send(host, "443");
         switch (response.GetStatus())
@@ -159,7 +159,7 @@ bool VerifyBaseGameFiles(std::string& expectedVersion)
         });
     }
 
-    HTTPRequest request(HTTP_POST, "/File/base-game/file-sizes?branch=" + spClient->GetBranchName());
+    HTTPRequest request(HTTP_METHOD_GET, "/File/base-game/file-sizes?branch=" + spClient->GetBranchName());
     request.AddHeader("Authorization", "Bearer " + spClient->GetAuthToken());
     request.SetBody(body);
 

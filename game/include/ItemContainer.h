@@ -5,7 +5,7 @@
 #include <map>
 #include <vector>
 #include <list>
-#include "Item.h"
+#include "ItemReplicaInfo.h"
 
 enum ItemContainerType
 {
@@ -21,7 +21,7 @@ enum ItemContainerType
 class ItemContainer
 {
     public:
-        typedef std::map<std::shared_ptr<Item>, uint64_t> ItemList;
+        typedef std::map<std::shared_ptr<ItemReplicaInfo>, uint64_t> ItemList;
 
         ItemContainer(uint32_t width, uint32_t height);
         virtual ~ItemContainer() = 0;
@@ -33,9 +33,9 @@ class ItemContainer
 
         virtual ItemContainerType GetContainerType() const = 0;
 
-        bool AddItem(const Item& item);
-        bool AddItem(const Item& item, uint32_t x, uint32_t y);
-        std::vector<Item*> AddItemList(const std::vector<Item>& items);
+        bool AddItem(const ItemReplicaInfo& item);
+        bool AddItem(const ItemReplicaInfo& item, uint32_t x, uint32_t y);
+        std::vector<ItemReplicaInfo*> AddItemList(const std::vector<ItemReplicaInfo>& items);
 
               ItemList& GetItemList()       { return _itemList; }
         const ItemList& GetItemList() const { return _itemList; }
@@ -49,10 +49,10 @@ class ItemContainer
             GridData() : _item(nullptr), _right(0), _down(0), _real(false) {}
             GridData(int32_t right, int32_t down) : _item(nullptr), _right(right), _down(down), _real(false) {}
 
-            Item* _item;        // The pointer to the item, or nullptr if empty
-            int32_t _right;     // The farthest continuous empty index to the right
-            int32_t _down;      // The farthest continuous empty index to the bottom
-            bool _real;         // Whether or not the grid data contains the actual location of the item
+            ItemReplicaInfo* _item; // The pointer to the item, or nullptr if empty
+            int32_t _right;         // The farthest continuous empty index to the right
+            int32_t _down;          // The farthest continuous empty index to the bottom
+            bool _real;             // Whether or not the grid data contains the actual location of the item
         };
 
         std::vector<GridData> _grid;    // The array of width * height GridData structures, used to store the state of the container

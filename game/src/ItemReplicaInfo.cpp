@@ -1,7 +1,7 @@
-#include "Item.h"
+#include "ItemReplicaInfo.h"
 #include "Log.h"
 
-Item& Item::operator=(const Item& item)
+ItemReplicaInfo& ItemReplicaInfo::operator=(const ItemReplicaInfo& item)
 {
     _itemName = item._itemName;
     _itemPrefix = item._itemPrefix;
@@ -13,19 +13,21 @@ Item& Item::operator=(const Item& item)
     _itemAugment = item._itemAugment;
 
     _itemID = item._itemID;
+    _participantItemID = item._participantItemID;
     _itemSeed = item._itemSeed;
     _itemComponentSeed = item._itemComponentSeed;
-    _itemUnk1 = item._itemUnk1;
+    _unk3 = item._unk3;
     _itemAugmentSeed = item._itemAugmentSeed;
-    _itemUnk2 = item._itemUnk2;
+    _unk4 = item._unk4;
     _itemStackCount = item._itemStackCount;
 
     return *this;
 }
 
-void Item::Read(EncodedFileReader* reader)
+void ItemReplicaInfo::Read(EncodedFileReader* reader)
 {
     _itemID = 0;
+    _participantItemID = 0;
     _itemName = reader->ReadString();
     _itemPrefix = reader->ReadString();
     _itemSuffix = reader->ReadString();
@@ -36,13 +38,13 @@ void Item::Read(EncodedFileReader* reader)
     _itemCompletion = reader->ReadString();
     _itemComponentSeed = reader->ReadInt32();
     _itemAugment = reader->ReadString();
-    _itemUnk1 = reader->ReadInt32();
+    _unk3 = reader->ReadInt32();
     _itemAugmentSeed = reader->ReadInt32();
-    _itemUnk2 = reader->ReadInt32();
+    _unk4 = reader->ReadInt32();
     _itemStackCount = reader->ReadInt32();
 }
 
-void Item::Write(EncodedFileWriter* writer)
+void ItemReplicaInfo::Write(EncodedFileWriter* writer)
 {
     writer->BufferString(_itemName);
     writer->BufferString(_itemPrefix);
@@ -54,13 +56,13 @@ void Item::Write(EncodedFileWriter* writer)
     writer->BufferString(_itemCompletion);
     writer->BufferInt32(_itemComponentSeed);
     writer->BufferString(_itemAugment);
-    writer->BufferInt32(_itemUnk1);
+    writer->BufferInt32(_unk3);
     writer->BufferInt32(_itemAugmentSeed);
-    writer->BufferInt32(_itemUnk2);
+    writer->BufferInt32(_unk4);
     writer->BufferInt32(_itemStackCount);
 }
 
-size_t Item::GetBufferSize() const
+size_t ItemReplicaInfo::GetBufferSize() const
 {
     size_t size = 56;
     size += _itemName.length();
@@ -74,7 +76,7 @@ size_t Item::GetBufferSize() const
     return size;
 }
 
-void to_json(json& j, const Item& data)
+void to_json(json& j, const ItemReplicaInfo& data)
 {
     j = json
     {
@@ -88,15 +90,15 @@ void to_json(json& j, const Item& data)
         { "Completion",        data._itemCompletion },
         { "ComponentSeed",     data._itemComponentSeed },
         { "Augment",           data._itemAugment },
-        { "Unknown1",          data._itemUnk1 },
+        { "Unknown1",          data._unk3 },
         { "AugmentSeed",       data._itemAugmentSeed },
-        { "Unknown2",          data._itemUnk2 },
+        { "Unknown2",          data._unk4 },
         { "StackCount",        data._itemStackCount },
-        { "ParticipantItemID", data._itemID },
+        { "ParticipantItemID", data._participantItemID },
     };
 }
 
-void from_json(const json& j, Item& data)
+void from_json(const json& j, ItemReplicaInfo& data)
 {
     j.at("Name")         .get_to(data._itemName);
     j.at("Prefix")       .get_to(data._itemPrefix);
@@ -108,11 +110,11 @@ void from_json(const json& j, Item& data)
     j.at("Completion")   .get_to(data._itemCompletion);
     j.at("ComponentSeed").get_to(data._itemComponentSeed);
     j.at("Augment")      .get_to(data._itemAugment);
-    j.at("Unknown1")     .get_to(data._itemUnk1);
+    j.at("Unknown1")     .get_to(data._unk3);
     j.at("AugmentSeed")  .get_to(data._itemAugmentSeed);
-    j.at("Unknown2")     .get_to(data._itemUnk2);
+    j.at("Unknown2")     .get_to(data._unk4);
     j.at("StackCount")   .get_to(data._itemStackCount);
 
     if (j.contains("ParticipantItemID"))
-        j.at("ParticipantItemID").get_to(data._itemID);
+        j.at("ParticipantItemID").get_to(data._participantItemID);
 }

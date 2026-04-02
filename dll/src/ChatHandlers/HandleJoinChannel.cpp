@@ -3,7 +3,7 @@
 #include "GameAPI.h"
 #include "JSON.h"
 
-std::string HandleWriteJoinChannel(uint32_t requestID, uint8_t channel)
+std::string HandleWriteJoinChannel(uint32_t requestID, uint8_t& channel)
 {
     json request = 
     {

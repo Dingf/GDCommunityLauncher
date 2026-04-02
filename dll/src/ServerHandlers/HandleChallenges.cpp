@@ -1,8 +1,9 @@
 #include <string>
+#include "GameAPI/Difficulty.h"
 #include "ChallengeManager.h"
+#include "HTTP.h"
 #include "JSON.h"
 #include "Log.h"
-#include "GameAPI/Difficulty.h"
 
 const std::unordered_map<std::string, uint32_t> challengeDifficultyMap =
 {
@@ -11,7 +12,7 @@ const std::unordered_map<std::string, uint32_t> challengeDifficultyMap =
     { "Ultimate", (1 << GameAPI::GAME_DIFFICULTY_ULTIMATE) }
 };
 
-std::string HandleWriteGetChallenges(uint32_t requestID, uint32_t participantID, uint32_t seasonID)
+std::string HandleWriteGetChallenges(uint32_t requestID, uint32_t& participantID, uint32_t& seasonID)
 {
     json request = 
     {
@@ -25,7 +26,7 @@ std::string HandleWriteGetChallenges(uint32_t requestID, uint32_t participantID,
     return request.dump();
 }
 
-std::string HandleWriteGetSeasonChallenges(uint32_t requestID, uint32_t seasonID)
+std::string HandleWriteGetSeasonChallenges(uint32_t requestID, uint32_t& seasonID)
 {
     json request =
     {
@@ -40,8 +41,8 @@ std::string HandleWriteGetSeasonChallenges(uint32_t requestID, uint32_t seasonID
 
 void HandleReadGetChallenges(const json& response, uint32_t participantID, uint32_t seasonID)
 {
-    std::string status = response.at("Status").get<std::string>();
-    if (status == "Ok")
+    HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
+    if (status == HTTP_STATUS_OK)
     {
         const json& challenges = response.at("Data");
         for (const json& challenge : challenges)
@@ -61,8 +62,8 @@ void HandleReadGetChallenges(const json& response, uint32_t participantID, uint3
 
 void HandleReadGetSeasonChallenges(const json& response, uint32_t seasonID)
 {
-    std::string status = response.at("Status").get<std::string>();
-    if (status == "Ok")
+    HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
+    if (status == HTTP_STATUS_OK)
     {
         const json& challenges = response.at("Data");
         // TODO Change once Hidden has its own field or is otherwise defined

@@ -4,6 +4,7 @@
 #include "ChatAPI.h"
 #include "ServerCache.h"
 #include "DllClient.h"
+#include "HTTP.h"
 #include "JSON.h"
 #include "Log.h"
 
@@ -20,7 +21,7 @@ std::string HandleWriteGetSeasons(uint32_t requestID)
     return request.dump();
 }
 
-std::string HandleWriteGetPoints(uint32_t requestID, uint32_t participantID)
+std::string HandleWriteGetPoints(uint32_t requestID, uint32_t& participantID)
 {
     json request = 
     {
@@ -33,7 +34,7 @@ std::string HandleWriteGetPoints(uint32_t requestID, uint32_t participantID)
     return request.dump();
 }
 
-std::string HandleWriteGetTradeNotifications(uint32_t requestID, uint32_t participantID)
+std::string HandleWriteGetTradeNotifications(uint32_t requestID, uint32_t& participantID)
 {
     json request = 
     {
@@ -47,7 +48,7 @@ std::string HandleWriteGetTradeNotifications(uint32_t requestID, uint32_t partic
     return request.dump();
 }
 
-std::string HandleWriteAddParticipant(uint32_t requestID, bool hardcore)
+std::string HandleWriteAddParticipant(uint32_t requestID, bool& hardcore)
 {
     uint32_t seasonID = 0;
     if (const SeasonInfo* season = spClient->GetSeasonByType(hardcore))
@@ -64,7 +65,7 @@ std::string HandleWriteAddParticipant(uint32_t requestID, bool hardcore)
     return request.dump();
 }
 
-std::string HandleWriteSaveTag(uint32_t requestID, uint32_t participantID, std::string tagName, uint32_t level, GameAPI::Difficulty difficulty)
+std::string HandleWriteSaveTag(uint32_t requestID, uint32_t& participantID, std::string& tagName, uint32_t& level, GameAPI::Difficulty& difficulty)
 {
     json request =
     {
@@ -82,8 +83,8 @@ std::string HandleWriteSaveTag(uint32_t requestID, uint32_t participantID, std::
 
 void HandleReadGetSeasons(const json& response)
 {
-    std::string status = response.at("Status").get<std::string>();
-    if (status == "Ok")
+    HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
+    if (status == HTTP_STATUS_OK)
     {
         auto& seasonList = spClient->GetSeasonList();
         seasonList.clear();
@@ -108,8 +109,8 @@ void HandleReadGetSeasons(const json& response)
 
 void HandleReadGetPoints(const json& response, uint32_t participantID)
 {
-    const std::string status = response.at("Status").get<std::string>();
-    if (status == "Ok")
+    HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
+    if (status == HTTP_STATUS_OK)
     {
         const json& data = response.at("Data");
         spClient->SetPoints(data.at("PointTotal").get<uint32_t>());
@@ -123,8 +124,8 @@ void HandleReadGetPoints(const json& response, uint32_t participantID)
 
 void HandleReadGetTradeNotifications(const json& response, uint32_t participantID)
 {
-    const std::string status = response.at("Status").get<std::string>();
-    if (status == "Ok")
+    HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
+    if (status == HTTP_STATUS_OK)
     {
         uint32_t notificationCount = response.at("Data").get<uint32_t>();
         if (notificationCount > 0)
@@ -146,8 +147,8 @@ void HandleReadGetTradeNotifications(const json& response, uint32_t participantI
 
 void HandleReadAddParticipant(const json& response, bool hardcore)
 {
-    std::string status = response.at("Status").get<std::string>();
-    if (status == "Ok")
+    HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
+    if (status == HTTP_STATUS_OK)
     {
         const json& data = response.at("Data");
         spCache->SetParticipantID(hardcore, data.at("SeasonParticipantId").get<uint32_t>());
@@ -160,8 +161,8 @@ void HandleReadAddParticipant(const json& response, bool hardcore)
 
 void HandleReadSaveTag(const json& response, uint32_t participantID, std::string tagName, uint32_t level, GameAPI::Difficulty difficulty)
 {
-    const std::string status = response.at("Status").get<std::string>();
-    if (status == "Ok")
+    HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
+    if (status == HTTP_STATUS_OK)
     {
         const json& data = response.at("Data");
         spClient->SetPoints(data.at("PointTotal").get<uint32_t>());

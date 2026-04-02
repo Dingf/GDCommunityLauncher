@@ -12,7 +12,7 @@ inline bool HasBetaAccess(const std::string& role)
 
 bool CheckLauncherUpdates()
 {
-    HTTPRequest request(HTTP_GET, "/File/launcher?branch=" + spClient->GetBranchName());
+    HTTPRequest request(HTTP_METHOD_GET, "/File/launcher?branch=" + spClient->GetBranchName());
     request.AddHeader("Authorization", "Bearer " + spClient->GetAuthToken());
 
     try
@@ -39,7 +39,7 @@ bool CheckLauncherUpdates()
 
 bool GetChatAPI()
 {
-    HTTPRequest request(HTTP_GET, "/Admin/chat-url");
+    HTTPRequest request(HTTP_METHOD_GET, "/Admin/chat-url");
     request.AddHeader("Authorization", "Bearer " + spClient->GetAuthToken());
 
     try
@@ -65,7 +65,7 @@ bool GetChatAPI()
 
 bool GetSeasonName()
 {
-    HTTPRequest request(HTTP_GET, "/Season/latest/season-name?branch=" + spClient->GetBranchName());
+    HTTPRequest request(HTTP_METHOD_GET, "/Season/latest/season-name?branch=" + spClient->GetBranchName());
 
     try
     {
@@ -90,7 +90,7 @@ bool GetSeasonName()
 
 bool GetSeasonData()
 {
-    HTTPRequest request(HTTP_GET, "/Season/latest?branch=" + spClient->GetBranchName());
+    HTTPRequest request(HTTP_METHOD_GET, "/Season/latest?branch=" + spClient->GetBranchName());
     request.AddHeader("Authorization", "Bearer " + spClient->GetAuthToken());
 
     try

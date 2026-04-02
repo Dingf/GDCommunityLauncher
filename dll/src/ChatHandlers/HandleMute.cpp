@@ -13,7 +13,7 @@ std::string HandleWriteGetMutedList(uint32_t requestID)
     return request.dump();
 }
 
-std::string HandleWriteMutePlayer(uint32_t requestID, std::wstring playerName)
+std::string HandleWriteMutePlayer(uint32_t requestID, std::wstring& playerName)
 {
     json request = 
     {
@@ -24,7 +24,7 @@ std::string HandleWriteMutePlayer(uint32_t requestID, std::wstring playerName)
     return request.dump();
 }
 
-std::string HandleWriteUnmutePlayer(uint32_t requestID, std::wstring playerName)
+std::string HandleWriteUnmutePlayer(uint32_t requestID, std::wstring& playerName)
 {
     json request = 
     {

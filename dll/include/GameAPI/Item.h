@@ -4,8 +4,8 @@
 #include <stdint.h>
 #include <string>
 #include "ItemType.h"
+#include "ItemReplicaInfo.h"
 
-struct Item;
 namespace GameAPI
 {
 
@@ -53,36 +53,6 @@ enum ItemClassification : uint32_t
     ITEM_CLASSIFICATION_LORE_NOTE = 13,
 };
 
-struct ItemReplicaInfo
-{
-    ItemReplicaInfo() = default;
-
-    uint32_t    _itemID;
-    std::string _itemName;
-    std::string _itemPrefix;
-    std::string _itemSuffix;
-    uint32_t    _itemSeed;
-    uint32_t    _unk1;
-    std::string _itemModifier;
-    std::string _itemComponent;
-    std::string _itemCompletion;
-    uint32_t    _itemComponentSeed;
-    uint32_t    _unk2;
-    std::string _itemAugment;
-    uint32_t    _unk3;      // _itemUnk1
-    uint32_t    _itemAugmentSeed;
-    std::string _itemIllusion;
-    uint32_t    _unk4;      // _itemUnk2
-    uint32_t    _unk5;
-    uint64_t    _unk6;
-    uint32_t    _unk7;
-    uint32_t    _itemStackCount;
-    uint32_t    _unk8;
-    uint32_t    _unk9;
-    uint32_t    _unk10;
-    uint32_t    _unk11;
-};
-
 void* CreateItem(const ItemReplicaInfo& info);
 uint32_t GenerateItemSeed(uint32_t max = 0xFFFFFFFF);
 ItemReplicaInfo GetItemReplicaInfo(void* item);
@@ -99,8 +69,6 @@ WeaponType GetWeaponType(void* item);
 std::string GetItemNameTag(void* item);
 std::string GetItemPrefixTag(void* item);
 std::string GetItemSuffixTag(void* item);
-ItemReplicaInfo ItemToInfo(const Item& item);
-Item InfoToItem(const GameAPI::ItemReplicaInfo& info);
 
 }
 

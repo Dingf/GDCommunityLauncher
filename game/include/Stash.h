@@ -3,12 +3,13 @@
 
 #include <memory>
 #include <vector>
-#include "FileData.h"
-#include "JSON.h"
+#include "FileReader.h"
+#include "FileWriter.h"
 #include "GDDataBlock.h"
 #include "ItemContainer.h"
+#include "JSON.h"
 
-class Stash : public FileData
+class Stash
 {
     public:
         class StashTab : public ItemContainer

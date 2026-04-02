@@ -156,23 +156,23 @@ std::string DowngradeItemBase(const std::string& itemName)
     return {};
 }
 
-inline bool HasVaalAffix(const GameAPI::ItemReplicaInfo& itemInfo)
+inline bool HasVaalAffix(const ItemReplicaInfo& itemInfo)
 {
     return (std::regex_match(itemInfo._itemPrefix, vaalRegex) || std::regex_match(itemInfo._itemSuffix, vaalRegex));
 }
 
-inline bool HasSmithAffix(const GameAPI::ItemReplicaInfo& itemInfo)
+inline bool HasSmithAffix(const ItemReplicaInfo& itemInfo)
 {
     return (std::regex_match(itemInfo._itemModifier, smithRegex) || std::regex_match(itemInfo._itemModifier, smithRegex));
 }
 
-inline bool HasVaalOrSmithAffix(const GameAPI::ItemReplicaInfo& itemInfo)
+inline bool HasVaalOrSmithAffix(const ItemReplicaInfo& itemInfo)
 {
     return (HasVaalAffix(itemInfo) || HasSmithAffix(itemInfo));
 }
 
 // CanRerollItemSeed()
-bool CanRerollItemSeed(void* item, void* enchant, uint32_t itemLevel, const GameAPI::ItemReplicaInfo& itemInfo, ItemType itemType, GameAPI::ItemClassification itemRarity)
+bool CanRerollItemSeed(void* item, void* enchant, uint32_t itemLevel, const ItemReplicaInfo& itemInfo, ItemType itemType, GameAPI::ItemClassification itemRarity)
 {
     return true;
 }
@@ -181,7 +181,7 @@ bool CanRerollItemSeed(void* item, void* enchant, uint32_t itemLevel, const Game
 //   - Item must not have a vaal affix
 //   - Item must be have a rarity of Rare or less
 //   - Item cannot be a relic
-bool CanRerollItemAffix(void* item, void* enchant, uint32_t itemLevel, const GameAPI::ItemReplicaInfo& itemInfo, ItemType itemType, GameAPI::ItemClassification itemRarity)
+bool CanRerollItemAffix(void* item, void* enchant, uint32_t itemLevel, const ItemReplicaInfo& itemInfo, ItemType itemType, GameAPI::ItemClassification itemRarity)
 {
     return (!HasVaalOrSmithAffix(itemInfo) && (itemRarity <= GameAPI::ITEM_CLASSIFICATION_RARE)) && (itemType != ITEM_TYPE_RELIC);
 }
@@ -191,7 +191,7 @@ bool CanRerollItemAffix(void* item, void* enchant, uint32_t itemLevel, const Gam
 //   - Item must be have a rarity of Rare or less
 //   - Item must have an ilvl of 70 or less
 //   - Item cannot be a relic
-bool CanRerollItemAffixLowLevel(void* item, void* enchant, uint32_t itemLevel, const GameAPI::ItemReplicaInfo& itemInfo, ItemType itemType, GameAPI::ItemClassification itemRarity)
+bool CanRerollItemAffixLowLevel(void* item, void* enchant, uint32_t itemLevel, const ItemReplicaInfo& itemInfo, ItemType itemType, GameAPI::ItemClassification itemRarity)
 {
     return (!HasVaalOrSmithAffix(itemInfo) && (itemRarity <= GameAPI::ITEM_CLASSIFICATION_RARE) && (itemLevel <= 70) && (itemType != ITEM_TYPE_RELIC));
 }
@@ -201,7 +201,7 @@ bool CanRerollItemAffixLowLevel(void* item, void* enchant, uint32_t itemLevel, c
 //   - Item must be have a rarity of Rare or less
 //   - Item must have an existing prefix
 //   - Item cannot be a relic
-bool CanRerollItemPrefix(void* item, void* enchant, uint32_t itemLevel, const GameAPI::ItemReplicaInfo& itemInfo, ItemType itemType, GameAPI::ItemClassification itemRarity)
+bool CanRerollItemPrefix(void* item, void* enchant, uint32_t itemLevel, const ItemReplicaInfo& itemInfo, ItemType itemType, GameAPI::ItemClassification itemRarity)
 {
     return (!HasVaalOrSmithAffix(itemInfo) && (itemRarity <= GameAPI::ITEM_CLASSIFICATION_RARE) && (itemType != ITEM_TYPE_RELIC) && (!itemInfo._itemPrefix.empty()));
 }
@@ -211,7 +211,7 @@ bool CanRerollItemPrefix(void* item, void* enchant, uint32_t itemLevel, const Ga
 //   - Item must be have a rarity of Rare or less
 //   - Item cannot be a relic
 //   - Item must have an existing suffix
-bool CanRerollItemSuffix(void* item, void* enchant, uint32_t itemLevel, const GameAPI::ItemReplicaInfo& itemInfo, ItemType itemType, GameAPI::ItemClassification itemRarity)
+bool CanRerollItemSuffix(void* item, void* enchant, uint32_t itemLevel, const ItemReplicaInfo& itemInfo, ItemType itemType, GameAPI::ItemClassification itemRarity)
 {
     return (!HasVaalOrSmithAffix(itemInfo) && (itemRarity <= GameAPI::ITEM_CLASSIFICATION_RARE) && (itemType != ITEM_TYPE_RELIC) && (!itemInfo._itemSuffix.empty()));
 }
@@ -222,7 +222,7 @@ bool CanRerollItemSuffix(void* item, void* enchant, uint32_t itemLevel, const Ga
 //   - Item must have an ilvl of 70 or less
 //   - Item cannot be a relic
 //   - Item must have an existing prefix
-bool CanRerollItemPrefixLowLevel(void* item, void* enchant, uint32_t itemLevel, const GameAPI::ItemReplicaInfo& itemInfo, ItemType itemType, GameAPI::ItemClassification itemRarity)
+bool CanRerollItemPrefixLowLevel(void* item, void* enchant, uint32_t itemLevel, const ItemReplicaInfo& itemInfo, ItemType itemType, GameAPI::ItemClassification itemRarity)
 {
     return (!HasVaalOrSmithAffix(itemInfo) && (itemRarity <= GameAPI::ITEM_CLASSIFICATION_RARE) && (itemLevel <= 70) && (itemType != ITEM_TYPE_RELIC) && (!itemInfo._itemPrefix.empty()));
 }
@@ -233,7 +233,7 @@ bool CanRerollItemPrefixLowLevel(void* item, void* enchant, uint32_t itemLevel, 
 //   - Item must have an ilvl of 70 or less
 //   - Item cannot be a relic
 //   - Item must have an existing suffix
-bool CanRerollItemSuffixLowLevel(void* item, void* enchant, uint32_t itemLevel, const GameAPI::ItemReplicaInfo& itemInfo, ItemType itemType, GameAPI::ItemClassification itemRarity)
+bool CanRerollItemSuffixLowLevel(void* item, void* enchant, uint32_t itemLevel, const ItemReplicaInfo& itemInfo, ItemType itemType, GameAPI::ItemClassification itemRarity)
 {
     return (!HasVaalOrSmithAffix(itemInfo) && (itemRarity <= GameAPI::ITEM_CLASSIFICATION_RARE) && (itemLevel <= 70) && (itemType != ITEM_TYPE_RELIC) && (!itemInfo._itemSuffix.empty()));
 }
@@ -243,7 +243,7 @@ bool CanRerollItemSuffixLowLevel(void* item, void* enchant, uint32_t itemLevel, 
 //   - Item must be have a rarity of Rare
 //   - Item cannot be a relic
 //   - Item must have an empty prefix OR empty suffix
-bool CanAddRareAffix(void* item, void* enchant, uint32_t itemLevel, const GameAPI::ItemReplicaInfo& itemInfo, ItemType itemType, GameAPI::ItemClassification itemRarity)
+bool CanAddRareAffix(void* item, void* enchant, uint32_t itemLevel, const ItemReplicaInfo& itemInfo, ItemType itemType, GameAPI::ItemClassification itemRarity)
 {
     return (!HasVaalOrSmithAffix(itemInfo) && (itemRarity == GameAPI::ITEM_CLASSIFICATION_RARE)) && (itemType != ITEM_TYPE_RELIC) && ((itemInfo._itemPrefix.empty() || itemInfo._itemSuffix.empty()));
 }
@@ -252,7 +252,7 @@ bool CanAddRareAffix(void* item, void* enchant, uint32_t itemLevel, const GameAP
 //   - Item must not have a vaal affix
 //   - Item must be have a rarity of Epic
 //   - Item cannot be a relic
-bool CanRerollEpicAffix(void* item, void* enchant, uint32_t itemLevel, const GameAPI::ItemReplicaInfo& itemInfo, ItemType itemType, GameAPI::ItemClassification itemRarity)
+bool CanRerollEpicAffix(void* item, void* enchant, uint32_t itemLevel, const ItemReplicaInfo& itemInfo, ItemType itemType, GameAPI::ItemClassification itemRarity)
 {
     return (!HasVaalOrSmithAffix(itemInfo) && (itemRarity == GameAPI::ITEM_CLASSIFICATION_EPIC)) && (itemType != ITEM_TYPE_RELIC);
 }
@@ -260,7 +260,7 @@ bool CanRerollEpicAffix(void* item, void* enchant, uint32_t itemLevel, const Gam
 // CanRerollVaal()
 //   - Item must not have a vaal smith affix
 //   - Item cannot be a relic
-bool CanRerollVaal(void* item, void* enchant, uint32_t itemLevel, const GameAPI::ItemReplicaInfo& itemInfo, ItemType itemType, GameAPI::ItemClassification itemRarity)
+bool CanRerollVaal(void* item, void* enchant, uint32_t itemLevel, const ItemReplicaInfo& itemInfo, ItemType itemType, GameAPI::ItemClassification itemRarity)
 {
     return (!HasSmithAffix(itemInfo) && (itemType != ITEM_TYPE_RELIC));
 }
@@ -268,7 +268,7 @@ bool CanRerollVaal(void* item, void* enchant, uint32_t itemLevel, const GameAPI:
 // CanRerollSmith()
 //   - Item must not have a regular vaal affix
 //   - Item cannot be a relic
-bool CanRerollSmith(void* item, void* enchant, uint32_t itemLevel, const GameAPI::ItemReplicaInfo& itemInfo, ItemType itemType, GameAPI::ItemClassification itemRarity)
+bool CanRerollSmith(void* item, void* enchant, uint32_t itemLevel, const ItemReplicaInfo& itemInfo, ItemType itemType, GameAPI::ItemClassification itemRarity)
 {
     return (!HasVaalAffix(itemInfo) && (itemType != ITEM_TYPE_RELIC));
 }
@@ -295,7 +295,7 @@ bool CanGenerateItemSuffix(ItemType itemType, uint32_t itemLevel)
     return false;
 }
 
-bool CanUpgradeItemBase(void* item, void* enchant, uint32_t itemLevel, const GameAPI::ItemReplicaInfo& itemInfo, ItemType itemType, GameAPI::ItemClassification itemRarity)
+bool CanUpgradeItemBase(void* item, void* enchant, uint32_t itemLevel, const ItemReplicaInfo& itemInfo, ItemType itemType, GameAPI::ItemClassification itemRarity)
 {
     if (HasVaalOrSmithAffix(itemInfo) || (itemType == ITEM_TYPE_RELIC) || (itemRarity >= GameAPI::ITEM_CLASSIFICATION_LEGEND))
         return false;
@@ -310,7 +310,7 @@ bool CanUpgradeItemBase(void* item, void* enchant, uint32_t itemLevel, const Gam
     return false;
 }
 
-bool CanDowngradeItemBase(void* item, void* enchant, uint32_t itemLevel, const GameAPI::ItemReplicaInfo& itemInfo, ItemType itemType, GameAPI::ItemClassification itemRarity)
+bool CanDowngradeItemBase(void* item, void* enchant, uint32_t itemLevel, const ItemReplicaInfo& itemInfo, ItemType itemType, GameAPI::ItemClassification itemRarity)
 {
     if (HasVaalOrSmithAffix(itemInfo) || (itemType == ITEM_TYPE_RELIC) || (itemRarity >= GameAPI::ITEM_CLASSIFICATION_LEGEND))
         return false;
@@ -325,32 +325,32 @@ bool CanDowngradeItemBase(void* item, void* enchant, uint32_t itemLevel, const G
     return false;
 }
 
-bool CanUpgradeItemBase(void* item, const GameAPI::ItemReplicaInfo& itemInfo)
+bool CanUpgradeItemBase(void* item, const ItemReplicaInfo& itemInfo)
 {
     return (!HasVaalOrSmithAffix(itemInfo) && CanUpgradeItemBase(item, nullptr, 0, itemInfo, ITEM_TYPE_DEFAULT, GameAPI::ITEM_CLASSIFICATION_NORMAL));
 }
 
-bool CanDowngradeItemBase(void* item, const GameAPI::ItemReplicaInfo& itemInfo)
+bool CanDowngradeItemBase(void* item, const ItemReplicaInfo& itemInfo)
 {
     return (!HasVaalOrSmithAffix(itemInfo) && CanDowngradeItemBase(item, nullptr, 0, itemInfo, ITEM_TYPE_DEFAULT, GameAPI::ITEM_CLASSIFICATION_NORMAL));
 }
 
-bool CanUpgradeItemBaseLowLevel(void* item, void* enchant, uint32_t itemLevel, const GameAPI::ItemReplicaInfo& itemInfo, ItemType itemType, GameAPI::ItemClassification itemRarity)
+bool CanUpgradeItemBaseLowLevel(void* item, void* enchant, uint32_t itemLevel, const ItemReplicaInfo& itemInfo, ItemType itemType, GameAPI::ItemClassification itemRarity)
 {
     return (CanUpgradeItemBase(item, itemInfo) && (itemLevel <= 49));
 }
 
-bool CanCreateTransferAugment(void* item, void* enchant, uint32_t itemLevel, const GameAPI::ItemReplicaInfo& itemInfo, ItemType itemType, GameAPI::ItemClassification itemRarity)
+bool CanCreateTransferAugment(void* item, void* enchant, uint32_t itemLevel, const ItemReplicaInfo& itemInfo, ItemType itemType, GameAPI::ItemClassification itemRarity)
 {
     return (!HasVaalOrSmithAffix(itemInfo) && (itemRarity < GameAPI::ITEM_CLASSIFICATION_LEGEND) && (itemType != ITEM_TYPE_RELIC) && (!itemInfo._itemPrefix.empty() || !itemInfo._itemSuffix.empty()));
 }
 
-bool CanUseTransferAugment(void* item, void* enchant, uint32_t itemLevel, const GameAPI::ItemReplicaInfo& itemInfo, ItemType itemType, GameAPI::ItemClassification itemRarity)
+bool CanUseTransferAugment(void* item, void* enchant, uint32_t itemLevel, const ItemReplicaInfo& itemInfo, ItemType itemType, GameAPI::ItemClassification itemRarity)
 {
     if (HasVaalOrSmithAffix(itemInfo))
         return false;
 
-    GameAPI::ItemReplicaInfo enchantInfo = GameAPI::GetItemReplicaInfo(enchant);
+    ItemReplicaInfo enchantInfo = GameAPI::GetItemReplicaInfo(enchant);
 
     // Prevent transfers on legendary items and on epic items if the augment has both a prefix and a suffix
     if ((itemType == ITEM_TYPE_RELIC) || (itemRarity >= GameAPI::ITEM_CLASSIFICATION_LEGEND) || ((itemRarity == GameAPI::ITEM_CLASSIFICATION_EPIC) && (!enchantInfo._itemPrefix.empty()) && (!enchantInfo._itemSuffix.empty())))
@@ -365,13 +365,13 @@ bool CanUseTransferAugment(void* item, void* enchant, uint32_t itemLevel, const 
     return false;
 }
 
-bool HandleRerollItemSeed(void* item, void* enchant, GameAPI::ItemReplicaInfo& itemInfo)
+bool HandleRerollItemSeed(void* item, void* enchant, ItemReplicaInfo& itemInfo)
 {
     itemInfo._itemSeed = GameAPI::GenerateItemSeed();
     return true;
 }
 
-bool HandleRerollItemPrefix(void* item, void* enchant, GameAPI::ItemReplicaInfo& itemInfo)
+bool HandleRerollItemPrefix(void* item, void* enchant, ItemReplicaInfo& itemInfo)
 {
     ItemType itemType = GameAPI::GetItemType(item);
     WeaponType weaponType = IsWeaponType(itemType) ? GameAPI::GetWeaponType(item) : WEAPON_TYPE_DEFAULT;
@@ -379,7 +379,7 @@ bool HandleRerollItemPrefix(void* item, void* enchant, GameAPI::ItemReplicaInfo&
     return true;
 }
 
-bool HandleRerollItemSuffix(void* item, void* enchant, GameAPI::ItemReplicaInfo& itemInfo)
+bool HandleRerollItemSuffix(void* item, void* enchant, ItemReplicaInfo& itemInfo)
 {
     ItemType itemType = GameAPI::GetItemType(item);
     WeaponType weaponType = IsWeaponType(itemType) ? GameAPI::GetWeaponType(item) : WEAPON_TYPE_DEFAULT;
@@ -387,7 +387,7 @@ bool HandleRerollItemSuffix(void* item, void* enchant, GameAPI::ItemReplicaInfo&
     return true;
 }
 
-bool HandleRerollRareAffix(void* item, void* enchant, GameAPI::ItemReplicaInfo& itemInfo)
+bool HandleRerollRareAffix(void* item, void* enchant, ItemReplicaInfo& itemInfo)
 {
     uint32_t itemLevel = GameAPI::GetItemLevel(item);
     ItemType itemType = GameAPI::GetItemType(item);
@@ -412,7 +412,7 @@ bool HandleRerollRareAffix(void* item, void* enchant, GameAPI::ItemReplicaInfo& 
     return true;
 }
 
-bool HandleRerollEpicAffix(void* item, void* enchant, GameAPI::ItemReplicaInfo& itemInfo)
+bool HandleRerollEpicAffix(void* item, void* enchant, ItemReplicaInfo& itemInfo)
 {
     uint32_t itemLevel = GameAPI::GetItemLevel(item);
     ItemType itemType = GameAPI::GetItemType(item);
@@ -432,7 +432,7 @@ bool HandleRerollEpicAffix(void* item, void* enchant, GameAPI::ItemReplicaInfo& 
     return true;
 }
 
-bool HandleUpgradeItemBase(void* item, void* enchant, GameAPI::ItemReplicaInfo& itemInfo)
+bool HandleUpgradeItemBase(void* item, void* enchant, ItemReplicaInfo& itemInfo)
 {
     std::string itemName = itemInfo._itemName;
     if (CanUpgradeItemBase(item, itemInfo))
@@ -443,7 +443,7 @@ bool HandleUpgradeItemBase(void* item, void* enchant, GameAPI::ItemReplicaInfo& 
     return false;
 }
 
-bool HandleDowngradeItemBase(void* item, void* enchant, GameAPI::ItemReplicaInfo& itemInfo)
+bool HandleDowngradeItemBase(void* item, void* enchant, ItemReplicaInfo& itemInfo)
 {
     std::string itemName = itemInfo._itemName;
     if (CanDowngradeItemBase(item, itemInfo))
@@ -454,7 +454,7 @@ bool HandleDowngradeItemBase(void* item, void* enchant, GameAPI::ItemReplicaInfo
     return false;
 }
 
-void HandleVaalDestroyItem(void* item, GameAPI::ItemReplicaInfo& itemInfo)
+void HandleVaalDestroyItem(void* item, ItemReplicaInfo& itemInfo)
 {
     // Brick the item, e.g. turn it into Scrap/Aether Crystal
     itemInfo._itemPrefix = "";
@@ -472,7 +472,7 @@ void HandleVaalDestroyItem(void* item, GameAPI::ItemReplicaInfo& itemInfo)
     }
 }
 
-bool HandleRerollVaal(void* item, void* enchant, GameAPI::ItemReplicaInfo& itemInfo)
+bool HandleRerollVaal(void* item, void* enchant, ItemReplicaInfo& itemInfo)
 {
     uint32_t roll = GameAPI::GenerateItemSeed() % 100;
     if (roll < 25)
@@ -499,7 +499,7 @@ bool HandleRerollVaal(void* item, void* enchant, GameAPI::ItemReplicaInfo& itemI
     return true;
 }
 
-bool HandleRerollSmith(void* item, void* enchant, GameAPI::ItemReplicaInfo& itemInfo)
+bool HandleRerollSmith(void* item, void* enchant, ItemReplicaInfo& itemInfo)
 {
     uint32_t roll = GameAPI::GenerateItemSeed() % 100;
     if (roll < 25)
@@ -519,7 +519,7 @@ bool HandleRerollSmith(void* item, void* enchant, GameAPI::ItemReplicaInfo& item
     return true;
 }
 
-bool HandleCreateTransferAugment(void* item, void* enchant, GameAPI::ItemReplicaInfo& itemInfo)
+bool HandleCreateTransferAugment(void* item, void* enchant, ItemReplicaInfo& itemInfo)
 {
     std::string itemName = itemInfo._itemName;
     if ((!itemInfo._itemPrefix.empty() || !itemInfo._itemSuffix.empty()))
@@ -546,9 +546,9 @@ bool HandleCreateTransferAugment(void* item, void* enchant, GameAPI::ItemReplica
     return false;
 }
 
-bool HandleUseTransferAugment(void* item, void* enchant, GameAPI::ItemReplicaInfo& itemInfo)
+bool HandleUseTransferAugment(void* item, void* enchant, ItemReplicaInfo& itemInfo)
 {
-    GameAPI::ItemReplicaInfo enchantInfo = GameAPI::GetItemReplicaInfo(enchant);
+    ItemReplicaInfo enchantInfo = GameAPI::GetItemReplicaInfo(enchant);
 
     const static std::regex transferRegex("^([^:]*):([^:]*)$");
 
@@ -567,7 +567,7 @@ bool HandleUseTransferAugment(void* item, void* enchant, GameAPI::ItemReplicaInf
     return false;
 }
 
-typedef bool (*ItemCraftingHandler)(void*, void*, GameAPI::ItemReplicaInfo&);
+typedef bool (*ItemCraftingHandler)(void*, void*, ItemReplicaInfo&);
 std::unordered_map<std::string, ItemCraftingHandler> itemCraftingHandlers =
 {
     { "grimleague/items/enchants/r101_pre.dbr",               HandleRerollItemPrefix },
@@ -599,7 +599,7 @@ std::unordered_map<std::string, ItemCraftingHandler> itemCraftingHandlers =
     { "grimleague/items/enchants/r215_imprint_offhand.dbr",   HandleUseTransferAugment },
 };
 
-typedef bool (*CanUseItemFilter)(void*, void*, uint32_t, const GameAPI::ItemReplicaInfo&, ItemType, GameAPI::ItemClassification);
+typedef bool (*CanUseItemFilter)(void*, void*, uint32_t, const ItemReplicaInfo&, ItemType, GameAPI::ItemClassification);
 std::unordered_map<std::string, CanUseItemFilter> canUseItemFilters =
 {
     { "grimleague/items/enchants/r101_pre.dbr",               CanRerollItemPrefix },
@@ -649,7 +649,7 @@ std::vector<void*> GetSearchTabsList()
     return searchTabs;
 }
 
-void ModifyEnchant(void* enchant, GameAPI::ItemReplicaInfo& enchantInfo)
+void ModifyEnchant(void* enchant, ItemReplicaInfo& enchantInfo)
 {
     uint32_t enchantID = EngineAPI::GetObjectID(enchant);
     std::vector<void*> tabList = GetSearchTabsList();
@@ -680,7 +680,7 @@ void ModifyEnchant(void* enchant, GameAPI::ItemReplicaInfo& enchantInfo)
     }
 }
 
-bool ModifyItem(void* item, GameAPI::ItemReplicaInfo& itemInfo)
+bool ModifyItem(void* item, ItemReplicaInfo& itemInfo)
 {
     uint32_t itemID = EngineAPI::GetObjectID(item);
     std::vector<void*> tabList = GetSearchTabsList();
@@ -715,8 +715,8 @@ bool HandleUseItemEnchantment(void* _this, void* item, bool unk1, bool& unk2)
     if (callback)
     {
         uint32_t itemLevel = GameAPI::GetItemLevel(item);
-        GameAPI::ItemReplicaInfo enchantInfo = GameAPI::GetItemReplicaInfo(_this);
-        GameAPI::ItemReplicaInfo itemInfo = GameAPI::GetItemReplicaInfo(item);
+        ItemReplicaInfo enchantInfo = GameAPI::GetItemReplicaInfo(_this);
+        ItemReplicaInfo itemInfo = GameAPI::GetItemReplicaInfo(item);
 
         std::string enchantName = enchantInfo._itemName;
         if (itemCraftingHandlers.count(enchantName) > 0)
@@ -743,7 +743,7 @@ bool HandleCanEnchantBeUsedOn(void* _this, void* item, bool unk1, bool& unk2)
     CanEnchantBeUsedOnProto callback = (CanEnchantBeUsedOnProto)HookManager::GetOriginalFunction(GAME_DLL, GameAPI::GAPI_NAME_CAN_ENCHANT_BE_USED_ON);
     if (callback)
     {
-        GameAPI::ItemReplicaInfo enchantInfo = GameAPI::GetItemReplicaInfo(_this);
+        ItemReplicaInfo enchantInfo = GameAPI::GetItemReplicaInfo(_this);
         auto pair = canUseItemFilters.find(enchantInfo._itemName);
         if (pair != canUseItemFilters.end())
         {
@@ -767,7 +767,7 @@ bool HandleCanEnchantBeUsedOn(void* _this, void* item, bool unk1, bool& unk2)
                 return false;
 
             uint32_t itemLevel = GameAPI::GetItemLevel(item);
-            GameAPI::ItemReplicaInfo itemInfo = GameAPI::GetItemReplicaInfo(item);
+            ItemReplicaInfo itemInfo = GameAPI::GetItemReplicaInfo(item);
             GameAPI::ItemClassification itemRarity = GameAPI::GetItemClassification(item);
 
             return filter(item, _this, itemLevel, itemInfo, itemType, itemRarity);

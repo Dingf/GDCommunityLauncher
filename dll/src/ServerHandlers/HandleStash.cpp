@@ -5,11 +5,12 @@
 #include "ServerCache.h"
 #include "ServerHandler.h"
 #include "StringConvert.h"
-#include "Item.h"
+#include "ItemReplicaInfo.h"
+#include "HTTP.h"
 #include "JSON.h"
 #include "Log.h"
 
-std::string HandleWriteGetStashFile(uint32_t requestID, uint32_t participantID)
+std::string HandleWriteGetStashFile(uint32_t requestID, uint32_t& participantID)
 {
     json request = 
     {
@@ -22,7 +23,7 @@ std::string HandleWriteGetStashFile(uint32_t requestID, uint32_t participantID)
     return request.dump();
 }
 
-std::string HandleWriteSaveStashFile(uint32_t requestID, uint32_t participantID, std::string base64Data)
+std::string HandleWriteSaveStashFile(uint32_t requestID, uint32_t& participantID, std::string& base64Data)
 {
     json request = 
     {
@@ -33,6 +34,7 @@ std::string HandleWriteSaveStashFile(uint32_t requestID, uint32_t participantID,
         }},
         { "File", base64Data }
     };
+    base64Data.clear();
     return request.dump();
 }
 
@@ -46,7 +48,7 @@ std::string HandleWriteStashCapacity(uint32_t requestID)
     return request.dump();
 }
 
-std::string HandleWriteTransferItems(uint32_t requestID, uint32_t participantID, std::vector<uint32_t> itemIDs)
+std::string HandleWriteTransferItems(uint32_t requestID, uint32_t& participantID, std::vector<uint32_t>& itemIDs)
 {
     json request = 
     {
@@ -58,10 +60,11 @@ std::string HandleWriteTransferItems(uint32_t requestID, uint32_t participantID,
             { "Branch", spClient->GetBranchName() }
         }}
     };
+    itemIDs.clear();
     return request.dump();
 }
 
-std::string HandleWriteStoreItems(uint32_t requestID, uint32_t participantID, std::vector<Item> items)
+std::string HandleWriteStoreItems(uint32_t requestID, uint32_t& participantID, std::vector<ItemReplicaInfo>& items)
 {
     std::vector<json> itemList;
     for (size_t i = 0; i < items.size(); ++i)
@@ -82,10 +85,11 @@ std::string HandleWriteStoreItems(uint32_t requestID, uint32_t participantID, st
         }},
         { "Data", itemList }
     };
+    items.clear();
     return request.dump();
 }
 
-std::string HandleWriteTransferQueue(uint32_t requestID, uint32_t participantID)
+std::string HandleWriteTransferQueue(uint32_t requestID, uint32_t& participantID)
 {
     json request = 
     {
@@ -103,19 +107,20 @@ void HandleReadGetStashFile(const json& response, uint32_t participantID)
 {
     try
     {
-        std::string status = response.at("Status").get<std::string>();
-        if (status != "Ok")
+        HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
+        if (status == HTTP_STATUS_OK)
+        {
+            const json& file = response.at("File");
+            std::string base64Data = file.get<std::string>();
+            std::vector<uint8_t> binaryData = Base64ToBinary(base64Data);
+
+            bool hardcore = spCache->IsParticipantHardcore(participantID);
+            spCache->SetStashData(hardcore, &binaryData[0], binaryData.size());
+        }
+        else if (status != HTTP_STATUS_NO_CONTENT)
+        {
             throw std::runtime_error(response.at("ErrorMessage"));
-
-        const json& file = response.at("File");
-        if (file.is_null())
-            return;
-
-        std::string base64Data = file.get<std::string>();
-        std::vector<uint8_t> binaryData = Base64ToBinary(base64Data);
-
-        bool hardcore = spCache->IsParticipantHardcore(participantID);
-        spCache->SetStashData(hardcore, &binaryData[0], binaryData.size());
+        }
     }
     catch (const std::exception& ex)
     {
@@ -125,8 +130,8 @@ void HandleReadGetStashFile(const json& response, uint32_t participantID)
 
 void HandleReadSaveStashFile(const json& response, uint32_t participantID, std::string base64Data)
 {
-    std::string status = response.at("Status").get<std::string>();
-    if (status != "Ok")
+    HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
+    if (status != HTTP_STATUS_OK)
     {
         Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to save shared stash file: %", response.at("ErrorMessage"));
     }
@@ -134,8 +139,8 @@ void HandleReadSaveStashFile(const json& response, uint32_t participantID, std::
 
 void HandleReadStashCapacity(const json& response)
 {
-    const std::string status = response.at("Status").get<std::string>();
-    if (status == "Ok")
+    HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
+    if (status == HTTP_STATUS_OK)
     {
         int32_t capacity = response.at("Data").get<int32_t>();
         spCache->SetStashCapacity(capacity);
@@ -148,29 +153,41 @@ void HandleReadStashCapacity(const json& response)
 
 void HandleReadTransferItems(const json& response, uint32_t participantID, std::vector<uint32_t> itemIDs)
 {
-    std::string status = response.at("Status").get<std::string>();
-    if (status != "Ok")
+    HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
+    if (status != HTTP_STATUS_OK)
     {
         Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to remove items from transfer queue: %", response.at("ErrorMessage"));
     }
 }
 
-void HandleReadStoreItems(const json& response, uint32_t participantID, std::vector<Item> items)
+void HandleReadStoreItems(const json& response, uint32_t participantID, std::vector<ItemReplicaInfo> items)
 {
-    const std::string status = response.at("Status").get<std::string>();
-    if (status == "Ok")
+    try
     {
-        const std::vector<void*>& transferTabs = GameAPI::GetTransferTabs();
-        if (transferTabs.size() >= 6)
+        HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
+        if (status == HTTP_STATUS_OK)
         {
-            void* uploadTab = transferTabs[5];
-            GameAPI::RemoveAllItemsFromTab(uploadTab);
-            GameAPI::DisplayUINotification("tagGDLeagueStorageSuccess");
+            const std::vector<void*>& transferTabs = GameAPI::GetTransferTabs();
+            if (transferTabs.size() >= 6)
+            {
+                void* uploadTab = transferTabs[5];
+                GameAPI::RemoveAllItemsFromTab(uploadTab);
+                GameAPI::DisplayUINotification("tagGDLeagueStorageSuccess");
+            }
+        }
+        else if (status == HTTP_STATUS_BAD_REQUEST)
+        {
+            GameAPI::DisplayUINotification("tagGDLeagueStorageFull");
+        }
+        else
+        {
+            GameAPI::DisplayUINotification("tagGDLeagueStorageFailure");
+            throw std::runtime_error(response.at("ErrorMessage"));
         }
     }
-    else
+    catch (const std::exception& ex)
     {
-        // TODO: Handle the case where the user exceeds the number of items in their cloud stash
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to upload items to cloud stash: %", ex.what());
     }
 
     GameAPI::SetTransferLocked(false);
@@ -178,39 +195,45 @@ void HandleReadStoreItems(const json& response, uint32_t participantID, std::vec
 
 void HandleReadTransferQueue(const json& response, uint32_t participantID)
 {
-    const std::string status = response.at("Status").get<std::string>();
-    if (status == "Ok")
+    try
     {
-        const json& itemsArray = response.at("Data");
-        if ((GameAPI::GetTransferTabs().size() >= 6) && (itemsArray.size() > 0))
+        HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
+        if (status == HTTP_STATUS_OK)
         {
-            std::vector<uint32_t> pulledItemIDs;
-            uint32_t playerID = EngineAPI::GetObjectID(GameAPI::GetMainPlayer());
-
-            for (const auto& itemJSON : itemsArray)
+            const json& itemsArray = response.at("Data");
+            if ((GameAPI::GetTransferTabs().size() >= 6) && (itemsArray.size() > 0))
             {
-                std::shared_ptr<Item> itemData = std::make_shared<Item>(itemJSON);
-                GameAPI::ItemReplicaInfo itemInfo = GameAPI::ItemToInfo(*itemData);
-                if (void* item = GameAPI::CreateItem(itemInfo))
-                {
-                    GameAPI::SetItemVisiblePlayer(item, playerID);
-                    if (GameAPI::AddItemToTransfer(EngineAPI::GetObjectID(item), 4, true))
-                        pulledItemIDs.push_back(itemData->_itemID);
+                std::vector<uint32_t> pulledItemIDs;
+                uint32_t playerID = EngineAPI::GetObjectID(GameAPI::GetMainPlayer());
 
-                    EngineAPI::DestroyObjectEx(item);
-                }
-                else
+                for (const auto& itemJSON : itemsArray)
                 {
-                    throw std::runtime_error("Failed to recreate stash item from item data");
+                    ItemReplicaInfo itemInfo = itemJSON;
+                    if (void* item = GameAPI::CreateItem(itemInfo))
+                    {
+                        GameAPI::SetItemVisiblePlayer(item, playerID);
+                        if (GameAPI::AddItemToTransfer(EngineAPI::GetObjectID(item), 4, true))
+                            pulledItemIDs.push_back(itemInfo._participantItemID);
+
+                        EngineAPI::DestroyObjectEx(item);
+                    }
+                    else
+                    {
+                        throw std::runtime_error("Failed to recreate stash item from item data");
+                    }
                 }
+
+                GameAPI::SaveTransferStash();
+                spServer->Send("TransferParticipantItems", participantID, pulledItemIDs);
             }
-
-            GameAPI::SaveTransferStash();
-            spServer->Send("TransferParticipantItems", participantID, pulledItemIDs);
+        }
+        else
+        {
+            throw std::runtime_error(response.at("ErrorMessage"));
         }
     }
-    else
+    catch (const std::exception& ex)
     {
-        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to retrieve items from transfer queue: %", response.at("ErrorMessage"));
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to retrieve items from transfer queue: %", ex.what());
     }
 }

@@ -2,17 +2,14 @@
 #include "EngineAPI.h"
 #include "GameAPI.h"
 #include "ChatAPI.h"
-#include "Item.h"
+#include "ItemReplicaInfo.h"
 #include "JSON.h"
 
-std::string HandleWriteSendMessage(uint32_t requestID, uint8_t channel, std::wstring message, std::wstring playerName, void* item)
+std::string HandleWriteSendMessage(uint32_t requestID, uint8_t& channel, std::wstring& message, std::wstring& playerName, void*& item)
 {
     json itemJSON;
     if (item)
-    {
-        GameAPI::ItemReplicaInfo itemInfo = GameAPI::GetItemReplicaInfo(item);
-        itemJSON = InfoToItem(itemInfo);
-    }
+        itemJSON = GameAPI::GetItemReplicaInfo(item);
 
     json request = 
     {
@@ -46,7 +43,7 @@ void HandleReadSendMessage(const json& response, uint8_t channel, std::wstring m
     const json& itemJSON = response.at("Item");
     if (!itemJSON.is_null())
     {
-        GameAPI::ItemReplicaInfo itemInfo = GameAPI::ItemToInfo((Item)itemJSON);
+        ItemReplicaInfo itemInfo = itemJSON;
         itemInfo._itemID = EngineAPI::CreateObjectID();
         item = GameAPI::CreateItem(itemInfo);
     }

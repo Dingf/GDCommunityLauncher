@@ -3,13 +3,13 @@
 
 #include <vector>
 #include <filesystem>
-#include "FileData.h"
 #include "FileReader.h"
+#include "FileWriter.h"
 #include "JSON.h"
 #include "GDDataBlock.h"
 #include "UID.h"
 
-class Quest : public FileData
+class Quest
 {
     public:
         struct QuestTask

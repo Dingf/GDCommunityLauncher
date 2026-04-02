@@ -5,10 +5,11 @@
 #include "FileWriter.h"
 #include "StringConvert.h"
 #include "Quest.h"
+#include "HTTP.h"
 #include "JSON.h"
 #include "Log.h"
 
-std::string HandleWriteGetTagFile(uint32_t requestID, uint32_t participantID)
+std::string HandleWriteGetTagFile(uint32_t requestID, uint32_t& participantID)
 {
     json request = 
     {
@@ -21,7 +22,7 @@ std::string HandleWriteGetTagFile(uint32_t requestID, uint32_t participantID)
     return request.dump();
 }
 
-std::string HandleWriteSaveTagFile(uint32_t requestID, uint32_t participantID, std::string base64Data)
+std::string HandleWriteSaveTagFile(uint32_t requestID, uint32_t& participantID, std::string& base64Data)
 {
     json request = 
     {
@@ -32,10 +33,11 @@ std::string HandleWriteSaveTagFile(uint32_t requestID, uint32_t participantID, s
         }},
         { "File", base64Data }
     };
+    base64Data.clear();
     return request.dump();
 }
 
-std::string HandleWriteGetTransmuteFile(uint32_t requestID, uint32_t participantID)
+std::string HandleWriteGetTransmuteFile(uint32_t requestID, uint32_t& participantID)
 {
     json request = 
     {
@@ -48,7 +50,7 @@ std::string HandleWriteGetTransmuteFile(uint32_t requestID, uint32_t participant
     return request.dump();
 }
 
-std::string HandleWriteSaveTransmuteFile(uint32_t requestID, uint32_t participantID, std::string base64Data)
+std::string HandleWriteSaveTransmuteFile(uint32_t requestID, uint32_t& participantID, std::string& base64Data)
 {
     json request = 
     {
@@ -59,10 +61,11 @@ std::string HandleWriteSaveTransmuteFile(uint32_t requestID, uint32_t participan
         }},
         { "File", base64Data }
     };
+    base64Data.clear();
     return request.dump();
 }
 
-std::string HandleWriteGetFormulasFile(uint32_t requestID, uint32_t participantID)
+std::string HandleWriteGetFormulasFile(uint32_t requestID, uint32_t& participantID)
 {
     json request = 
     {
@@ -75,7 +78,7 @@ std::string HandleWriteGetFormulasFile(uint32_t requestID, uint32_t participantI
     return request.dump();
 }
 
-std::string HandleWriteSaveFormulasFile(uint32_t requestID, uint32_t participantID, std::string base64Data)
+std::string HandleWriteSaveFormulasFile(uint32_t requestID, uint32_t& participantID, std::string& base64Data)
 {
     json request = 
     {
@@ -86,10 +89,11 @@ std::string HandleWriteSaveFormulasFile(uint32_t requestID, uint32_t participant
         }},
         { "File", base64Data }
     };
+    base64Data.clear();
     return request.dump();
 }
 
-std::string HandleWriteGetQuestFile(uint32_t requestID, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty)
+std::string HandleWriteGetQuestFile(uint32_t requestID, uint32_t& participantID, std::wstring& characterName, GameAPI::Difficulty& difficulty)
 {
     json request = 
     {
@@ -104,7 +108,7 @@ std::string HandleWriteGetQuestFile(uint32_t requestID, uint32_t participantID, 
     return request.dump();
 }
 
-std::string HandleWriteSaveQuestFile(uint32_t requestID, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty, std::string base64Data)
+std::string HandleWriteSaveQuestFile(uint32_t requestID, uint32_t& participantID, std::wstring& characterName, GameAPI::Difficulty& difficulty, std::string& base64Data)
 {
     json request = 
     {
@@ -117,10 +121,11 @@ std::string HandleWriteSaveQuestFile(uint32_t requestID, uint32_t participantID,
         }},
         { "File", base64Data }
     };
+    base64Data.clear();
     return request.dump();
 }
 
-std::string HandleWriteGetConversationFile(uint32_t requestID, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty)
+std::string HandleWriteGetConversationFile(uint32_t requestID, uint32_t& participantID, std::wstring& characterName, GameAPI::Difficulty& difficulty)
 {
     json request = 
     {
@@ -135,7 +140,7 @@ std::string HandleWriteGetConversationFile(uint32_t requestID, uint32_t particip
     return request.dump();
 }
 
-std::string HandleWriteSaveConversationFile(uint32_t requestID, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty, std::string base64Data)
+std::string HandleWriteSaveConversationFile(uint32_t requestID, uint32_t& participantID, std::wstring& characterName, GameAPI::Difficulty& difficulty, std::string& base64Data)
 {
     json request = 
     {
@@ -148,10 +153,11 @@ std::string HandleWriteSaveConversationFile(uint32_t requestID, uint32_t partici
         }},
         { "File", base64Data }
     };
+    base64Data.clear();
     return request.dump();
 }
 
-std::string HandleWriteGetMapFile(uint32_t requestID, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty)
+std::string HandleWriteGetMapFile(uint32_t requestID, uint32_t& participantID, std::wstring& characterName, GameAPI::Difficulty& difficulty)
 {
     json request = 
     {
@@ -166,7 +172,7 @@ std::string HandleWriteGetMapFile(uint32_t requestID, uint32_t participantID, st
     return request.dump();
 }
 
-std::string HandleWriteSaveMapFile(uint32_t requestID, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty, std::string base64Data)
+std::string HandleWriteSaveMapFile(uint32_t requestID, uint32_t& participantID, std::wstring& characterName, GameAPI::Difficulty& difficulty, std::string& base64Data)
 {
     json request = 
     {
@@ -179,10 +185,11 @@ std::string HandleWriteSaveMapFile(uint32_t requestID, uint32_t participantID, s
         }},
         { "File", base64Data }
     };
+    base64Data.clear();
     return request.dump();
 }
 
-std::string HandleWriteGetFOWFile(uint32_t requestID, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty)
+std::string HandleWriteGetFOWFile(uint32_t requestID, uint32_t& participantID, std::wstring& characterName, GameAPI::Difficulty& difficulty)
 {
     json request = 
     {
@@ -197,7 +204,7 @@ std::string HandleWriteGetFOWFile(uint32_t requestID, uint32_t participantID, st
     return request.dump();
 }
 
-std::string HandleWriteSaveFOWFile(uint32_t requestID, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty, std::string base64Data)
+std::string HandleWriteSaveFOWFile(uint32_t requestID, uint32_t& participantID, std::wstring& characterName, GameAPI::Difficulty& difficulty, std::string& base64Data)
 {
     json request = 
     {
@@ -210,6 +217,7 @@ std::string HandleWriteSaveFOWFile(uint32_t requestID, uint32_t participantID, s
         }},
         { "File", base64Data }
     };
+    base64Data.clear();
     return request.dump();
 }
 
@@ -217,19 +225,20 @@ void HandleReadGetTagFile(const json& response, uint32_t participantID)
 {
     try
     {
-        std::string status = response.at("Status").get<std::string>();
-        if (status != "Ok")
+        HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
+        if (status == HTTP_STATUS_OK)
+        {
+            const json& file = response.at("File");
+            std::string base64Data = file.get<std::string>();
+            std::vector<uint8_t> binaryData = Base64ToBinary(base64Data);
+
+            bool hardcore = spCache->IsParticipantHardcore(participantID);
+            spCache->SetTagsData(hardcore, &binaryData[0], binaryData.size());
+        }
+        else if (status != HTTP_STATUS_NO_CONTENT)
+        {
             throw std::runtime_error(response.at("ErrorMessage"));
-
-        const json& file = response.at("File");
-        if (file.is_null())
-            return;
-
-        std::string base64Data = file.get<std::string>();
-        std::vector<uint8_t> binaryData = Base64ToBinary(base64Data);
-
-        bool hardcore = spCache->IsParticipantHardcore(participantID);
-        spCache->SetTagsData(hardcore, &binaryData[0], binaryData.size());
+        }
     }
     catch (const std::exception& ex)
     {
@@ -239,8 +248,8 @@ void HandleReadGetTagFile(const json& response, uint32_t participantID)
 
 void HandleReadSaveTagFile(const json& response, uint32_t participantID, std::string base64Data)
 {
-    std::string status = response.at("Status").get<std::string>();
-    if (status != "Ok")
+    HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
+    if (status != HTTP_STATUS_OK)
     {
         Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to save shared tags file: %", response.at("ErrorMessage"));
     }
@@ -250,22 +259,24 @@ void HandleReadGetTransmuteFile(const json& response, uint32_t participantID)
 {
     try
     {
-        std::string status = response.at("Status").get<std::string>();
-        if (status != "Ok")
+        HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
+        if (status == HTTP_STATUS_OK)
+        {
+            const json& file = response.at("File");
+            std::string base64Data = file.get<std::string>();
+            std::vector<uint8_t> binaryData = Base64ToBinary(base64Data);
+            FileWriter writer(&binaryData[0], binaryData.size());
+
+            bool hardcore = spCache->IsParticipantHardcore(participantID);
+            writer.WriteToFile(GameAPI::GetTransmutesPath(hardcore));
+
+            spCache->SetTransmutesData(hardcore, &binaryData[0], binaryData.size());
+        }
+        else if (status != HTTP_STATUS_NO_CONTENT)
+        {
             throw std::runtime_error(response.at("ErrorMessage"));
 
-        const json& file = response.at("File");
-        if (file.is_null())
-            return;
-
-        std::string base64Data = file.get<std::string>();
-        std::vector<uint8_t> binaryData = Base64ToBinary(base64Data);
-        FileWriter writer(&binaryData[0], binaryData.size());
-
-        bool hardcore = spCache->IsParticipantHardcore(participantID);
-        writer.WriteToFile(GameAPI::GetTransmutesPath(hardcore));
-
-        spCache->SetTransmutesData(hardcore, &binaryData[0], binaryData.size());
+        }
     }
     catch (const std::exception& ex)
     {
@@ -275,8 +286,8 @@ void HandleReadGetTransmuteFile(const json& response, uint32_t participantID)
 
 void HandleReadSaveTransmuteFile(const json& response, uint32_t participantID, std::string base64Data)
 {
-    std::string status = response.at("Status").get<std::string>();
-    if (status != "Ok")
+    HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
+    if (status != HTTP_STATUS_OK)
     {
         Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to save shared transmutes file: %", response.at("ErrorMessage"));
     }
@@ -286,22 +297,23 @@ void HandleReadGetFormulasFile(const json& response, uint32_t participantID)
 {
     try
     {
-        std::string status = response.at("Status").get<std::string>();
-        if (status != "Ok")
+        HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
+        if (status == HTTP_STATUS_OK)
+        {
+            const json& file = response.at("File");
+            std::string base64Data = file.get<std::string>();
+            std::vector<uint8_t> binaryData = Base64ToBinary(base64Data);
+            FileWriter writer(&binaryData[0], binaryData.size());
+
+            bool hardcore = spCache->IsParticipantHardcore(participantID);
+            writer.WriteToFile(GameAPI::GetFormulasPath(hardcore));
+
+            spCache->SetFormulasData(hardcore, &binaryData[0], binaryData.size());
+        }
+        else if (status != HTTP_STATUS_NO_CONTENT)
+        {
             throw std::runtime_error(response.at("ErrorMessage"));
-
-        const json& file = response.at("File");
-        if (file.is_null())
-            return;
-
-        std::string base64Data = file.get<std::string>();
-        std::vector<uint8_t> binaryData = Base64ToBinary(base64Data);
-        FileWriter writer(&binaryData[0], binaryData.size());
-
-        bool hardcore = spCache->IsParticipantHardcore(participantID);
-        writer.WriteToFile(GameAPI::GetFormulasPath(hardcore));
-
-        spCache->SetFormulasData(hardcore, &binaryData[0], binaryData.size());
+        }
     }
     catch (const std::exception& ex)
     {
@@ -311,8 +323,8 @@ void HandleReadGetFormulasFile(const json& response, uint32_t participantID)
 
 void HandleReadSaveFormulasFile(const json& response, uint32_t participantID, std::string base64Data)
 {
-    std::string status = response.at("Status").get<std::string>();
-    if (status != "Ok")
+    HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
+    if (status != HTTP_STATUS_OK)
     {
         Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to save shared formulas file: %", response.at("ErrorMessage"));
     }
@@ -322,22 +334,23 @@ void HandleReadGetQuestFile(const json& response, uint32_t participantID, std::w
 {
     try
     {
-        std::string status = response.at("Status").get<std::string>();
-        if (status != "Ok")
+        HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
+        if (status == HTTP_STATUS_OK)
+        {
+            const json& file = response.at("File");
+            std::string base64Data = file.get<std::string>();
+            std::vector<uint8_t> binaryData = Base64ToBinary(base64Data);
+
+            std::filesystem::path filePath = GameAPI::GetPlayerFolder(characterName) / "levels_world001.map" / GameAPI::GetGameDifficultyName(difficulty) / "quests.gdd";
+            FileWriter writer(&binaryData[0], binaryData.size());
+            writer.WriteToFile(filePath);
+
+            spCache->SetQuestData(characterName, difficulty, &binaryData[0], binaryData.size());
+        }
+        else if (status != HTTP_STATUS_NO_CONTENT)
+        {
             throw std::runtime_error(response.at("ErrorMessage"));
-
-        const json& file = response.at("File");
-        if (file.is_null())
-            return;
-
-        std::string base64Data = file.get<std::string>();
-        std::vector<uint8_t> binaryData = Base64ToBinary(base64Data);
-
-        std::filesystem::path filePath = GameAPI::GetPlayerFolder(characterName) / "levels_world001.map" / GameAPI::GetGameDifficultyName(difficulty) / "quests.gdd";
-        FileWriter writer(&binaryData[0], binaryData.size());
-        writer.WriteToFile(filePath);
-
-        spCache->SetQuestData(characterName, difficulty, &binaryData[0], binaryData.size());
+        }
     }
     catch (const std::exception& ex)
     {
@@ -347,8 +360,8 @@ void HandleReadGetQuestFile(const json& response, uint32_t participantID, std::w
 
 void HandleReadSaveQuestFile(const json& response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty, std::string base64Data)
 {
-    std::string status = response.at("Status").get<std::string>();
-    if (status != "Ok")
+    HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
+    if (status != HTTP_STATUS_OK)
     {
         Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to save character quest file: %", response.at("ErrorMessage"));
     }
@@ -358,22 +371,23 @@ void HandleReadGetConversationFile(const json& response, uint32_t participantID,
 {
     try
     {
-        std::string status = response.at("Status").get<std::string>();
-        if (status != "Ok")
+        HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
+        if (status == HTTP_STATUS_OK)
+        {
+            const json& file = response.at("File");
+            std::string base64Data = file.get<std::string>();
+            std::vector<uint8_t> binaryData = Base64ToBinary(base64Data);
+
+            std::filesystem::path filePath = GameAPI::GetPlayerFolder(characterName) / "levels_world001.map" / GameAPI::GetGameDifficultyName(difficulty) / "conversations.gdd";
+            FileWriter writer(&binaryData[0], binaryData.size());
+            writer.WriteToFile(filePath);
+
+            spCache->SetConversationsData(characterName, difficulty, &binaryData[0], binaryData.size());
+        }
+        else if (status != HTTP_STATUS_NO_CONTENT)
+        {
             throw std::runtime_error(response.at("ErrorMessage"));
-
-        const json& file = response.at("File");
-        if (file.is_null())
-            return;
-
-        std::string base64Data = file.get<std::string>();
-        std::vector<uint8_t> binaryData = Base64ToBinary(base64Data);
-
-        std::filesystem::path filePath = GameAPI::GetPlayerFolder(characterName) / "levels_world001.map" / GameAPI::GetGameDifficultyName(difficulty) / "conversations.gdd";
-        FileWriter writer(&binaryData[0], binaryData.size());
-        writer.WriteToFile(filePath);
-
-        spCache->SetConversationsData(characterName, difficulty, &binaryData[0], binaryData.size());
+        }
     }
     catch (const std::exception& ex)
     {
@@ -383,8 +397,8 @@ void HandleReadGetConversationFile(const json& response, uint32_t participantID,
 
 void HandleReadSaveConversationFile(const json& response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty, std::string base64Data)
 {
-    std::string status = response.at("Status").get<std::string>();
-    if (status != "Ok")
+    HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
+    if (status != HTTP_STATUS_OK)
     {
         Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to save character conversation file: %", response.at("ErrorMessage"));
     }
@@ -394,22 +408,23 @@ void HandleReadGetMapFile(const json& response, uint32_t participantID, std::wst
 {
     try
     {
-        std::string status = response.at("Status").get<std::string>();
-        if (status != "Ok")
+        HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
+        if (status == HTTP_STATUS_OK)
+        {
+            const json& file = response.at("File");
+            std::string base64Data = file.get<std::string>();
+            std::vector<uint8_t> binaryData = Base64ToBinary(base64Data);
+
+            std::filesystem::path filePath = GameAPI::GetPlayerFolder(characterName) / "levels_world001.map" / GameAPI::GetGameDifficultyName(difficulty) / "map.dat";
+            FileWriter writer(&binaryData[0], binaryData.size());
+            writer.WriteToFile(filePath);
+
+            spCache->SetMapData(characterName, difficulty, &binaryData[0], binaryData.size());
+        }
+        else if (status != HTTP_STATUS_NO_CONTENT)
+        {
             throw std::runtime_error(response.at("ErrorMessage"));
-
-        const json& file = response.at("File");
-        if (file.is_null())
-            return;
-
-        std::string base64Data = file.get<std::string>();
-        std::vector<uint8_t> binaryData = Base64ToBinary(base64Data);
-
-        std::filesystem::path filePath = GameAPI::GetPlayerFolder(characterName) / "levels_world001.map" / GameAPI::GetGameDifficultyName(difficulty) / "map.dat";
-        FileWriter writer(&binaryData[0], binaryData.size());
-        writer.WriteToFile(filePath);
-
-        spCache->SetMapData(characterName, difficulty, &binaryData[0], binaryData.size());
+        }
     }
     catch (const std::exception& ex)
     {
@@ -419,8 +434,8 @@ void HandleReadGetMapFile(const json& response, uint32_t participantID, std::wst
 
 void HandleReadSaveMapFile(const json& response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty, std::string base64Data)
 {
-    std::string status = response.at("Status").get<std::string>();
-    if (status != "Ok")
+    HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
+    if (status != HTTP_STATUS_OK)
     {
         Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to save character map file: %", response.at("ErrorMessage"));
     }
@@ -430,22 +445,23 @@ void HandleReadGetFOWFile(const json& response, uint32_t participantID, std::wst
 {
     try
     {
-        std::string status = response.at("Status").get<std::string>();
-        if (status != "Ok")
+        HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
+        if (status == HTTP_STATUS_OK)
+        {
+            const json& file = response.at("File");
+            std::string base64Data = file.get<std::string>();
+            std::vector<uint8_t> binaryData = Base64ToBinary(base64Data);
+
+            std::filesystem::path filePath = GameAPI::GetPlayerFolder(characterName) / "levels_world001.map" / GameAPI::GetGameDifficultyName(difficulty) / "map.fow";
+            FileWriter writer(&binaryData[0], binaryData.size());
+            writer.WriteToFile(filePath);
+
+            spCache->SetFOWData(characterName, difficulty, &binaryData[0], binaryData.size());
+        }
+        else if (status != HTTP_STATUS_NO_CONTENT)
+        {
             throw std::runtime_error(response.at("ErrorMessage"));
-
-        const json& file = response.at("File");
-        if (file.is_null())
-            return;
-
-        std::string base64Data = file.get<std::string>();
-        std::vector<uint8_t> binaryData = Base64ToBinary(base64Data);
-
-        std::filesystem::path filePath = GameAPI::GetPlayerFolder(characterName) / "levels_world001.map" / GameAPI::GetGameDifficultyName(difficulty) / "map.fow";
-        FileWriter writer(&binaryData[0], binaryData.size());
-        writer.WriteToFile(filePath);
-
-        spCache->SetFOWData(characterName, difficulty, &binaryData[0], binaryData.size());
+        }
     }
     catch (const std::exception& ex)
     {
@@ -455,8 +471,8 @@ void HandleReadGetFOWFile(const json& response, uint32_t participantID, std::wst
 
 void HandleReadSaveFOWFile(const json& response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty, std::string base64Data)
 {
-    std::string status = response.at("Status").get<std::string>();
-    if (status != "Ok")
+    HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
+    if (status != HTTP_STATUS_OK)
     {
         Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to save character FOW file: %", response.at("ErrorMessage"));
     }

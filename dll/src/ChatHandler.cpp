@@ -9,11 +9,11 @@
 // Write handlers
 std::string HandleWriteWelcome(uint32_t requestID);
 std::string HandleWriteOnline(uint32_t requestID);
-std::string HandleWriteJoinChannel(uint32_t requestID, uint8_t channel);
-std::string HandleWriteSendMessage(uint32_t requestID, uint8_t channel, std::wstring message, std::wstring playerName, void* item);
+std::string HandleWriteJoinChannel(uint32_t requestID, uint8_t& channel);
+std::string HandleWriteSendMessage(uint32_t requestID, uint8_t& channel, std::wstring& message, std::wstring& playerName, void*& item);
 std::string HandleWriteGetMutedList(uint32_t requestID);
-std::string HandleWriteMutePlayer(uint32_t requestID, std::wstring playerName);
-std::string HandleWriteUnmutePlayer(uint32_t requestID, std::wstring playerName);
+std::string HandleWriteMutePlayer(uint32_t requestID, std::wstring& playerName);
+std::string HandleWriteUnmutePlayer(uint32_t requestID, std::wstring& playerName);
 
 // Read handlers
 void HandleReadWelcome(const json& response);

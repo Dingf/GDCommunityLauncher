@@ -14,7 +14,7 @@ class CallbackHandler
         template <typename... Ts>
         std::future<json> OnWrite(std::string& message, const std::string& name, Ts... args)
         {
-            typedef std::string (*WriteHandlerProto)(uint32_t, Ts...);
+            typedef std::string (*WriteHandlerProto)(uint32_t, Ts&...);
             typedef void (*ReadHandlerProto)(json, Ts...);
 
             const auto& handlers = GetHandlers();
@@ -24,11 +24,11 @@ class CallbackHandler
                 uint32_t requestID = _requestCount++;
                 ReadHandlerProto read = (ReadHandlerProto)it->second._readHandler;
 
+                message = ((WriteHandlerProto)it->second._writeHandler)(requestID, args...);
+
                 // Store the bound read function callback so that we can call it later upon receiving a response from the server
                 _callbacks[requestID] = [read, args...](json j) { read(j, args...); };
                 _promises[requestID] = {};
-
-                message = ((WriteHandlerProto)it->second._writeHandler)(requestID, args...);
 
                 return _promises[requestID].get_future();
             }

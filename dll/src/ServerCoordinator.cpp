@@ -25,7 +25,6 @@ ServerCoordinator::ServerCoordinator()
         EventManager::Subscribe(GDCL_EVENT_WORLD_PRE_LOAD,     &OnWorldPreLoadEvent);
         EventManager::Subscribe(GDCL_EVENT_WORLD_PRE_UNLOAD,   &OnWorldPreUnloadEvent);
         EventManager::Subscribe(GDCL_EVENT_SET_MAIN_PLAYER,    &OnSetMainPlayerEvent);
-        EventManager::Subscribe(GDCL_EVENT_SET_MAIN_PLAYER,    &OnSetMainPlayerEvent);
         EventManager::Subscribe(GDCL_EVENT_TRANSFER_POST_LOAD, &OnTransferPostLoadEvent);
         EventManager::Subscribe(GDCL_EVENT_TRANSFER_PRE_SAVE,  &OnTransferPreSaveEvent);
         EventManager::Subscribe(GDCL_EVENT_TRANSFER_POST_SAVE, &OnTransferPostSaveEvent);
@@ -555,15 +554,15 @@ void ServerCoordinator::OnTransferPreSaveEvent()
             }
 
             uint32_t index = 0;
-            std::vector<Item> storedItems;
+            std::vector<ItemReplicaInfo> storedItems;
             for (const auto& pair : items)
             {
                 void* item = EngineAPI::FindObjectByID(pair.first);
                 if (item)
                 {
-                    GameAPI::ItemReplicaInfo itemInfo;
+                    ItemReplicaInfo itemInfo;
                     GameAPI::GetItemReplicaInfo(item, itemInfo);
-                    storedItems.push_back(GameAPI::InfoToItem(itemInfo));
+                    storedItems.emplace_back(itemInfo);
                 }
             }
 

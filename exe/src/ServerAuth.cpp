@@ -7,7 +7,7 @@ ServerAuthResult ServerAuthenticate(ServerAuthCallback callback)
 {
     ServerAuthResult result = SERVER_AUTH_TIMEOUT;
 
-    HTTPRequest request(HTTP_POST, "/Account/login");
+    HTTPRequest request(HTTP_METHOD_POST, "/Account/login");
     request.SetBody({
         { "username", spClient->GetUsername() },
         { "password", spClient->GetPassword() },

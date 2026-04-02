@@ -2,7 +2,6 @@
 #define INC_GDCL_GAME_SHARED_STASH_H
 
 #include <filesystem>
-#include "FileData.h"
 #include "GDDataBlock.h"
 #include "ItemContainer.h"
 #include "Stash.h"

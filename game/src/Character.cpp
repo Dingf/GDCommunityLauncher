@@ -312,7 +312,7 @@ void Character::CharacterInventoryBlock::CharacterEquipped::Read(EncodedFileRead
         else if (i == CHAR_INV_SLOT_MAIN_2)
             _weaponSet2 = reader->ReadInt8();
 
-        Item item(reader);
+        ItemReplicaInfo item(reader);
         AddItem(item, 0, i);
         SetAttachState(i, reader->ReadInt8());
     }
@@ -889,7 +889,7 @@ void from_json(const json& j, Character::CharacterInventoryBlock& data)
     json equippedItems = j.at("Equipped").at("Items");
     for (auto it = equippedItems.begin(); it != equippedItems.end(); ++it)
     {
-        Item item = it->get<Item>();
+        ItemReplicaInfo item = it->get<ItemReplicaInfo>();
         uint32_t slot = it->at("Slot");
 
         data._charEquipped.AddItem(item, 0, slot);

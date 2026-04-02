@@ -15,7 +15,7 @@ ItemContainer::~ItemContainer()
     _next.clear();
 }
 
-bool ItemContainer::AddItem(const Item& item)
+bool ItemContainer::AddItem(const ItemReplicaInfo& item)
 {
     for (auto it = _next.begin(); it != _next.end();)
     {
@@ -41,7 +41,7 @@ bool ItemContainer::AddItem(const Item& item)
     return false;
 }
 
-bool ItemContainer::AddItem(const Item& item, uint32_t x, uint32_t y)
+bool ItemContainer::AddItem(const ItemReplicaInfo& item, uint32_t x, uint32_t y)
 {
     if ((x >= _width) || (y >= _height))
         return false;
@@ -49,7 +49,7 @@ bool ItemContainer::AddItem(const Item& item, uint32_t x, uint32_t y)
     uint32_t index = (y  * _width) + x;
     if (_grid[index]._item == nullptr)
     {
-        std::shared_ptr<Item> itemCopy = std::make_shared<Item>(item);
+        std::shared_ptr<ItemReplicaInfo> itemCopy = std::make_shared<ItemReplicaInfo>(item);
         _itemList[itemCopy] = ((uint64_t)x << 32) | y;
         _grid[index]._item = itemCopy.get();
         _grid[index]._real = true;
@@ -58,12 +58,12 @@ bool ItemContainer::AddItem(const Item& item, uint32_t x, uint32_t y)
     return false;
 }
 
-std::vector<Item*> ItemContainer::AddItemList(const std::vector<Item>& items)
+std::vector<ItemReplicaInfo*> ItemContainer::AddItemList(const std::vector<ItemReplicaInfo>& items)
 {
-    std::vector<Item*> result;
+    std::vector<ItemReplicaInfo*> result;
     for (int64_t i = items.size() - 1; i >= 0; i--)
     {
-        const Item& item = items[i];
+        const ItemReplicaInfo& item = items[i];
         for (auto it = _next.begin(); it != _next.end();)
         {
             uint32_t index = *it;

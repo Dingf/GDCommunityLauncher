@@ -1,7 +1,7 @@
 #include <regex>
 #include "GameHandler.h"
 
-void TransformTransferAugment(const GameAPI::ItemReplicaInfo& info, std::vector<GameAPI::GameTextLine>& lines)
+void TransformTransferAugment(const ItemReplicaInfo& info, std::vector<GameAPI::GameTextLine>& lines)
 {
     const static std::regex transferRegex("^([^:]*):([^:]*)$");
 
@@ -31,7 +31,7 @@ void TransformTransferAugment(const GameAPI::ItemReplicaInfo& info, std::vector<
     }
 }
 
-void TransformVaalAffix(const GameAPI::ItemReplicaInfo& info, std::vector<GameAPI::GameTextLine>& lines)
+void TransformVaalAffix(const ItemReplicaInfo& info, std::vector<GameAPI::GameTextLine>& lines)
 {
     const static std::regex vaalRegex("^grimleague/items/lootaffixes/ultos/ultos_affix(\\d{2}[a-z]).dbr$");
     const static std::wregex colorRegex(L"\\^[A-Za-z]");
@@ -45,7 +45,7 @@ void TransformVaalAffix(const GameAPI::ItemReplicaInfo& info, std::vector<GameAP
     }
 }
 
-void TransformSmithAffix(const GameAPI::ItemReplicaInfo& info, std::vector<GameAPI::GameTextLine>& lines)
+void TransformSmithAffix(const ItemReplicaInfo& info, std::vector<GameAPI::GameTextLine>& lines)
 {
     const static std::regex smithRegex("^grimleague/items/lootaffixes/ultos/ultos_smith(\\d{2}[a-z]).dbr$");
     const static std::wregex colorRegex(L"\\^[A-Za-z]");
@@ -67,7 +67,7 @@ void HandleGetItemDescription(void* _this, std::vector<GameAPI::GameTextLine>& l
     {
         callback(_this, lines);
 
-        GameAPI::ItemReplicaInfo itemInfo = GameAPI::GetItemReplicaInfo(_this);
+        ItemReplicaInfo itemInfo = GameAPI::GetItemReplicaInfo(_this);
 
         TransformTransferAugment(itemInfo, lines);
         TransformVaalAffix(itemInfo, lines);
@@ -95,7 +95,7 @@ void HandleGetWeaponDescription(void* _this, std::vector<GameAPI::GameTextLine>&
     {
         callback(_this, lines);
 
-        GameAPI::ItemReplicaInfo itemInfo = GameAPI::GetItemReplicaInfo(_this);
+        ItemReplicaInfo itemInfo = GameAPI::GetItemReplicaInfo(_this);
         TransformVaalAffix(itemInfo, lines);
         TransformSmithAffix(itemInfo, lines);
     }
@@ -110,7 +110,7 @@ void HandleGetArmorDescription(void* _this, std::vector<GameAPI::GameTextLine>& 
     {
         callback(_this, lines);
 
-        GameAPI::ItemReplicaInfo itemInfo = GameAPI::GetItemReplicaInfo(_this);
+        ItemReplicaInfo itemInfo = GameAPI::GetItemReplicaInfo(_this);
         TransformVaalAffix(itemInfo, lines);
         TransformSmithAffix(itemInfo, lines);
     }
