@@ -22,6 +22,7 @@ struct Challenge
     uint32_t            _points;
     ChallengeStatus     _status;
     uint32_t            _difficultyBitMask;
+    std::string         _difficultyRaw;
     bool                _active;
 };
 
@@ -36,6 +37,8 @@ class ChallengeManager
         static ChallengeManager* GetInstance();
 
         uint32_t GetChallengeCategory(std::string categoryName) const;
+        const std::unordered_map<std::string, uint32_t>& GetChallengeCategories() const;
+        const std::unordered_map<std::string, uint32_t>& GetChallengeDifficulties() const;
 
         const Challenge* GetChallenge(uint32_t challengeID) const;
         const ChallengeList& GetChallengeList() const { return _challengeList; }
