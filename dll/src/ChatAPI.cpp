@@ -19,6 +19,8 @@ std::wstring _prefix;      // Last used chat prefix
 std::wstring _saved;       // Saved buffer text, used for linking items in chat
 std::wstring _empty;       // Empty buffer text; used by GetBufferText() if the chat window isn't initialized yet
 std::unordered_set<std::wstring> _mutedList;    // List of muted players by the current user
+uint32_t _serverHandlerThreads;
+uint32_t _chatHandlerThreads;
 
 uint32_t GetChatColor(ChatType type)
 {
@@ -83,6 +85,16 @@ uint32_t GetSelectEndPosition()
 const std::unordered_set<std::wstring>& GetMutedList()
 {
     return _mutedList;
+}
+
+uint32_t GetServerHandlerThreads()
+{
+    return _serverHandlerThreads;
+}
+
+uint32_t GetChatHandlerThreads()
+{
+    return _chatHandlerThreads;
 }
 
 bool IsPlayerMuted(std::wstring playerName)
@@ -270,7 +282,7 @@ static void FindMagicAddresses()
     }
 }
 
-static void LoadConfig()
+void LoadConfig()
 {
     Configuration config;
     std::filesystem::path configPath = std::filesystem::current_path() / "GDCommunityLauncher.ini";
@@ -286,6 +298,12 @@ static void LoadConfig()
 
         const Value* globalColorValue = config.GetValue("Chat", "global_color");
         SetChatColor(CHAT_TYPE_GLOBAL, (globalColorValue) ? globalColorValue->ToInt() : EngineAPI::Color::ORANGE.GetColorCode());
+
+        const Value* serverHandlerThreadsValue = config.GetValue("Server", "server_handler_threads");
+        _serverHandlerThreads = (serverHandlerThreadsValue) ? serverHandlerThreadsValue->ToInt() : 8;
+
+        const Value* chatHandlerThreadsValue = config.GetValue("Chat", "chat_handler_threads");
+        _chatHandlerThreads = (chatHandlerThreadsValue) ? chatHandlerThreadsValue->ToInt() : 1;
     }
     else
     {
@@ -303,6 +321,8 @@ static void SaveConfig()
         config.SetValue("Chat", "channel", (int)_channel);
         config.SetValue("Chat", "system_color", (int)(GetChatColor(CHAT_TYPE_SYSTEM) & 0x00FFFFFF));
         config.SetValue("Chat", "global_color", (int)(GetChatColor(CHAT_TYPE_GLOBAL) & 0x00FFFFFF));
+        config.SetValue("Server", "server_handler_threads", (int)_serverHandlerThreads);
+        config.SetValue("Chat", "chat_handler_threads", (int)_chatHandlerThreads);
         config.Save(configPath);
     }
     else
@@ -314,7 +334,6 @@ static void SaveConfig()
 static void OnSetMainPlayerEvent(void* player)
 {
     FindMagicAddresses();
-    LoadConfig();
 }
 
 static void OnWorldPreUnloadEvent()

@@ -28,6 +28,8 @@ const std::wstring& GetSavedText();
 uint32_t GetCaratPosition();
 uint32_t GetSelectStartPosition();
 uint32_t GetSelectEndPosition();
+uint32_t GetServerHandlerThreads();
+uint32_t GetChatHandlerThreads();
 
 const std::unordered_set<std::wstring>& GetMutedList();
 
@@ -52,6 +54,8 @@ bool UnmutePlayer(std::wstring playerName);
 void ClearMutedList();
 
 void ToggleWindowDisplay();
+
+void LoadConfig();
 
 bool Initialize();
 

@@ -1,16 +1,8 @@
 #include <string>
-#include "GameAPI/Difficulty.h"
 #include "ChallengeManager.h"
 #include "HTTP.h"
 #include "JSON.h"
 #include "Log.h"
-
-const std::unordered_map<std::string, uint32_t> challengeDifficultyMap =
-{
-    { "Normal", (1 << GameAPI::GAME_DIFFICULTY_NORMAL) },
-    { "Elite", (1 << GameAPI::GAME_DIFFICULTY_ELITE) },
-    { "Ultimate", (1 << GameAPI::GAME_DIFFICULTY_ULTIMATE) }
-};
 
 std::string HandleWriteGetChallenges(uint32_t requestID, uint32_t& participantID, uint32_t& seasonID)
 {
@@ -101,7 +93,8 @@ void HandleReadGetSeasonChallenges(const json& response, uint32_t seasonID)
                 }
 
                 std::string difficultyNames = challenge.at("Difficulties").get<std::string>();
-                for (const auto& difficultyEntry : challengeDifficultyMap)
+                newChallenge._difficultyRaw = difficultyNames;
+                for (const auto& difficultyEntry : spChallengeManager->GetChallengeDifficulties())
                 {
                     if (difficultyNames.find(difficultyEntry.first) != std::string::npos)
                     {

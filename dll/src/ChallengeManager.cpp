@@ -1,4 +1,12 @@
 #include "ChallengeManager.h"
+#include "GameAPI/Difficulty.h"
+
+const std::unordered_map<std::string, uint32_t> challengeDifficultyMap =
+{
+    { "Normal", (1 << GameAPI::GAME_DIFFICULTY_NORMAL) },
+    { "Elite", (1 << GameAPI::GAME_DIFFICULTY_ELITE) },
+    { "Ultimate", (1 << GameAPI::GAME_DIFFICULTY_ULTIMATE) }
+};
 
 const std::unordered_map<std::string, uint32_t> challengeCategoryMap =
 {
@@ -24,6 +32,16 @@ uint32_t ChallengeManager::GetChallengeCategory(std::string categoryName) const
 {
     auto it = challengeCategoryMap.find(categoryName);
     return (it != challengeCategoryMap.end()) ? it->second : 0;
+}
+
+const std::unordered_map<std::string, uint32_t>& ChallengeManager::GetChallengeCategories() const
+{
+    return challengeCategoryMap;
+}
+
+const std::unordered_map<std::string, uint32_t>& ChallengeManager::GetChallengeDifficulties() const
+{
+    return challengeDifficultyMap;
 }
 
 const Challenge* ChallengeManager::GetChallenge(uint32_t challengeID) const
