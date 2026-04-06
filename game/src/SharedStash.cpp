@@ -105,7 +105,7 @@ void SharedStash::Read(EncodedFileReader* reader)
     }
 
     uint32_t numTabs = reader->ReadInt32();
-    ReadStashTabs(reader, numTabs);
+    ReadStashTabs(reader, numTabs, _headerBlock.GetBlockVersion());
 
     _headerBlock.ReadBlockEnd(reader);
 }
@@ -125,7 +125,7 @@ void SharedStash::Write(EncodedFileWriter* writer)
     }
 
     writer->BufferInt32((uint32_t)_stashTabs.size());
-    WriteStashTabs(writer);
+    WriteStashTabs(writer, _headerBlock.GetBlockVersion());
 
     _headerBlock.WriteBlockEnd(writer);
 }

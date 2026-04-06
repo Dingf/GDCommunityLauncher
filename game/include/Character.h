@@ -97,8 +97,6 @@ class Character
         friend void to_json(json& j, const Character& data);
         friend void from_json(const json& j, Character& data);
 
-        //web::json::value ToJSON() const;
-
         // Header block, ID = 0, Version = 6,7,8
         struct CharacterHeaderBlock : public GDDataBlock
         {
@@ -164,10 +162,10 @@ class Character
         }
         _attributesBlock;
 
-        // Inventory Block, ID = 3, Version = 4
+        // Inventory Block, ID = 3, Version = 4,8
         struct CharacterInventoryBlock : public GDDataBlock
         {
-            CharacterInventoryBlock() : GDDataBlock(0x03, 0x08) {}
+            CharacterInventoryBlock() : GDDataBlock(0x03, 0x88) {}
 
             friend void to_json(json& j, const CharacterInventoryBlock& data);
             friend void from_json(const json& j, CharacterInventoryBlock& data);
@@ -179,8 +177,8 @@ class Character
 
                     size_t GetBufferSize() const;
 
-                    void Read(EncodedFileReader* reader);
-                    void Write(EncodedFileWriter* writer);
+                    void Read(EncodedFileReader* reader, uint32_t blockVersion);
+                    void Write(EncodedFileWriter* writer, uint32_t blockVersion);
 
                     uint32_t GetFocusedTab() const { return _focusedTab; }
                     uint32_t GetSelectedTab() const { return _selectedTab; }
@@ -201,8 +199,8 @@ class Character
 
                     size_t GetBufferSize() const;
 
-                    void Read(EncodedFileReader* reader);
-                    void Write(EncodedFileWriter* writer);
+                    void Read(EncodedFileReader* reader, uint32_t blockVersion);
+                    void Write(EncodedFileWriter* writer, uint32_t blockVersion);
 
                     ItemContainerType GetContainerType() const { return ITEM_CONTAINER_CHAR_INVENTORY; }
 
@@ -223,10 +221,10 @@ class Character
         }
         _inventoryBlock;
 
-        // Stash Block, ID = 4, Version = 5,6
+        // Stash Block, ID = 4, Version = 5,6,8,10
         struct CharacterStashBlock : public GDDataBlock
         {
-            CharacterStashBlock() : GDDataBlock(0x04, 0x30) {}
+            CharacterStashBlock() : GDDataBlock(0x04, 0x2B0) {}
 
             friend void to_json(json& j, const CharacterStashBlock& data);
             friend void from_json(const json& j, CharacterStashBlock& data);
@@ -236,8 +234,8 @@ class Character
                 public:
                     ItemContainerType GetContainerType() const { return ITEM_CONTAINER_CHAR_STASH; }
 
-                    void Read(EncodedFileReader* reader);
-                    void Write(EncodedFileWriter* writer);
+                    void Read(EncodedFileReader* reader, uint32_t blockVersion);
+                    void Write(EncodedFileWriter* writer, uint32_t blockVersion);
             }
             _charStash;
         }
@@ -301,10 +299,10 @@ class Character
         }
         _shrineBlock;
 
-        // Skills Block, ID = 8, Version = 5,6
+        // Skills Block, ID = 8, Version = 5,6,7
         struct CharacterSkillBlock : public GDDataBlock
         {
-            CharacterSkillBlock() : GDDataBlock(0x08, 0x30) {}
+            CharacterSkillBlock() : GDDataBlock(0x08, 0x70) {}
 
             friend void to_json(json& j, const CharacterSkillBlock& data);
             friend void from_json(const json& j, CharacterSkillBlock& data);
@@ -314,7 +312,7 @@ class Character
             uint32_t           _charDevotionReclaimed;
             std::vector<ClassSkill> _charClassSkills;
             std::vector<ItemSkill>  _charItemSkills;
-            uint32_t           _unk1;
+            std::vector<SubSkill>   _charSubSkills;
         }
         _skillBlock;
 

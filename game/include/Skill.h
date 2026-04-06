@@ -11,29 +11,31 @@ struct Skill
     public:
         virtual ~Skill() = 0;
 
-        std::string _skillName;
-        std::string _skillDevotionBind;
-        std::string _skillDevotionTrigger;   // e.g. 25% chance when hit, 100% chance on crit, etc.
+        std::string _name;
+        std::string _devotionBind;
+        std::string _devotionTrigger;   // e.g. 25% chance when hit, 100% chance on crit, etc.
 };
 
 struct ClassSkill : public Skill
 {
     public:
         ClassSkill() {}
-        ClassSkill(EncodedFileReader* reader) { Read(reader); }
+        ClassSkill(EncodedFileReader* reader, uint32_t version) { Read(reader, version); }
 
         friend void to_json(json& j, const ClassSkill& data);
         friend void from_json(const json& j, ClassSkill& data);
 
-        void Read(EncodedFileReader* reader);
+        void Read(EncodedFileReader* reader, uint32_t version);
 
-        uint32_t    _skillLevel;
-        bool        _skillEnabled;
-        uint32_t    _skillDevotionLevel;
-        uint32_t    _skillExperience;
-        uint32_t    _skillActive;
-        uint8_t     _skillUnk1;
-        uint8_t     _skillUnk2;
+        bool        _enabled;
+        bool        _locked;
+        uint8_t     _transition;
+        uint32_t    _level;
+        uint32_t    _subLevel;
+        uint32_t    _devotionLevel;
+        uint32_t    _experience;
+        uint32_t    _active;
+        uint32_t    _version;
 };
 
 struct ItemSkill : public Skill
@@ -47,8 +49,22 @@ struct ItemSkill : public Skill
 
         void Read(EncodedFileReader* reader);
 
-        uint32_t    _skillItemSlot;
-        std::string _skillItemID;
+        uint32_t    _itemSlot;
+        std::string _itemID;
+};
+
+struct SubSkill : public Skill
+{
+    public:
+        SubSkill() {}
+        SubSkill(EncodedFileReader* reader) { Read(reader); }
+
+        friend void to_json(json& j, const SubSkill& data);
+        friend void from_json(const json& j, SubSkill& data);
+
+        void Read(EncodedFileReader* reader);
+
+        std::string _parentSkill;
 };
 
 #endif//INC_GDCL_GAME_SKILL_H

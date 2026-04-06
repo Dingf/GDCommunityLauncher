@@ -33,13 +33,21 @@ size_t Stash::GetBufferSize() const
             size += it->first->GetBufferSize();
             size += 8;
         }
+
+        if (containerType == ITEM_CONTAINER_CHAR_STASH)
+        {
+            CharacterStashTab* charTab = dynamic_cast<CharacterStashTab*>(_stashTabs[i]->_stashTab.get());
+            size += 20;
+            size += charTab->_buttonName.size() * 2;
+        }
+
         size += 4;
     }
 
     return size;
 }
 
-void Stash::ReadStashTabs(EncodedFileReader* reader, size_t count)
+void Stash::ReadStashTabs(EncodedFileReader* reader, uint32_t version, size_t count)
 {
     for (size_t i = 0; i < count; ++i)
     {
@@ -75,13 +83,17 @@ void Stash::ReadStashTabs(EncodedFileReader* reader, size_t count)
             height = 18;
         }
 
-        std::unique_ptr<StashTab> stashTab(new StashTab(type, width, height));
+        std::unique_ptr<StashTab> stashTab;
+        if (GetContainerType() == ITEM_CONTAINER_CHAR_STASH)
+            stashTab = std::make_unique<CharacterStashTab>(width, height);
+        else
+            stashTab = std::make_unique<StashTab>(type, width, height);
 
         uint16_t itemX, itemY;
         uint32_t numItems = reader->ReadInt32();
         for (uint32_t j = 0; j < numItems; ++j)
         {
-            ItemReplicaInfo item(reader);
+            ItemReplicaInfo item(reader, version);
             if (type == ITEM_CONTAINER_CHAR_BAG)
             {
                 itemX = (uint16_t)reader->ReadInt32();
@@ -94,11 +106,21 @@ void Stash::ReadStashTabs(EncodedFileReader* reader, size_t count)
             }
 
             if (!stashTab->AddItem(item, itemX, itemY))
-                Logger::LogMessage(LOG_LEVEL_WARN, "Could not add item \"%\" at coordinates (%, %).", item._itemName, itemX, itemY);
+                Logger::LogMessage(LOG_LEVEL_WARN, "Could not add item \"%\" at coordinates (%, %).", item._name, itemX, itemY);
         }
 
         if (stashTab->GetItemCount() != numItems)
             Logger::LogMessage(LOG_LEVEL_WARN, "The number of items read from the container (%) does not match the expected number of items (%)", stashTab->GetItemCount(), numItems);
+
+        if ((GetContainerType() == ITEM_CONTAINER_CHAR_STASH) && (version >= 10))
+        {
+            CharacterStashTab* charTab = dynamic_cast<CharacterStashTab*>(stashTab.get());
+            charTab->_borderIndex = reader->ReadInt32();
+            charTab->_borderColorIndex = reader->ReadInt32();
+            charTab->_symbolIndex = reader->ReadInt32();
+            charTab->_symbolColorIndex = reader->ReadInt32();
+            charTab->_buttonName = reader->ReadWideString();
+        }
 
         stashTabBlock->ReadBlockEnd(reader);
 
@@ -107,7 +129,7 @@ void Stash::ReadStashTabs(EncodedFileReader* reader, size_t count)
     }
 }
 
-void Stash::WriteStashTabs(EncodedFileWriter* writer)
+void Stash::WriteStashTabs(EncodedFileWriter* writer, uint32_t version)
 {
     for (uint32_t i = 0; i < _stashTabs.size(); ++i)
     {
@@ -135,7 +157,7 @@ void Stash::WriteStashTabs(EncodedFileWriter* writer)
             uint32_t itemX = (pair.second >> 32) & 0xFFFFFFFF;
             uint32_t itemY = (pair.second & 0xFFFFFFFF);
 
-            pair.first->Write(writer);
+            pair.first->Write(writer, version);
             if (containerType == ITEM_CONTAINER_CHAR_BAG)
             {
                 writer->BufferInt32(itemX);
@@ -146,6 +168,16 @@ void Stash::WriteStashTabs(EncodedFileWriter* writer)
                 writer->BufferFloat((float)itemX);
                 writer->BufferFloat((float)itemY);
             }
+        }
+
+        if ((GetContainerType() == ITEM_CONTAINER_CHAR_STASH) && (version >= 10))
+        {
+            CharacterStashTab* charTab = dynamic_cast<CharacterStashTab*>(_stashTabs[i]->_stashTab.get());
+            writer->BufferInt32(charTab->_borderIndex);
+            writer->BufferInt32(charTab->_borderColorIndex);
+            writer->BufferInt32(charTab->_symbolIndex);
+            writer->BufferInt32(charTab->_symbolColorIndex);
+            writer->BufferWideString(charTab->_buttonName);
         }
 
         _stashTabs[i]->WriteBlockEnd(writer);
@@ -237,7 +269,7 @@ void from_json(const json& j, Stash::StashTabBlock& data)
         uint32_t itemY = it->at("Y");
 
         if (!stashTab->AddItem(item, itemX, itemY))
-            Logger::LogMessage(LOG_LEVEL_WARN, "Could not add item \"%\" at coordinates (%, %).", item._itemName, itemX, itemY);
+            Logger::LogMessage(LOG_LEVEL_WARN, "Could not add item \"%\" at coordinates (%, %).", item._name, itemX, itemY);
     }
 
     if (stashTab->GetItemCount() != items.size())

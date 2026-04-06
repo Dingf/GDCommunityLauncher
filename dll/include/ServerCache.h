@@ -86,6 +86,14 @@ class ServerCache
 
         struct CharacterData
         {
+            CharacterData()
+            {
+                _quests        = std::make_unique<CacheDifficultySet>();
+                _conversations = std::make_unique<CacheDifficultySet>();
+                _map           = std::make_unique<CacheDifficultySet>();
+                _FOW           = std::make_unique<CacheDifficultySet>();
+            }
+
             uint32_t                            _characterID;
             uint32_t                            _participantID;
             std::unique_ptr<CacheBuffer>        _character;

@@ -18,7 +18,7 @@ class ChatHandler : public CallbackHandler
         static Websocket<ChatHandler, std::future<json>>* GetSocket();
 
     private:
-        ChatHandler(uint32_t threadCount);
+        ChatHandler();
         ~ChatHandler();
         ChatHandler(ChatHandler&) = delete;
         void operator=(const ChatHandler&) = delete;
@@ -27,14 +27,16 @@ class ChatHandler : public CallbackHandler
 
         const std::unordered_map<std::string, HandlerPair>& GetHandlers() const { return _handlers; }
         void SetPromiseData(std::promise<json>& promise, const json& json);
+        uint32_t GetThreadCount();
 
-        static ChatHandler& GetInstance(uint32_t threadCount = 1);
+        static ChatHandler& GetInstance();
 
         static void OnInitializeEvent();
         static void OnShutdownEvent();
         static bool OnKeyButtonEvent(EngineAPI::Input::KeyButtonEvent& event);
 
         static const std::unordered_map<std::string, HandlerPair> _handlers;
+        static constexpr uint32_t DEFAULT_CHAT_THREADS = 1;
 
         struct RepeatKeyThread
         {

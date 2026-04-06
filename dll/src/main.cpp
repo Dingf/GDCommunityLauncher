@@ -18,23 +18,21 @@ bool InitializeModules()
         return false;
     }
 
-    try {  GameHandler::GetInstance();  }
+    try { GameHandler::GetInstance(); }
     catch (const std::exception& ex)
     {
         Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to initialize GameHandler module: %", ex.what());
         return false;
     }
 
-    constexpr uint32_t serverHandlerThreads = 8;      // TODO: Load this from a config or something
-    try { ServerHandler::GetInstance(serverHandlerThreads); }
+    try { ServerHandler::GetInstance(); }
     catch (const std::exception& ex)
     {
         Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to initialize ServerHandler module: %", ex.what());
         return false;
     }
-
-    constexpr uint32_t chatHandlerThreads = 1;        // TODO: Load this from a config or something          
-    try { ChatHandler::GetInstance(chatHandlerThreads); }
+      
+    try { ChatHandler::GetInstance(); }
     catch (const std::exception& ex)
     {
         Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to initialize ChatHandler module: %", ex.what());

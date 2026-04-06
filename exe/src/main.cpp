@@ -59,11 +59,12 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
     }
 
     // Get the list of files from the server and download any files that need to be updated
-    if ((!spClient->IsOfflineMode()) && (!UpdateDialog::Update()))
+    // TODO: This is disabled for testing purposes; will need to re-enable later
+    /*if ((!spClient->IsOfflineMode()) && (!UpdateDialog::Update()))
     {
         ContextManager::Stop();
         return EXIT_FAILURE;
-    }
+    }*/
 
     ContextManager::Stop();
 

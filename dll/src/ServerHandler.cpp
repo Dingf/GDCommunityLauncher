@@ -5,6 +5,7 @@
 #include "EventManager.h"
 #include "ServerHandler.h"
 #include "ItemReplicaInfo.h"
+#include "Configuration.h"
 #include "JSON.h"
 
 // Write handlers
@@ -111,7 +112,7 @@ const std::unordered_map<std::string, ServerHandler::HandlerPair> ServerHandler:
     { "SaveParticipantTag",                        { HandleWriteSaveTag,               HandleReadSaveTag }},
 };
 
-ServerHandler::ServerHandler(uint32_t threadCount) : CallbackHandler(threadCount)
+ServerHandler::ServerHandler()
 {
     if (!spClient->IsOfflineMode())
     {
@@ -120,9 +121,9 @@ ServerHandler::ServerHandler(uint32_t threadCount) : CallbackHandler(threadCount
     }
 }
 
-ServerHandler& ServerHandler::GetInstance(uint32_t threadCount)
+ServerHandler& ServerHandler::GetInstance()
 {
-    static ServerHandler instance(threadCount);
+    static ServerHandler instance;
     return instance;
 }
 
@@ -137,11 +138,36 @@ void ServerHandler::SetPromiseData(std::promise<json>& promise, const json& json
     promise.set_value(json.at("Data"));
 }
 
+uint32_t ServerHandler::GetThreadCount()
+{
+    uint32_t numServerThreads = DEFAULT_SERVER_THREADS;
+
+    /*Configuration config;
+    std::filesystem::path configPath = std::filesystem::current_path() / "GDCommunityLauncher.ini";
+    if (std::filesystem::is_regular_file(configPath))
+    {
+        config.Load(configPath);
+        const Value* serverThreadsValue = config.GetValue("Game", "server_threads");
+
+        if ((serverThreadsValue) && (serverThreadsValue->GetType() == VALUE_TYPE_INT))
+        {
+            int32_t configThreads = serverThreadsValue->ToInt();
+            if ((configThreads > 0) && (configThreads <= 16))
+                numServerThreads = configThreads;
+        }
+
+        config.SetValue("Game", "server_threads", (int32_t)numServerThreads);
+        config.Save(configPath);
+    }*/
+    return numServerThreads;
+}
+
 void ServerHandler::OnInitializeEvent()
 {
     // Connect the client at game start; we can't do this when the DLL is loaded due to networking code
     ContextManager::Run();
 
+    GetInstance().CreateThreadPool();
     // TODO: Get the URL value from the client instead of hardcoding it here
     spServer->Connect("gdcl-websocket.azurewebsites.net", "443", "/account/connect", spClient->GetAuthToken());
 }

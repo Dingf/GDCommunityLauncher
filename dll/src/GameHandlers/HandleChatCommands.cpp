@@ -619,9 +619,9 @@ bool HandleBetaAddItemCommand(std::wstring& name, std::wstring& message, uint32_
 
         ItemReplicaInfo itemInfo;
         itemInfo._itemID = EngineAPI::CreateObjectID();
-        itemInfo._itemName = WideToChar(subcommand);
-        itemInfo._itemStackCount = stackCount;
-        itemInfo._itemSeed = GameAPI::GenerateItemSeed();
+        itemInfo._name = WideToChar(subcommand);
+        itemInfo._stackCount = stackCount;
+        itemInfo._seed = GameAPI::GenerateItemSeed();
 
         if (void* newItem = GameAPI::CreateItem(itemInfo))
         {

@@ -21,8 +21,20 @@ class Stash
 
                 ItemContainerType GetContainerType() const { return _type; }
 
-            private:
+            protected:
                 ItemContainerType _type;
+        };
+
+        class CharacterStashTab : public StashTab
+        {
+            public:
+                CharacterStashTab(uint32_t width, uint32_t height) : StashTab(ITEM_CONTAINER_CHAR_STASH, width, height) {}
+
+                uint32_t _borderIndex;
+                uint32_t _borderColorIndex;
+                uint32_t _symbolIndex;
+                uint32_t _symbolColorIndex;
+                std::wstring _buttonName;
         };
 
         struct StashTabBlock : public GDDataBlock
@@ -48,8 +60,8 @@ class Stash
         bool IsHardcore() const { return _isHardcore; }
         void SetHardcore(bool hardcore) { _isHardcore = hardcore; }
 
-        void ReadStashTabs(EncodedFileReader* reader, size_t count);
-        void WriteStashTabs(EncodedFileWriter* writer);
+        void ReadStashTabs(EncodedFileReader* reader, uint32_t version, size_t count);
+        void WriteStashTabs(EncodedFileWriter* writer, uint32_t version);
 
         size_t GetTabCount() const { return _stashTabs.size(); }
 

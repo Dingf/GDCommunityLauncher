@@ -5,6 +5,7 @@
 #include "DllClient.h"
 #include "EventManager.h"
 #include "ContextManager.h"
+#include "Configuration.h"
 
 // Write handlers
 std::string HandleWriteWelcome(uint32_t requestID);
@@ -38,7 +39,7 @@ const std::unordered_map<std::string, ChatHandler::HandlerPair> ChatHandler::_ha
     { "Unmute",      { HandleWriteUnmutePlayer, HandleReadUnmutePlayer }},
 };
 
-ChatHandler::ChatHandler(uint32_t threadCount) : CallbackHandler(threadCount)
+ChatHandler::ChatHandler()
 {
     if (!spClient->IsOfflineMode())
     {
@@ -55,9 +56,9 @@ ChatHandler::~ChatHandler()
     EventManager::Unsubscribe(GDCL_EVENT_KEY_BUTTON_EVENT, &OnKeyButtonEvent);
 }
 
-ChatHandler& ChatHandler::GetInstance(uint32_t threadCount)
+ChatHandler& ChatHandler::GetInstance()
 {
-    static ChatHandler instance(threadCount);
+    static ChatHandler instance;
     return instance;
 }
 
@@ -72,8 +73,33 @@ void ChatHandler::SetPromiseData(std::promise<json>& promise, const json& json)
     promise.set_value(json);
 }
 
+uint32_t ChatHandler::GetThreadCount()
+{
+    uint32_t numChatThreads = DEFAULT_CHAT_THREADS;
+
+    /*Configuration config;
+    std::filesystem::path configPath = std::filesystem::current_path() / "GDCommunityLauncher.ini";
+    if (std::filesystem::is_regular_file(configPath))
+    {
+        config.Load(configPath);
+        const Value* chatThreadsValue = config.GetValue("Game", "chat_threads");
+
+        if ((chatThreadsValue) && (chatThreadsValue->GetType() == VALUE_TYPE_INT))
+        {
+            int32_t configThreads = chatThreadsValue->ToInt();
+            if ((configThreads > 0) && (configThreads <= 16))
+                numChatThreads = configThreads;
+        }
+
+        config.SetValue("Game", "chat_threads", (int32_t)numChatThreads);
+        config.Save(configPath);
+    }*/
+    return numChatThreads;
+}
+
 void ChatHandler::OnInitializeEvent()
 {
+    GetInstance().CreateThreadPool();
     // TODO: Get the URL value from the client instead of hardcoding it here
     spChat->Connect("gdcl-chat.azurewebsites.net", "443", "/chat/connect", spClient->GetAuthToken());
 }

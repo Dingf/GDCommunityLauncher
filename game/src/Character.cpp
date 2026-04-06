@@ -271,20 +271,20 @@ size_t Character::CharacterInventoryBlock::CharacterInventory::GetBufferSize() c
     return 8 + Stash::GetBufferSize();
 }
 
-void Character::CharacterInventoryBlock::CharacterInventory::Read(EncodedFileReader* reader)
+void Character::CharacterInventoryBlock::CharacterInventory::Read(EncodedFileReader* reader, uint32_t blockVersion)
 {
     uint32_t numTabs = reader->ReadInt32();
     SetFocusedTab(reader->ReadInt32());
     SetSelectedTab(reader->ReadInt32());
-    ReadStashTabs(reader, numTabs);
+    ReadStashTabs(reader, blockVersion, numTabs);
 }
 
-void Character::CharacterInventoryBlock::CharacterInventory::Write(EncodedFileWriter* writer)
+void Character::CharacterInventoryBlock::CharacterInventory::Write(EncodedFileWriter* writer, uint32_t blockVersion)
 {
     writer->BufferInt32((uint32_t)_stashTabs.size());
     writer->BufferInt32(_focusedTab);
     writer->BufferInt32(_selectedTab);
-    WriteStashTabs(writer);
+    WriteStashTabs(writer, blockVersion);
 }
 
 size_t Character::CharacterInventoryBlock::CharacterEquipped::GetBufferSize() const
@@ -302,7 +302,7 @@ size_t Character::CharacterInventoryBlock::CharacterEquipped::GetBufferSize() co
     return size;
 }
 
-void Character::CharacterInventoryBlock::CharacterEquipped::Read(EncodedFileReader* reader)
+void Character::CharacterInventoryBlock::CharacterEquipped::Read(EncodedFileReader* reader, uint32_t blockVersion)
 {
     SetActiveWeaponSet(reader->ReadInt8());
     for (uint32_t i = 0; i < MAX_CHAR_INV_SLOT; ++i)
@@ -312,13 +312,13 @@ void Character::CharacterInventoryBlock::CharacterEquipped::Read(EncodedFileRead
         else if (i == CHAR_INV_SLOT_MAIN_2)
             _weaponSet2 = reader->ReadInt8();
 
-        ItemReplicaInfo item(reader);
+        ItemReplicaInfo item(reader, blockVersion);
         AddItem(item, 0, i);
         SetAttachState(i, reader->ReadInt8());
     }
 }
 
-void Character::CharacterInventoryBlock::CharacterEquipped::Write(EncodedFileWriter* writer)
+void Character::CharacterInventoryBlock::CharacterEquipped::Write(EncodedFileWriter* writer, uint32_t blockVersion)
 {
     writer->BufferInt8(_activeWeaponSet);
     for (auto pair : GetItemList())
@@ -329,7 +329,7 @@ void Character::CharacterInventoryBlock::CharacterEquipped::Write(EncodedFileWri
         else if (index == CHAR_INV_SLOT_MAIN_2)
             writer->BufferInt8(_weaponSet2);
 
-        pair.first->Write(writer);
+        pair.first->Write(writer, blockVersion);
         writer->BufferInt8(GetAttachState(index));
     }
 }
@@ -340,30 +340,31 @@ void Character::ReadInventoryBlock(EncodedFileReader* reader)
 
     if (reader->ReadInt8() != 0)
     {
-        _inventoryBlock._charInventory.Read(reader);
-        _inventoryBlock._charEquipped.Read(reader);
+        uint32_t blockVersion = _inventoryBlock.GetBlockVersion();
+        _inventoryBlock._charInventory.Read(reader, blockVersion);
+        _inventoryBlock._charEquipped.Read(reader, blockVersion);
     }
 
     _inventoryBlock.ReadBlockEnd(reader);
 }
 
-void Character::CharacterStashBlock::CharacterStash::Read(EncodedFileReader* reader)
+void Character::CharacterStashBlock::CharacterStash::Read(EncodedFileReader* reader, uint32_t blockVersion)
 {
     uint32_t numTabs = reader->ReadInt32();
-    ReadStashTabs(reader, numTabs);
+    ReadStashTabs(reader, blockVersion, numTabs);
 }
 
-void Character::CharacterStashBlock::CharacterStash::Write(EncodedFileWriter* writer)
+void Character::CharacterStashBlock::CharacterStash::Write(EncodedFileWriter* writer, uint32_t blockVersion)
 {
     writer->BufferInt32((uint32_t)_stashTabs.size());
-    WriteStashTabs(writer);
+    WriteStashTabs(writer, blockVersion);
 }
 
 void Character::ReadStashBlock(EncodedFileReader* reader)
 {
     _stashBlock.ReadBlockStart(reader);
 
-    _stashBlock._charStash.Read(reader);
+    _stashBlock._charStash.Read(reader, _stashBlock.GetBlockVersion());
     _stashBlock._charStash.SetHardcore(_headerBlock._charIsHardcore);
 
     _stashBlock.ReadBlockEnd(reader);
@@ -482,7 +483,7 @@ void Character::ReadSkillBlock(EncodedFileReader* reader)
     uint32_t numSkills = reader->ReadInt32();
     for (uint32_t i = 0; i < numSkills; ++i)
     {
-        _skillBlock._charClassSkills.emplace_back(reader);
+        _skillBlock._charClassSkills.emplace_back(reader, _skillBlock.GetBlockVersion());
     }
 
     _skillBlock._charMasteriesAllowed = reader->ReadInt32();
@@ -496,10 +497,14 @@ void Character::ReadSkillBlock(EncodedFileReader* reader)
         _skillBlock._charItemSkills.emplace_back(reader);
     }
 
-    // Added in version 6
-    // Seems to be 0 on most characters
     if (_skillBlock.GetBlockVersion() >= 6)
-        _skillBlock._unk1 = reader->ReadInt32();
+    {
+        numSkills = reader->ReadInt32();
+        for (uint32_t i = 0; i < numSkills; ++i)
+        {
+            _skillBlock._charSubSkills.emplace_back(reader);
+        }
+    }
 
     _skillBlock.ReadBlockEnd(reader);
 }

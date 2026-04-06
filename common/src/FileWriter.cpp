@@ -223,5 +223,15 @@ void EncodedFileWriter::BufferString(std::string val)
 
 void EncodedFileWriter::BufferWideString(std::wstring val)
 {
-    //TODO: implement me
+    uint32_t length = (uint32_t)val.size();
+    BufferInt32(length);
+
+    if (_bufferPos + (length * 2) <= _bufferSize)
+    {
+        for (uint32_t i = 0; i < length; ++i)
+        {
+            BufferInt8((uint8_t)(val[i] & 0xFF));
+            BufferInt8((uint8_t)(val[i] >> 8));
+        }
+    }
 }

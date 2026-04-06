@@ -213,7 +213,6 @@ void DllClient::ReadDataFromPipe()
             rootPrefix += "_";
             rootPrefix += GetBranchName();
         }
-
         GameAPI::SetRootPrefix(rootPrefix);
     }
 }

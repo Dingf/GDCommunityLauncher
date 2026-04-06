@@ -11,9 +11,9 @@ std::string empty = {};
 
 std::string HandleGetRootSavePath()
 {
-    typedef std::string (__thiscall* TestProto)();
+    typedef std::string (*GetRootSavePathProto)();
 
-    TestProto callback = (TestProto)HookManager::GetOriginalFunction(GAME_DLL, GameAPI::GAPI_NAME_GET_ROOT_SAVE_PATH);
+    GetRootSavePathProto callback = (GetRootSavePathProto)HookManager::GetOriginalFunction(GAME_DLL, GameAPI::GAPI_NAME_GET_ROOT_SAVE_PATH);
     if (callback)
     {
         std::string result = callback();

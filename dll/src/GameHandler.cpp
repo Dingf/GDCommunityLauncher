@@ -44,7 +44,7 @@ bool HandleLoadWorld(void* _this, const char* map, bool unk1, bool modded);
 void HandleSetRegionOfNote(void* _this, void* region);
 void HandleSetMainPlayer(void* _this, uint32_t unk1);
 void HandleUnloadWorld(void* _this);
-bool HandleUseItemEnchantment(void* _this, void* item, bool unk1, bool& unk2);
+bool HandleUseItemEnchantment(void* _this, void* item, bool unk1, bool& unk2, uint32_t unk3, uint32_t source);
 bool HandleCanEnchantBeUsedOn(void* _this, void* item, bool unk1, bool& unk2);
 void HandleGetItemDescription(void* _this, std::vector<GameAPI::GameTextLine>& lines);
 void HandleGetWeaponDescription(void* _this, std::vector<GameAPI::GameTextLine>& lines);

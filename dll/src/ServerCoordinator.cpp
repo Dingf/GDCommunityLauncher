@@ -38,22 +38,22 @@ ServerCoordinator* ServerCoordinator::GetInstance()
     return &instance;
 }
 
-static void UploadCachedCharacterData()
+static void UploadCachedCharacterData(std::wstring characterName)
 {
-    if (void* mainPlayer = GameAPI::GetMainPlayer())
+    if (const FileWriter* cacheData = spCache->GetCharacterData(characterName))
     {
-        std::wstring characterName = GameAPI::GetPlayerName(mainPlayer);
-        if (const FileWriter* cacheData = spCache->GetCharacterData(characterName))
-        {
-            uint32_t participantID = spCache->GetParticipantID(characterName);
-            spServer->Send("SaveCharacterFile", participantID, characterName, BinaryToBase64(cacheData->GetBuffer(), cacheData->GetBufferSize()));
-        }
+        uint32_t participantID = spCache->GetParticipantID(characterName);
+        spServer->Send("SaveCharacterFile", participantID, characterName, BinaryToBase64(cacheData->GetBuffer(), cacheData->GetBufferSize()));
     }
 }
 
 void ServerCoordinator::OnShutdownEvent()
 {
-    UploadCachedCharacterData();
+    if (void* mainPlayer = GameAPI::GetMainPlayer())
+    {
+        std::wstring characterName = GameAPI::GetPlayerName(mainPlayer);
+        UploadCachedCharacterData(characterName);
+    }
 }
 
 static void LoadCharacterData(const std::filesystem::path& filePath, void** data, size_t* size)
@@ -261,8 +261,10 @@ static void SaveCharacterData(const std::filesystem::path& filePath, uint8_t* da
     {
         const std::wstring& characterName = character._headerBlock._charName;
         spCache->SetCharacterData(characterName, data, size);
-        // Since the character file is saved very often, don't send it to the server immediately
-        // Instead, cache it and send it to the server upon logout/shutdown
+
+        // Upload the data to the server if it's a new character
+        if (!std::filesystem::exists(filePath))
+            UploadCachedCharacterData(characterName);
     }
 }
 
@@ -391,7 +393,7 @@ void DownloadParticipantFiles(std::vector<std::future<json>>& downloadTasks, uin
     json characters = spServer->Send("GetParticipantCharacters", participantID).get();
     for (const json& character : characters)
     {
-        std::wstring characterName = character.get<std::wstring>();
+        std::wstring characterName = CharToWide(character.get<std::string>());
         characterList.insert(characterName);
 
         if (!spCache->GetCharacterData(characterName))
@@ -467,7 +469,11 @@ void ServerCoordinator::OnWorldPreLoadEvent(std::string mapName, bool unk1, bool
 
 void ServerCoordinator::OnWorldPreUnloadEvent()
 {
-    UploadCachedCharacterData();
+    if (void* mainPlayer = GameAPI::GetMainPlayer())
+    {
+        std::wstring characterName = GameAPI::GetPlayerName(mainPlayer);
+        UploadCachedCharacterData(characterName);
+    }
 }
 
 static void LoadQuestStatesForPlayer(void* player)
@@ -577,7 +583,11 @@ void ServerCoordinator::OnTransferPreSaveEvent()
 void ServerCoordinator::OnTransferPostSaveEvent()
 {
     GameAPI::SaveGame();
-    UploadCachedCharacterData();  // Also send the player data to prevent duping from putting items into the stash and then reverting the character later
+    if (void* mainPlayer = GameAPI::GetMainPlayer())
+    {
+        std::wstring characterName = GameAPI::GetPlayerName(mainPlayer);
+        UploadCachedCharacterData(characterName);  // Also send the player data to prevent duping from putting items into the stash and then reverting the character later
+    }
 }
 
 void ServerCoordinator::OnDeleteFileEvent(const char* filename)

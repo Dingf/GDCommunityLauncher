@@ -8,8 +8,8 @@ void TransformTransferAugment(const ItemReplicaInfo& info, std::vector<GameAPI::
     std::smatch prefixMatch;
     std::smatch suffixMatch;
 
-    bool hasPrefix = std::regex_match(info._itemPrefix, prefixMatch, transferRegex);
-    bool hasSuffix = std::regex_match(info._itemSuffix, suffixMatch, transferRegex);
+    bool hasPrefix = std::regex_match(info._prefix, prefixMatch, transferRegex);
+    bool hasSuffix = std::regex_match(info._suffix, suffixMatch, transferRegex);
     if (hasPrefix || hasSuffix)
     {
         std::string prefixTag = prefixMatch.str(2);
@@ -36,8 +36,8 @@ void TransformVaalAffix(const ItemReplicaInfo& info, std::vector<GameAPI::GameTe
     const static std::regex vaalRegex("^grimleague/items/lootaffixes/ultos/ultos_affix(\\d{2}[a-z]).dbr$");
     const static std::wregex colorRegex(L"\\^[A-Za-z]");
 
-    bool hasPrefix = std::regex_match(info._itemPrefix, vaalRegex);
-    bool hasSuffix = std::regex_match(info._itemSuffix, vaalRegex);
+    bool hasPrefix = std::regex_match(info._prefix, vaalRegex);
+    bool hasSuffix = std::regex_match(info._suffix, vaalRegex);
     if (hasPrefix || hasSuffix)
     {
         std::wstring result = lines[0]._text;
@@ -50,7 +50,7 @@ void TransformSmithAffix(const ItemReplicaInfo& info, std::vector<GameAPI::GameT
     const static std::regex smithRegex("^grimleague/items/lootaffixes/ultos/ultos_smith(\\d{2}[a-z]).dbr$");
     const static std::wregex colorRegex(L"\\^[A-Za-z]");
 
-    bool hasModifier = std::regex_match(info._itemModifier, smithRegex);
+    bool hasModifier = std::regex_match(info._modifier, smithRegex);
     if (hasModifier)
     {
         std::wstring result = lines[0]._text;
