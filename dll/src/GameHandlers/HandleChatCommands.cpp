@@ -9,6 +9,7 @@
 #include <filesystem>
 #include "ChatAPI.h"
 #include "ChatHandler.h"
+#include "ChallengeManager.h"
 #include "GameHandler.h"
 #include "StringConvert.h"
 #include "URI.h"
@@ -377,152 +378,131 @@ pplx::task<std::unordered_set<uint32_t>> GetCompletedChallengeIDs()
 
 bool HandleChatChallengesCommand(std::wstring& name, std::wstring& message, uint32_t& channel, uint8_t& type, void* item)
 {
-    // shuffling this out into a detached thread. On paper this should be worse performance than a task,
-    // but it shouldn't matter unless someone spams /challenges literally several times per second.
-    // the dependencies are already tasks so it can be turned into a task if REALLY needed, but it would
-    // (for this particular function) make the code much more complicated and harder to follow.
+    const auto& challengeList = spChallengeManager->GetChallengeList();
+    const auto& challengeCategoryMap = spChallengeManager->GetChallengeCategories();
 
-    // TODO Use new ChallengeManager and assume data is already filled in - by the time /challenges can be used, this should be the case
-    /*
-    std::thread challengesInfo([channel]()
+    if (challengeList.empty())
     {
-        json challenges;
-        std::unordered_set<uint32_t> challengeIDs;
+        Logger::LogMessage(LOG_LEVEL_WARN, "Tried to use challenges command when challenge fetch failed/hasn't happened yet");
+        return false;
+    }
 
-        try
+    if (channel == 0)
+    {
+        std::wstring overview = L"Challenge overview for ";
+        overview += CharToWide(spClient->GetUsername());
+        overview += L": ";
+        GameAPI::SendChatMessage(L"Server", overview, ChatAPI::CHAT_TYPE_NORMAL);
+
+        std::unordered_map<uint32_t, uint32_t> challengeCount;
+        std::unordered_map<uint32_t, uint32_t> completedCount;
+        for (const auto& challengeCategory : challengeCategoryMap)
         {
-            challenges = GetSeasonChallenges().get();
-            challengeIDs = GetCompletedChallengeIDs().get();
-        }
-        catch (std::exception& ex)
-        {
-            Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve season challenge data: %s", ex.what());
+            challengeCount.emplace(challengeCategory.second, 0);
+            completedCount.emplace(challengeCategory.second, 0);
         }
 
-        if (!challenges.is_null())
+        for (const auto& challenge : challengeList)
         {
-            if (channel == 0)
+            if (challengeCount.count(challenge.second->_category) == 0)
             {
-                std::wstring overview = L"Challenge overview for ";
-                overview += CharToWide(spClient->GetUsername());
-                overview += L": ";
-                GameAPI::SendChatMessage(L"Server", overview, CHAT_TYPE_NORMAL);
-
-                std::unordered_map<uint32_t, uint32_t> challengeCount;
-                std::unordered_map<uint32_t, uint32_t> completedCount;
-                for (json challenge : challenges)
-                {
-                    std::string challengeCategory = challenge.at("categoryName").get<std::string>();
-                    uint32_t challengeID = challenge.at("seasonChallengeId").get<uint32_t>();
-
-                    auto it = challengeCategoryMap.find(challengeCategory);
-                    if (it != challengeCategoryMap.end())
-                    {
-                        uint32_t categoryNumber = it->second;
-                        challengeCount[categoryNumber]++;
-
-                        if (challengeIDs.count(challengeID) > 0)
-                            completedCount[categoryNumber]++;
-                    }
-                }
-
-                for (size_t i = 1; i <= challengeCount.size(); ++i)
-                {
-                    auto it = std::find_if(challengeCategoryMap.begin(), challengeCategoryMap.end(), [&i](const std::pair<std::string, uint32_t>& p) { return p.second == i; });
-                    if (it != challengeCategoryMap.end())
-                    {
-                        std::wstring message = L"    ";
-                        message += std::to_wstring(i);
-                        message += L" - ";
-
-                        message += CharToWide(it->first);
-                        message += L" (";
-                        message += std::to_wstring(completedCount[i]);
-                        message += L"/";
-                        message += std::to_wstring(challengeCount[i]);
-                        message += L")";
-
-                        ChatType chatType = (completedCount[i] == challengeCount[i]) ? CHAT_TYPE_TRADE : CHAT_TYPE_NORMAL;
-                        GameAPI::SendChatMessage(L"Server", message, chatType);
-                    }
-                }
+                Logger::LogMessage(LOG_LEVEL_WARN, "Tried to count challenge with unknown category");
+                continue;
             }
+            ++challengeCount[challenge.second->_category];
+            if (challenge.second->_status == ChallengeStatus::CHALLENGE_STATUS_COMPLETE)
+            {
+                ++completedCount[challenge.second->_category];
+            }
+        }
+
+        for (const auto& challengeCategory : challengeCategoryMap)
+        {
+            if (challengeCount[challengeCategory.second] == 0)
+            {
+                continue;
+            }
+
+            std::wstring message = L"    ";
+            message += std::to_wstring(challengeCategory.second);
+            message += L" - ";
+
+            message += CharToWide(challengeCategory.first);
+            message += L" (";
+            message += std::to_wstring(completedCount[challengeCategory.second]);
+            message += L"/";
+            message += std::to_wstring(challengeCount[challengeCategory.second]);
+            message += L")";
+
+            ChatAPI::ChatType chatType = (completedCount[challengeCategory.second] == challengeCount[challengeCategory.second]) ? ChatAPI::CHAT_TYPE_SYSTEM : ChatAPI::CHAT_TYPE_NORMAL;
+            GameAPI::SendChatMessage(L"Server", message, chatType);
+        }
+    }
+    else
+    {
+        auto it = std::find_if(challengeCategoryMap.begin(), challengeCategoryMap.end(), [&channel](const std::pair<std::string, uint32_t>& p) { return p.second == channel; });
+        if (it != challengeCategoryMap.end())
+        {
+            std::wstring message = CharToWide(it->first);
+            message += L" Challenges for ";
+            message += CharToWide(spClient->GetUsername());
+            message += L": ";
+            GameAPI::SendChatMessage(L"Server", message, ChatAPI::CHAT_TYPE_NORMAL);
+        }
+        else
+        {
+            std::wstring message = std::to_wstring(channel);
+            message += L" is not a valid challenge category.";
+            GameAPI::SendChatMessage(L"Server", message, ChatAPI::CHAT_TYPE_NORMAL);
+            return false;
+        }
+
+        for (const auto& challenge : challengeList)
+        {
+            if (challenge.second->_category != channel || challenge.second->_status == ChallengeStatus::CHALLENGE_STATUS_HIDDEN)
+            {
+                continue;
+            }
+
+            std::wstring message = L"  [";
+
+            std::wstring challengeName = CharToWide(challenge.second->_name);
+            bool completed = challenge.second->_status == ChallengeStatus::CHALLENGE_STATUS_COMPLETE;
+            
+            if (completed)
+                message += L"X";
             else
+                message += L"  ";
+            message += L"]  ";
+            message += challengeName;
+            message += L" ";
+
+            // Avoid repeating the level/difficulty suffix for challenges which already have the suffix in their name
+            std::wstring suffix = L"(";
+            if (challenge.second->_maxLevel > 0)
             {
-                auto it = std::find_if(challengeCategoryMap.begin(), challengeCategoryMap.end(), [&channel](const std::pair<std::string, uint32_t>& p) { return p.second == channel; });
-                if (it != challengeCategoryMap.end())
-                {
-                    std::wstring message = CharToWide(it->first);
-                    message += L" Challenges for ";
-                    message += CharToWide(spClient->GetUsername());
-                    message += L": ";
-                    GameAPI::SendChatMessage(L"Server", message, CHAT_TYPE_NORMAL);
-                }
-                else
-                {
-                    std::wstring message = std::to_wstring(channel);
-                    message += L" is not a valid challenge category.";
-                    GameAPI::SendChatMessage(L"Server", message, CHAT_TYPE_NORMAL);
-                    return;
-                }
-
-                for (json challenge : challenges)
-                {
-                    std::wstring challengeName = CharToWide(challenge.at("challengeName").get<std::string>());
-                    std::wstring challengeDifficulty = CharToWide(challenge.at("difficulties").get<std::string>());
-                    std::string challengeCategory = challenge.at("categoryName").get<std::string>();
-
-                    auto it = challengeCategoryMap.find(challengeCategory);
-                    if ((it != challengeCategoryMap.end()) && (it->second == channel))
-                    {
-                        uint32_t challengeLevel = 0;
-                        if (challenge.contains("maxLevel"))
-                            challengeLevel = challenge.at("maxLevel").get<uint32_t>();
-
-                        uint32_t challengePoints = challenge.at("pointValue").get<uint32_t>();
-                        uint32_t challengeID = challenge.at("seasonChallengeId").get<uint32_t>();
-
-                        bool complete = (challengeIDs.count(challengeID) > 0);
-
-                        std::wstring message = L"  [";
-                        if (complete)
-                            message += L"X";
-                        else
-                            message += L"  ";
-                        message += L"]  ";
-                        message += challengeName;
-                        message += L" ";
-
-                        // Avoid repeating the level/difficulty suffix for challenges which already have the suffix in their name
-                        std::wstring suffix = L"(";
-                        if (challengeLevel > 0)
-                        {
-                            suffix += L"Lv";
-                            suffix += std::to_wstring(challengeLevel);
-                            suffix += L" ";
-                        }
-                        suffix += challengeDifficulty;
-                        suffix += L")";
-
-                        if ((challengeName.size() < suffix.size()) || (challengeName.compare(challengeName.size() - suffix.size(), suffix.size(), suffix) != 0))
-                        {
-                            message += suffix;
-                            message += L" ";
-                        }
-
-                        message += L"~ ";
-                        message += std::to_wstring(challengePoints);
-                        message += L" points";
-
-                        ChatType chatType = complete ? CHAT_TYPE_TRADE : CHAT_TYPE_NORMAL;
-                        GameAPI::SendChatMessage(L"Server", message, chatType);
-                    }
-                }
+                suffix += L"Lv";
+                suffix += std::to_wstring(challenge.second->_maxLevel);
+                suffix += L" ";
             }
-        }
-    });
 
-    challengesInfo.detach();*/
+            suffix += CharToWide(challenge.second->_difficultyRaw);
+            suffix += L")";
+
+            if ((challengeName.size() < suffix.size()) || (challengeName.compare(challengeName.size() - suffix.size(), suffix.size(), suffix) != 0))
+            {
+                message += suffix;
+                message += L" ";
+            }
+
+            message += L"~ ";
+            message += std::to_wstring(challenge.second->_points);
+            message += L" points";
+
+            ChatAPI::ChatType chatType = completed ? ChatAPI::CHAT_TYPE_SYSTEM : ChatAPI::CHAT_TYPE_NORMAL;
+            GameAPI::SendChatMessage(L"Server", message, chatType);
+        }
+    }
     return false;
 }
 

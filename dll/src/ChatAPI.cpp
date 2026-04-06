@@ -270,7 +270,7 @@ static void FindMagicAddresses()
     }
 }
 
-static void LoadConfig()
+void LoadConfig()
 {
     Configuration config;
     std::filesystem::path configPath = std::filesystem::current_path() / "GDCommunityLauncher.ini";
@@ -314,7 +314,6 @@ static void SaveConfig()
 static void OnSetMainPlayerEvent(void* player)
 {
     FindMagicAddresses();
-    LoadConfig();
 }
 
 static void OnWorldPreUnloadEvent()
