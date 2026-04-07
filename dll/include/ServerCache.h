@@ -86,7 +86,7 @@ class ServerCache
 
         struct CharacterData
         {
-            CharacterData()
+            CharacterData() : _characterID(0), _participantID(0)
             {
                 _quests        = std::make_unique<CacheDifficultySet>();
                 _conversations = std::make_unique<CacheDifficultySet>();
@@ -105,6 +105,8 @@ class ServerCache
 
         struct ParticipantData
         {
+            ParticipantData() : _participantID(0) {}
+
             uint32_t                     _participantID;
             std::unique_ptr<CacheBuffer> _stash;
             std::unique_ptr<CacheBuffer> _formulas;

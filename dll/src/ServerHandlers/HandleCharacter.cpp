@@ -29,7 +29,7 @@ std::string HandleWriteGetCharacterData(uint32_t requestID, uint32_t& participan
         { "RequestId", requestID },
         { "Arguments", {
             { "SeasonParticipantId", participantID },
-            { "CharacterName", characterName }
+            { "CharacterName", WideToChar(characterName) }
         }}
     };
     return request.dump();
@@ -43,7 +43,7 @@ std::string HandleWriteGetCharacterFile(uint32_t requestID, uint32_t& participan
         { "RequestId", requestID },
         { "Arguments", {
             { "SeasonParticipantId", participantID },
-            { "CharacterName", characterName }
+            { "CharacterName", WideToChar(characterName) }
         }}
     };
     return request.dump();
@@ -74,7 +74,7 @@ std::string HandleWriteDeleteCharacter(uint32_t requestID, uint32_t& participant
         { "RequestId", requestID },
         { "Arguments", {
             { "SeasonParticipantId", participantID },
-            { "CharacterName", characterName },
+            { "CharacterName", WideToChar(characterName) },
             { "Branch", spClient->GetBranchName() }
         }}
     };

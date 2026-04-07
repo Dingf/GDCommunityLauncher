@@ -133,10 +133,9 @@ class Websocket
                     _handler.OnRead(message);
                     Read();
                 }
-                else
+                else if (ec.value() != asio::error::operation_aborted)
                 {
                     Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to read data from websocket: %", ec.what());
-                    Disconnect();
                 }
             });
         }
@@ -153,10 +152,9 @@ class Websocket
                         _messageQueue.pop();
                         Write();
                     }
-                    else
+                    else if (ec.value() != asio::error::operation_aborted)
                     {
                         Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to write data to websocket: %", ec.what());
-                        Disconnect();
                     }
                 });
             }

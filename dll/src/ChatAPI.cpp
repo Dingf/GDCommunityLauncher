@@ -313,7 +313,7 @@ static void SaveConfig()
 
 static void OnSetMainPlayerEvent(void* player)
 {
-    FindMagicAddresses();
+    //FindMagicAddresses();
 }
 
 static void OnWorldPreUnloadEvent()

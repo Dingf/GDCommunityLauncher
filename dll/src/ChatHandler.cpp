@@ -77,7 +77,7 @@ uint32_t ChatHandler::GetThreadCount()
 {
     uint32_t numChatThreads = DEFAULT_CHAT_THREADS;
 
-    /*Configuration config;
+    Configuration config;
     std::filesystem::path configPath = std::filesystem::current_path() / "GDCommunityLauncher.ini";
     if (std::filesystem::is_regular_file(configPath))
     {
@@ -93,7 +93,7 @@ uint32_t ChatHandler::GetThreadCount()
 
         config.SetValue("Game", "chat_threads", (int32_t)numChatThreads);
         config.Save(configPath);
-    }*/
+    }
     return numChatThreads;
 }
 

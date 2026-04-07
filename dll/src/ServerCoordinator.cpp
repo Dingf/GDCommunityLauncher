@@ -40,6 +40,7 @@ ServerCoordinator* ServerCoordinator::GetInstance()
 
 static void UploadCachedCharacterData(std::wstring characterName)
 {
+    // TODO: Also call this function when a player dies
     if (const FileWriter* cacheData = spCache->GetCharacterData(characterName))
     {
         uint32_t participantID = spCache->GetParticipantID(characterName);

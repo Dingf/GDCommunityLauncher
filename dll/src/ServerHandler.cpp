@@ -142,7 +142,7 @@ uint32_t ServerHandler::GetThreadCount()
 {
     uint32_t numServerThreads = DEFAULT_SERVER_THREADS;
 
-    /*Configuration config;
+    Configuration config;
     std::filesystem::path configPath = std::filesystem::current_path() / "GDCommunityLauncher.ini";
     if (std::filesystem::is_regular_file(configPath))
     {
@@ -158,7 +158,7 @@ uint32_t ServerHandler::GetThreadCount()
 
         config.SetValue("Game", "server_threads", (int32_t)numServerThreads);
         config.Save(configPath);
-    }*/
+    }
     return numServerThreads;
 }
 

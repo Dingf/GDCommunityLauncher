@@ -101,7 +101,7 @@ std::string HandleWriteGetQuestFile(uint32_t requestID, uint32_t& participantID,
         { "RequestId", requestID },
         { "Arguments", {
             { "SeasonParticipantId", participantID },
-            { "CharacterName", characterName },
+            { "CharacterName", WideToChar(characterName) },
             { "Difficulty", GameAPI::GetGameDifficultyName(difficulty) },
         }}
     };
@@ -116,7 +116,7 @@ std::string HandleWriteSaveQuestFile(uint32_t requestID, uint32_t& participantID
         { "RequestId", requestID },
         { "Arguments", {
             { "SeasonParticipantId", participantID },
-            { "CharacterName", characterName },
+            { "CharacterName", WideToChar(characterName) },
             { "Difficulty", GameAPI::GetGameDifficultyName(difficulty) },
         }},
         { "File", base64Data }
@@ -133,7 +133,7 @@ std::string HandleWriteGetConversationFile(uint32_t requestID, uint32_t& partici
         { "RequestId", requestID },
         { "Arguments", {
             { "SeasonParticipantId", participantID },
-            { "CharacterName", characterName },
+            { "CharacterName", WideToChar(characterName) },
             { "Difficulty", GameAPI::GetGameDifficultyName(difficulty) },
         }}
     };
@@ -148,7 +148,7 @@ std::string HandleWriteSaveConversationFile(uint32_t requestID, uint32_t& partic
         { "RequestId", requestID },
         { "Arguments", {
             { "SeasonParticipantId", participantID },
-            { "CharacterName", characterName },
+            { "CharacterName", WideToChar(characterName) },
             { "Difficulty", GameAPI::GetGameDifficultyName(difficulty) },
         }},
         { "File", base64Data }
@@ -165,7 +165,7 @@ std::string HandleWriteGetMapFile(uint32_t requestID, uint32_t& participantID, s
         { "RequestId", requestID },
         { "Arguments", {
             { "SeasonParticipantId", participantID },
-            { "CharacterName", characterName },
+            { "CharacterName", WideToChar(characterName) },
             { "Difficulty", GameAPI::GetGameDifficultyName(difficulty) },
         }}
     };
@@ -180,7 +180,7 @@ std::string HandleWriteSaveMapFile(uint32_t requestID, uint32_t& participantID, 
         { "RequestId", requestID },
         { "Arguments", {
             { "SeasonParticipantId", participantID },
-            { "CharacterName", characterName },
+            { "CharacterName", WideToChar(characterName) },
             { "Difficulty", GameAPI::GetGameDifficultyName(difficulty) },
         }},
         { "File", base64Data }
@@ -197,7 +197,7 @@ std::string HandleWriteGetFOWFile(uint32_t requestID, uint32_t& participantID, s
         { "RequestId", requestID },
         { "Arguments", {
             { "SeasonParticipantId", participantID },
-            { "CharacterName", characterName },
+            { "CharacterName", WideToChar(characterName) },
             { "Difficulty", GameAPI::GetGameDifficultyName(difficulty) },
         }}
     };
@@ -212,7 +212,7 @@ std::string HandleWriteSaveFOWFile(uint32_t requestID, uint32_t& participantID, 
         { "RequestId", requestID },
         { "Arguments", {
             { "SeasonParticipantId", participantID },
-            { "CharacterName", characterName },
+            { "CharacterName", WideToChar(characterName) },
             { "Difficulty", GameAPI::GetGameDifficultyName(difficulty) },
         }},
         { "File", base64Data }
