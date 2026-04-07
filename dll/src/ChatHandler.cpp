@@ -68,11 +68,6 @@ Websocket<ChatHandler, std::future<json>>* ChatHandler::GetSocket()
     return &socket;
 }
 
-void ChatHandler::SetPromiseData(std::promise<json>& promise, const json& json)
-{
-    promise.set_value(json);
-}
-
 uint32_t ChatHandler::GetThreadCount()
 {
     uint32_t numChatThreads = DEFAULT_CHAT_THREADS;

@@ -3,6 +3,7 @@
 
 #include <string>
 #include <future>
+#include <memory>
 #include <boost/asio/post.hpp>
 #include <boost/asio/thread_pool.hpp>
 #include "JSON.h"
@@ -43,32 +44,27 @@ class CallbackHandler
         {
             if (_threadPool)
             {
-                boost::asio::post(*_threadPool, [this, data]()
+                json response = json::parse(data);
+                uint32_t requestID = response.at("RequestId").get<uint32_t>();
+
+                ReadHandlerCallback callback = _callbacks.at(requestID);
+                std::shared_ptr<std::promise<json>> promise = std::make_shared<std::promise<json>>(std::move(_promises[requestID]));
+
+                boost::asio::post(*_threadPool, [callback, response, promise]()
                 {
                     try
                     {
-                        json response = json::parse(data);
-                        uint32_t requestID = response.at("RequestId").get<uint32_t>();
-
-                        auto it = _callbacks.find(requestID);
-                        if (it != _callbacks.end())
-                        {
-                            it->second(response);
-                            _callbacks.erase(it);
-
-                            SetPromiseData(_promises[requestID], response);
-                            _promises.erase(requestID);
-                        }
-                        else
-                        {
-                            throw std::runtime_error("Could not find callback for request " + std::to_string(requestID));
-                        }
+                        callback(response);
+                        promise->set_value(response);
                     }
                     catch (const std::exception& ex)
                     {
                         Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to read data from websocket: %", ex.what());
                     }
                 });
+
+                _callbacks.erase(requestID);
+                _promises.erase(requestID);
             }
         }
 
@@ -84,7 +80,6 @@ class CallbackHandler
         CallbackHandler() {}
 
         virtual const std::unordered_map<std::string, HandlerPair>& GetHandlers() const = 0;
-        virtual void SetPromiseData(std::promise<json>& promise, const json& json) = 0;
         virtual uint32_t GetThreadCount() = 0;
 
         void CreateThreadPool()

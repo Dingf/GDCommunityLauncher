@@ -21,7 +21,6 @@ class ServerHandler : public CallbackHandler
         friend bool InitializeModules();
 
         const std::unordered_map<std::string, HandlerPair>& GetHandlers() const { return _handlers; }
-        void SetPromiseData(std::promise<json>& promise, const json& json);
         uint32_t GetThreadCount();
 
         static ServerHandler& GetInstance();

@@ -29,6 +29,7 @@ ServerCoordinator::ServerCoordinator()
         EventManager::Subscribe(GDCL_EVENT_TRANSFER_PRE_SAVE,  &OnTransferPreSaveEvent);
         EventManager::Subscribe(GDCL_EVENT_TRANSFER_POST_SAVE, &OnTransferPostSaveEvent);
         EventManager::Subscribe(GDCL_EVENT_DELETE_FILE,        &OnDeleteFileEvent);
+        EventManager::Subscribe(GDCL_EVENT_BESTOW_TOKEN,       &OnBestowTokenEvent);
     }
 }
 
@@ -261,11 +262,15 @@ static void SaveCharacterData(const std::filesystem::path& filePath, uint8_t* da
     if (character.ReadFromBuffer(data, size, true))
     {
         const std::wstring& characterName = character._headerBlock._charName;
+        uint32_t participantID = spCache->GetParticipantID(character._headerBlock._charIsHardcore);
         spCache->SetCharacterData(characterName, data, size);
 
         // Upload the data to the server if it's a new character
         if (!std::filesystem::exists(filePath))
+        {
+            spCache->SetCharacterID(characterName, participantID, 0);
             UploadCachedCharacterData(characterName);
+        }
     }
 }
 
@@ -391,7 +396,7 @@ void ServerCoordinator::OnAddSaveJobEvent(std::string filename, void* data, size
 
 void DownloadParticipantFiles(std::vector<std::future<json>>& downloadTasks, uint32_t participantID, std::unordered_set<std::wstring>& characterList)
 {
-    json characters = spServer->Send("GetParticipantCharacters", participantID).get();
+    json characters = spServer->Send("GetParticipantCharacters", participantID).get().at("Data");
     for (const json& character : characters)
     {
         std::wstring characterName = CharToWide(character.get<std::string>());
@@ -456,8 +461,8 @@ void ServerCoordinator::OnWorldPreLoadEvent(std::string mapName, bool unk1, bool
         std::unordered_set<std::wstring> characterList;
 
         // Retrieve the participant IDs from the server and cache them first
-        spServer->Send("AddParticipant", false).get();
-        spServer->Send("AddParticipant", true).get();
+        spServer->Send("AddParticipant", false).wait();
+        spServer->Send("AddParticipant", true).wait();
 
         DownloadParticipantFiles(downloadTasks, spCache->GetParticipantID(false), characterList);
         DownloadParticipantFiles(downloadTasks, spCache->GetParticipantID(true), characterList);
@@ -540,7 +545,7 @@ void ServerCoordinator::OnSetMainPlayerEvent(void* player)
 void ServerCoordinator::OnTransferPostLoadEvent()
 {
     if (uint32_t participantID = spCache->GetParticipantID(EngineAPI::IsHardcore()))
-      spServer->Send("GetParticipantTransferQueue", participantID).get();
+      spServer->Send("GetParticipantTransferQueue", participantID).wait();
 }
 
 void ServerCoordinator::OnTransferPreSaveEvent()
@@ -613,5 +618,14 @@ void ServerCoordinator::OnDeleteFileEvent(const char* filename)
 
             spServer->Send("DeleteParticipantCharacter", participantID, characterName);
         }
+    }
+}
+
+void ServerCoordinator::OnBestowTokenEvent(std::string token)
+{
+    if ((token.starts_with("gdl_")) && (spClient->IsPlayingSeason()))
+    {
+        uint32_t participantID = spCache->GetParticipantID(EngineAPI::IsHardcore());
+        spServer->Send("SaveParticipantTag", participantID, token, EngineAPI::GetPlayerLevel(), GameAPI::GetGameDifficulty());
     }
 }

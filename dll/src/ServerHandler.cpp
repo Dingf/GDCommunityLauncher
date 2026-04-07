@@ -133,11 +133,6 @@ Websocket<ServerHandler, std::future<json>>* ServerHandler::GetSocket()
     return &socket;
 }
 
-void ServerHandler::SetPromiseData(std::promise<json>& promise, const json& json)
-{
-    promise.set_value(json.at("Data"));
-}
-
 uint32_t ServerHandler::GetThreadCount()
 {
     uint32_t numServerThreads = DEFAULT_SERVER_THREADS;

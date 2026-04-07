@@ -3,6 +3,7 @@
 
 #include <string>
 #include <memory>
+#include <mutex>
 #include <vector>
 #include <unordered_map>
 #include "GameAPI/Difficulty.h"
@@ -94,6 +95,7 @@ class ServerCache
                 _FOW           = std::make_unique<CacheDifficultySet>();
             }
 
+            mutable std::mutex                  _mutex;
             uint32_t                            _characterID;
             uint32_t                            _participantID;
             std::unique_ptr<CacheBuffer>        _character;
@@ -107,6 +109,7 @@ class ServerCache
         {
             ParticipantData() : _participantID(0) {}
 
+            mutable std::mutex           _mutex;
             uint32_t                     _participantID;
             std::unique_ptr<CacheBuffer> _stash;
             std::unique_ptr<CacheBuffer> _formulas;

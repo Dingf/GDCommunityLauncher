@@ -1,7 +1,6 @@
 #include <filesystem>
-#include "GameAPI/TriggerToken.h"
 #include "GameHandler.h"
-#include "ServerHandler.h"
+#include "EventManager.h"
 #include "URI.h"
 
 // TODO: Move the dialog popups here to somewhere else
@@ -44,24 +43,6 @@
     return false;
 }*/
 
-bool HandleSeasonPointToken(const std::string& tokenString)
-{
-    if ((tokenString.starts_with("gdl_")) && (spClient->IsPlayingSeason()))
-    {
-        spServer->Send("SaveParticipantTag", tokenString, EngineAPI::GetPlayerLevel(), GameAPI::GetGameDifficulty());
-        return true;
-    }
-    return false;
-}
-
-typedef bool (*TokenHandler)(const std::string&);
-std::vector<TokenHandler> tokenHandlers =
-{
-    //HandleParticipationToken,
-    //HandleUnlockToken,
-    HandleSeasonPointToken,
-};
-
 void HandleBestowToken(void* _this, const GameAPI::TriggerToken& token)
 {
     typedef void (__thiscall* BestowTokenProto)(void*, const GameAPI::TriggerToken&);
@@ -80,12 +61,7 @@ void HandleBestowToken(void* _this, const GameAPI::TriggerToken& token)
             if (((EngineAPI::IsMultiplayer()) || (GameAPI::IsCloudStorageEnabled())) && (tokenString != "received_start_items"))
                 return;
 
-            for (size_t i = 0; i < tokenHandlers.size(); ++i)
-            {
-                TokenHandler handler = tokenHandlers[i];
-                if (handler(tokenString))
-                    break;
-            }
+            EventManager::Publish(GDCL_EVENT_BESTOW_TOKEN, tokenString);
         }
 
         callback(_this, token);
