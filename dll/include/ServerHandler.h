@@ -17,6 +17,7 @@ class ServerHandler : public CallbackHandler
         ServerHandler();
         ServerHandler(ServerHandler&) = delete;
         void operator=(const ServerHandler&) = delete;
+        ~ServerHandler();
 
         friend bool InitializeModules();
 
@@ -26,7 +27,7 @@ class ServerHandler : public CallbackHandler
         static ServerHandler& GetInstance();
 
         static void OnInitializeEvent();
-        static void OnShutdownEvent();
+        static void OnPostShutdownEvent();
 
         static const std::unordered_map<std::string, HandlerPair> _handlers;
         static constexpr uint32_t DEFAULT_SERVER_THREADS = 8;

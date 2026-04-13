@@ -9,3 +9,8 @@ void HandleSetGod(void* _this, bool state)
 {
     // Disabled
 }
+
+void HandleSetSuperDamage(void* _this, bool state)
+{
+    // Disabled
+}

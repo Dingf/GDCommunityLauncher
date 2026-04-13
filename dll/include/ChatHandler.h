@@ -31,7 +31,7 @@ class ChatHandler : public CallbackHandler
         static ChatHandler& GetInstance();
 
         static void OnInitializeEvent();
-        static void OnShutdownEvent();
+        static void OnPostShutdownEvent();
         static bool OnKeyButtonEvent(EngineAPI::Input::KeyButtonEvent& event);
 
         static const std::unordered_map<std::string, HandlerPair> _handlers;

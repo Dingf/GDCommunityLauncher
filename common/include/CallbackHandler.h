@@ -59,13 +59,19 @@ class CallbackHandler
                     }
                     catch (const std::exception& ex)
                     {
-                        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to read data from websocket: %", ex.what());
+                        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to handle websocket message: %", ex.what());
                     }
                 });
 
                 _callbacks.erase(requestID);
                 _promises.erase(requestID);
             }
+        }
+
+        void OnShutdown()
+        {
+            if (_threadPool)
+                _threadPool->join();
         }
 
     protected:

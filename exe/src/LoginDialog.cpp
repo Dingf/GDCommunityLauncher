@@ -91,8 +91,8 @@ void SetConfigurationData(HWND hwnd, Configuration* config)
         {
             std::string username = GetFieldText(hwnd, IDC_EDIT1);
             std::string password = GetFieldText(hwnd, IDC_EDIT2);
-            config->SetValue("Login", "username", username.c_str());
-            config->SetValue("Login", "password", password.c_str());
+            config->SetValue("Login", "username", username);
+            config->SetValue("Login", "password", password);
         }
         else
         {

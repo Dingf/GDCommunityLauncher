@@ -58,7 +58,8 @@ std::string HandleWriteSaveCharacterFile(uint32_t requestID, uint32_t& participa
         { "RequestId", requestID },
         { "Arguments", {
             { "SeasonParticipantId", participantID },
-            { "ParticipantCharacterId", characterID }
+            { "ParticipantCharacterId", characterID },
+            { "Branch", spClient->GetBranchName() }
         }},
         { "File", base64Data }
     };

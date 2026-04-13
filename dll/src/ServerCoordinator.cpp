@@ -14,17 +14,18 @@
 #include "StringConvert.h"
 #include "Log.h"
 
+// TODO: Save the player file when a player dies (in hardcore only?)
 ServerCoordinator::ServerCoordinator()
 {
     if (!spClient->IsOfflineMode())
     {
-        EventManager::Subscribe(GDCL_EVENT_SHUTDOWN,           &OnShutdownEvent);
+        EventManager::Subscribe(GDCL_EVENT_PRE_SHUTDOWN,       &OnPreShutdownEvent);
         EventManager::Subscribe(GDCL_EVENT_DIRECT_FILE_READ,   &OnDirectReadEvent);
         EventManager::Subscribe(GDCL_EVENT_DIRECT_FILE_WRITE,  &OnDirectWriteEvent);
         EventManager::Subscribe(GDCL_EVENT_ADD_SAVE_JOB,       &OnAddSaveJobEvent);
         EventManager::Subscribe(GDCL_EVENT_WORLD_PRE_LOAD,     &OnWorldPreLoadEvent);
-        EventManager::Subscribe(GDCL_EVENT_WORLD_PRE_UNLOAD,   &OnWorldPreUnloadEvent);
         EventManager::Subscribe(GDCL_EVENT_SET_MAIN_PLAYER,    &OnSetMainPlayerEvent);
+        EventManager::Subscribe(GDCL_EVENT_EXIT_PLAYING_MODE,  &OnExitPlayingModeEvent);
         EventManager::Subscribe(GDCL_EVENT_TRANSFER_POST_LOAD, &OnTransferPostLoadEvent);
         EventManager::Subscribe(GDCL_EVENT_TRANSFER_PRE_SAVE,  &OnTransferPreSaveEvent);
         EventManager::Subscribe(GDCL_EVENT_TRANSFER_POST_SAVE, &OnTransferPostSaveEvent);
@@ -39,22 +40,13 @@ ServerCoordinator* ServerCoordinator::GetInstance()
     return &instance;
 }
 
-static void UploadCachedCharacterData(std::wstring characterName)
+void ServerCoordinator::OnPreShutdownEvent()
 {
-    // TODO: Also call this function when a player dies
+    std::wstring characterName = spCache->GetLastMainPlayerName();
     if (const FileWriter* cacheData = spCache->GetCharacterData(characterName))
     {
         uint32_t participantID = spCache->GetParticipantID(characterName);
-        spServer->Send("SaveCharacterFile", participantID, characterName, BinaryToBase64(cacheData->GetBuffer(), cacheData->GetBufferSize()));
-    }
-}
-
-void ServerCoordinator::OnShutdownEvent()
-{
-    if (void* mainPlayer = GameAPI::GetMainPlayer())
-    {
-        std::wstring characterName = GameAPI::GetPlayerName(mainPlayer);
-        UploadCachedCharacterData(characterName);
+        spServer->Send("SaveCharacterFile", participantID, characterName, BinaryToBase64(cacheData->GetBuffer(), cacheData->GetBufferSize())).wait();
     }
 }
 
@@ -269,7 +261,7 @@ static void SaveCharacterData(const std::filesystem::path& filePath, uint8_t* da
         if (!std::filesystem::exists(filePath))
         {
             spCache->SetCharacterID(characterName, participantID, 0);
-            UploadCachedCharacterData(characterName);
+            spServer->Send("SaveCharacterFile", participantID, characterName, BinaryToBase64(data, size));
         }
     }
 }
@@ -394,13 +386,12 @@ void ServerCoordinator::OnAddSaveJobEvent(std::string filename, void* data, size
 }
 
 
-void DownloadParticipantFiles(std::vector<std::future<json>>& downloadTasks, uint32_t participantID, std::unordered_set<std::wstring>& characterList)
+void DownloadParticipantFiles(std::vector<std::future<json>>& downloadTasks, uint32_t participantID)
 {
     json characters = spServer->Send("GetParticipantCharacters", participantID).get().at("Data");
     for (const json& character : characters)
     {
         std::wstring characterName = CharToWide(character.get<std::string>());
-        characterList.insert(characterName);
 
         if (!spCache->GetCharacterData(characterName))
         {
@@ -434,7 +425,7 @@ void DownloadParticipantFiles(std::vector<std::future<json>>& downloadTasks, uin
         downloadTasks.push_back(spServer->Send("GetParticipantSharedStashCapacity"));
 }
 
-void CleanupSaveFolder(const std::unordered_set<std::wstring>& characterList)
+void CleanupSaveFolder()
 {
     std::filesystem::path mainPath = GameAPI::GetUserSaveFolder() / "main";
     if (std::filesystem::is_directory(mainPath))
@@ -445,7 +436,7 @@ void CleanupSaveFolder(const std::unordered_set<std::wstring>& characterList)
             if (std::filesystem::is_directory(filePath))
             {
                 std::wstring characterName = filePath.filename().wstring().substr(1);
-                if (characterList.contains(characterName))
+                if (spCache->HasCharacterData(characterName))
                     continue;
             }
             std::filesystem::remove_all(filePath);
@@ -457,28 +448,35 @@ void ServerCoordinator::OnWorldPreLoadEvent(std::string mapName, bool unk1, bool
 {
     if (mapName.starts_with("levels/mainmenu/"))
     {
-        std::vector<std::future<json>> downloadTasks;
-        std::unordered_set<std::wstring> characterList;
+        try
+        {
+            std::vector<std::future<json>> downloadTasks;
 
-        // Retrieve the participant IDs from the server and cache them first
-        spServer->Send("AddParticipant", false).wait();
-        spServer->Send("AddParticipant", true).wait();
+            uint32_t hardcoreID = spCache->GetParticipantID(true);
+            if (!hardcoreID)
+            {
+                json result = spServer->Send("AddParticipant", true).get();
+                hardcoreID = result.at("Data").at("SeasonParticipantId").get<uint32_t>();
+                DownloadParticipantFiles(downloadTasks, hardcoreID);
+            }
 
-        DownloadParticipantFiles(downloadTasks, spCache->GetParticipantID(false), characterList);
-        DownloadParticipantFiles(downloadTasks, spCache->GetParticipantID(true), characterList);
+            uint32_t softcoreID = spCache->GetParticipantID(false);
+            if (!softcoreID)
+            {
+                json result = spServer->Send("AddParticipant", false).get();
+                softcoreID = result.at("Data").at("SeasonParticipantId").get<uint32_t>();
+                DownloadParticipantFiles(downloadTasks, softcoreID);
+            }
 
-        CleanupSaveFolder(characterList);
-        for (size_t i = 0; i < downloadTasks.size(); ++i)
-            downloadTasks[i].wait();
-    }
-}
+            for (size_t i = 0; i < downloadTasks.size(); ++i)
+                downloadTasks[i].wait();
 
-void ServerCoordinator::OnWorldPreUnloadEvent()
-{
-    if (void* mainPlayer = GameAPI::GetMainPlayer())
-    {
-        std::wstring characterName = GameAPI::GetPlayerName(mainPlayer);
-        UploadCachedCharacterData(characterName);
+            CleanupSaveFolder();
+        }
+        catch (const std::exception& ex)
+        {
+            Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to retrieve player data from server: %", ex.what());
+        }
     }
 }
 
@@ -539,7 +537,19 @@ void ServerCoordinator::OnSetMainPlayerEvent(void* player)
 {
     LoadQuestStatesForPlayer(player);
     LoadSeasonTagsForPlayer(player);
-    spChat->Send("MutedList");  // Load the muted list
+    spChat->Send("MutedList");
+    spChat->Send("Welcome");
+}
+
+void ServerCoordinator::OnExitPlayingModeEvent()
+{
+    std::wstring characterName = spCache->GetLastMainPlayerName();
+    if (const FileWriter* cacheData = spCache->GetCharacterData(characterName))
+    {
+        uint32_t participantID = spCache->GetParticipantID(characterName);
+        spServer->Send("SaveCharacterFile", participantID, characterName, BinaryToBase64(cacheData->GetBuffer(), cacheData->GetBufferSize()));
+        spCache->SetMainPlayerName({});
+    }
 }
 
 void ServerCoordinator::OnTransferPostLoadEvent()
@@ -592,7 +602,11 @@ void ServerCoordinator::OnTransferPostSaveEvent()
     if (void* mainPlayer = GameAPI::GetMainPlayer())
     {
         std::wstring characterName = GameAPI::GetPlayerName(mainPlayer);
-        UploadCachedCharacterData(characterName);  // Also send the player data to prevent duping from putting items into the stash and then reverting the character later
+        if (const FileWriter* cacheData = spCache->GetCharacterData(characterName))
+        {
+            uint32_t participantID = spCache->GetParticipantID(characterName);
+            spServer->Send("SaveCharacterFile", participantID, characterName, BinaryToBase64(cacheData->GetBuffer(), cacheData->GetBufferSize()));
+        }
     }
 }
 

@@ -6,7 +6,6 @@
 namespace LuaAPI
 {
 
-bool _initialized = false;
 void* _state = NULL;
 
 void lua_settop(void* L, int index)
@@ -189,43 +188,23 @@ ptrdiff_t lua_tointeger(void* L, int index)
     return callback(L, index);
 }
 
-int HandleLuaGetTop(void* L)
+void* HandleLuaNewState()
 {
-    typedef int (__cdecl *HandleLuaGetTopProto)(void*);
+    typedef void* (__cdecl *HandleLuaLNewStateProto)();
 
-    HandleLuaGetTopProto callback = (HandleLuaGetTopProto)HookManager::GetOriginalFunction(LUA_DLL, "lua_gettop");
+    HandleLuaLNewStateProto callback = (HandleLuaLNewStateProto)HookManager::GetOriginalFunction(LUA_DLL, "luaL_newstate");
     if (callback)
     {
-       if (_state == NULL)
-            _state = L;
-
-        return callback(L);
+        _state = callback();
+        return _state;
     }
-    return 0;
-}
-
-void OnWorldPostLoad(std::string mapName, bool modded)
-{
-    if (EngineAPI::IsMainCampaignOrCrucible())
-        HookManager::CreateHook(LUA_DLL, "lua_gettop", &HandleLuaGetTop);
-}
-
-void OnWorldPostUnload()
-{
-    HookManager::DeleteHook(LUA_DLL, "lua_gettop");
-    _state = NULL;
+    return nullptr;
 }
 
 bool Initialize()
 {
-    if (!_initialized)
-    {
-        EventManager::Subscribe(GDCL_EVENT_WORLD_POST_LOAD,   OnWorldPostLoad);
-        EventManager::Subscribe(GDCL_EVENT_WORLD_POST_UNLOAD, OnWorldPostUnload);
-        _initialized = true;
-        return true;
-    }
-    return false;
+    HookManager::CreateHook(LUA_DLL, "luaL_newstate", &HandleLuaNewState);
+    return true;
 }
 
 void* GetState()

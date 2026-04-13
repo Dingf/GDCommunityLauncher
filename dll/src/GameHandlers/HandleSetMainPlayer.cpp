@@ -1,6 +1,7 @@
 #include "ChatAPI.h"
 #include "GameHandler.h"
 #include "EventManager.h"
+#include "ServerCache.h"
 #include "Quest.h"
 
 bool HasParticipationTokenFromAPI(void* mainPlayer, std::string participationToken)
@@ -78,6 +79,7 @@ void HandleSetMainPlayer(void* _this, uint32_t unk1)
             {
                 GameAPI::BestowTokenNow(mainPlayer, seasonToken);       // Grant the token just in case because the character might have it from another difficulty/mode or is new
                 spClient->SetActiveSeason(seasonInfo->_seasonID);
+                spCache->SetMainPlayerName(characterName);
             }
         }
     }

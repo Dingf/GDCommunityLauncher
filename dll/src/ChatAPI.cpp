@@ -248,11 +248,10 @@ static void FindMagicAddresses()
     void* gameEngine = *GameAPI::GetGameEngineHandle();
     if (gameEngine)
     {
-        std::string versionString = EngineAPI::GetVersionString();
-
         //_visibleAddress = *(uint8_t**)((uint8_t*)gameEngine + 0x18A0) + 0x45F90;    // Pre-version 1.2.0.5
         //_visibleAddress = *(uint8_t**)((uint8_t*)gameEngine + 0x18B0) + 0x45BD8;    // Version 1.2.0.5
-        _visibleAddress = *(uint8_t**)((uint8_t*)gameEngine + 0x18C0) + 0x45BD8;      // Version 1.2.1.3
+        //_visibleAddress = *(uint8_t**)((uint8_t*)gameEngine + 0x18C0) + 0x45BD8;    // Version 1.2.1.3
+        _visibleAddress = *(uint8_t**)((uint8_t*)gameEngine + 0x19B0) + 0x4DC38;      // Version 1.3.0
 
         _colorAddress = _visibleAddress + 0x2C28;
 
@@ -313,7 +312,7 @@ static void SaveConfig()
 
 static void OnSetMainPlayerEvent(void* player)
 {
-    //FindMagicAddresses();
+    FindMagicAddresses();
 }
 
 static void OnWorldPreUnloadEvent()

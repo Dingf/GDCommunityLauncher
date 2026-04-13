@@ -26,6 +26,7 @@ constexpr char GAPI_NAME_LOAD_PLAYER_QUEST_STATES[] = "?LoadQuestStatesFromFile@
 constexpr char GAPI_NAME_SAVE_PLAYER_QUEST_STATES[] = "?SaveQuestStatesToFile@Player@GAME@@QEAAXPEBD@Z";
 constexpr char GAPI_NAME_SET_INVINCIBLE[] = "?SetInvincible@Character@GAME@@QEAAX_N@Z";
 constexpr char GAPI_NAME_SET_GOD[] = "?SetGod@Character@GAME@@QEAAX_N@Z";
+constexpr char GAPI_NAME_SET_SUPER_DAMAGE[] = "?SetSuperDamage@Player@GAME@@QEAAX_N@Z";
 constexpr char GAPI_NAME_ADD_MONEY[] = "?AddMoney@Character@GAME@@QEAAXI@Z";
 constexpr char GAPI_NAME_SUBTRACT_MONEY[] = "?SubtractMoney@Character@GAME@@QEAA?BII@Z";
 #else
@@ -47,6 +48,7 @@ constexpr char GAPI_NAME_LOAD_PLAYER_QUEST_STATES[] = "?LoadQuestStatesFromFile@
 constexpr char GAPI_NAME_SAVE_PLAYER_QUEST_STATES[] = "?SaveQuestStatesToFile@Player@GAME@@QAEXPBD@Z";
 constexpr char GAPI_NAME_SET_INVINCIBLE[] = "?SetInvincible@Character@GAME@@QAEX_N@Z";
 constexpr char GAPI_NAME_SET_GOD[] = "?SetGod@Character@GAME@@QAEX_N@";
+constexpr char GAPI_NAME_SET_SUPER_DAMAGE[] = "?SetSuperDamage@Player@GAME@@QAEX_N@Z";
 constexpr char GAPI_NAME_ADD_MONEY[] = "?AddMoney@Character@GAME@@QAEXI@Z";
 constexpr char GAPI_NAME_SUBTRACT_MONEY[] = "?SubtractMoney@Character@GAME@@QAE?BII@Z";
 #endif

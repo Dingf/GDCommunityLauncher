@@ -34,7 +34,7 @@ class Websocket
 
         bool IsConnected() const { return _connected; }
 
-        bool Connect(std::string host, std::string port, std::string target, std::string authToken = {})
+        bool Connect(std::string host, uint32_t port, std::string target, std::string authToken = {})
         {
             try
             {
@@ -44,7 +44,7 @@ class Websocket
                 _authToken = authToken;
 
                 tcp::resolver resolver(_ioc);
-                tcp::endpoint endpoint = asio::connect(beast::get_lowest_layer(*_ws), resolver.resolve(host, port));
+                tcp::endpoint endpoint = asio::connect(beast::get_lowest_layer(*_ws), resolver.resolve(host, std::to_string(port)));
 
                 if (!SSL_set_tlsext_host_name(_ws->next_layer().native_handle(), host.c_str()))
                     throw std::runtime_error("Failed to set SNI hostname");
@@ -105,10 +105,16 @@ class Websocket
             return result;
         }
 
+        void Shutdown()
+        {
+            _handler.OnShutdown();
+            Disconnect();
+        }
+
     private:
         std::atomic_bool _connected; // The current state of the connection
         std::string _host;           // The last used hostname
-        std::string _port;           // The last used port number
+        uint32_t    _port;           // The last used port number
         std::string _target;         // The last used target
         std::string _authToken;      // The last used auth token
 
@@ -135,7 +141,6 @@ class Websocket
                 }
                 else
                 {
-                    Disconnect();
                     if (ec.value() != asio::error::operation_aborted)
                         Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to read data from websocket: %", ec.what());
                 }
@@ -147,7 +152,7 @@ class Websocket
             std::string message;
             if (_messageQueue.front(message))
             {
-                _ws->async_write(asio::buffer(message), [this](const beast::error_code& ec, size_t n)
+                _ws->async_write(asio::buffer(message), [this,message](const beast::error_code& ec, size_t n)
                 {
                     if (!ec)
                     {
@@ -156,7 +161,6 @@ class Websocket
                     }
                     else
                     {
-                        Disconnect();
                         if (ec.value() != asio::error::operation_aborted)
                             Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to write data to websocket: %", ec.what());
                     }

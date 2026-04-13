@@ -157,13 +157,32 @@ void Value::CopyStringData(const char* val)
         DestroyStringData();
         if (val != nullptr)
         {
-            _s = new char[256]();
-            for (int i = 0; i < 255; ++i)
+            uint32_t size = 0;
+            for (size = 0; size < 0xFFFF; ++size)
             {
-                _s[i] = val[i];
-                if (val[i] == '\0')
+                if (val[size] == '\0')
+                {
+                    size++;
                     break;
+                }
             }
+
+            _s = new char[size]();
+            memcpy(_s, val, size);
+        }
+    }
+}
+
+void Value::CopyStringData(const std::string& val)
+{
+    if (_type == VALUE_TYPE_STRING)
+    {
+        DestroyStringData();
+        if (!val.empty())
+        {
+            _s = new char[val.size()+1]();
+            memcpy(_s, &val[0], val.size());
+            _s[val.size()] = '\0';
         }
     }
 }

@@ -1,6 +1,7 @@
 #include <string>
 #include "GameAPI.h"
 #include "ChatAPI.h"
+#include "StringConvert.h"
 #include "JSON.h"
 
 std::string HandleWriteWelcome(uint32_t requestID)
@@ -20,7 +21,8 @@ void HandleReadWelcome(const json& response)
     {
         for (const json& line : message)
         {
-            GameAPI::AddChatMessage(L"Server", line.get<std::wstring>(), ChatAPI::CHAT_TYPE_NORMAL);
+            std::wstring message = CharToWide(line.get<std::string>());
+            GameAPI::AddChatMessage(L"Server", message, ChatAPI::CHAT_TYPE_NORMAL);
         }
     }
 }

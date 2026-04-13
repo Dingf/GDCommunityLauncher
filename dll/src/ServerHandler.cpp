@@ -116,8 +116,17 @@ ServerHandler::ServerHandler()
 {
     if (!spClient->IsOfflineMode())
     {
-        EventManager::Subscribe(GDCL_EVENT_INITIALIZE,  &OnInitializeEvent);
-        EventManager::Subscribe(GDCL_EVENT_SHUTDOWN,    &OnShutdownEvent);
+        EventManager::Subscribe(GDCL_EVENT_INITIALIZE,    &OnInitializeEvent);
+        EventManager::Subscribe(GDCL_EVENT_POST_SHUTDOWN, &OnPostShutdownEvent);
+    }
+}
+
+ServerHandler::~ServerHandler()
+{
+    if (!spClient->IsOfflineMode())
+    {
+        EventManager::Unsubscribe(GDCL_EVENT_INITIALIZE,    &OnInitializeEvent);
+        EventManager::Unsubscribe(GDCL_EVENT_POST_SHUTDOWN, &OnPostShutdownEvent);
     }
 }
 
@@ -163,12 +172,34 @@ void ServerHandler::OnInitializeEvent()
     ContextManager::Run();
 
     GetInstance().CreateThreadPool();
-    // TODO: Get the URL value from the client instead of hardcoding it here
-    spServer->Connect("gdcl-websocket.azurewebsites.net", "443", "/account/connect", spClient->GetAuthToken());
+
+    uint32_t port = 443;
+    std::string host = "gdcl-websocket.azurewebsites.net";
+
+    Configuration config;
+    std::filesystem::path configPath = std::filesystem::current_path() / "GDCommunityLauncher.ini";
+    if (std::filesystem::is_regular_file(configPath))
+    {
+        config.Load(configPath);
+
+        const Value* hostnameValue = config.GetValue("Game", "hostname");
+        if ((hostnameValue) && (hostnameValue->GetType() == VALUE_TYPE_STRING))
+            host = hostnameValue->ToString();
+
+        const Value* portValue = config.GetValue("Game", "port");
+        if ((portValue) && (portValue->GetType() == VALUE_TYPE_INT))
+            port = portValue->ToInt();
+
+        config.SetValue("Game", "hostname", host);
+        config.SetValue("Game", "port", (int32_t)port);
+        config.Save(configPath);
+    }
+
+    spServer->Connect(host, port, "/account/connect", spClient->GetAuthToken());
 }
 
-void ServerHandler::OnShutdownEvent()
+void ServerHandler::OnPostShutdownEvent()
 {
-    spServer->Disconnect();
+    spServer->Shutdown();
     ContextManager::Stop();
 }

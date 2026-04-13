@@ -9,26 +9,6 @@
 #include "GameAPI/Difficulty.h"
 #include "FileWriter.h"
 
-// TODO: Make sure to make this thread-safe
-
-// Things that we need to cache:
-// Character data (per character)
-// Quest data (per character/difficulty)
-// Conversation data (per character/difficulty)
-// FOW data (per character/difficulty)
-// Stash data (hardcore/not hardcore)
-// Character IDs
-// Participant IDs
-
-
-/*std::shared_ptr<CharacterBuffer>  _cachedCharacterBuffer;
-std::shared_ptr<PlayerDataBuffer> _cachedQuestBuffer;
-std::shared_ptr<PlayerDataBuffer> _cachedConversationsBuffer;
-std::shared_ptr<PlayerDataBuffer> _cachedFOWBuffer;
-std::shared_ptr<StashBuffer>      _cachedStashBuffer;
-std::map<std::wstring, uint32_t> _characterIDCache;
-std::map<bool, uint32_t> _participantIDCache;*/
-
 class ServerCache
 {
     public:
@@ -45,14 +25,17 @@ class ServerCache
         static ServerCache* GetInstance();
 
         bool IsParticipantHardcore(uint32_t participantID) const;
+        bool HasCharacterData(const std::wstring& characterName) const;
 
         uint32_t GetParticipantID(bool hardcore);
         uint32_t GetParticipantID(const std::wstring& characterName);
         uint32_t GetCharacterID(const std::wstring& characterName);
         int32_t GetStashCapacity() const { return _stashCapacity; }
+        std::wstring GetLastMainPlayerName() const { return _lastPlayerName; }
 
         void SetParticipantID(bool hardcore, uint32_t participantID);
         void SetStashCapacity(int32_t capacity) { _stashCapacity = capacity; }
+        void SetMainPlayerName(const std::wstring& characterName) { _lastPlayerName = characterName; }
 
         const CacheBuffer* GetCharacterData(const std::wstring& characterName) const;
         const CacheBuffer* GetQuestData(const std::wstring& characterName, GameAPI::Difficulty difficulty) const;
@@ -120,6 +103,7 @@ class ServerCache
         ServerCache();
 
         int32_t _stashCapacity;
+        std::wstring _lastPlayerName;
         std::unordered_map<bool, ParticipantData> _participantData;
         std::unordered_map<std::wstring, CharacterData> _characterData;
 

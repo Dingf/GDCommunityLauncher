@@ -44,7 +44,7 @@ ChatHandler::ChatHandler()
     if (!spClient->IsOfflineMode())
     {
         EventManager::Subscribe(GDCL_EVENT_INITIALIZE,       &OnInitializeEvent);
-        EventManager::Subscribe(GDCL_EVENT_SHUTDOWN,         &OnShutdownEvent);
+        EventManager::Subscribe(GDCL_EVENT_POST_SHUTDOWN,    &OnPostShutdownEvent);
         EventManager::Subscribe(GDCL_EVENT_KEY_BUTTON_EVENT, &OnKeyButtonEvent);
     }
 }
@@ -52,7 +52,7 @@ ChatHandler::ChatHandler()
 ChatHandler::~ChatHandler()
 {
     EventManager::Unsubscribe(GDCL_EVENT_INITIALIZE,       &OnInitializeEvent);
-    EventManager::Unsubscribe(GDCL_EVENT_SHUTDOWN,         &OnShutdownEvent);
+    EventManager::Unsubscribe(GDCL_EVENT_POST_SHUTDOWN,    &OnPostShutdownEvent);
     EventManager::Unsubscribe(GDCL_EVENT_KEY_BUTTON_EVENT, &OnKeyButtonEvent);
 }
 
@@ -77,7 +77,7 @@ uint32_t ChatHandler::GetThreadCount()
     if (std::filesystem::is_regular_file(configPath))
     {
         config.Load(configPath);
-        const Value* chatThreadsValue = config.GetValue("Game", "chat_threads");
+        const Value* chatThreadsValue = config.GetValue("Chat", "chat_threads");
 
         if ((chatThreadsValue) && (chatThreadsValue->GetType() == VALUE_TYPE_INT))
         {
@@ -86,7 +86,7 @@ uint32_t ChatHandler::GetThreadCount()
                 numChatThreads = configThreads;
         }
 
-        config.SetValue("Game", "chat_threads", (int32_t)numChatThreads);
+        config.SetValue("Chat", "chat_threads", (int32_t)numChatThreads);
         config.Save(configPath);
     }
     return numChatThreads;
@@ -95,13 +95,35 @@ uint32_t ChatHandler::GetThreadCount()
 void ChatHandler::OnInitializeEvent()
 {
     GetInstance().CreateThreadPool();
-    // TODO: Get the URL value from the client instead of hardcoding it here
-    spChat->Connect("gdcl-chat.azurewebsites.net", "443", "/chat/connect", spClient->GetAuthToken());
+
+    uint32_t port = 443;
+    std::string host = "gdcl-chat.azurewebsites.net";
+
+    Configuration config;
+    std::filesystem::path configPath = std::filesystem::current_path() / "GDCommunityLauncher.ini";
+    if (std::filesystem::is_regular_file(configPath))
+    {
+        config.Load(configPath);
+
+        const Value* hostnameValue = config.GetValue("Chat", "hostname");
+        if ((hostnameValue) && (hostnameValue->GetType() == VALUE_TYPE_STRING))
+            host = hostnameValue->ToString();
+
+        const Value* portValue = config.GetValue("Chat", "port");
+        if ((portValue) && (portValue->GetType() == VALUE_TYPE_INT))
+            port = portValue->ToInt();
+
+        config.SetValue("Chat", "hostname", host);
+        config.SetValue("Chat", "port", (int32_t)port);
+        config.Save(configPath);
+    }
+
+    spChat->Connect(host, port, "/chat/connect", spClient->GetAuthToken());
 }
 
-void ChatHandler::OnShutdownEvent()
+void ChatHandler::OnPostShutdownEvent()
 {
-    spChat->Disconnect();
+    spChat->Shutdown();
 }
 
 bool ChatHandler::OnKeyButtonEvent(EngineAPI::Input::KeyButtonEvent& event)

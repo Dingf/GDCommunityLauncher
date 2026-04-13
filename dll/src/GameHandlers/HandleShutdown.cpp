@@ -20,7 +20,8 @@ void HandleGameShutdown(void* _this)
     GameShutdownProto callback = (GameShutdownProto)HookManager::GetOriginalFunction(GAME_DLL, GameAPI::GAPI_NAME_GAME_ENGINE_SHUTDOWN);
     if (callback)
     {
-        EventManager::Publish(GDCL_EVENT_SHUTDOWN);
+        EventManager::Publish(GDCL_EVENT_PRE_SHUTDOWN);
         callback(_this);
+        EventManager::Publish(GDCL_EVENT_POST_SHUTDOWN);
     }
 }

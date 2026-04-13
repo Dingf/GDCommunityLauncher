@@ -31,6 +31,11 @@ bool ServerCache::IsParticipantHardcore(uint32_t participantID) const
     return false;
 }
 
+bool ServerCache::HasCharacterData(const std::wstring& characterName) const
+{
+    return _characterData.contains(characterName);
+}
+
 uint32_t ServerCache::GetParticipantID(bool hardcore)
 {
     auto it = _participantData.find(hardcore);
@@ -220,6 +225,8 @@ void ServerCache::SetTagsData(bool hardcore, uint8_t* data, size_t size)
 
 void ServerCache::Clear()
 {
+    _stashCapacity = -1;
+    _lastPlayerName.clear();
     _participantData.clear();
     _characterData.clear();
 }

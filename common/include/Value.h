@@ -19,6 +19,7 @@ class Value
         Value(float val) : _type(VALUE_TYPE_FLOAT), _f(val) {}
         Value(bool val)  : _type(VALUE_TYPE_BOOL),  _b(val) {}
         Value(const char* val) : _type(VALUE_TYPE_STRING), _s(nullptr) { CopyStringData(val); }
+        Value(const std::string& val) : _type(VALUE_TYPE_STRING), _s(nullptr) { CopyStringData(val); }
         Value(const Value& val);
 
         ~Value() { DestroyStringData(); }
@@ -35,6 +36,7 @@ class Value
     private:
         void DestroyStringData();
         void CopyStringData(const char* val);
+        void CopyStringData(const std::string& val);
 
         const ValueType _type;
 
