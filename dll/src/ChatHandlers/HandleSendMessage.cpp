@@ -3,6 +3,7 @@
 #include "GameAPI.h"
 #include "ChatAPI.h"
 #include "ItemReplicaInfo.h"
+#include "StringConvert.h"
 #include "JSON.h"
 
 std::string HandleWriteSendMessage(uint32_t requestID, uint8_t& channel, std::wstring& message, std::wstring& playerName, void*& item)
@@ -16,10 +17,14 @@ std::string HandleWriteSendMessage(uint32_t requestID, uint8_t& channel, std::ws
         { "RequestName", "Send" },
         { "RequestId", requestID },
         { "Channel", channel },
-        { "DirectTo", (!playerName.empty()) ? playerName : nullptr },
-        { "Message", message },
-        { "Item", (item) ? itemJSON.dump() : nullptr }
+        { "DirectTo", nullptr },
+        { "Message", WideToRaw(message) },
+        { "Item", (item) ? itemJSON : nullptr }
     };
+
+    if (!playerName.empty())
+        request["DirectTo"] = WideToChar(playerName);
+
     return request.dump();
 }
 
@@ -27,8 +32,7 @@ void HandleReadSendMessage(const json& response, uint8_t channel, std::wstring m
 {
     // TODO: Handle edge cases like the recipient being offline, etc.
     uint8_t type = ChatAPI::CHAT_TYPE_GLOBAL;
-    playerName = response.at("From").get<std::wstring>();
-    message = response.at("Message").get<std::wstring>();
+    playerName = CharToWide(response.at("From").get<std::string>());
 
     if (ChatAPI::IsPlayerMuted(playerName))
         return;
@@ -48,5 +52,13 @@ void HandleReadSendMessage(const json& response, uint8_t channel, std::wstring m
         item = GameAPI::CreateItem(itemInfo);
     }
 
-    GameAPI::AddChatMessage(playerName, message, type, item);
+    const json& messageJSON = response.at("Message");
+    if (messageJSON.is_array())
+    {
+        for (const json& line : messageJSON)
+        {
+            message = RawToWide(line.get<std::string>());
+            GameAPI::AddChatMessage(playerName, message, type, item);
+        }
+    }
 }

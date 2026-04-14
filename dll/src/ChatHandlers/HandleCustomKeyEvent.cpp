@@ -2,8 +2,10 @@
 #include "ChatAPI.h"
 #include "EngineAPI.h"
 
+#include "Log.h"
+
 // Special paste handler, since regular paste won't exceed the default chat window length
-bool HandlePasteEvent(std::wstring& text, uint32_t carat, uint32_t selectStart, uint32_t selectEnd)
+bool HandlePasteEvent(std::wstring text, uint32_t carat, uint32_t selectStart, uint32_t selectEnd)
 {
     if (OpenClipboard(nullptr))
     {
@@ -27,8 +29,11 @@ bool HandlePasteEvent(std::wstring& text, uint32_t carat, uint32_t selectStart, 
                     carat = selectStart;
                 }
 
-                ChatAPI::SetBufferText(text);
-                ChatAPI::SetCaratPosition(carat + pasteText.size());
+                text.insert(carat, pasteText);
+                carat += (uint32_t)pasteText.size();
+
+                ChatAPI::SetBufferTextDirect(text);
+                ChatAPI::SetCaratPosition(carat);
                 ChatAPI::SetSelectStartPosition(0);
                 ChatAPI::SetSelectEndPosition(0);
 
@@ -41,7 +46,7 @@ bool HandlePasteEvent(std::wstring& text, uint32_t carat, uint32_t selectStart, 
     return false;
 }
 
-typedef bool (*ControlKeyHandler)(std::wstring&, uint32_t, uint32_t, uint32_t);
+typedef bool (*ControlKeyHandler)(std::wstring, uint32_t, uint32_t, uint32_t);
 const std::unordered_map<EngineAPI::Input::KeyCode, ControlKeyHandler> controlKeyHandlers =
 {
     { EngineAPI::Input::KEY_V, &HandlePasteEvent },
@@ -96,7 +101,7 @@ bool HandleCustomKeyEvent(EngineAPI::Input::KeyButtonEvent& event)
             }
             default:
             {
-                if ((ChatAPI::IsWindowVisible()) && (output != 0) && (text.size() < ChatAPI::MAX_MESSAGE_SIZE))
+                if ((ChatAPI::IsWindowVisible()) && (output != 0))
                 {
                     // Ctrl + key usually has output, but shouldn't actually print a character to the window
                     // Most of the time, just let the main program handle it
@@ -110,6 +115,11 @@ bool HandleCustomKeyEvent(EngineAPI::Input::KeyButtonEvent& event)
                         }
                         return false;
                     }
+
+                    // Need to return true here to prevent the default key handler from truncating the message
+                    // However, don't actually print anything if it's over the max message size
+                    if (text.size() >= ChatAPI::MAX_MESSAGE_SIZE)
+                        return true;
 
                     int32_t select = selectEnd - selectStart;
                     if (select > 0)

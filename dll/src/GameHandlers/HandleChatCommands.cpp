@@ -74,11 +74,12 @@ bool HandleChatGlobalCommand(std::wstring& name, std::wstring& message, uint32_t
         if (channel == 0)
             channel = 1;
 
-        ChatAPI::SetChatChannel(channel);
+        spChat->Send("JoinChannel", channel);
         return false;
     }
     else if ((subcommand == L"off") && (subcommand.size() == message.size()))
     {
+        // TODO: Need to properly handle the /g off command
         ChatAPI::SetChatChannel(0);
         return false;
     }
@@ -155,13 +156,12 @@ bool HandleChatGlobalCommand(std::wstring& name, std::wstring& message, uint32_t
     {
         if ((message.empty()) && (item == nullptr))
         {
-            name = L"Server";
-            message = L"You are currently in global channel " + std::to_wstring(currentChannel) + L".";
+            return false;
         }
         else
         {
             name = CharToWide(spClient->GetUsername());
-            spChat->Send("Send", channel, message, std::wstring(), item);
+            spChat->Send("Send", currentChannel, message, std::wstring(), item);
             return false;
         }
     }
@@ -172,129 +172,6 @@ bool HandleChatGlobalCommand(std::wstring& name, std::wstring& message, uint32_t
     }
     return true;
 }
-
-// TODO: Delete me
-/*bool HandleChatTradeCommand(std::wstring& name, std::wstring& message, uint32_t& channel, uint8_t& type, void* item)
-{
-    spChatManager->SetChatPrefix(L"/t ");
-
-    type = CHAT_TYPE_TRADE;
-
-    std::wstring subcommand = message.substr(0, message.find(L" "));
-    std::wstring args = (subcommand.size() == message.size()) ? L"" : message.substr(message.find(L" ") + 1);
-    std::transform(subcommand.begin(), subcommand.end(), subcommand.begin(), std::towlower);
-    std::transform(args.begin(), args.end(), args.begin(), std::towlower);
-    if ((subcommand == L"on") && (subcommand.size() == message.size()))
-    {
-        if (channel == 0)
-            channel = 1;
-
-        spChatManager->SetChatChannel(CHAT_TYPE_TRADE, channel);
-        return false;
-    }
-    else if ((subcommand == L"off") && (subcommand.size() == message.size()))
-    {
-        spChatManager->SetChatChannel(CHAT_TYPE_TRADE, 0);
-        return false;
-    }
-    else if ((subcommand == L"color") || (subcommand == L"colour"))
-    {
-        std::wsmatch match;
-        std::wregex colorRegex(L"^#?([A-Fa-f0-9]{6})$");
-
-        uint32_t colorCode = 0;
-
-        auto it = chatColorMap.find(args);
-        if (it != chatColorMap.end())
-        {
-            EngineAPI::Color color = it->second;
-            colorCode |= (uint32_t)(color._r * 255);
-            colorCode |= ((uint32_t)(color._g * 255) << 8);
-            colorCode |= ((uint32_t)(color._b * 255) << 16);
-            colorCode |= ((uint32_t)(color._a * 255) << 24);
-        }
-        else if (std::regex_match(args, match, colorRegex))
-        {
-            std::wstringstream inputStream;
-            inputStream << std::hex << match.str(1);
-            inputStream >> colorCode;
-
-            // Swap red and blue values to match color code format
-            colorCode = (colorCode & 0x00FFFFFF) | ((colorCode & 0x000000FF) << 24);
-            colorCode = (colorCode & 0xFFFFFF00) | ((colorCode & 0x00FF0000) >> 16);
-            colorCode = (colorCode & 0xFF00FFFF) | ((colorCode & 0xFF000000) >> 8);
-            colorCode = (colorCode & 0x00FFFFFF);
-        }
-
-        if (colorCode != 0)
-        {
-            if (spChatManager->SetChatColor(CHAT_TYPE_TRADE, colorCode))
-            {
-                std::wstringstream outputStream;
-                outputStream << std::hex << std::uppercase << std::setfill(L'0') << std::setw(2) << (colorCode & 0x0000FF) << std::setw(2) << ((colorCode & 0x00FF00) >> 8) << std::setw(2) << ((colorCode & 0xFF0000) >> 16);
-
-                name = L"Server";
-                message = L"Changed trade chat text color to #" + outputStream.str() + L".";
-            }
-            else
-            {
-                name = L"Server";
-                message = L"Could not change trade chat text color.";
-            }
-        }
-        else
-        {
-            name = L"Server";
-            message = L"\"" + args + L"\" is not a valid color. Type \"/h color\" for a list of available color aliases. You can also use a hex code, e.g. #FFFFFF.";
-        }
-        return true;
-    }
-
-    if (channel != 0)
-    {
-        if (channel > ChatManager::CHAT_CHANNEL_MAX)
-        {
-            name = L"Server";
-            message = L"Invalid channel. The maximum number of channels is " + std::to_wstring(ChatManager::CHAT_CHANNEL_MAX) + L".";
-            return true;
-        }
-        else
-        {
-            if ((message.empty()) && (item == nullptr))
-            {
-                spChatManager->SetChatChannel(CHAT_TYPE_TRADE, channel);
-            }
-            else
-            {
-                name = CharToWide(spClient->GetUsername());
-                spChatManager->SetChannelAndSendMessage(CHAT_TYPE_TRADE, channel, name, message, item);
-            }
-            return false;
-        }
-    }
-
-    uint8_t currentChannel = spChatManager->GetChatChannel(CHAT_TYPE_TRADE);
-    if (currentChannel > 0)
-    {
-        if ((message.empty()) && (item == nullptr))
-        {
-            name = L"Server";
-            message = L"You are currently in trade channel " + std::to_wstring(currentChannel) + L".";
-        }
-        else
-        {
-            name = CharToWide(spClient->GetUsername());
-            spChatManager->SendChatMessage(CHAT_TYPE_TRADE, name, message, item);
-            return false;
-        }
-    }
-    else
-    {
-        name = L"Server";
-        message = L"Trade chat is currently disabled. You can enable it by typing /trade ON.";
-    }
-    return true;
-}*/
 
 bool HandleChatOnlineCommand(std::wstring& name, std::wstring& message, uint32_t& channel, uint8_t& type, void* item)
 {
@@ -759,15 +636,15 @@ bool HandleChatHelpCommand(std::wstring& name, std::wstring& message, uint32_t& 
         }
 
         std::wstring message = L"The following chat commands are available:";
-        GameAPI::SendChatMessage(L"Server", message, ChatAPI::CHAT_TYPE_NORMAL);
+        GameAPI::SendChatMessage(L"Server", message, ChatAPI::CHAT_TYPE_SYSTEM);
 
         for (const std::wstring& command : chatCommandStrings)
         {
-            GameAPI::SendChatMessage(L"Server", command, ChatAPI::CHAT_TYPE_NORMAL);
+            GameAPI::SendChatMessage(L"Server", command, ChatAPI::CHAT_TYPE_SYSTEM);
         }
 
         message = L"Type /help <command> for more information about a specific chat command.";
-        GameAPI::SendChatMessage(L"Server", message, ChatAPI::CHAT_TYPE_NORMAL);
+        GameAPI::SendChatMessage(L"Server", message, ChatAPI::CHAT_TYPE_SYSTEM);
     }
     else
     {
@@ -779,7 +656,7 @@ bool HandleChatHelpCommand(std::wstring& name, std::wstring& message, uint32_t& 
         {
             ChatCommandHandler handler = chatCommandHandlers.at(command);
             ChatCommandInfo info = chatCommandInfo.at(handler);
-            GameAPI::SendChatMessage(L"Server", info._detail, ChatAPI::CHAT_TYPE_NORMAL);
+            GameAPI::SendChatMessage(L"Server", info._detail, ChatAPI::CHAT_TYPE_SYSTEM);
         }
         else if ((message == L"color") || (message == L"colour"))
         {
@@ -802,17 +679,17 @@ bool HandleChatHelpCommand(std::wstring& name, std::wstring& message, uint32_t& 
             }
 
             std::wstring message = L"The list of available color aliases are:";
-            GameAPI::SendChatMessage(L"Server", message, ChatAPI::CHAT_TYPE_NORMAL);
+            GameAPI::SendChatMessage(L"Server", message, ChatAPI::CHAT_TYPE_SYSTEM);
 
             for (const std::wstring& command : chatColorStrings)
             {
-                GameAPI::SendChatMessage(L"Server", command, ChatAPI::CHAT_TYPE_NORMAL);
+                GameAPI::SendChatMessage(L"Server", command, ChatAPI::CHAT_TYPE_SYSTEM);
             }
         }
         else
         {
             std::wstring message = L"Command \"" + command + L"\" was not found.";
-            GameAPI::SendChatMessage(L"Server", message, ChatAPI::CHAT_TYPE_NORMAL);
+            GameAPI::SendChatMessage(L"Server", message, ChatAPI::CHAT_TYPE_SYSTEM);
         }
     }
     return false;

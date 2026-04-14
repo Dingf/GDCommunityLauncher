@@ -27,6 +27,7 @@ class ChatHandler : public CallbackHandler
 
         const std::unordered_map<std::string, HandlerPair>& GetHandlers() const { return _handlers; }
         uint32_t GetThreadCount();
+        void CreateRepeatKeyThread();
 
         static ChatHandler& GetInstance();
 
@@ -35,21 +36,10 @@ class ChatHandler : public CallbackHandler
         static bool OnKeyButtonEvent(EngineAPI::Input::KeyButtonEvent& event);
 
         static const std::unordered_map<std::string, HandlerPair> _handlers;
-        static constexpr uint32_t DEFAULT_CHAT_THREADS = 1;
+        static constexpr uint32_t DEFAULT_CHAT_THREADS = 2;
 
-        struct RepeatKeyThread
-        {
-            RepeatKeyThread();
-            ~RepeatKeyThread();
-
-            void operator()();
-
-            std::atomic_bool                 _running;
-            std::atomic_int64_t              _repeatTime;
-            EngineAPI::Input::KeyButtonEvent _repeatEvent;
-            std::unique_ptr<std::thread>     _thread;
-        }
-        _repeatThread;
+        std::atomic_int64_t              _repeatTime;
+        EngineAPI::Input::KeyButtonEvent _repeatEvent;
 };
 
 #define spChat ChatHandler::GetSocket()

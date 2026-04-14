@@ -18,7 +18,7 @@ ItemReplicaInfo& ItemReplicaInfo::operator=(const ItemReplicaInfo& item)
     _componentSeed = item._componentSeed;
     _augmentLevel = item._augmentLevel;
     _augmentSeed = item._augmentSeed;
-    _unk4 = item._unk4;
+    _unk1 = item._unk1;
     _stackCount = item._stackCount;
 
     /*_ascendant = item._ascendant;
@@ -46,13 +46,10 @@ void ItemReplicaInfo::Read(EncodedFileReader* reader, uint32_t version)
     _augmentSeed = reader->ReadInt32();
     if (version >= 8)
     {
-        // TODO: Use the new fields after adding them to ItemReplicaInfo
-        reader->ReadString();
-        reader->ReadString();
-        //_ascendant = reader->ReadString();
-        //_ascendant2H = reader->ReadString();
+        _ascendant = reader->ReadString();
+        _ascendant2H = reader->ReadString();
     }
-    _unk4 = reader->ReadInt32();
+    _unk1 = reader->ReadInt32();
     _stackCount = reader->ReadInt32();
     if (version >= 8)
     {
@@ -69,22 +66,19 @@ void ItemReplicaInfo::Write(EncodedFileWriter* writer, uint32_t version)
     writer->BufferString(_suffix);
     writer->BufferString(_modifier);
     writer->BufferString(_illusion);
-    writer->BufferInt32(_seed);
+    writer->BufferInt32((uint32_t)_seed);
     writer->BufferString(_component);
     writer->BufferString(_completion);
-    writer->BufferInt32(_componentSeed);
+    writer->BufferInt32((uint32_t)_componentSeed);
     writer->BufferString(_augment);
     writer->BufferInt32(_augmentLevel);
     writer->BufferInt32(_augmentSeed);
     if (version >= 8)
     {
-        // TODO: Use the new fields after adding them to ItemReplicaInfo
-        writer->BufferString("");
-        writer->BufferString("");
-        //writer->BufferString(_ascendant);
-        //writer->BufferString(_ascendant2H);
+        writer->BufferString(_ascendant);
+        writer->BufferString(_ascendant2H);
     }
-    writer->BufferInt32(_unk4);
+    writer->BufferInt32(_unk1);
     writer->BufferInt32(_stackCount);
     if (version >= 8)
     {
@@ -105,8 +99,8 @@ size_t ItemReplicaInfo::GetBufferSize() const
     size += _component.length();
     size += _completion.length();
     size += _augment.length();
-    //size += _ascendant.length();
-    //size += _ascendant2H.length();
+    size += _ascendant.length();
+    size += _ascendant2H.length();
     return size;
 }
 
@@ -126,7 +120,7 @@ void to_json(json& j, const ItemReplicaInfo& data)
         { "Augment",           data._augment },
         { "AugmentLevel",      data._augmentLevel },
         { "AugmentSeed",       data._augmentSeed },
-        { "Unknown2",          data._unk4 },
+        { "Unknown1",          data._unk1 },
         { "StackCount",        data._stackCount },
         /*
         // TODO: Use the new fields after adding them to ItemReplicaInfo
@@ -152,7 +146,7 @@ void from_json(const json& j, ItemReplicaInfo& data)
     j.at("Augment")      .get_to(data._augment);
     j.at("AugmentLevel") .get_to(data._augmentLevel);
     j.at("AugmentSeed")  .get_to(data._augmentSeed);
-    j.at("Unknown2")     .get_to(data._unk4);
+    j.at("Unknown1")     .get_to(data._unk1);
     j.at("StackCount")   .get_to(data._stackCount);
 
     /*

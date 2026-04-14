@@ -15,6 +15,8 @@ bool _initialized = false; // Whether the chat API has been initialized yet
 uint8_t _channel;          // Current global chat channel
 uint8_t* _visibleAddress;  // Address used to toggle the chat window visibility
 uint8_t* _colorAddress;    // Address used to set the chat colors
+uint32_t _systemColor;     // Last used system color
+uint32_t _globalColor;     // Last used global color
 std::wstring _prefix;      // Last used chat prefix
 std::wstring _saved;       // Saved buffer text, used for linking items in chat
 std::wstring _empty;       // Empty buffer text; used by GetBufferText() if the chat window isn't initialized yet
@@ -25,13 +27,17 @@ uint32_t GetChatColor(ChatType type)
     if (_colorAddress)
     {
         float* baseAddress = nullptr;
-        if (type == CHAT_TYPE_SYSTEM)
+        if (type == CHAT_TYPE_NORMAL)
+        {
+            baseAddress = (float*)(_colorAddress + 0x10);
+        }
+        else if (type == CHAT_TYPE_SYSTEM)
         {
             baseAddress = (float*)(_colorAddress);
         }
         else if (type == CHAT_TYPE_GLOBAL)
         {
-            baseAddress = (float*)(_colorAddress + sizeof(uint64_t) * 4);
+            baseAddress = (float*)(_colorAddress + 0x20);
         }
 
         if (baseAddress)
@@ -110,13 +116,19 @@ bool SetChatColor(ChatType type, uint32_t color)
         // Trim alpha since we will always set it to 1.0f
         color &= 0x00FFFFFF;
 
-        if (type == CHAT_TYPE_SYSTEM)
+        if (type == CHAT_TYPE_NORMAL)
+        {
+            baseAddress = (float*)(_colorAddress + 0x10);
+        }
+        else if (type == CHAT_TYPE_SYSTEM)
         {
             baseAddress = (float*)(_colorAddress);
+            _systemColor = color;
         }
         else if (type == CHAT_TYPE_GLOBAL)
         {
-            baseAddress = (float*)(_colorAddress + sizeof(uint64_t) * 4);
+            baseAddress = (float*)(_colorAddress + 0x20);
+            _globalColor = color;
         }
 
         if (baseAddress)
@@ -253,9 +265,11 @@ static void FindMagicAddresses()
         //_visibleAddress = *(uint8_t**)((uint8_t*)gameEngine + 0x18C0) + 0x45BD8;    // Version 1.2.1.3
         _visibleAddress = *(uint8_t**)((uint8_t*)gameEngine + 0x19B0) + 0x4DC38;      // Version 1.3.0
 
-        _colorAddress = _visibleAddress + 0x2C28;
+        //_colorAddress = _visibleAddress + 0x2C28;     // Pre-version 1.3.0
+        _colorAddress = _visibleAddress + 0x1B78;       // Version 1.3.0
 
         // Change the in-game command names to avoid conflicts with the launcher chat commands
+        *(std::wstring*)(_colorAddress - 0x140) = L"_Tell";
         *(std::wstring*)(_colorAddress - 0x120) = L"_Mute";
         *(std::wstring*)(_colorAddress - 0x100) = L"_Unmute";
         *(std::wstring*)(_colorAddress - 0x80) = L"_t";
@@ -269,7 +283,7 @@ static void FindMagicAddresses()
     }
 }
 
-void LoadConfig()
+static void LoadConfig()
 {
     Configuration config;
     std::filesystem::path configPath = std::filesystem::current_path() / "GDCommunityLauncher.ini";
@@ -281,10 +295,10 @@ void LoadConfig()
         SetChatChannel((channelValue) ? channelValue->ToInt() : 0);
 
         const Value* systemColorValue = config.GetValue("Chat", "system_color");
-        SetChatColor(CHAT_TYPE_SYSTEM, (systemColorValue) ? systemColorValue->ToInt() : EngineAPI::Color::FUSHIA.GetColorCode());
+        _systemColor = (systemColorValue) ? systemColorValue->ToInt() : EngineAPI::Color::KHAKI.GetColorCode();
 
         const Value* globalColorValue = config.GetValue("Chat", "global_color");
-        SetChatColor(CHAT_TYPE_GLOBAL, (globalColorValue) ? globalColorValue->ToInt() : EngineAPI::Color::ORANGE.GetColorCode());
+        _globalColor = (globalColorValue) ? globalColorValue->ToInt() : EngineAPI::Color::ORANGE.GetColorCode();
     }
     else
     {
@@ -300,8 +314,8 @@ static void SaveConfig()
     {
         config.Load(configPath);
         config.SetValue("Chat", "channel", (int)_channel);
-        config.SetValue("Chat", "system_color", (int)(GetChatColor(CHAT_TYPE_SYSTEM) & 0x00FFFFFF));
-        config.SetValue("Chat", "global_color", (int)(GetChatColor(CHAT_TYPE_GLOBAL) & 0x00FFFFFF));
+        config.SetValue("Chat", "system_color", (int)(_systemColor & 0x00FFFFFF));
+        config.SetValue("Chat", "global_color", (int)(_globalColor & 0x00FFFFFF));
         config.Save(configPath);
     }
     else
@@ -310,14 +324,25 @@ static void SaveConfig()
     }
 }
 
+static void OnInitializeEvent()
+{
+    LoadConfig();
+}
+
+static void OnPreShutdownEvent()
+{
+    SaveConfig();
+}
+
 static void OnSetMainPlayerEvent(void* player)
 {
     FindMagicAddresses();
+    SetChatColor(CHAT_TYPE_SYSTEM, _systemColor);
+    SetChatColor(CHAT_TYPE_GLOBAL, _globalColor);
 }
 
 static void OnWorldPreUnloadEvent()
 {
-    SaveConfig();
     _visibleAddress = nullptr;
     _colorAddress = nullptr;
 }
@@ -326,6 +351,8 @@ bool Initialize()
 {
     if (!_initialized)
     {
+        EventManager::Subscribe(GDCL_EVENT_INITIALIZE,       OnInitializeEvent);
+        EventManager::Subscribe(GDCL_EVENT_PRE_SHUTDOWN,     OnPreShutdownEvent);
         EventManager::Subscribe(GDCL_EVENT_SET_MAIN_PLAYER,  OnSetMainPlayerEvent);
         EventManager::Subscribe(GDCL_EVENT_WORLD_PRE_UNLOAD, OnWorldPreUnloadEvent);
         _initialized = true;

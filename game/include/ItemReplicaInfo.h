@@ -24,34 +24,30 @@ struct ItemReplicaInfo
 
         size_t GetBufferSize() const;
 
-        uint32_t    _itemID;
-        std::string _name;
-        std::string _prefix;
-        std::string _suffix;
-        uint32_t    _seed;
-        union                   // TODO: Check to make sure that using that using this unknown value doesn't break anything
-        {
-            uint32_t _unk1;
-            uint32_t _participantItemID;
-        };
-        std::string _modifier;
-        std::string _component;
-        std::string _completion;
-        uint32_t    _componentSeed;
-        uint32_t    _unk2;
-        std::string _augment;
-        uint32_t    _augmentLevel;
-        uint32_t    _augmentSeed;
-        std::string _illusion;
-        uint32_t    _unk4;      // _itemUnk2, stored in item data
-        uint32_t    _unk5;
-        uint64_t    _unk6;
-        uint32_t    _unk7;
-        uint32_t    _stackCount;
-        uint32_t    _unk8;
-        uint32_t    _unk9;
-        uint32_t    _unk10;
-        uint32_t    _unk11;
+        uint64_t    _itemID;        // 0
+        std::string _name;          // 8
+        std::string _prefix;        // 28
+        std::string _suffix;        // 48
+        uint64_t    _seed;          // 68
+        std::string _modifier;      // 70
+        std::string _component;     // 90
+        std::string _completion;    // B0
+        uint64_t    _componentSeed; // D0
+        std::string _augment;       // D8
+        uint32_t    _augmentLevel;  // F8
+        uint32_t    _augmentSeed;   // FC
+        std::string _illusion;      // 100
+        std::string _ascendant;     // 120 (need to verify)
+        std::string _ascendant2H;   // 140 (need to verify)
+        uint32_t    _unk1;          // 160
+        uint64_t    _unk2;          // 164
+        uint32_t    _unk3;          // 16C
+        uint32_t    _unk4;          // 170
+        uint32_t    _stackCount;    // 174
+        uint32_t    _unk5;          // 178 (rerolls used?)
+        uint32_t    _unk6;          // 17C
+        uint32_t    _unk7;          // 180
+        uint32_t    _participantItemID;
 
         // TODO: The following are new fields in the item, figure out where they fit in the ItemReplicaInfo struct:
         //   std::string _ascendant

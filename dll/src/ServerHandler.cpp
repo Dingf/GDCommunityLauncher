@@ -116,8 +116,8 @@ ServerHandler::ServerHandler()
 {
     if (!spClient->IsOfflineMode())
     {
-        EventManager::Subscribe(GDCL_EVENT_INITIALIZE,    &OnInitializeEvent);
-        EventManager::Subscribe(GDCL_EVENT_POST_SHUTDOWN, &OnPostShutdownEvent);
+        EventManager::Subscribe(GDCL_EVENT_INITIALIZE,    OnInitializeEvent);
+        EventManager::Subscribe(GDCL_EVENT_POST_SHUTDOWN, OnPostShutdownEvent);
     }
 }
 
@@ -125,8 +125,8 @@ ServerHandler::~ServerHandler()
 {
     if (!spClient->IsOfflineMode())
     {
-        EventManager::Unsubscribe(GDCL_EVENT_INITIALIZE,    &OnInitializeEvent);
-        EventManager::Unsubscribe(GDCL_EVENT_POST_SHUTDOWN, &OnPostShutdownEvent);
+        EventManager::Unsubscribe(GDCL_EVENT_INITIALIZE,    OnInitializeEvent);
+        EventManager::Unsubscribe(GDCL_EVENT_POST_SHUTDOWN, OnPostShutdownEvent);
     }
 }
 

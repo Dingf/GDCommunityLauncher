@@ -2,6 +2,7 @@
 #include <filesystem>
 #include "EngineAPI.h"
 #include "GameAPI.h"
+#include "ChatAPI.h"
 #include "ChatHandler.h"
 #include "DllClient.h"
 #include "EventManager.h"
@@ -19,18 +20,18 @@ ServerCoordinator::ServerCoordinator()
 {
     if (!spClient->IsOfflineMode())
     {
-        EventManager::Subscribe(GDCL_EVENT_PRE_SHUTDOWN,       &OnPreShutdownEvent);
-        EventManager::Subscribe(GDCL_EVENT_DIRECT_FILE_READ,   &OnDirectReadEvent);
-        EventManager::Subscribe(GDCL_EVENT_DIRECT_FILE_WRITE,  &OnDirectWriteEvent);
-        EventManager::Subscribe(GDCL_EVENT_ADD_SAVE_JOB,       &OnAddSaveJobEvent);
-        EventManager::Subscribe(GDCL_EVENT_WORLD_PRE_LOAD,     &OnWorldPreLoadEvent);
-        EventManager::Subscribe(GDCL_EVENT_SET_MAIN_PLAYER,    &OnSetMainPlayerEvent);
-        EventManager::Subscribe(GDCL_EVENT_EXIT_PLAYING_MODE,  &OnExitPlayingModeEvent);
-        EventManager::Subscribe(GDCL_EVENT_TRANSFER_POST_LOAD, &OnTransferPostLoadEvent);
-        EventManager::Subscribe(GDCL_EVENT_TRANSFER_PRE_SAVE,  &OnTransferPreSaveEvent);
-        EventManager::Subscribe(GDCL_EVENT_TRANSFER_POST_SAVE, &OnTransferPostSaveEvent);
-        EventManager::Subscribe(GDCL_EVENT_DELETE_FILE,        &OnDeleteFileEvent);
-        EventManager::Subscribe(GDCL_EVENT_BESTOW_TOKEN,       &OnBestowTokenEvent);
+        EventManager::Subscribe(GDCL_EVENT_PRE_SHUTDOWN,       OnPreShutdownEvent);
+        EventManager::Subscribe(GDCL_EVENT_DIRECT_FILE_READ,   OnDirectReadEvent);
+        EventManager::Subscribe(GDCL_EVENT_DIRECT_FILE_WRITE,  OnDirectWriteEvent);
+        EventManager::Subscribe(GDCL_EVENT_ADD_SAVE_JOB,       OnAddSaveJobEvent);
+        EventManager::Subscribe(GDCL_EVENT_WORLD_PRE_LOAD,     OnWorldPreLoadEvent);
+        EventManager::Subscribe(GDCL_EVENT_SET_MAIN_PLAYER,    OnSetMainPlayerEvent);
+        EventManager::Subscribe(GDCL_EVENT_EXIT_PLAYING_MODE,  OnExitPlayingModeEvent);
+        EventManager::Subscribe(GDCL_EVENT_TRANSFER_POST_LOAD, OnTransferPostLoadEvent);
+        EventManager::Subscribe(GDCL_EVENT_TRANSFER_PRE_SAVE,  OnTransferPreSaveEvent);
+        EventManager::Subscribe(GDCL_EVENT_TRANSFER_POST_SAVE, OnTransferPostSaveEvent);
+        EventManager::Subscribe(GDCL_EVENT_DELETE_FILE,        OnDeleteFileEvent);
+        EventManager::Subscribe(GDCL_EVENT_BESTOW_TOKEN,       OnBestowTokenEvent);
     }
 }
 
@@ -539,6 +540,9 @@ void ServerCoordinator::OnSetMainPlayerEvent(void* player)
     LoadSeasonTagsForPlayer(player);
     spChat->Send("MutedList");
     spChat->Send("Welcome");
+
+    if (uint32_t channel = ChatAPI::GetChatChannel())
+        spChat->Send("JoinChannel", channel);
 }
 
 void ServerCoordinator::OnExitPlayingModeEvent()

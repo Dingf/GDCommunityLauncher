@@ -53,8 +53,6 @@ void ClearMutedList();
 
 void ToggleWindowDisplay();
 
-void LoadConfig();
-
 bool Initialize();
 
 }

@@ -68,22 +68,10 @@ void HandleGetItemDescription(void* _this, std::vector<GameAPI::GameTextLine>& l
         callback(_this, lines);
 
         ItemReplicaInfo itemInfo = GameAPI::GetItemReplicaInfo(_this);
-
         TransformTransferAugment(itemInfo, lines);
         TransformVaalAffix(itemInfo, lines);
         TransformSmithAffix(itemInfo, lines);
     }
-}
-
-uint32_t GetWeaponType(void* item)
-{
-    typedef uint32_t (__thiscall* GetItemTypeProto)();
-
-    GetItemTypeProto callback = *(GetItemTypeProto*)(*((uintptr_t*)item) + 0x650);
-    if (callback)
-        return callback();
-
-    return 0;
 }
 
 void HandleGetWeaponDescription(void* _this, std::vector<GameAPI::GameTextLine>& lines)
