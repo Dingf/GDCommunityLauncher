@@ -2,8 +2,6 @@
 #include "ChatAPI.h"
 #include "EngineAPI.h"
 
-#include "Log.h"
-
 // Special paste handler, since regular paste won't exceed the default chat window length
 bool HandlePasteEvent(std::wstring text, uint32_t carat, uint32_t selectStart, uint32_t selectEnd)
 {

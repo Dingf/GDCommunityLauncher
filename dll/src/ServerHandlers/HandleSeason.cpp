@@ -1,5 +1,6 @@
 #include <future>
 #include <string>
+#include "EngineAPI.h"
 #include "GameAPI.h"
 #include "ChatAPI.h"
 #include "ServerCache.h"
@@ -130,13 +131,9 @@ void HandleReadGetTradeNotifications(const json& response, uint32_t participantI
         uint32_t notificationCount = response.at("Data").get<uint32_t>();
         if (notificationCount > 0)
         {
-            std::wstring message = L"You have " + std::to_wstring(notificationCount) + L" new trade notification";
-            if (notificationCount > 1)
-            {
-                message += L"s";
-            }
-            message += L".";
-            GameAPI::AddChatMessage(L"Server", message, static_cast<uint8_t>(ChatAPI::CHAT_TYPE_SYSTEM));
+            std::wstring name = EngineAPI::UI::Localize("tagGDCLChatDefaultName");
+            std::wstring message = EngineAPI::UI::Localize("tagGDCLChatTradeNotification", notificationCount);
+            GameAPI::AddChatMessage(name, message, static_cast<uint8_t>(ChatAPI::CHAT_TYPE_SYSTEM));
         }
     }
     else

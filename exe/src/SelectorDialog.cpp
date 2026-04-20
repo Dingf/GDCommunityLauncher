@@ -23,8 +23,7 @@ bool CheckLauncherUpdates()
             case 200:
             {
                 std::string version = response.GetBody();
-                // TODO: This is disabled for testing purposes; will need to re-enable later
-                //spClient->SetHasUpdate(version != GDCL_VERSION);
+                spClient->SetHasUpdate(version != GDCL_VERSION);
                 return true;
             }
             default:

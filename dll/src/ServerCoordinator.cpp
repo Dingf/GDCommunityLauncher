@@ -25,11 +25,10 @@ ServerCoordinator::ServerCoordinator()
         EventManager::Subscribe(GDCL_EVENT_DIRECT_FILE_WRITE,  OnDirectWriteEvent);
         EventManager::Subscribe(GDCL_EVENT_ADD_SAVE_JOB,       OnAddSaveJobEvent);
         EventManager::Subscribe(GDCL_EVENT_WORLD_PRE_LOAD,     OnWorldPreLoadEvent);
-        EventManager::Subscribe(GDCL_EVENT_SET_MAIN_PLAYER,    OnSetMainPlayerEvent);
+        EventManager::Subscribe(GDCL_EVENT_SET_SEASON_PLAYER,  OnSetSeasonPlayerEvent);
         EventManager::Subscribe(GDCL_EVENT_EXIT_PLAYING_MODE,  OnExitPlayingModeEvent);
-        EventManager::Subscribe(GDCL_EVENT_TRANSFER_POST_LOAD, OnTransferPostLoadEvent);
+        EventManager::Subscribe(GDCL_EVENT_CARAVAN_INTERACT,   OnCaravanInteractEvent);
         EventManager::Subscribe(GDCL_EVENT_TRANSFER_PRE_SAVE,  OnTransferPreSaveEvent);
-        EventManager::Subscribe(GDCL_EVENT_TRANSFER_POST_SAVE, OnTransferPostSaveEvent);
         EventManager::Subscribe(GDCL_EVENT_DELETE_FILE,        OnDeleteFileEvent);
         EventManager::Subscribe(GDCL_EVENT_BESTOW_TOKEN,       OnBestowTokenEvent);
     }
@@ -386,7 +385,6 @@ void ServerCoordinator::OnAddSaveJobEvent(std::string filename, void* data, size
         it->second(filePath, (uint8_t*)data, size);
 }
 
-
 void DownloadParticipantFiles(std::vector<std::future<json>>& downloadTasks, uint32_t participantID)
 {
     json characters = spServer->Send("GetParticipantCharacters", participantID).get().at("Data");
@@ -459,6 +457,9 @@ void ServerCoordinator::OnWorldPreLoadEvent(std::string mapName, bool unk1, bool
                 json result = spServer->Send("AddParticipant", true).get();
                 hardcoreID = result.at("Data").at("SeasonParticipantId").get<uint32_t>();
                 DownloadParticipantFiles(downloadTasks, hardcoreID);
+
+                if (const SeasonInfo* seasonInfo = spClient->GetSeasonByType(true))
+                    downloadTasks.push_back(spServer->Send("GetSeasonChallenges", seasonInfo->_seasonID));
             }
 
             uint32_t softcoreID = spCache->GetParticipantID(false);
@@ -467,6 +468,9 @@ void ServerCoordinator::OnWorldPreLoadEvent(std::string mapName, bool unk1, bool
                 json result = spServer->Send("AddParticipant", false).get();
                 softcoreID = result.at("Data").at("SeasonParticipantId").get<uint32_t>();
                 DownloadParticipantFiles(downloadTasks, softcoreID);
+
+                if (const SeasonInfo* seasonInfo = spClient->GetSeasonByType(false))
+                    downloadTasks.push_back(spServer->Send("GetSeasonChallenges", seasonInfo->_seasonID));
             }
 
             for (size_t i = 0; i < downloadTasks.size(); ++i)
@@ -503,9 +507,11 @@ static void LoadQuestStatesForPlayer(void* player)
                 void* quest = GameAPI::GetQuestByID(questData._id1);
                 for (const auto& taskData : questData._tasks)
                 {
-                    void* task = GameAPI::GetQuestTaskByID(quest, taskData._id1);
-                    GameAPI::SetQuestTaskState(task, taskData._state);
-                    GameAPI::SetQuestTaskInProgress(task, taskData._isInProgress);
+                    if (void* task = GameAPI::GetQuestTaskByID(quest, taskData._id1))
+                    {
+                        GameAPI::SetQuestTaskState(task, taskData._state);
+                        GameAPI::SetQuestTaskInProgress(task, taskData._isInProgress);
+                    }
                 }
             }
         }
@@ -534,15 +540,21 @@ static void LoadSeasonTagsForPlayer(void* player)
     }
 }
 
-void ServerCoordinator::OnSetMainPlayerEvent(void* player)
+void ServerCoordinator::OnSetSeasonPlayerEvent(void* player)
 {
-    LoadQuestStatesForPlayer(player);
-    LoadSeasonTagsForPlayer(player);
+    if (EngineAPI::IsMainCampaign())
+    {
+        LoadQuestStatesForPlayer(player);
+        LoadSeasonTagsForPlayer(player);
+    }
+
     spChat->Send("MutedList");
     spChat->Send("Welcome");
-
     if (uint32_t channel = ChatAPI::GetChatChannel())
         spChat->Send("JoinChannel", channel);
+
+    if (uint32_t participantID = spCache->GetParticipantID(GameAPI::IsPlayerHardcore(player)))
+        spServer->Send("GetParticipantPoints", participantID);
 }
 
 void ServerCoordinator::OnExitPlayingModeEvent()
@@ -556,7 +568,7 @@ void ServerCoordinator::OnExitPlayingModeEvent()
     }
 }
 
-void ServerCoordinator::OnTransferPostLoadEvent()
+void ServerCoordinator::OnCaravanInteractEvent(uint32_t caravanID)
 {
     if (uint32_t participantID = spCache->GetParticipantID(EngineAPI::IsHardcore()))
       spServer->Send("GetParticipantTransferQueue", participantID).wait();
@@ -579,15 +591,14 @@ void ServerCoordinator::OnTransferPreSaveEvent()
                 return;
             }
 
-            uint32_t index = 0;
-            std::vector<ItemReplicaInfo> storedItems;
+            std::vector<json> storedItems;
             for (const auto& pair : items)
             {
-                void* item = EngineAPI::FindObjectByID(pair.first);
-                if (item)
+                if (void* item = EngineAPI::FindObjectByID(pair.first))
                 {
                     ItemReplicaInfo itemInfo;
                     GameAPI::GetItemReplicaInfo(item, itemInfo);
+                    itemInfo._participantItemID = 0;
                     storedItems.emplace_back(itemInfo);
                 }
             }
@@ -596,20 +607,6 @@ void ServerCoordinator::OnTransferPreSaveEvent()
 
             uint32_t participantID = spCache->GetParticipantID(EngineAPI::IsHardcore());
             spServer->Send("StoreParticipantStashItems", participantID, storedItems);
-        }
-    }
-}
-
-void ServerCoordinator::OnTransferPostSaveEvent()
-{
-    GameAPI::SaveGame();
-    if (void* mainPlayer = GameAPI::GetMainPlayer())
-    {
-        std::wstring characterName = GameAPI::GetPlayerName(mainPlayer);
-        if (const FileWriter* cacheData = spCache->GetCharacterData(characterName))
-        {
-            uint32_t participantID = spCache->GetParticipantID(characterName);
-            spServer->Send("SaveCharacterFile", participantID, characterName, BinaryToBase64(cacheData->GetBuffer(), cacheData->GetBufferSize()));
         }
     }
 }

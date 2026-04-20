@@ -38,8 +38,10 @@ bool HandleDeleteFile(const char* filename);
 
 // Offline Hooks
 const char* HandleGetVersion(void* _this);
+uint32_t HandleGetObjectID(void* _this);
+void HandleDestroyObjectEx(void* _this, void* object, const char* unk1, int32_t unk2);
 void HandleRender(void* _this);
-void HandleRenderStyledText2D(void* _this, const EngineAPI::Rect& rect, const wchar_t* text, const std::string& style, float unk1, EngineAPI::GraphicsXAlign xAlign, EngineAPI::GraphicsYAlign yAlign, int layout);
+void HandleRenderStyledText2D(void* _this, EngineAPI::Rect rect, const EngineAPI::Color& color1, const EngineAPI::Color& color2, const wchar_t* text, void* font, int unk1, EngineAPI::GraphicsXAlign xAlign, EngineAPI::GraphicsYAlign yAlign, int fontStyleFlag, int fontLayout);
 void HandleLuaInitialize(void* _this, bool unk1, bool unk2);
 void HandleLuaShutdown(void* _this);
 bool HandleLoadWorld(void* _this, const char* map, bool unk1, bool modded);
@@ -94,6 +96,8 @@ const std::vector<HookManager::Hook> _onlineHooks =
 const std::vector<HookManager::Hook> _offlineHooks =
 {
     { ENGINE_DLL, EngineAPI::EAPI_NAME_GET_VERSION,              &HandleGetVersion,           false },
+    { ENGINE_DLL, EngineAPI::EAPI_NAME_GET_OBJECT_ID,            &HandleGetObjectID,          true  },
+    { ENGINE_DLL, EngineAPI::EAPI_NAME_DESTROY_OBJECT_EX,        &HandleDestroyObjectEx,      true  },
     //{ ENGINE_DLL, EngineAPI::EAPI_NAME_RENDER,                   &HandleRender,               false },
     { ENGINE_DLL, EngineAPI::EAPI_NAME_RENDER_STYLED_TEXT_2D,    &HandleRenderStyledText2D,   false },
     { ENGINE_DLL, EngineAPI::EAPI_NAME_LUA_INITIALIZE,           &HandleLuaInitialize,        false },

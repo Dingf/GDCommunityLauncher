@@ -1,5 +1,6 @@
 #include "GameHandler.h"
 #include "EventManager.h"
+#include "ContextManager.h"
 
 void HandleGameInitialize(void* _this)
 {
@@ -8,6 +9,7 @@ void HandleGameInitialize(void* _this)
     GameInitializeProto callback = (GameInitializeProto)HookManager::GetOriginalFunction(GAME_DLL, GameAPI::GAPI_NAME_GAME_ENGINE_INITIALIZE);
     if (callback)
     {
+        ContextManager::Run();
         EventManager::Publish(GDCL_EVENT_INITIALIZE);
         callback(_this);
     }
@@ -23,5 +25,6 @@ void HandleGameShutdown(void* _this)
         EventManager::Publish(GDCL_EVENT_PRE_SHUTDOWN);
         callback(_this);
         EventManager::Publish(GDCL_EVENT_POST_SHUTDOWN);
+        ContextManager::Stop();
     }
 }

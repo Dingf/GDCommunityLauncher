@@ -4,7 +4,6 @@
 #include "DllClient.h"
 #include "ServerCache.h"
 #include "ServerHandler.h"
-#include "StringConvert.h"
 #include "ItemReplicaInfo.h"
 #include "HTTP.h"
 #include "JSON.h"
@@ -64,17 +63,8 @@ std::string HandleWriteTransferItems(uint32_t requestID, uint32_t& participantID
     return request.dump();
 }
 
-std::string HandleWriteStoreItems(uint32_t requestID, uint32_t& participantID, std::vector<ItemReplicaInfo>& items)
+std::string HandleWriteStoreItems(uint32_t requestID, uint32_t& participantID, std::vector<json>& items)
 {
-    std::vector<json> itemList;
-    for (size_t i = 0; i < items.size(); ++i)
-    {
-        json item = items[i];
-        item.erase("Unknown1");
-        item.erase("Unknown2");
-        itemList.emplace_back(item);
-    }
-
     json request = 
     {
         { "RequestName", "StoreParticipantStashItems" },
@@ -83,7 +73,7 @@ std::string HandleWriteStoreItems(uint32_t requestID, uint32_t& participantID, s
             { "SeasonParticipantId", participantID },
             { "Branch", spClient->GetBranchName() }
         }},
-        { "Data", itemList }
+        { "Data", items }
     };
     items.clear();
     return request.dump();
@@ -160,7 +150,7 @@ void HandleReadTransferItems(const json& response, uint32_t participantID, std::
     }
 }
 
-void HandleReadStoreItems(const json& response, uint32_t participantID, std::vector<ItemReplicaInfo> items)
+void HandleReadStoreItems(const json& response, uint32_t participantID, std::vector<json> items)
 {
     try
     {
@@ -172,6 +162,7 @@ void HandleReadStoreItems(const json& response, uint32_t participantID, std::vec
             {
                 void* uploadTab = transferTabs[5];
                 GameAPI::RemoveAllItemsFromTab(uploadTab);
+                GameAPI::SaveTransferStash();
                 GameAPI::DisplayUINotification("tagGDLeagueStorageSuccess");
             }
         }

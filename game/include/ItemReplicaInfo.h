@@ -10,7 +10,7 @@
 struct ItemReplicaInfo
 {
     public:
-        ItemReplicaInfo() {}
+        ItemReplicaInfo() : _participantItemID(0) {}
         ItemReplicaInfo(EncodedFileReader* reader, uint32_t version) { Read(reader, version); }
         ItemReplicaInfo(const ItemReplicaInfo& item) { *this = item; }
 
@@ -37,22 +37,18 @@ struct ItemReplicaInfo
         uint32_t    _augmentLevel;  // F8
         uint32_t    _augmentSeed;   // FC
         std::string _illusion;      // 100
-        std::string _ascendant;     // 120 (need to verify)
-        std::string _ascendant2H;   // 140 (need to verify)
+        std::string _ascendant;     // 120
+        std::string _ascendant2H;   // 140
         uint32_t    _unk1;          // 160
-        uint64_t    _unk2;          // 164
-        uint32_t    _unk3;          // 16C
-        uint32_t    _unk4;          // 170
+        uint32_t    _unk2;          // 164
+        uint32_t    _unk3;          // 168
+        uint32_t    _unk4;          // 16C
+        uint32_t    _unk5;          // 170
         uint32_t    _stackCount;    // 174
-        uint32_t    _unk5;          // 178 (rerolls used?)
+        uint32_t    _rerollsUsed;   // 178
         uint32_t    _unk6;          // 17C
         uint32_t    _unk7;          // 180
         uint32_t    _participantItemID;
-
-        // TODO: The following are new fields in the item, figure out where they fit in the ItemReplicaInfo struct:
-        //   std::string _ascendant
-        //   std::string _ascendant2H
-        //   uint32_t    _rerollsUsed
 };
 
 #endif//INC_GDCL_GAME_ITEM_REPLICA_INFO_H

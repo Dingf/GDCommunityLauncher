@@ -88,6 +88,70 @@ void LoadDatabaseValues()
     }*/
 }
 
+// TODO: Delete this once the tags_gdcl.txt file is bundled into the season mod
+void TemporaryLoadTagsFile()
+{
+    EngineAPI::UI::AddLocalizationTag("tagGDCLVersion=GDCL v{%t0}", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLVersionOffline=Offline Mode", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLInfoOffline= {^L}(Offline Mode)", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLInfoCloudSave= {^Y}(Disable Cloud Saving)", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLInfoMultiplayer= {^Y}(Multiplayer)", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLInfoDisconnected= {^R}(Disconnected)", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLInfoRankedPoints= {^L}(Rank {%d0} ~ {%d1} points)", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLInfoPoints= {^L}({%d0} points)", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLBoundlessDungeonLevel={^O} (Lv{%d0})", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLChatDefaultName=Server", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLChatOnline=There are {%d0} users currently online.", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLChatGlobalDisabled=Global chat is currently disabled. You can enable it by typing \"/global ON\".", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLChatDirectFrom=[From {%t0}]", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLChatDirectTo=[To {%t0}]", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLChatChallenges01=Challenge overview for {%t0}:", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLChatChallenges02={%t0} challenges for {%t1}:", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLChatChallenges03={%d0} is not a valid challenge category.", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLChatChallengePoints=~ {%d0} points", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLChatColorSuccess=Changed chat text color to #{%t0}.", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLChatColorFailed=Could not change chat text color.", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLChatColorInvalid={%t0} is not a valid color. Type \"/h color\" for a list of available color aliases. You can also use a hex code, e.g. #FFFFFF.", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLChatChannelJoin=Joined global channel {%d0}.", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLChatChannelInvalid=Invalid channel. The maximum number of channels is {%d0}.", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLChatMute01={%t0} has been added to your mute list.", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLChatMute02=You have muted the following players:", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLChatMute03=You have not muted any players.", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLChatMute04=You cannot mute yourself.", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLChatUnmute01={%t0} has been removed from your mute list.", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLChatUnmute02=That player is not currently muted.", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLChatServerError01=That player is not online.", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLChatServerError02=That player does not exist.", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLChatHelp01=The following chat commands are available:", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLChatHelp02=Type /help <command> for more information about a specific chat command.", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLChatHelp03=The list of available color aliases are:", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLChatHelpError=Command {%t0} was not found.", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLChatTradeNotification=You have {%d0} new trade notification(s).", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLChatSavedTags=Tags successfully written to {%t0}.", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLCommand01=Displays available commands and their usage.", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLCommand01Desc=Usage: /h, /help [command]{^n}{^n}Displays a detailed usage message for a chat command. If no arguments are specified, displays all available chat commands.{^n}{^n}    [command] - Specifies the command to display help information on.{^n}{^n}", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLCommand02=Sends a message to global chat.", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLCommand02Desc=Usage: /g, /global[channel] [on|off|color] ...{^n}{^n}Sends a message to the current global chat channel. If no arguments are specified, displays the current global chat channel.{^n}{^n}    [channel] - Sets or switches the current global chat channel. Valid values are 1-255.{^n}{^n}    [on/off] - Enables or disables global chat.{^n}{^n}    [color] - Sets the color of global chat to a color alias or a 6-digit hex code. Type \"/h color\" for a list of color aliases.{^n}{^n}", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLCommand03=Displays the number of online users.", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLCommand03Desc=Usage: /o, /online{^n}{^n}Displays the number of concurrent online users.{^n}{^n}", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLCommand04=Displays the list of season challenges.", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLCommand04Desc=Usage: /c, /challenges[category]{^n}{^n}Displays the user's current challenge progress in the season. If no arguments are specified, displays an overview of all challenge categories.{^n}{^n}    [category] - Displays a list of individual challenges for the specified challenge category.{^n}{^n}", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLCommand05=Blocks all incoming messages from a user.", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLCommand05Desc=Usage: /m, /mute [user]{^n}{^n}Blocks all incoming messages from a user. If no arguments are specified, displays the list of users that you have currently muted.{^n}{^n}    [user] - Specifies the username to be blocked.{^n}{^n}", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLCommand06=Unblocks all incoming messages from a user.", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLCommand06Desc=Usage: /u, /unmute <user>{^n}{^n}Unblocks a user that was previously blocked, allowing you to see their messages again.{^n}{^n}    <user> - Specifies the username to be unblocked.{^n}{^n}", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLCommand07=Sends a direct message to a user.", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLCommand07Desc=Usage: /t, /tell <user> ...{^n}{^n}Sends a direct message to a user.{^n}{^n}    <user> - Specifies the username to send a message to.{^n}{^n}", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLCommandBeta01=Adds an item directly into the user's inventory.", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLCommandBeta01Desc=Usage: /item <dbr_name> <stack_count>{^n}{^n}Adds an item directly into the user's inventory.{^n}{^n}    <dbr_name> - The full path of the item DBR to add.{^n}{^n}    <stack_count> - The stack count of the item. If not specified, this value will be 1.{^n}{^n}", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLCommandBeta02=Levels up the current character.", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLCommandBeta02Desc=Usage: /level <amount>{^n}{^n}Levels up the current character.{^n}{^n}    <count> - Specifies the amount of levels to gain. If not specified, this value will be 1. This value can't be negative and won't cause the character to level up beyond the maximum level.{^n}{^n}", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLCommandBeta03=Adds or removes iron bits from the user's inventory.", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLCommandBeta03Desc=Usage: /money <amount>{^n}{^n}Adds or removes iron bits from the user's inventory.{^n}{^n}    <amount> - Specifies the amount of iron bits to add. If this value is negative, the amount will be removed instead.{^n}{^n}", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLCommandBeta04=Saves character quest tags.", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLCommandBeta04Desc=Usage: /tags{^n}{^n}Saves all quest tags for the current character to a text file.{^n}{^n}", "text_en/tags_gdcl.txt", true);
+}
+
 void LoadSeasonModAssets(const std::string& seasonName)
 {
     std::string sourceName = "mods/" + seasonName + "/resources";
@@ -97,6 +161,8 @@ void LoadSeasonModAssets(const std::string& seasonName)
     EngineAPI::LoadDatabase(databaseName);
     EngineAPI::UI::LoadLocalizationTags(true);
     GameAPI::ReloadDatabase();
+
+    TemporaryLoadTagsFile();
 }
 
 bool HandleLoadWorld(void* _this, const char* map, bool unk1, bool modded)

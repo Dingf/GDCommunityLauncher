@@ -19,11 +19,10 @@ class ServerCoordinator
         static void OnDirectWriteEvent(std::string filename, void* data, size_t size);
         static void OnAddSaveJobEvent(std::string filename, void* data, size_t size);
         static void OnWorldPreLoadEvent(std::string mapName, bool unk1, bool modded);
-        static void OnSetMainPlayerEvent(void* player);
+        static void OnSetSeasonPlayerEvent(void* player);
         static void OnExitPlayingModeEvent();
-        static void OnTransferPostLoadEvent();
+        static void OnCaravanInteractEvent(uint32_t caravanID);
         static void OnTransferPreSaveEvent();
-        static void OnTransferPostSaveEvent();
         static void OnDeleteFileEvent(const char* filename);
         static void OnBestowTokenEvent(std::string token);
 };

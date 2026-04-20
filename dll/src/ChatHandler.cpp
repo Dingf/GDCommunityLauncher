@@ -1,4 +1,4 @@
-#include <string>
+#include <boost/asio/post.hpp>
 #include "ChatAPI.h"
 #include "EngineAPI.h"
 #include "ChatHandler.h"
@@ -8,36 +8,40 @@
 #include "Configuration.h"
 
 // Write handlers
-std::string HandleWriteWelcome(uint32_t requestID);
-std::string HandleWriteOnline(uint32_t requestID);
-std::string HandleWriteJoinChannel(uint32_t requestID, uint8_t& channel);
-std::string HandleWriteSendMessage(uint32_t requestID, uint8_t& channel, std::wstring& message, std::wstring& playerName, void*& item);
-std::string HandleWriteGetMutedList(uint32_t requestID);
-std::string HandleWriteMutePlayer(uint32_t requestID, std::wstring& playerName);
-std::string HandleWriteUnmutePlayer(uint32_t requestID, std::wstring& playerName);
+std::string HandleWriteWelcome();
+std::string HandleWriteOnline();
+std::string HandleWriteJoinChannel(uint8_t channel);
+std::string HandleWriteSendMessage(uint8_t channel, std::wstring message, std::wstring playerName, void* item);
+std::string HandleWriteGetMutedList();
+std::string HandleWriteMutePlayer(std::wstring playerName);
+std::string HandleWriteUnmutePlayer(std::wstring playerName);
 
 // Read handlers
 void HandleReadWelcome(const json& response);
 void HandleReadOnline(const json& response);
-void HandleReadJoinChannel(const json& response, uint8_t channel);
-void HandleReadSendMessage(const json& response, uint8_t channel, std::wstring message, std::wstring playerName, void* item);
+void HandleReadJoinChannel(const json& response);
+void HandleReadSendMessage(const json& response);
 void HandleReadGetMutedList(const json& response);
-void HandleReadMutePlayer(const json& response, std::wstring playerName);
-void HandleReadUnmutePlayer(const json& response, std::wstring playerName);
+void HandleReadMutePlayer(const json& response);
+void HandleReadUnmutePlayer(const json& response);
 
 // Custom KeyEvent handler
 bool HandleCustomKeyEvent(EngineAPI::Input::KeyButtonEvent& event);
 
-const std::unordered_map<std::string, ChatHandler::HandlerPair> ChatHandler::_handlers =
+const std::unordered_map<std::string, std::pair<void*, void*>>& ChatHandler::GetHandlers() const
 {
-    { "Welcome",     { HandleWriteWelcome,      HandleReadWelcome }},
-    { "Online",      { HandleWriteOnline,       HandleReadOnline }},
-    { "JoinChannel", { HandleWriteJoinChannel,  HandleReadJoinChannel }},
-    { "Send",        { HandleWriteSendMessage,  HandleReadSendMessage }},
-    { "MutedList",   { HandleWriteGetMutedList, HandleReadGetMutedList }},
-    { "Mute",        { HandleWriteMutePlayer,   HandleReadMutePlayer }},
-    { "Unmute",      { HandleWriteUnmutePlayer, HandleReadUnmutePlayer }},
-};
+    static const std::unordered_map<std::string, std::pair<void*, void*>> handlers =
+    {
+        { "Welcome",     { HandleWriteWelcome,      HandleReadWelcome }},
+        { "Online",      { HandleWriteOnline,       HandleReadOnline }},
+        { "JoinChannel", { HandleWriteJoinChannel,  HandleReadJoinChannel }},
+        { "Send",        { HandleWriteSendMessage,  HandleReadSendMessage }},
+        { "MutedList",   { HandleWriteGetMutedList, HandleReadGetMutedList }},
+        { "Mute",        { HandleWriteMutePlayer,   HandleReadMutePlayer }},
+        { "Unmute",      { HandleWriteUnmutePlayer, HandleReadUnmutePlayer }},
+    };
+    return handlers;
+}
 
 ChatHandler::ChatHandler()
 {
@@ -65,35 +69,86 @@ ChatHandler& ChatHandler::GetInstance()
     return instance;
 }
 
-Websocket<ChatHandler, std::future<json>>* ChatHandler::GetSocket()
+Websocket<ChatHandler, bool>* ChatHandler::GetSocket()
 {
-    static Websocket<ChatHandler, std::future<json>> socket(ContextManager::GetIOContext(), ContextManager::GetSSLContext(), GetInstance());
+    static Websocket<ChatHandler, bool> socket(ContextManager::GetIOContext(), ContextManager::GetSSLContext(), GetInstance());
     return &socket;
 }
 
-uint32_t ChatHandler::GetThreadCount()
+void ChatHandler::OnRead(const std::string& data)
 {
-    uint32_t numChatThreads = DEFAULT_CHAT_THREADS;
-
-    Configuration config;
-    std::filesystem::path configPath = std::filesystem::current_path() / "GDCommunityLauncher.ini";
-    if (std::filesystem::is_regular_file(configPath))
+    if (_threadPool)
     {
-        config.Load(configPath);
-        const Value* chatThreadsValue = config.GetValue("Chat", "chat_threads");
-
-        if ((chatThreadsValue) && (chatThreadsValue->GetType() == VALUE_TYPE_INT))
+        try
         {
-            int32_t configThreads = chatThreadsValue->ToInt();
-            if ((configThreads > 1) && (configThreads <= 16))   // Need to have at least two threads in the pool because one will be used by the repeat key handler
-                numChatThreads = configThreads;
+            json response = json::parse(data);
+            const json& requestName = response.at("RequestName");
+            if (requestName.is_null())
+            {
+                throw std::runtime_error(response.at("ErrorMessage").get<std::string>());
+            }
+            else if (requestName.is_string())
+            {
+                const auto& handlers = GetHandlers();
+                auto it = handlers.find(requestName.get<std::string>());
+                if (it != handlers.end())
+                {
+                    typedef void (*ReadHandlerProto)(json);
+
+                    ReadHandlerProto callback = (ReadHandlerProto)it->second.second;
+                    boost::asio::post(*_threadPool, [callback, response]()
+                    {
+                        try
+                        {
+                            callback(response);
+                        }
+                        catch (const std::exception& ex)
+                        {
+                            Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to handle chat websocket message: %", ex.what());
+                        }
+                    });
+                }
+            }
+        }
+        catch (const std::exception& ex)
+        {
+            Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to parse chat websocket message: %", ex.what());
+        }
+    }
+}
+
+void ChatHandler::OnShutdown()
+{
+    if (_threadPool)
+        _threadPool->join();
+}
+
+void ChatHandler::CreateThreadPool()
+{
+    if (!_threadPool)
+    {
+        uint32_t numChatThreads = DEFAULT_CHAT_THREADS;
+
+        Configuration config;
+        std::filesystem::path configPath = std::filesystem::current_path() / "GDCommunityLauncher.ini";
+        if (std::filesystem::is_regular_file(configPath))
+        {
+            config.Load(configPath);
+            const Value* chatThreadsValue = config.GetValue("Chat", "chat_threads");
+
+            if ((chatThreadsValue) && (chatThreadsValue->GetType() == VALUE_TYPE_INT))
+            {
+                int32_t configThreads = chatThreadsValue->ToInt();
+                if ((configThreads > 1) && (configThreads <= 16))   // Need to have at least two threads in the pool because one will be used by the repeat key handler
+                    numChatThreads = configThreads;
+            }
+
+            config.SetValue("Chat", "chat_threads", (int32_t)numChatThreads);
+            config.Save(configPath);
         }
 
-        config.SetValue("Chat", "chat_threads", (int32_t)numChatThreads);
-        config.Save(configPath);
+        _threadPool = std::make_unique<boost::asio::thread_pool>(numChatThreads);
     }
-
-    return numChatThreads;
 }
 
 void ChatHandler::OnInitializeEvent()

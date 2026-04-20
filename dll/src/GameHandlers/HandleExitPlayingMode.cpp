@@ -10,5 +10,6 @@ void HandleExitPlayingMode(void* _this)
     {
         EventManager::Publish(GDCL_EVENT_EXIT_PLAYING_MODE);
         callback(_this);
+        EngineAPI::ClearObjectCache();
     }
 }

@@ -7,11 +7,11 @@
 #include <regex>
 #include <cwctype>
 #include <filesystem>
+#include <boost/algorithm/string.hpp>
 #include "ChatAPI.h"
 #include "ChatHandler.h"
 #include "ChallengeManager.h"
 #include "GameHandler.h"
-#include "StringConvert.h"
 #include "URI.h"
 
 const std::unordered_map<std::string, uint32_t> challengeCategoryMap =
@@ -119,19 +119,19 @@ bool HandleChatGlobalCommand(std::wstring& name, std::wstring& message, uint32_t
                 std::wstringstream outputStream;
                 outputStream << std::hex << std::uppercase << std::setfill(L'0') << std::setw(2) << (colorCode & 0x0000FF) << std::setw(2) << ((colorCode & 0x00FF00) >> 8) << std::setw(2) << ((colorCode & 0xFF0000) >> 16);
 
-                name = L"Server";
-                message = L"Changed global chat text color to #" + outputStream.str() + L".";
+                name = EngineAPI::UI::Localize("tagGDCLChatDefaultName");
+                message = EngineAPI::UI::Localize("tagGDCLChatColorSuccess", outputStream.str());
             }
             else
             {
-                name = L"Server";
-                message = L"Could not change global chat text color.";
+                name = EngineAPI::UI::Localize("tagGDCLChatDefaultName");
+                message = EngineAPI::UI::Localize("tagGDCLChatColorFailed");
             }
         }
         else
         {
-            name = L"Server";
-            message = L"\"" + args + L"\" is not a valid color. Type \"/h color\" for a list of available color aliases. You can also use a hex code, e.g. #FFFFFF.";
+            name = EngineAPI::UI::Localize("tagGDCLChatDefaultName");
+            message = EngineAPI::UI::Localize("tagGDCLChatColorInvalid", args);
         }
         return true;
     }
@@ -140,13 +140,13 @@ bool HandleChatGlobalCommand(std::wstring& name, std::wstring& message, uint32_t
     {
         if (channel > ChatAPI::CHAT_CHANNEL_MAX)
         {
-            name = L"Server";
-            message = L"Invalid channel. The maximum number of channels is " + std::to_wstring(ChatAPI::CHAT_CHANNEL_MAX) + L".";
+            name = EngineAPI::UI::Localize("tagGDCLChatDefaultName");
+            message = EngineAPI::UI::Localize("tagGDCLChatChannelInvalid", ChatAPI::CHAT_CHANNEL_MAX);
             return true;
         }
         else
         {
-            spChat->Send("JoinChannel", channel).get();
+            spChat->Send("JoinChannel", channel);
             return false;
         }
     }
@@ -167,8 +167,8 @@ bool HandleChatGlobalCommand(std::wstring& name, std::wstring& message, uint32_t
     }
     else
     {
-        name = L"Server";
-        message = L"Global chat is currently disabled. You can enable it by typing /global ON.";
+        name = EngineAPI::UI::Localize("tagGDCLChatDefaultName");
+        message = EngineAPI::UI::Localize("tagGDCLChatGlobalDisabled");
     }
     return true;
 }
@@ -178,80 +178,6 @@ bool HandleChatOnlineCommand(std::wstring& name, std::wstring& message, uint32_t
     spChat->Send("Online");
     return false;
 }
-
-/*pplx::task<web::json::value> GetSeasonChallenges()
-{
-    Client& client = Client::GetInstance();
-    if (client.IsPlayingSeason())
-    {
-        URI endpoint = client.GetServerGameURL() / "Admin" / "season" / std::to_string(client.GetActiveSeason()->_seasonID) / "challenges";
-
-        web::http::client::http_client httpClient((utility::string_t)endpoint);
-        web::http::http_request request(web::http::methods::GET);
-
-        std::string bearerToken = "Bearer " + client.GetAuthToken();
-        request.headers().add(U("Authorization"), bearerToken.c_str());
-
-        return httpClient.request(request).then([](web::http::http_response response)
-        {
-            if (response.status_code() == web::http::status_codes::OK)
-                return response.extract_json();
-            else
-                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-        })
-        .then([](pplx::task<web::json::value> task)
-        {
-            return task.get();
-        });
-    }
-
-    return pplx::task_from_result(web::json::value::null());
-}
-
-pplx::task<std::unordered_set<uint32_t>> GetCompletedChallengeIDs()
-{
-    Client& client = Client::GetInstance();
-    if (client.IsPlayingSeason())
-    {
-        URI endpoint = client.GetServerGameURL() / "Season" / std::to_string(client.GetActiveSeason()->_seasonID) / "participant-challenges" / std::to_string(client.GetCurrentParticipantID());
-
-        web::http::client::http_client httpClient((utility::string_t)endpoint);
-        web::http::http_request request(web::http::methods::GET);
-
-        std::string bearerToken = "Bearer " + client.GetAuthToken();
-        request.headers().add(U("Authorization"), bearerToken.c_str());
-
-        return httpClient.request(request).then([](web::http::http_response response)
-        {
-            if (response.status_code() == web::http::status_codes::OK)
-                return response.extract_json();
-            else
-                throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-        })
-        .then([](pplx::task<web::json::value> task)
-        {
-            std::unordered_set<uint32_t> challengeIDs;
-            try
-            {
-                web::json::array completedChallenges = task.get().as_array();
-                for (size_t i = 0; i < completedChallenges.size(); ++i)
-                {
-                    web::json::value challengeData = completedChallenges[i];
-                    uint32_t challengeID = challengeData[U("seasonChallengeId")].as_integer();
-                    challengeIDs.insert(challengeID);
-                }
-            }
-            catch (std::exception& ex)
-            {
-                Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve completed challenges: %s", ex.what());
-            }
-
-            return challengeIDs;
-        });
-    }
-
-    return pplx::task_from_result(std::unordered_set<uint32_t>());
-}*/
 
 bool HandleChatChallengesCommand(std::wstring& name, std::wstring& message, uint32_t& channel, uint8_t& type, void* item)
 {
@@ -264,12 +190,11 @@ bool HandleChatChallengesCommand(std::wstring& name, std::wstring& message, uint
         return false;
     }
 
+
     if (channel == 0)
     {
-        std::wstring overview = L"Challenge overview for ";
-        overview += CharToWide(spClient->GetUsername());
-        overview += L": ";
-        GameAPI::SendChatMessage(L"Server", overview, ChatAPI::CHAT_TYPE_NORMAL);
+        std::wstring overview = EngineAPI::UI::Localize("tagGDCLChatChallenges01", CharToWide(spClient->GetUsername()).c_str());
+        GameAPI::SendChatMessage(name, overview, ChatAPI::CHAT_TYPE_SYSTEM);
 
         std::unordered_map<uint32_t, uint32_t> challengeCount;
         std::unordered_map<uint32_t, uint32_t> completedCount;
@@ -312,7 +237,7 @@ bool HandleChatChallengesCommand(std::wstring& name, std::wstring& message, uint
             message += L")";
 
             ChatAPI::ChatType chatType = (completedCount[challengeCategory.second] == challengeCount[challengeCategory.second]) ? ChatAPI::CHAT_TYPE_SYSTEM : ChatAPI::CHAT_TYPE_NORMAL;
-            GameAPI::SendChatMessage(L"Server", message, chatType);
+            GameAPI::SendChatMessage(name, message, chatType);
         }
     }
     else
@@ -320,17 +245,13 @@ bool HandleChatChallengesCommand(std::wstring& name, std::wstring& message, uint
         auto it = std::find_if(challengeCategoryMap.begin(), challengeCategoryMap.end(), [&channel](const std::pair<std::string, uint32_t>& p) { return p.second == channel; });
         if (it != challengeCategoryMap.end())
         {
-            std::wstring message = CharToWide(it->first);
-            message += L" Challenges for ";
-            message += CharToWide(spClient->GetUsername());
-            message += L": ";
-            GameAPI::SendChatMessage(L"Server", message, ChatAPI::CHAT_TYPE_NORMAL);
+            std::wstring message = EngineAPI::UI::Localize("tagGDCLChatChallenges02", CharToWide(it->first).c_str(), CharToWide(spClient->GetUsername()).c_str());
+            GameAPI::SendChatMessage(name, message, ChatAPI::CHAT_TYPE_SYSTEM);
         }
         else
         {
-            std::wstring message = std::to_wstring(channel);
-            message += L" is not a valid challenge category.";
-            GameAPI::SendChatMessage(L"Server", message, ChatAPI::CHAT_TYPE_NORMAL);
+            std::wstring message = EngineAPI::UI::Localize("tagGDCLChatChallenges03", channel);
+            GameAPI::SendChatMessage(name, message, ChatAPI::CHAT_TYPE_SYSTEM);
             return false;
         }
 
@@ -372,12 +293,10 @@ bool HandleChatChallengesCommand(std::wstring& name, std::wstring& message, uint
                 message += L" ";
             }
 
-            message += L"~ ";
-            message += std::to_wstring(challenge.second->_points);
-            message += L" points";
+            message += EngineAPI::UI::Localize("tagGDCLChatChallengePoints", challenge.second->_points);
 
             ChatAPI::ChatType chatType = completed ? ChatAPI::CHAT_TYPE_SYSTEM : ChatAPI::CHAT_TYPE_NORMAL;
-            GameAPI::SendChatMessage(L"Server", message, chatType);
+            GameAPI::SendChatMessage(name, message, chatType);
         }
     }
     return false;
@@ -387,6 +306,7 @@ bool HandleChatMuteCommand(std::wstring& name, std::wstring& message, uint32_t& 
 {
     if (message.size() > 0)
     {
+        std::wstring name = EngineAPI::UI::Localize("tagGDCLChatDefaultName");
         std::wstring username = message.substr(0, message.find(L" "));
         std::string clientUsername = spClient->GetUsername();
 
@@ -404,7 +324,7 @@ bool HandleChatMuteCommand(std::wstring& name, std::wstring& message, uint32_t& 
 
             if (matches)
             {
-                GameAPI::SendChatMessage(L"Server", L"You cannot mute yourself.", ChatAPI::CHAT_TYPE_NORMAL);
+                GameAPI::SendChatMessage(name, EngineAPI::UI::Localize("tagGDCLChatMute04"), ChatAPI::CHAT_TYPE_SYSTEM);
                 return false;
             }
         }
@@ -416,15 +336,15 @@ bool HandleChatMuteCommand(std::wstring& name, std::wstring& message, uint32_t& 
         const std::unordered_set<std::wstring>& mutedList = ChatAPI::GetMutedList();
         if (mutedList.size() == 0)
         {
-            GameAPI::SendChatMessage(L"Server", L"You have not muted any players.", ChatAPI::CHAT_TYPE_NORMAL);
+            GameAPI::SendChatMessage(name, EngineAPI::UI::Localize("tagGDCLChatMute03"), ChatAPI::CHAT_TYPE_SYSTEM);
         }
         else
         {
-            GameAPI::SendChatMessage(L"Server", L"You have muted the following players:", ChatAPI::CHAT_TYPE_NORMAL);
+            GameAPI::SendChatMessage(name, EngineAPI::UI::Localize("tagGDCLChatMute02"), ChatAPI::CHAT_TYPE_SYSTEM);
             for (const std::wstring& playerName : mutedList)
             {
                 std::wstring message = L"  " + playerName;
-                GameAPI::SendChatMessage(L"Server", message, ChatAPI::CHAT_TYPE_NORMAL);
+                GameAPI::SendChatMessage(name, message, ChatAPI::CHAT_TYPE_SYSTEM);
             }
         }
     }
@@ -437,7 +357,15 @@ bool HandleChatUnmuteCommand(std::wstring& name, std::wstring& message, uint32_t
     if (message.size() > 0)
     {
         std::wstring username = message.substr(0, message.find(L" "));
-        spChat->Send("Unmute", username);
+        if (ChatAPI::IsPlayerMuted(username))
+        {
+            spChat->Send("Unmute", username);
+        }
+        else
+        {
+            std::wstring name = EngineAPI::UI::Localize("tagGDCLChatDefaultName");
+            GameAPI::SendChatMessage(name, EngineAPI::UI::Localize("tagGDCLChatUnmute02"), ChatAPI::CHAT_TYPE_SYSTEM);
+        }
     }
     return false;
 }
@@ -448,7 +376,7 @@ bool HandleChatWhisperCommand(std::wstring& name, std::wstring& message, uint32_
     std::wstring text = (username.size() == message.size()) ? L"" : message.substr(message.find(L" ") + 1);
 
     if (!text.empty())
-        spChat->Send("Send", channel, text, username, item);
+        spChat->Send("Send", 0, text, username, item);
 
     return false;
 }
@@ -491,6 +419,34 @@ bool HandleBetaAddItemCommand(std::wstring& name, std::wstring& message, uint32_
     return true;
 }
 
+bool HandleBetaLevelUpCommand(std::wstring& name, std::wstring& message, uint32_t& channel, uint8_t& type, void* item)
+{
+    if (IsBetaBranch())
+    {
+        std::wstring subcommand = message.substr(0, message.find(L" "));
+
+        int32_t amount = 1;
+        try { amount = std::stoi(subcommand); }
+        catch (std::exception&) {}
+
+        if (amount < 0)
+            amount = 0;
+
+        if (void* mainPlayer = GameAPI::GetMainPlayer())
+        {
+            for (uint32_t i = 0; i < amount; ++i)
+            {
+                if (GameAPI::IsMaxLevel(mainPlayer))
+                    break;
+                else
+                    GameAPI::IncrementPlayerLevel(mainPlayer);
+            }
+        }
+        return false;
+    }
+    return true;
+}
+
 bool HandleBetaAddMoneyCommand(std::wstring& name, std::wstring& message, uint32_t& channel, uint8_t& type, void* item)
 {
     if (IsBetaBranch())
@@ -498,14 +454,12 @@ bool HandleBetaAddMoneyCommand(std::wstring& name, std::wstring& message, uint32
         std::wstring subcommand = message.substr(0, message.find(L" "));
 
         int32_t amount = 0;
-        try
-        {
-            amount = std::stoi(subcommand);
-        }
+        try { amount = std::stoi(subcommand); }
         catch (std::exception&) {}
 
-        void* mainPlayer = GameAPI::GetMainPlayer();
-        GameAPI::AddOrSubtractMoney(mainPlayer, amount);
+        if (void* mainPlayer = GameAPI::GetMainPlayer())
+            GameAPI::AddOrSubtractMoney(mainPlayer, amount);
+
         return false;
     }
     return true;
@@ -545,7 +499,9 @@ bool HandleBetaDumpTagsCommand(std::wstring& name, std::wstring& message, uint32
             }
             out.close();
 
-            GameAPI::SendChatMessage(L"Server", std::wstring(L"Tags successfully written to ") + CharToWide(filename), ChatAPI::CHAT_TYPE_NORMAL);
+            std::wstring name = EngineAPI::UI::Localize("tagGDCLChatDefaultName");
+            std::wstring message = EngineAPI::UI::Localize("tagGDCLChatSavedTags", filename);
+            GameAPI::SendChatMessage(name, message, ChatAPI::CHAT_TYPE_SYSTEM);
         }
 
         return false;
@@ -559,25 +515,26 @@ typedef bool (*ChatCommandHandler)(std::wstring&, std::wstring&, uint32_t&, uint
 struct ChatCommandInfo
 {
     ChatCommandInfoFilter     _filter;
-    std::wstring              _blurb;
-    std::wstring              _detail;
+    std::string              _blurb;
+    std::string              _detail;
 };
 
 // TODO: Move these strings into a tags file and get them via Localize()
 const std::unordered_map<ChatCommandHandler, ChatCommandInfo> chatCommandInfo = 
 {
-    { HandleChatChallengesCommand, { nullptr,      L"Displays the list of season challenges.", L"Usage: /c, /challenges[category]\n\nDisplays the user's current challenge progress in the season. If no arguments are specified, displays an overview of all challenge categories.\n\n    [category] - Displays a list of individual challenges for the specified challenge category.\n\n" } },
-    { HandleChatGlobalCommand,     { nullptr,      L"Sends a message to global chat.", L"Usage: /g, /global[channel] [on|off|color] ...\n\nSends a message to the current global chat channel. If no arguments are specified, displays the current global chat channel.\n\n    [channel] - Sets or switches the current global chat channel. Valid values are 1-15.\n\n    [on/off] - Enables or disables global chat.\n\n    [color] - Sets the color of global chat to a color alias or a 6-digit hex code. Type \"/h color\" for a list of color aliases.\n\n" } },
-    { HandleChatHelpCommand,       { nullptr,      L"Displays available commands and their usage.", L"Usage: /h, /help [command]\n\nDisplays a detailed usage message for a chat command. If no arguments are specified, displays all available chat commands.\n\n    [command] - Specifies the command to display help information on.\n\n" } },
-    { HandleChatMuteCommand,       { nullptr,      L"Blocks all incoming messages from a user.", L"Usage: /m, /mute [user]\n\nBlocks all incoming messages from a user. If no arguments are specified, displays the list of users that you have currently muted.\n\n    [user] - Specifies the username to be blocked.\n\n" } },
-    { HandleChatOnlineCommand,     { nullptr,      L"Displays the number of online users.", L"Usage: /o, /online\n\nDisplays the number of concurrent online users.\n\n" } },
-    { HandleChatUnmuteCommand,     { nullptr,      L"Unblocks all incoming messages from a user.", L"Usage: /u, /unmute <user>\n\nUnblocks a user that was previously blocked, allowing you to see their messages again.\n\n    <user> - Specifies the username to be unblocked.\n\n" } },
-    { HandleChatWhisperCommand,    { nullptr,      L"Sends a direct message to a user.", L"Usage: /t, /tell <user> ...\n\nSends a direct message to a user.\n\n    <user> - Specifies the username to send a message to.\n\n" } },
+    { HandleChatHelpCommand,       { nullptr,      "tagGDCLCommand01", "tagGDCLCommand01Desc" } },
+    { HandleChatGlobalCommand,     { nullptr,      "tagGDCLCommand02", "tagGDCLCommand02Desc" } },
+    { HandleChatOnlineCommand,     { nullptr,      "tagGDCLCommand03", "tagGDCLCommand03Desc" } },
+    { HandleChatChallengesCommand, { nullptr,      "tagGDCLCommand04", "tagGDCLCommand04Desc" } },
+    { HandleChatMuteCommand,       { nullptr,      "tagGDCLCommand05", "tagGDCLCommand05Desc" } },
+    { HandleChatUnmuteCommand,     { nullptr,      "tagGDCLCommand06", "tagGDCLCommand06Desc" } },
+    { HandleChatWhisperCommand,    { nullptr,      "tagGDCLCommand07", "tagGDCLCommand07Desc" } },
     
     // Beta testing commands
-    { HandleBetaAddItemCommand,    { IsBetaBranch, L"Adds an item directly into the user's inventory.", L"Usage: /item <dbr_name> <stack_count>\n\nAdds an item directly into the user's inventory.\n\n    <dbr_name> - The full path of the item DBR to add.\n\n    <stack_count> - The stack count of the item. If not specified, this value will be 1.\n\n" } },
-    { HandleBetaAddMoneyCommand,   { IsBetaBranch, L"Adds or removes iron bits from the user's inventory.", L"Usage: /money <amount>\n\nAdds or removes iron bits from the user's inventory.\n\n    <amount> - Specifies the amount of iron bits to add. If this value is negative, the amount will be removed instead.\n\n" } },
-    { HandleBetaDumpTagsCommand,   { IsBetaBranch, L"Saves character quest tags.", L"Usage: /tags\n\nSaves all quest tags for the current character to a text file.\n\n" } },
+    { HandleBetaAddItemCommand,    { IsBetaBranch, "tagGDCLCommandBeta01", "tagGDCLCommandBeta01Desc" } },
+    { HandleBetaLevelUpCommand,    { IsBetaBranch, "tagGDCLCommandBeta02", "tagGDCLCommandBeta02Desc" } },
+    { HandleBetaAddMoneyCommand,   { IsBetaBranch, "tagGDCLCommandBeta03", "tagGDCLCommandBeta03Desc" } },
+    { HandleBetaDumpTagsCommand,   { IsBetaBranch, "tagGDCLCommandBeta04", "tagGDCLCommandBeta04Desc" } },
 };
 
 const std::unordered_map<std::wstring, ChatCommandHandler> chatCommandHandlers =
@@ -599,12 +556,14 @@ const std::unordered_map<std::wstring, ChatCommandHandler> chatCommandHandlers =
 
     // Beta testing commands
     { L"item",       HandleBetaAddItemCommand },
+    { L"level",      HandleBetaLevelUpCommand },
     { L"money",      HandleBetaAddMoneyCommand },
     { L"tags",       HandleBetaDumpTagsCommand },
 };
 
 bool HandleChatHelpCommand(std::wstring& name, std::wstring& message, uint32_t& channel, uint8_t& type, void* item)
 {
+    name = EngineAPI::UI::Localize("tagGDCLChatDefaultName");
     if (message.size() == 0)
     {
         std::map<ChatCommandHandler, std::set<std::wstring>> chatCommandLookup;
@@ -629,22 +588,23 @@ bool HandleChatHelpCommand(std::wstring& name, std::wstring& message, uint32_t& 
                 const ChatCommandInfo& info = it->second;
                 if ((info._filter == nullptr) || (info._filter()))
                 {
-                    commandString += L" - " + info._blurb;
+                    commandString += L" - ";
+                    commandString += EngineAPI::UI::Localize(info._blurb.c_str());
                     chatCommandStrings.insert(commandString);
                 }
             }
         }
 
-        std::wstring message = L"The following chat commands are available:";
-        GameAPI::SendChatMessage(L"Server", message, ChatAPI::CHAT_TYPE_SYSTEM);
+        std::wstring message = EngineAPI::UI::Localize("tagGDCLChatHelp01");
+        GameAPI::SendChatMessage(name, message, ChatAPI::CHAT_TYPE_SYSTEM);
 
         for (const std::wstring& command : chatCommandStrings)
         {
-            GameAPI::SendChatMessage(L"Server", command, ChatAPI::CHAT_TYPE_SYSTEM);
+            GameAPI::SendChatMessage(name, command, ChatAPI::CHAT_TYPE_SYSTEM);
         }
 
-        message = L"Type /help <command> for more information about a specific chat command.";
-        GameAPI::SendChatMessage(L"Server", message, ChatAPI::CHAT_TYPE_SYSTEM);
+        message = EngineAPI::UI::Localize("tagGDCLChatHelp02");
+        GameAPI::SendChatMessage(name, message, ChatAPI::CHAT_TYPE_SYSTEM);
     }
     else
     {
@@ -656,7 +616,11 @@ bool HandleChatHelpCommand(std::wstring& name, std::wstring& message, uint32_t& 
         {
             ChatCommandHandler handler = chatCommandHandlers.at(command);
             ChatCommandInfo info = chatCommandInfo.at(handler);
-            GameAPI::SendChatMessage(L"Server", info._detail, ChatAPI::CHAT_TYPE_SYSTEM);
+
+            message = EngineAPI::UI::Localize(info._detail.c_str());
+            boost::replace_all(message, L"^n", L"\n");
+
+            GameAPI::SendChatMessage(name, message, ChatAPI::CHAT_TYPE_SYSTEM);
         }
         else if ((message == L"color") || (message == L"colour"))
         {
@@ -678,18 +642,18 @@ bool HandleChatHelpCommand(std::wstring& name, std::wstring& message, uint32_t& 
                 chatColorStrings.insert(commandString);
             }
 
-            std::wstring message = L"The list of available color aliases are:";
-            GameAPI::SendChatMessage(L"Server", message, ChatAPI::CHAT_TYPE_SYSTEM);
+            std::wstring message = EngineAPI::UI::Localize("tagGDCLChatHelp03");
+            GameAPI::SendChatMessage(name, message, ChatAPI::CHAT_TYPE_SYSTEM);
 
             for (const std::wstring& command : chatColorStrings)
             {
-                GameAPI::SendChatMessage(L"Server", command, ChatAPI::CHAT_TYPE_SYSTEM);
+                GameAPI::SendChatMessage(name, command, ChatAPI::CHAT_TYPE_SYSTEM);
             }
         }
         else
         {
-            std::wstring message = L"Command \"" + command + L"\" was not found.";
-            GameAPI::SendChatMessage(L"Server", message, ChatAPI::CHAT_TYPE_SYSTEM);
+            std::wstring message = EngineAPI::UI::Localize("tagGDCLChatHelpError", command);
+            GameAPI::SendChatMessage(name, message, ChatAPI::CHAT_TYPE_SYSTEM);
         }
     }
     return false;
@@ -707,10 +671,7 @@ bool ProcessChatCommand(std::wstring& name, std::wstring& message, uint8_t& type
         uint32_t channel = 0;
         message = match.str(3);
 
-        try
-        {
-            channel = std::stoi(match.str(2));
-        }
+        try { channel = std::stoi(match.str(2)); }
         catch (std::exception&) {}
 
         if (chatCommandHandlers.count(command) > 0)

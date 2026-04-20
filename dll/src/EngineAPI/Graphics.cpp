@@ -89,9 +89,9 @@ void RenderRect(const Rect& r1, const Rect& r2, void* renderTexture, const Color
     callback(canvas, r1, r2, renderTexture, color);
 }
 
-void RenderText2D(int x, int y, const Color& color, const wchar_t* text, void* font, int size, GraphicsXAlign xAlign, GraphicsYAlign yAlign, int style, int layout)
+void RenderText2D(int32_t x, int32_t y, const Color& color, const wchar_t* text, void* font, int32_t size, GraphicsXAlign xAlign, GraphicsYAlign yAlign, int32_t style, int32_t layout)
 {
-    typedef void (__thiscall* RenderText2DProto)(void*, int, int, const Color&, const void*, void*, int, int, int, int, int);
+    typedef void (__thiscall* RenderText2DProto)(void*, int32_t, int32_t, const Color&, const void*, void*, int32_t, int32_t, int32_t, int32_t, int32_t);
 
     HMODULE engineDLL = GetModuleHandle(TEXT(ENGINE_DLL));
     if (!engineDLL)

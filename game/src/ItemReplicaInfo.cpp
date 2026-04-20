@@ -11,7 +11,6 @@ ItemReplicaInfo& ItemReplicaInfo::operator=(const ItemReplicaInfo& item)
     _component = item._component;
     _completion = item._completion;
     _augment = item._augment;
-
     _itemID = item._itemID;
     _participantItemID = item._participantItemID;
     _seed = item._seed;
@@ -20,11 +19,9 @@ ItemReplicaInfo& ItemReplicaInfo::operator=(const ItemReplicaInfo& item)
     _augmentSeed = item._augmentSeed;
     _unk1 = item._unk1;
     _stackCount = item._stackCount;
-
-    /*_ascendant = item._ascendant;
+    _ascendant = item._ascendant;
     _ascendant2H = item._ascendant2H;
-    _rerollsUsed = item._rerollsUsed;*/
-
+    _rerollsUsed = item._rerollsUsed;
     return *this;
 }
 
@@ -53,9 +50,7 @@ void ItemReplicaInfo::Read(EncodedFileReader* reader, uint32_t version)
     _stackCount = reader->ReadInt32();
     if (version >= 8)
     {
-        // TODO: Use the new fields after adding them to ItemReplicaInfo
-        reader->ReadInt32();
-        //_rerollsUsed = reader->ReadInt32();
+        _rerollsUsed = reader->ReadInt32();
     }
 }
 
@@ -82,9 +77,7 @@ void ItemReplicaInfo::Write(EncodedFileWriter* writer, uint32_t version)
     writer->BufferInt32(_stackCount);
     if (version >= 8)
     {
-        // TODO: Use the new fields after adding them to ItemReplicaInfo
-        writer->BufferInt32(0);
-        //writer->BufferInt32(_rerollsUsed);
+        writer->BufferInt32(_rerollsUsed);
     }
 }
 
@@ -120,15 +113,11 @@ void to_json(json& j, const ItemReplicaInfo& data)
         { "Augment",           data._augment },
         { "AugmentLevel",      data._augmentLevel },
         { "AugmentSeed",       data._augmentSeed },
-        { "Unknown1",          data._unk1 },
         { "StackCount",        data._stackCount },
-        /*
-        // TODO: Use the new fields after adding them to ItemReplicaInfo
         { "Ascendant",         data._ascendant },
-        { "Ascendant2H",       data._ascendant2H },
+        { "Ascendant2h",       data._ascendant2H },
         { "RerollsUsed",       data._rerollsUsed },
-        */
-        { "ParticipantItemID", data._participantItemID },
+        { "ParticipantItemId", data._participantItemID },
     };
 }
 
@@ -146,16 +135,16 @@ void from_json(const json& j, ItemReplicaInfo& data)
     j.at("Augment")      .get_to(data._augment);
     j.at("AugmentLevel") .get_to(data._augmentLevel);
     j.at("AugmentSeed")  .get_to(data._augmentSeed);
-    j.at("Unknown1")     .get_to(data._unk1);
     j.at("StackCount")   .get_to(data._stackCount);
 
-    /*
-    // TODO: Use the new fields after adding them to ItemReplicaInfo
-    j.at("Ascendant")    .get_to(data._ascendant);
-    j.at("Ascendant2H")  .get_to(data._ascendant2H);
-    j.at("RerollsUsed")  .get_to(data._rerollsUsed);
-    */
+    // Backwards compatability with old items that don't have these fields
+    if ((j.contains("Ascendant")) && (!j.at("Ascendant").is_null()))
+        j.at("Ascendant").get_to(data._ascendant);
+    if ((j.contains("Ascendant2h")) && (!j.at("Ascendant2h").is_null()))
+        j.at("Ascendant2h").get_to(data._ascendant2H);
+    if ((j.contains("RerollsUsed")) && (!j.at("RerollsUsed").is_null()))
+        j.at("RerollsUsed").get_to(data._rerollsUsed);
 
-    if (j.contains("ParticipantItemID"))
-        j.at("ParticipantItemID").get_to(data._participantItemID);
+    if ((j.contains("ParticipantItemId")) && (!j.at("ParticipantItemId").is_null()))
+        j.at("ParticipantItemId").get_to(data._participantItemID);
 }

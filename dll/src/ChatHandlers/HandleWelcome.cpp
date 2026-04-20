@@ -1,15 +1,14 @@
 #include <string>
+#include "EngineAPI.h"
 #include "GameAPI.h"
 #include "ChatAPI.h"
-#include "StringConvert.h"
 #include "JSON.h"
 
-std::string HandleWriteWelcome(uint32_t requestID)
+std::string HandleWriteWelcome()
 {
     json request = 
     {
-        { "RequestName", "Welcome" },
-        { "RequestId", requestID },
+        { "RequestName", "Welcome" }
     };
     return request.dump();
 }
@@ -19,10 +18,11 @@ void HandleReadWelcome(const json& response)
     const json& message = response.at("Message");
     if (message.is_array())
     {
+        std::wstring name = EngineAPI::UI::Localize("tagGDCLChatDefaultName");
         for (const json& line : message)
         {
             std::wstring message = CharToWide(line.get<std::string>());
-            GameAPI::AddChatMessage(L"Server", message, ChatAPI::CHAT_TYPE_NORMAL);
+            GameAPI::AddChatMessage(name, message, ChatAPI::CHAT_TYPE_SYSTEM);
         }
     }
 }

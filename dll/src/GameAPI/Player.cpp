@@ -238,4 +238,34 @@ void AddOrSubtractMoney(void* player, int32_t amount)
     callback(player, (uint32_t)abs(amount));
 }
 
+void IncrementPlayerLevel(void* player)
+{
+    typedef void (__thiscall* IncrementPlayerLevelProto)(void*);
+
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
+    if (!gameDLL)
+        return;
+
+    IncrementPlayerLevelProto callback = (IncrementPlayerLevelProto)GetProcAddress(gameDLL, GAPI_NAME_INCREMENT_CHAR_LEVEL);
+    if ((!callback) || (!player))
+        return;
+
+    callback(player);
+}
+
+bool IsMaxLevel(void* player)
+{
+    typedef bool (__thiscall* IsMaxLevelProto)(void*);
+
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
+    if (!gameDLL)
+        return false;
+
+    IsMaxLevelProto callback = (IsMaxLevelProto)GetProcAddress(gameDLL, GAPI_NAME_IS_MAX_LEVEL);
+    if ((!callback) || (!player))
+        return false;
+
+    return callback(player);
+}
+
 }

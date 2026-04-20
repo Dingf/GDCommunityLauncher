@@ -36,4 +36,22 @@ void LoadLocalizationTags(bool keepExisting)
     callback(manager, keepExisting);
 }
 
+
+void AddLocalizationTag(const char* tagLine, const char* filename, bool keepExisting)
+{
+    typedef void* (__thiscall* AddLocalizationTagProto)(void*, const char*, const char*, bool);
+
+    HMODULE engineDLL = GetModuleHandle(TEXT(ENGINE_DLL));
+    if (!engineDLL)
+        return;
+
+    AddLocalizationTagProto callback = (AddLocalizationTagProto)GetProcAddress(engineDLL, EAPI_NAME_ADD_TAG);
+    void* manager = GetLocalizationManager();
+
+    if ((!callback) || (!manager))
+        return;
+
+    callback(manager, tagLine, filename, keepExisting);
+}
+
 }

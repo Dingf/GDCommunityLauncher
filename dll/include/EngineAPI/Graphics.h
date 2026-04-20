@@ -16,7 +16,7 @@ constexpr char EAPI_NAME_UNLOAD_TEXTURE[] = "?UnloadTexture@GraphicsEngine@GAME@
 constexpr char EAPI_NAME_RENDER[] = "?Render@Engine@GAME@@QEAAXXZ";
 constexpr char EAPI_NAME_RENDER_RECT[] = "?RenderRect@GraphicsCanvas@GAME@@QEAAXAEBVRect@2@0PEBVRenderTexture@2@AEBVColor@2@@Z";
 constexpr char EAPI_NAME_RENDER_TEXT_2D[] = "?RenderText2d@GraphicsCanvas@GAME@@QEAAXHHAEBVColor@2@PEBGPEBVGraphicsFont2@2@HW4GraphicsXAlign@2@W4GraphicsYAlign@2@W4FontStyleFlag@2@W4FontLayout@2@@Z";
-constexpr char EAPI_NAME_RENDER_STYLED_TEXT_2D[] = "?RenderText2d@GraphicsCanvas@GAME@@QEAAXVRect@2@PEBGAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@MW4GraphicsXAlign@2@W4GraphicsYAlign@2@W4FontLayout@2@@Z";
+constexpr char EAPI_NAME_RENDER_STYLED_TEXT_2D[] = "?RenderText2d@GraphicsCanvas@GAME@@QEAAXVRect@2@AEBVColor@2@1PEBGPEBVGraphicsFont2@2@HW4GraphicsXAlign@2@W4GraphicsYAlign@2@W4FontStyleFlag@2@W4FontLayout@2@@Z";
 constexpr char EAPI_NAME_GET_TEXTURE_WIDTH[] = "?GetWidth@GraphicsTexture@GAME@@QEBAHXZ";
 constexpr char EAPI_NAME_GET_TEXTURE_HEIGHT[] = "?GetHeight@GraphicsTexture@GAME@@QEBAHXZ";
 constexpr char EAPI_NAME_GET_RENDER_TEXTURE[] = "?GetTexture@GraphicsTexture@GAME@@QEBAPEBVRenderTexture@2@XZ";
@@ -28,7 +28,7 @@ constexpr char EAPI_NAME_UNLOAD_TEXTURE[] = "?UnloadTexture@GraphicsEngine@GAME@
 constexpr char EAPI_NAME_RENDER[] = "?Render@Engine@GAME@@QAEXXZ";
 constexpr char EAPI_NAME_RENDER_RECT[] = "?RenderRect@GraphicsCanvas@GAME@@QAEXABVRect@2@0PBVRenderTexture@2@ABVColor@2@@Z";
 constexpr char EAPI_NAME_RENDER_TEXT_2D[] = "?RenderText2d@GraphicsCanvas@GAME@@QAEXHHABVColor@2@PBGPBVGraphicsFont2@2@HW4GraphicsXAlign@2@W4GraphicsYAlign@2@W4FontStyleFlag@2@W4FontLayout@2@@Z";
-constexpr char EAPI_NAME_RENDER_STYLED_TEXT_2D[] = "?RenderText2d@GraphicsCanvas@GAME@@QAEXVRect@2@PBGABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@MW4GraphicsXAlign@2@W4GraphicsYAlign@2@W4FontLayout@2@@Z";
+constexpr char EAPI_NAME_RENDER_STYLED_TEXT_2D[] = "?RenderText2d@GraphicsCanvas@GAME@@QAEXVRect@2@ABVColor@2@1PBGPBVGraphicsFont2@2@HW4GraphicsXAlign@2@W4GraphicsYAlign@2@W4FontStyleFlag@2@W4FontLayout@2@@Z";
 constexpr char EAPI_NAME_GET_TEXTURE_WIDTH[] = "?GetWidth@GraphicsTexture@GAME@@QBEHXZ";
 constexpr char EAPI_NAME_GET_TEXTURE_HEIGHT[] = "?GetHeight@GraphicsTexture@GAME@@QBEHXZ";
 constexpr char EAPI_NAME_GET_RENDER_TEXTURE[] = "?GetTexture@GraphicsTexture@GAME@@QBEPBVRenderTexture@2@XZ";
@@ -53,7 +53,7 @@ void* GetCanvas();
 void* LoadTexture(const std::string& textureName);
 void UnloadTexture(void* texture);
 void RenderRect(const Rect& r1, const Rect& r2, void* renderTexture, const Color& color);
-void RenderText2D(int x, int y, const Color& color, const wchar_t* text, void* font, int32_t size, GraphicsXAlign xAlign, GraphicsYAlign yAlign, int32_t style, int32_t layout);
+void RenderText2D(int32_t x, int32_t y, const Color& color, const wchar_t* text, void* font, int32_t size, GraphicsXAlign xAlign, GraphicsYAlign yAlign, int32_t style, int32_t layout);
 uint32_t GetTextureWidth(void* texture);
 uint32_t GetTextureHeight(void* texture);
 void* GetRenderTexture(void* texture);

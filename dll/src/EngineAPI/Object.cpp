@@ -1,10 +1,12 @@
 #include <unordered_map>
+#include <mutex>
 #include <Windows.h>
 #include "EngineAPI.h"
 
 namespace EngineAPI
 {
 
+std::mutex _mutex;
 std::unordered_map<uint32_t, void*> _objectIDCache;
     
 void* GetObjectManager()
@@ -38,16 +40,34 @@ void GetObjectList(std::vector<void*>& objectList)
     return callback(objectManager, objectList);
 }
 
+void CacheObjectID(void* object, uint32_t objectID)
+{
+    std::lock_guard<std::mutex> lock(_mutex);
+    _objectIDCache.try_emplace(objectID, object);
+}
+
+void ClearCachedObjectID(uint32_t objectID)
+{
+    std::lock_guard<std::mutex> lock(_mutex);
+    _objectIDCache.erase(objectID);
+}
+
+void ClearObjectCache()
+{
+    std::lock_guard<std::mutex> lock(_mutex);
+    _objectIDCache.clear();
+}
+
 void* FindObjectByID(uint32_t objectID)
 {
+    std::lock_guard<std::mutex> lock(_mutex);
+
     auto it = _objectIDCache.find(objectID);
     if (it != _objectIDCache.end())
     {
         void* object = it->second;
-        if (!IsObjectDeleted(object))
+        if ((object) && (!IsObjectDeleted(object)))
             return object;
-        else
-            _objectIDCache.erase(it);
     }
 
     std::vector<void*> objectList;
@@ -57,7 +77,7 @@ void* FindObjectByID(uint32_t objectID)
     {
         if (GetObjectID(objectList[i]) == objectID)
         {
-            _objectIDCache[objectID] = objectList[i];
+            _objectIDCache.emplace(objectID, objectList[i]);
             return objectList[i];
         }
     }

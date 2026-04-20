@@ -1,3 +1,4 @@
+#include <boost/asio/post.hpp>
 #include "EngineAPI.h"
 #include "GameAPI/Difficulty.h"
 #include "ContextManager.h"
@@ -37,7 +38,7 @@ std::string HandleWriteGetFOWFile(uint32_t requestID, uint32_t& participantID, s
 std::string HandleWriteSaveFOWFile(uint32_t requestID, uint32_t& participantID, std::wstring& characterName, GameAPI::Difficulty& difficulty, std::string& base64Data);
 std::string HandleWriteStashCapacity(uint32_t requestID);
 std::string HandleWriteTransferItems(uint32_t requestID, uint32_t& participantID, std::vector<uint32_t>& itemIDs);
-std::string HandleWriteStoreItems(uint32_t requestID, uint32_t& participantID, std::vector<ItemReplicaInfo>& items);
+std::string HandleWriteStoreItems(uint32_t requestID, uint32_t& participantID, std::vector<json>& items);
 std::string HandleWriteTransferQueue(uint32_t requestID, uint32_t& participantID);
 std::string HandleWriteDeleteCharacter(uint32_t requestID, uint32_t& participantID, std::wstring& characterName);
 std::string HandleWriteSaveTag(uint32_t requestID, uint32_t& participantID, std::string& tagName, uint32_t& level, GameAPI::Difficulty& difficulty);
@@ -71,46 +72,50 @@ void HandleReadGetFOWFile(const json& response, uint32_t participantID, std::wst
 void HandleReadSaveFOWFile(const json& response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty, std::string base64Data);
 void HandleReadStashCapacity(const json& response);
 void HandleReadTransferItems(const json& response, uint32_t participantID, std::vector<uint32_t> itemIDs);
-void HandleReadStoreItems(const json& response, uint32_t participantID, std::vector<ItemReplicaInfo> items);
+void HandleReadStoreItems(const json& response, uint32_t participantID, std::vector<json> items);
 void HandleReadTransferQueue(const json& response, uint32_t participantID);
 void HandleReadDeleteCharacter(const json& response, uint32_t participantID, std::wstring characterName);
 void HandleReadSaveTag(const json& response, uint32_t participantID, std::string tagName, uint32_t level, GameAPI::Difficulty difficulty);
 
-const std::unordered_map<std::string, ServerHandler::HandlerPair> ServerHandler::_handlers =
+const std::unordered_map<std::string, std::pair<void*,void*>>& ServerHandler::GetHandlers() const
 {
-    { "AddParticipant",                            { HandleWriteAddParticipant,        HandleReadAddParticipant } },
-    { "GetParticipantChallenges",                  { HandleWriteGetChallenges,         HandleReadGetChallenges } },
-    { "GetParticipantCharacters",                  { HandleWriteGetCharacters,         HandleReadGetCharacters } },
-    { "GetCharacterData",                          { HandleWriteGetCharacterData,      HandleReadGetCharacterData } },
-    { "GetCharacterFile",                          { HandleWriteGetCharacterFile,      HandleReadGetCharacterFile } },
-    { "SaveCharacterFile",                         { HandleWriteSaveCharacterFile,     HandleReadSaveCharacterFile } },
-    { "GetSeasons",                                { HandleWriteGetSeasons,            HandleReadGetSeasons } },
-    { "GetSeasonChallenges",                       { HandleWriteGetSeasonChallenges,   HandleReadGetSeasonChallenges } },
-    { "GetParticipantPoints",                      { HandleWriteGetPoints,             HandleReadGetPoints } },
-    { "GetNewTradeNotificationCount",              { HandleWriteGetTradeNotifications, HandleReadGetTradeNotifications } },
-    { "GetParticipantTagFile",                     { HandleWriteGetTagFile,            HandleReadGetTagFile } },
-    { "SaveParticipantTagFile",                    { HandleWriteSaveTagFile,           HandleReadSaveTagFile } },
-    { "GetParticipantStashFile",                   { HandleWriteGetStashFile,          HandleReadGetStashFile } },
-    { "SaveParticipantStashFile",                  { HandleWriteSaveStashFile,         HandleReadSaveStashFile } },
-    { "GetParticipantTransmutes",                  { HandleWriteGetTransmuteFile,      HandleReadGetTransmuteFile } },
-    { "SaveParticipantTransmutes",                 { HandleWriteSaveTransmuteFile,     HandleReadSaveTransmuteFile } },
-    { "GetParticipantFormulas",                    { HandleWriteGetFormulasFile,       HandleReadGetFormulasFile } },
-    { "SaveParticipantFormulas",                   { HandleWriteSaveFormulasFile,      HandleReadSaveFormulasFile } },
-    { "GetParticipantCharacterQuestFile",          { HandleWriteGetQuestFile,          HandleReadGetQuestFile } },
-    { "SaveParticipantCharacterQuestFile",         { HandleWriteSaveQuestFile,         HandleReadSaveQuestFile } },
-    { "GetParticipantCharacterConversationsFile",  { HandleWriteGetConversationFile,   HandleReadGetConversationFile } },
-    { "SaveParticipantCharacterConversationsFile", { HandleWriteSaveConversationFile,  HandleReadSaveConversationFile } },
-    { "GetParticipantCharacterMapDatFile",         { HandleWriteGetMapFile,            HandleReadGetMapFile } },
-    { "SaveParticipantCharacterMapDatFile",        { HandleWriteSaveMapFile,           HandleReadSaveMapFile } },
-    { "GetParticipantCharacterMapFowFile",         { HandleWriteGetFOWFile,            HandleReadGetFOWFile } },
-    { "SaveParticipantCharacterMapFowFile",        { HandleWriteSaveFOWFile,           HandleReadSaveFOWFile } },
-    { "GetParticipantSharedStashCapacity",         { HandleWriteStashCapacity,         HandleReadStashCapacity } },
-    { "TransferParticipantItems",                  { HandleWriteTransferItems,         HandleReadTransferItems } },
-    { "StoreParticipantStashItems",                { HandleWriteStoreItems,            HandleReadStoreItems } },
-    { "GetParticipantTransferQueue",               { HandleWriteTransferQueue,         HandleReadTransferQueue } },
-    { "DeleteParticipantCharacter",                { HandleWriteDeleteCharacter,       HandleReadDeleteCharacter } },
-    { "SaveParticipantTag",                        { HandleWriteSaveTag,               HandleReadSaveTag }},
-};
+    static const std::unordered_map<std::string, std::pair<void*,void*>> handlers =
+    {
+        { "AddParticipant",                            { HandleWriteAddParticipant,        HandleReadAddParticipant } },
+        { "GetParticipantChallenges",                  { HandleWriteGetChallenges,         HandleReadGetChallenges } },
+        { "GetParticipantCharacters",                  { HandleWriteGetCharacters,         HandleReadGetCharacters } },
+        { "GetCharacterData",                          { HandleWriteGetCharacterData,      HandleReadGetCharacterData } },
+        { "GetCharacterFile",                          { HandleWriteGetCharacterFile,      HandleReadGetCharacterFile } },
+        { "SaveCharacterFile",                         { HandleWriteSaveCharacterFile,     HandleReadSaveCharacterFile } },
+        { "GetSeasons",                                { HandleWriteGetSeasons,            HandleReadGetSeasons } },
+        { "GetSeasonChallenges",                       { HandleWriteGetSeasonChallenges,   HandleReadGetSeasonChallenges } },
+        { "GetParticipantPoints",                      { HandleWriteGetPoints,             HandleReadGetPoints } },
+        { "GetNewTradeNotificationCount",              { HandleWriteGetTradeNotifications, HandleReadGetTradeNotifications } },
+        { "GetParticipantTagFile",                     { HandleWriteGetTagFile,            HandleReadGetTagFile } },
+        { "SaveParticipantTagFile",                    { HandleWriteSaveTagFile,           HandleReadSaveTagFile } },
+        { "GetParticipantStashFile",                   { HandleWriteGetStashFile,          HandleReadGetStashFile } },
+        { "SaveParticipantStashFile",                  { HandleWriteSaveStashFile,         HandleReadSaveStashFile } },
+        { "GetParticipantTransmutes",                  { HandleWriteGetTransmuteFile,      HandleReadGetTransmuteFile } },
+        { "SaveParticipantTransmutes",                 { HandleWriteSaveTransmuteFile,     HandleReadSaveTransmuteFile } },
+        { "GetParticipantFormulas",                    { HandleWriteGetFormulasFile,       HandleReadGetFormulasFile } },
+        { "SaveParticipantFormulas",                   { HandleWriteSaveFormulasFile,      HandleReadSaveFormulasFile } },
+        { "GetParticipantCharacterQuestFile",          { HandleWriteGetQuestFile,          HandleReadGetQuestFile } },
+        { "SaveParticipantCharacterQuestFile",         { HandleWriteSaveQuestFile,         HandleReadSaveQuestFile } },
+        { "GetParticipantCharacterConversationsFile",  { HandleWriteGetConversationFile,   HandleReadGetConversationFile } },
+        { "SaveParticipantCharacterConversationsFile", { HandleWriteSaveConversationFile,  HandleReadSaveConversationFile } },
+        { "GetParticipantCharacterMapDatFile",         { HandleWriteGetMapFile,            HandleReadGetMapFile } },
+        { "SaveParticipantCharacterMapDatFile",        { HandleWriteSaveMapFile,           HandleReadSaveMapFile } },
+        { "GetParticipantCharacterMapFowFile",         { HandleWriteGetFOWFile,            HandleReadGetFOWFile } },
+        { "SaveParticipantCharacterMapFowFile",        { HandleWriteSaveFOWFile,           HandleReadSaveFOWFile } },
+        { "GetParticipantSharedStashCapacity",         { HandleWriteStashCapacity,         HandleReadStashCapacity } },
+        { "TransferParticipantItems",                  { HandleWriteTransferItems,         HandleReadTransferItems } },
+        { "StoreParticipantStashItems",                { HandleWriteStoreItems,            HandleReadStoreItems } },
+        { "GetParticipantTransferQueue",               { HandleWriteTransferQueue,         HandleReadTransferQueue } },
+        { "DeleteParticipantCharacter",                { HandleWriteDeleteCharacter,       HandleReadDeleteCharacter } },
+        { "SaveParticipantTag",                        { HandleWriteSaveTag,               HandleReadSaveTag }},
+    };
+    return handlers;
+}
 
 ServerHandler::ServerHandler()
 {
@@ -142,35 +147,70 @@ Websocket<ServerHandler, std::future<json>>* ServerHandler::GetSocket()
     return &socket;
 }
 
-uint32_t ServerHandler::GetThreadCount()
+void ServerHandler::OnRead(const std::string& data)
 {
-    uint32_t numServerThreads = DEFAULT_SERVER_THREADS;
-
-    Configuration config;
-    std::filesystem::path configPath = std::filesystem::current_path() / "GDCommunityLauncher.ini";
-    if (std::filesystem::is_regular_file(configPath))
+    if (_threadPool)
     {
-        config.Load(configPath);
-        const Value* serverThreadsValue = config.GetValue("Game", "server_threads");
+        json response = json::parse(data);
+        uint32_t requestID = response.at("RequestId").get<uint32_t>();
 
-        if ((serverThreadsValue) && (serverThreadsValue->GetType() == VALUE_TYPE_INT))
+        std::function<void(json)> callback = _callbacks.at(requestID);
+        std::shared_ptr<std::promise<json>> promise = std::make_shared<std::promise<json>>(std::move(_promises[requestID]));
+
+        boost::asio::post(*_threadPool, [callback, response, promise]()
         {
-            int32_t configThreads = serverThreadsValue->ToInt();
-            if ((configThreads > 0) && (configThreads <= 16))
-                numServerThreads = configThreads;
+            try
+            {
+                callback(response);
+                promise->set_value(response);
+            }
+            catch (const std::exception& ex)
+            {
+                Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to handle server websocket message: %", ex.what());
+            }
+        });
+
+        _callbacks.erase(requestID);
+        _promises.erase(requestID);
+    }
+}
+
+void ServerHandler::OnShutdown()
+{
+    if (_threadPool)
+        _threadPool->join();
+}
+
+void ServerHandler::CreateThreadPool()
+{
+    if (!_threadPool)
+    {
+        uint32_t numServerThreads = DEFAULT_SERVER_THREADS;
+
+        Configuration config;
+        std::filesystem::path configPath = std::filesystem::current_path() / "GDCommunityLauncher.ini";
+        if (std::filesystem::is_regular_file(configPath))
+        {
+            config.Load(configPath);
+            const Value* serverThreadsValue = config.GetValue("Game", "server_threads");
+
+            if ((serverThreadsValue) && (serverThreadsValue->GetType() == VALUE_TYPE_INT))
+            {
+                int32_t configThreads = serverThreadsValue->ToInt();
+                if ((configThreads > 0) && (configThreads <= 16))
+                    numServerThreads = configThreads;
+            }
         }
 
         config.SetValue("Game", "server_threads", (int32_t)numServerThreads);
         config.Save(configPath);
+
+        _threadPool = std::make_unique<boost::asio::thread_pool>(numServerThreads);
     }
-    return numServerThreads;
 }
 
 void ServerHandler::OnInitializeEvent()
 {
-    // Connect the client at game start; we can't do this when the DLL is loaded due to networking code
-    ContextManager::Run();
-
     GetInstance().CreateThreadPool();
 
     uint32_t port = 443;
@@ -189,11 +229,11 @@ void ServerHandler::OnInitializeEvent()
         const Value* portValue = config.GetValue("Game", "port");
         if ((portValue) && (portValue->GetType() == VALUE_TYPE_INT))
             port = portValue->ToInt();
-
-        config.SetValue("Game", "hostname", host);
-        config.SetValue("Game", "port", (int32_t)port);
-        config.Save(configPath);
     }
+
+    config.SetValue("Game", "hostname", host);
+    config.SetValue("Game", "port", (int32_t)port);
+    config.Save(configPath);
 
     spServer->Connect(host, port, "/account/connect", spClient->GetAuthToken());
 }
@@ -201,5 +241,4 @@ void ServerHandler::OnInitializeEvent()
 void ServerHandler::OnPostShutdownEvent()
 {
     spServer->Shutdown();
-    ContextManager::Stop();
 }

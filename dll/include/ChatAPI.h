@@ -12,7 +12,6 @@ enum ChatType : uint8_t
     CHAT_TYPE_NORMAL = 0,
     CHAT_TYPE_SYSTEM = 1,
     CHAT_TYPE_GLOBAL = 2,
-    CHAT_TYPE_WHISPER = 3,
 };
 
 static constexpr uint32_t CHAT_CHANNEL_MAX = 255;

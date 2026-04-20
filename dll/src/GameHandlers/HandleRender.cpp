@@ -8,35 +8,34 @@
 
 void BuildLeagueInfoText(std::wstring& message)
 {
+    message += L"\n";
+
     const SeasonInfo* activeSeason = spClient->GetActiveSeason();
     if (spClient->IsOfflineMode())
     {
-        std::string versionText = GDCL_VERSION;
+        message += EngineAPI::UI::Localize("tagGDCLVersion", GDCL_VERSION_WIDE);
         message += L"\n";
-        message += L"GDCL v";
-        message += CharToWide(versionText);
     }
     else if (activeSeason)
     {
-        message += L"\n";
         message += CharToWide(activeSeason->_displayName);
+        message += L"\n";
     }
-    message += L"\n";
     message += CharToWide(spClient->GetUsername());
 
     if (spClient->IsOfflineMode())
     {
-        message += L" {^L}(Offline Mode)";
+        message += EngineAPI::UI::Localize("tagGDCLInfoOffline");
     }
     else if ((spServer->IsConnected()) && (activeSeason))
     {
         if (GameAPI::IsCloudStorageEnabled())
         {
-            message += L" {^Y}(Disable Cloud Saving)";
+            message += EngineAPI::UI::Localize("tagGDCLInfoCloudSave");
         }
         else if (EngineAPI::IsMultiplayer())
         {
-            message += L" {^Y}(Multiplayer)";
+            message += EngineAPI::UI::Localize("tagGDCLInfoMultiplayer");
         }
         else
         {
@@ -44,28 +43,23 @@ void BuildLeagueInfoText(std::wstring& message)
             uint32_t rank = spClient->GetRank();
             if ((points > 0) && (rank > 0))
             {
-                message += L" {^L}(Rank ";
-                message += std::to_wstring(rank);
-                message += L" ~ ";
+                message += EngineAPI::UI::Localize("tagGDCLInfoRankedPoints", rank, points);
             }
             else
             {
-                message += L" {^L}(";
+                message += EngineAPI::UI::Localize("tagGDCLInfoPoints", points);
             }
-            message += std::to_wstring(points);
-            message += L" points)";
         }
     }
     else
     {
-        message += L" {^R}(Disconnected)";
+        message += EngineAPI::UI::Localize("tagGDCLInfoDisconnected");
     }
 }
 
-
-void HandleRenderStyledText2D(void* _this, const EngineAPI::Rect& rect, const wchar_t* text, const std::string& style, float unk1, EngineAPI::GraphicsXAlign xAlign, EngineAPI::GraphicsYAlign yAlign, int layout)
+void HandleRenderStyledText2D(void* _this, EngineAPI::Rect rect, const EngineAPI::Color& color1, const EngineAPI::Color& color2, const wchar_t* text, void* font, int unk1, EngineAPI::GraphicsXAlign xAlign, EngineAPI::GraphicsYAlign yAlign, int fontStyleFlag, int fontLayout)
 {
-    typedef void (__thiscall* RenderTextStyled2DProto)(void*, const EngineAPI::Rect&, const wchar_t*, const std::string&, float, EngineAPI::GraphicsXAlign, EngineAPI::GraphicsYAlign, int);
+    typedef void (__thiscall* RenderTextStyled2DProto)(void*, EngineAPI::Rect, const EngineAPI::Color&, const EngineAPI::Color&, const wchar_t*, void*, int, EngineAPI::GraphicsXAlign, EngineAPI::GraphicsYAlign, int, int);
 
     RenderTextStyled2DProto callback = (RenderTextStyled2DProto)HookManager::GetOriginalFunction(ENGINE_DLL, EngineAPI::EAPI_NAME_RENDER_STYLED_TEXT_2D);
     if (callback)
@@ -79,10 +73,10 @@ void HandleRenderStyledText2D(void* _this, const EngineAPI::Rect& rect, const wc
         if ((rect._x >= 0.0f) && (rect._y >= 0.0f) && (rect._x <= 24.0f) && (rect._y <= 24.0f) && (rect._x == rect._y) && (spClient->IsPlayingSeason()))
         {
             if (textString.empty())
-                textString += L"Normal";
+                textString += EngineAPI::UI::Localize("tagRDifficultyTitle01");
             BuildLeagueInfoText(textString);
 
-            callback(_this, rect, textString.c_str(), style, unk1, xAlign, yAlign, layout);
+            callback(_this, rect, color1, color2, textString.c_str(), font, unk1, xAlign, yAlign, fontStyleFlag, fontLayout);
         }
         // Display the current level of scaling dungeons
         else if (textString == areaName)
@@ -92,17 +86,13 @@ void HandleRenderStyledText2D(void* _this, const EngineAPI::Rect& rect, const wc
             {
                 const auto& entry = database.GetEntryByZone(areaTag);
                 if (entry._active)
-                {
-                    textString += L"{^O} (Lv";
-                    textString += std::to_wstring(entry._level);
-                    textString += L")";
-                }
+                    textString += EngineAPI::UI::Localize("tagGDCLBoundlessDungeonLevel", entry._level);
             }
-            callback(_this, rect, textString.c_str(), style, unk1, xAlign, yAlign, layout);
+            callback(_this, rect, color1, color2, textString.c_str(), font, unk1, xAlign, yAlign, fontStyleFlag, fontLayout);
         }
         else
         {
-            callback(_this, rect, text, style, unk1, xAlign, yAlign, layout);
+            callback(_this, rect, color1, color2, text, font, unk1, xAlign, yAlign, fontStyleFlag, fontLayout);
         }
     }
 }

@@ -12,15 +12,18 @@ constexpr char EAPI_NAME_GET_LOCALIZATION_MANAGER[] = "?Instance@LocalizationMan
 constexpr char EAPI_NAME_LOAD_LOCALIZATION_MANAGER[] = "?Load@LocalizationManager@GAME@@UEAAXPEBD@Z";
 constexpr char EAPI_NAME_LOCALIZE[] = "?Localize@LocalizationManager@GAME@@QEAAPEBGPEBDZZ";
 constexpr char EAPI_NAME_LOAD_TAGS[] = "?LoadTags@LocalizationManager@GAME@@AEAAX_N@Z";
+constexpr char EAPI_NAME_ADD_TAG[] = "?AddTagToMap@LocalizationManager@GAME@@MEAAXPEBD0_N@Z";
 #else
 constexpr char EAPI_NAME_GET_LOCALIZATION_MANAGER[] = "?Instance@LocalizationManager@GAME@@SAAAV12@XZ";
 constexpr char EAPI_NAME_LOAD_LOCALIZATION_MANAGER[] = "?Load@LocalizationManager@GAME@@UAEXPBD@Z";
 constexpr char EAPI_NAME_LOCALIZE[] = "?Localize@LocalizationManager@GAME@@QAAPBGPBDZZ";
 constexpr char EAPI_NAME_LOAD_TAGS[] = "?LoadTags@LocalizationManager@GAME@@AAEX_N@Z";
+constexpr char EAPI_NAME_ADD_TAG[] = "?AddTagToMap@LocalizationManager@GAME@@MAEXPBD0_N@Z";
 #endif
 
 void* GetLocalizationManager();
 void LoadLocalizationTags(bool keepExisting);
+void AddLocalizationTag(const char* tagLine, const char* filename, bool keepExisting);
 
 template <typename... Ts>
 const wchar_t* Localize(const char* tag, Ts... args)

@@ -3,10 +3,9 @@
 #include "GameAPI.h"
 #include "ChatAPI.h"
 #include "ItemReplicaInfo.h"
-#include "StringConvert.h"
 #include "JSON.h"
 
-std::string HandleWriteSendMessage(uint32_t requestID, uint8_t& channel, std::wstring& message, std::wstring& playerName, void*& item)
+std::string HandleWriteSendMessage(uint8_t channel, std::wstring message, std::wstring playerName, void* item)
 {
     json itemJSON;
     if (item)
@@ -15,7 +14,6 @@ std::string HandleWriteSendMessage(uint32_t requestID, uint8_t& channel, std::ws
     json request = 
     {
         { "RequestName", "Send" },
-        { "RequestId", requestID },
         { "Channel", channel },
         { "DirectTo", nullptr },
         { "Message", WideToRaw(message) },
@@ -23,41 +21,56 @@ std::string HandleWriteSendMessage(uint32_t requestID, uint8_t& channel, std::ws
     };
 
     if (!playerName.empty())
+    {
         request["DirectTo"] = WideToChar(playerName);
-
+        request["Channel"] = nullptr;
+    }
     return request.dump();
 }
 
-void HandleReadSendMessage(const json& response, uint8_t channel, std::wstring message, std::wstring playerName, void* item)
+void HandleReadSendMessage(const json& response)
 {
-    // TODO: Handle edge cases like the recipient being offline, etc.
     uint8_t type = ChatAPI::CHAT_TYPE_GLOBAL;
-    playerName = CharToWide(response.at("From").get<std::string>());
 
-    if (ChatAPI::IsPlayerMuted(playerName))
+    std::wstring playerName;
+    if (response.at("From").is_string())
+        playerName = CharToWide(response.at("From").get<std::string>());
+
+    if ((playerName.empty()) || (ChatAPI::IsPlayerMuted(playerName)))
         return;
 
-    if (!response.at("DirectUsername").is_null())
+    if (response.at("ErrorMessage").is_string())
     {
-        playerName = L"[From " + playerName + L"]";
-        type = ChatAPI::CHAT_TYPE_WHISPER;
+        std::wstring name = EngineAPI::UI::Localize("tagGDCLChatDefaultName");
+        std::wstring message = CharToWide(response.at("ErrorMessage").get<std::string>());
+        GameAPI::AddChatMessage(name, message, ChatAPI::CHAT_TYPE_SYSTEM);
+        return;
+    }
+    else if (response.at("DirectUsername").is_string())
+    {
+        playerName = EngineAPI::UI::Localize("tagGDCLChatDirectFrom", playerName);
+        type = ChatAPI::CHAT_TYPE_NORMAL;
+    }
+    else if (response.at("Channel").is_null())
+    {
+        playerName = EngineAPI::UI::Localize("tagGDCLChatDirectTo", playerName);
+        type = ChatAPI::CHAT_TYPE_NORMAL;
     }
 
-    item = nullptr;
-    const json& itemJSON = response.at("Item");
-    if (!itemJSON.is_null())
+    void* item = nullptr;
+    if (response.at("Item").is_object())
     {
-        ItemReplicaInfo itemInfo = itemJSON;
+        ItemReplicaInfo itemInfo = response.at("Item");
         itemInfo._itemID = EngineAPI::CreateObjectID();
         item = GameAPI::CreateItem(itemInfo);
     }
 
-    const json& messageJSON = response.at("Message");
-    if (messageJSON.is_array())
+    const json& message = response.at("Message");
+    if (message.is_array())
     {
-        for (const json& line : messageJSON)
+        for (const json& line : message)
         {
-            message = RawToWide(line.get<std::string>());
+            std::wstring message = RawToWide(line.get<std::string>());
             GameAPI::AddChatMessage(playerName, message, type, item);
         }
     }

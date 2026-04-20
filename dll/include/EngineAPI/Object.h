@@ -27,6 +27,9 @@ constexpr char EAPI_NAME_IS_OBJECT_DELETED[] = "?IsObjectOnDeletedList@ObjectMan
 
 void* GetObjectManager();
 void GetObjectList(std::vector<void*>& objectList);
+void CacheObjectID(void* object, uint32_t objectID);
+void ClearCachedObjectID(uint32_t objectID);
+void ClearObjectCache();
 void* FindObjectByID(uint32_t objectID);
 uint32_t GetObjectID(void* object);
 std::string GetObjectName(void* object);

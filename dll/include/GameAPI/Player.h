@@ -29,6 +29,8 @@ constexpr char GAPI_NAME_SET_GOD[] = "?SetGod@Character@GAME@@QEAAX_N@Z";
 constexpr char GAPI_NAME_SET_SUPER_DAMAGE[] = "?SetSuperDamage@Player@GAME@@QEAAX_N@Z";
 constexpr char GAPI_NAME_ADD_MONEY[] = "?AddMoney@Character@GAME@@QEAAXI@Z";
 constexpr char GAPI_NAME_SUBTRACT_MONEY[] = "?SubtractMoney@Character@GAME@@QEAA?BII@Z";
+constexpr char GAPI_NAME_INCREMENT_CHAR_LEVEL[] = "?IncrementCharLevel@Character@GAME@@QEAAXXZ";
+constexpr char GAPI_NAME_IS_MAX_LEVEL[] = "?IsMaxLevel@Character@GAME@@QEBA_NXZ";
 #else
 constexpr char GAPI_NAME_GET_MAIN_PLAYER[] = "?GetMainPlayer@GameEngine@GAME@@QBEPAVPlayer@2@XZ";
 constexpr char GAPI_NAME_GET_CONTROLLER_ID[] = "?GetControllerId@Character@GAME@@QBE?BIXZ";
@@ -51,6 +53,8 @@ constexpr char GAPI_NAME_SET_GOD[] = "?SetGod@Character@GAME@@QAEX_N@";
 constexpr char GAPI_NAME_SET_SUPER_DAMAGE[] = "?SetSuperDamage@Player@GAME@@QAEX_N@Z";
 constexpr char GAPI_NAME_ADD_MONEY[] = "?AddMoney@Character@GAME@@QAEXI@Z";
 constexpr char GAPI_NAME_SUBTRACT_MONEY[] = "?SubtractMoney@Character@GAME@@QAE?BII@Z";
+constexpr char GAPI_NAME_INCREMENT_CHAR_LEVEL[] = "?IncrementCharLevel@Character@GAME@@QAEXXZ";
+constexpr char GAPI_NAME_IS_MAX_LEVEL[] = "?IsMaxLevel@Character@GAME@@QBE_NXZ";
 #endif
 
 void* GetMainPlayer();
@@ -68,6 +72,8 @@ void GiveItemToPlayer(void* player, void* item, bool unk1, bool unk2);
 void LoadQuestStatesFromFile(void* player, const char* filename);
 void SaveQuestStatesToFile(void* player, const char* filename);
 void AddOrSubtractMoney(void* player, int32_t amount);
+void IncrementPlayerLevel(void* player);
+bool IsMaxLevel(void* player);
 
 }
 
