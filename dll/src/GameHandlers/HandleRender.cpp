@@ -1,4 +1,5 @@
 #include <unordered_map>
+#include <regex>
 #include "GameHandler.h"
 #include "ServerHandler.h"
 #include "DeathRecap.h"
@@ -57,43 +58,52 @@ void BuildLeagueInfoText(std::wstring& message)
     }
 }
 
-void HandleRenderStyledText2D(void* _this, EngineAPI::Rect rect, const EngineAPI::Color& color1, const EngineAPI::Color& color2, const wchar_t* text, void* font, int unk1, EngineAPI::GraphicsXAlign xAlign, EngineAPI::GraphicsYAlign yAlign, int fontStyleFlag, int fontLayout)
+void HandleRenderStyledText2D(void* _this, EngineAPI::Rect rect, const EngineAPI::Color& color1, const EngineAPI::Color& color2, const wchar_t* text, void* font, int fontSize, EngineAPI::GraphicsXAlign xAlign, EngineAPI::GraphicsYAlign yAlign, int fontStyleFlag, int fontLayout)
 {
     typedef void (__thiscall* RenderTextStyled2DProto)(void*, EngineAPI::Rect, const EngineAPI::Color&, const EngineAPI::Color&, const wchar_t*, void*, int, EngineAPI::GraphicsXAlign, EngineAPI::GraphicsYAlign, int, int);
 
     RenderTextStyled2DProto callback = (RenderTextStyled2DProto)HookManager::GetOriginalFunction(ENGINE_DLL, EngineAPI::EAPI_NAME_RENDER_STYLED_TEXT_2D);
     if (callback)
     {
-        std::wstring textString(text);
-        std::string areaTag = EngineAPI::GetRegionNameTag();
-        std::wstring areaName = EngineAPI::UI::Localize(areaTag.c_str());
-
-        // If the player is in-game on the season mod, append the league info to the difficulty text in the upper left corner
-        // We modify the text instead of creating new text because that way it preserves the Z-order and doesn't conflict with the loading screen/pause overlay/etc.
-        if ((rect._x >= 0.0f) && (rect._y >= 0.0f) && (rect._x <= 24.0f) && (rect._y <= 24.0f) && (rect._x == rect._y) && (spClient->IsPlayingSeason()))
+        if (spClient->IsPlayingSeasonOrOffline())
         {
-            if (textString.empty())
-                textString += EngineAPI::UI::Localize("tagRDifficultyTitle01");
-            BuildLeagueInfoText(textString);
+            std::wstring textString(text);
+            std::string areaTag = EngineAPI::GetRegionNameTag();
+            std::wstring areaName = EngineAPI::UI::Localize(areaTag.c_str());
 
-            callback(_this, rect, color1, color2, textString.c_str(), font, unk1, xAlign, yAlign, fontStyleFlag, fontLayout);
-        }
-        // Display the current level of scaling dungeons
-        else if (textString == areaName)
-        {
-            DungeonDatabase& database = DungeonDatabase::GetInstance();
-            if (database.IsDungeonZone(areaTag))
+            // Move the time string so it's not in the way of the info text
+            static std::wregex timeRegex(L"(\\d+):(\\d{2}):(\\d{2}) (AM|PM)");
+            if (std::regex_match(textString, timeRegex))
             {
-                const auto& entry = database.GetEntryByZone(areaTag);
-                if (entry._active)
-                    textString += EngineAPI::UI::Localize("tagGDCLBoundlessDungeonLevel", entry._level);
+                rect._y = (fontSize * 3.333f);
+                rect._x = 1.0f;
+                return callback(_this, rect, color1, color2, textString.c_str(), font, fontSize, xAlign, yAlign, fontStyleFlag, fontLayout);
             }
-            callback(_this, rect, color1, color2, textString.c_str(), font, unk1, xAlign, yAlign, fontStyleFlag, fontLayout);
+            // If the player is in-game on the season mod, append the league info to the difficulty text in the upper left corner
+            // We modify the text instead of creating new text because that way it preserves the Z-order and doesn't conflict with the loading screen/pause overlay/etc.
+            else if ((rect._x >= 0.0f) && (rect._y >= 0.0f) && (rect._x <= 24.0f) && (rect._y <= 24.0f) && (rect._x == rect._y))
+            {
+                if (textString.empty())
+                    textString += EngineAPI::UI::Localize("tagRDifficultyTitle01");
+                BuildLeagueInfoText(textString);
+
+                return callback(_this, rect, color1, color2, textString.c_str(), font, fontSize, xAlign, yAlign, fontStyleFlag, fontLayout);
+            }
+            // Display the current level of scaling dungeons
+            else if (textString == areaName)
+            {
+                DungeonDatabase& database = DungeonDatabase::GetInstance();
+                if (database.IsDungeonZone(areaTag))
+                {
+                    const auto& entry = database.GetEntryByZone(areaTag);
+                    if (entry._active)
+                        textString += EngineAPI::UI::Localize("tagGDCLBoundlessDungeonLevel", entry._level);
+                }
+                return callback(_this, rect, color1, color2, textString.c_str(), font, fontSize, xAlign, yAlign, fontStyleFlag, fontLayout);
+            }
         }
-        else
-        {
-            callback(_this, rect, color1, color2, text, font, unk1, xAlign, yAlign, fontStyleFlag, fontLayout);
-        }
+
+        callback(_this, rect, color1, color2, text, font, fontSize, xAlign, yAlign, fontStyleFlag, fontLayout);
     }
 }
 

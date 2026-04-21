@@ -20,6 +20,8 @@ constexpr char EAPI_NAME_RENDER_STYLED_TEXT_2D[] = "?RenderText2d@GraphicsCanvas
 constexpr char EAPI_NAME_GET_TEXTURE_WIDTH[] = "?GetWidth@GraphicsTexture@GAME@@QEBAHXZ";
 constexpr char EAPI_NAME_GET_TEXTURE_HEIGHT[] = "?GetHeight@GraphicsTexture@GAME@@QEBAHXZ";
 constexpr char EAPI_NAME_GET_RENDER_TEXTURE[] = "?GetTexture@GraphicsTexture@GAME@@QEBAPEBVRenderTexture@2@XZ";
+constexpr char EAPI_NAME_GET_CANVAS_WIDTH[] = "?GetWidth@GraphicsCanvas@GAME@@QEBAHXZ";
+constexpr char EAPI_NAME_GET_CANVAS_HEIGHT[] = "?GetHeight@GraphicsCanvas@GAME@@QEBAHXZ";
 #else
 constexpr char EAPI_NAME_GET_GRAPHICS_ENGINE[] = "?GetGraphicsEngine@Engine@GAME@@QBEPAVGraphicsEngine@2@XZ";
 constexpr char EAPI_NAME_GET_CANVAS[] = "?GetCanvas@GraphicsEngine@GAME@@QAEAAVGraphicsCanvas@2@XZ";
@@ -32,6 +34,8 @@ constexpr char EAPI_NAME_RENDER_STYLED_TEXT_2D[] = "?RenderText2d@GraphicsCanvas
 constexpr char EAPI_NAME_GET_TEXTURE_WIDTH[] = "?GetWidth@GraphicsTexture@GAME@@QBEHXZ";
 constexpr char EAPI_NAME_GET_TEXTURE_HEIGHT[] = "?GetHeight@GraphicsTexture@GAME@@QBEHXZ";
 constexpr char EAPI_NAME_GET_RENDER_TEXTURE[] = "?GetTexture@GraphicsTexture@GAME@@QBEPBVRenderTexture@2@XZ";
+constexpr char EAPI_NAME_GET_CANVAS_WIDTH[] = "?GetWidth@GraphicsCanvas@GAME@@QBEHXZ";
+constexpr char EAPI_NAME_GET_CANVAS_HEIGHT[] = "?GetHeight@GraphicsCanvas@GAME@@QBEHXZ";
 #endif
 
 enum GraphicsXAlign
@@ -50,6 +54,8 @@ enum GraphicsYAlign
 
 void* GetGraphicsEngine();
 void* GetCanvas();
+int64_t GetCanvasWidth();
+int64_t GetCanvasHeight();
 void* LoadTexture(const std::string& textureName);
 void UnloadTexture(void* texture);
 void RenderRect(const Rect& r1, const Rect& r2, void* renderTexture, const Color& color);

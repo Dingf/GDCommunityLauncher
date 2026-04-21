@@ -38,6 +38,40 @@ void* GetCanvas()
     return callback(graphicsEngine);
 }
 
+int64_t GetCanvasWidth()
+{
+    typedef int64_t (__thiscall* GetCanvasWidthProto)(void*);
+
+    HMODULE engineDLL = GetModuleHandle(TEXT(ENGINE_DLL));
+    if (!engineDLL)
+        return 0;
+
+    GetCanvasWidthProto callback = (GetCanvasWidthProto)GetProcAddress(engineDLL, EAPI_NAME_GET_CANVAS_WIDTH);
+    void* canvas = GetCanvas();
+
+    if ((!callback) || (!canvas))
+        return 0;
+
+    return callback(canvas);
+}
+
+int64_t GetCanvasHeight()
+{
+    typedef int64_t (__thiscall* GetCanvasHeightProto)(void*);
+
+    HMODULE engineDLL = GetModuleHandle(TEXT(ENGINE_DLL));
+    if (!engineDLL)
+        return 0;
+
+    GetCanvasHeightProto callback = (GetCanvasHeightProto)GetProcAddress(engineDLL, EAPI_NAME_GET_CANVAS_HEIGHT);
+    void* canvas = GetCanvas();
+
+    if ((!callback) || (!canvas))
+        return 0;
+
+    return callback(canvas);
+}
+
 void* LoadTexture(const std::string& textureName)
 {
     typedef void* (__thiscall* GetCanvasProto)(void*, const std::string&);

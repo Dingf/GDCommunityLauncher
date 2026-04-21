@@ -169,6 +169,7 @@ void ServerCache::SetCharacterData(const std::wstring& characterName, uint8_t* d
 {
     std::lock_guard<std::mutex> lock(_characterData[characterName]._mutex);
     _characterData[characterName]._character = std::make_unique<CacheBuffer>(data, size);
+    _dirtyCharacters.insert(characterName);
 }
 
 void ServerCache::SetQuestData(const std::wstring& characterName, GameAPI::Difficulty difficulty, uint8_t* data, size_t size)

@@ -13,6 +13,7 @@ int32_t HandleCreateNewConnection(void* _this, void* unk1, void* unk2, void* unk
 void HandleAddNetworkServer(void* _this, void* server, uint32_t unk1);
 void HandleGameInitialize(void* _this);
 void HandleGameShutdown(void* _this);
+void HandleGameUpdate(void* _this, int32_t unk1);
 void HandleExitPlayingMode(void* _this);
 void HandleCaravanInteract(void* _this, uint32_t caravanID, bool unk2, bool unk3);
 void HandleSaveNewFormatData(void* _this, void* writer);
@@ -41,7 +42,7 @@ const char* HandleGetVersion(void* _this);
 uint32_t HandleGetObjectID(void* _this);
 void HandleDestroyObjectEx(void* _this, void* object, const char* unk1, int32_t unk2);
 void HandleRender(void* _this);
-void HandleRenderStyledText2D(void* _this, EngineAPI::Rect rect, const EngineAPI::Color& color1, const EngineAPI::Color& color2, const wchar_t* text, void* font, int unk1, EngineAPI::GraphicsXAlign xAlign, EngineAPI::GraphicsYAlign yAlign, int fontStyleFlag, int fontLayout);
+void HandleRenderStyledText2D(void* _this, EngineAPI::Rect rect, const EngineAPI::Color& color1, const EngineAPI::Color& color2, const wchar_t* text, void* font, int fontSize, EngineAPI::GraphicsXAlign xAlign, EngineAPI::GraphicsYAlign yAlign, int fontStyleFlag, int fontLayout);
 void HandleLuaInitialize(void* _this, bool unk1, bool unk2);
 void HandleLuaShutdown(void* _this);
 bool HandleLoadWorld(void* _this, const char* map, bool unk1, bool modded);
@@ -69,6 +70,7 @@ const std::vector<HookManager::Hook> _onlineHooks =
     { ENGINE_DLL, EngineAPI::EAPI_NAME_ADD_NETWORK_SERVER,       &HandleAddNetworkServer,     false },
     { GAME_DLL,   GameAPI::GAPI_NAME_GAME_ENGINE_INITIALIZE,     &HandleGameInitialize,       false },
     { GAME_DLL,   GameAPI::GAPI_NAME_GAME_ENGINE_SHUTDOWN,       &HandleGameShutdown,         false },
+    { GAME_DLL,   GameAPI::GAPI_NAME_GAME_ENGINE_UPDATE,         &HandleGameUpdate,           false },
     { GAME_DLL,   GameAPI::GAPI_NAME_EXIT_PLAYING_MODE,          &HandleExitPlayingMode,      false },
     { GAME_DLL,   GameAPI::GAPI_NAME_ON_CARAVAN_INTERACT,        &HandleCaravanInteract,      false },
     { GAME_DLL,   GameAPI::GAPI_NAME_SAVE_NEW_FORMAT_DATA,       &HandleSaveNewFormatData,    false },

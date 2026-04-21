@@ -20,13 +20,12 @@ ServerCoordinator::ServerCoordinator()
 {
     if (!spClient->IsOfflineMode())
     {
-        EventManager::Subscribe(GDCL_EVENT_PRE_SHUTDOWN,       OnPreShutdownEvent);
+        EventManager::Subscribe(GDCL_EVENT_UPDATE,             OnUpdateEvent);
         EventManager::Subscribe(GDCL_EVENT_DIRECT_FILE_READ,   OnDirectReadEvent);
         EventManager::Subscribe(GDCL_EVENT_DIRECT_FILE_WRITE,  OnDirectWriteEvent);
         EventManager::Subscribe(GDCL_EVENT_ADD_SAVE_JOB,       OnAddSaveJobEvent);
         EventManager::Subscribe(GDCL_EVENT_WORLD_PRE_LOAD,     OnWorldPreLoadEvent);
         EventManager::Subscribe(GDCL_EVENT_SET_SEASON_PLAYER,  OnSetSeasonPlayerEvent);
-        EventManager::Subscribe(GDCL_EVENT_EXIT_PLAYING_MODE,  OnExitPlayingModeEvent);
         EventManager::Subscribe(GDCL_EVENT_CARAVAN_INTERACT,   OnCaravanInteractEvent);
         EventManager::Subscribe(GDCL_EVENT_TRANSFER_PRE_SAVE,  OnTransferPreSaveEvent);
         EventManager::Subscribe(GDCL_EVENT_DELETE_FILE,        OnDeleteFileEvent);
@@ -40,13 +39,20 @@ ServerCoordinator* ServerCoordinator::GetInstance()
     return &instance;
 }
 
-void ServerCoordinator::OnPreShutdownEvent()
+void ServerCoordinator::OnUpdateEvent()
 {
-    std::wstring characterName = spCache->GetLastMainPlayerName();
-    if (const FileWriter* cacheData = spCache->GetCharacterData(characterName))
+    const auto& dirtyCharacters = spCache->GetDirtyCharacters();
+    if (!dirtyCharacters.empty())
     {
-        uint32_t participantID = spCache->GetParticipantID(characterName);
-        spServer->Send("SaveCharacterFile", participantID, characterName, BinaryToBase64(cacheData->GetBuffer(), cacheData->GetBufferSize())).wait();
+        for (const std::wstring& characterName : dirtyCharacters)
+        {
+            if (const FileWriter* buffer = spCache->GetCharacterData(characterName))
+            {
+                uint32_t participantID = spCache->GetParticipantID(characterName);
+                spServer->Send("SaveCharacterFile", participantID, characterName, BinaryToBase64(buffer->GetBuffer(), buffer->GetBufferSize()));
+            }
+        }
+        spCache->ClearDirtyCharacters();
     }
 }
 
@@ -257,12 +263,9 @@ static void SaveCharacterData(const std::filesystem::path& filePath, uint8_t* da
         uint32_t participantID = spCache->GetParticipantID(character._headerBlock._charIsHardcore);
         spCache->SetCharacterData(characterName, data, size);
 
-        // Upload the data to the server if it's a new character
+        // Set the participant ID if it's a new character
         if (!std::filesystem::exists(filePath))
-        {
             spCache->SetCharacterID(characterName, participantID, 0);
-            spServer->Send("SaveCharacterFile", participantID, characterName, BinaryToBase64(data, size));
-        }
     }
 }
 
@@ -555,17 +558,6 @@ void ServerCoordinator::OnSetSeasonPlayerEvent(void* player)
 
     if (uint32_t participantID = spCache->GetParticipantID(GameAPI::IsPlayerHardcore(player)))
         spServer->Send("GetParticipantPoints", participantID);
-}
-
-void ServerCoordinator::OnExitPlayingModeEvent()
-{
-    std::wstring characterName = spCache->GetLastMainPlayerName();
-    if (const FileWriter* cacheData = spCache->GetCharacterData(characterName))
-    {
-        uint32_t participantID = spCache->GetParticipantID(characterName);
-        spServer->Send("SaveCharacterFile", participantID, characterName, BinaryToBase64(cacheData->GetBuffer(), cacheData->GetBufferSize()));
-        spCache->SetMainPlayerName({});
-    }
 }
 
 void ServerCoordinator::OnCaravanInteractEvent(uint32_t caravanID)

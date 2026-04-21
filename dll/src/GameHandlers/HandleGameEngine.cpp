@@ -28,3 +28,15 @@ void HandleGameShutdown(void* _this)
         ContextManager::Stop();
     }
 }
+
+void HandleGameUpdate(void* _this, int32_t unk1)
+{
+    typedef void (__thiscall* GameUpdateProto)(void*, int32_t);
+
+    GameUpdateProto callback = (GameUpdateProto)HookManager::GetOriginalFunction(GAME_DLL, GameAPI::GAPI_NAME_GAME_ENGINE_UPDATE);
+    if (callback)
+    {
+        EventManager::Publish(GDCL_EVENT_UPDATE);
+        callback(_this, unk1);
+    }
+}

@@ -6,6 +6,7 @@
 #include <mutex>
 #include <vector>
 #include <unordered_map>
+#include <unordered_set>
 #include "GameAPI/Difficulty.h"
 #include "FileWriter.h"
 
@@ -60,6 +61,9 @@ class ServerCache
         void SetTransmutesData(bool hardcore, uint8_t* data, size_t size);
         void SetTagsData(bool hardcore, uint8_t* data, size_t size);
 
+        const std::unordered_set<std::wstring>& GetDirtyCharacters() const { return _dirtyCharacters; }
+        void ClearDirtyCharacters() { _dirtyCharacters.clear(); }
+
         void Clear();
 
     private:
@@ -104,6 +108,7 @@ class ServerCache
 
         int32_t _stashCapacity;
         std::wstring _lastPlayerName;
+        std::unordered_set<std::wstring> _dirtyCharacters;
         std::unordered_map<bool, ParticipantData> _participantData;
         std::unordered_map<std::wstring, CharacterData> _characterData;
 
