@@ -22,8 +22,13 @@ bool CheckLauncherUpdates()
         {
             case 200:
             {
-                std::string version = response.GetBody();
-                spClient->SetHasUpdate(version != GDCL_VERSION);
+                json body = json::parse(response.GetBody());
+                std::string version = body.at("version").get<std::string>();
+                if (version != GDCL_VERSION)
+                {
+                    std::string downloadURL = body.at("downloadUrl").get<std::string>();
+                    spClient->SetLauncherURL(downloadURL);
+                }
                 return true;
             }
             default:

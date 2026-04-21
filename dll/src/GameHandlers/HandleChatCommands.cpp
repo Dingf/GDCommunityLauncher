@@ -190,7 +190,7 @@ bool HandleChatChallengesCommand(std::wstring& name, std::wstring& message, uint
         return false;
     }
 
-
+    name = EngineAPI::UI::Localize("tagGDCLChatDefaultName");
     if (channel == 0)
     {
         std::wstring overview = EngineAPI::UI::Localize("tagGDCLChatChallenges01", CharToWide(spClient->GetUsername()).c_str());
@@ -700,12 +700,15 @@ void HandleSendChatMessage(void* _this, const std::wstring& name, const std::wst
         {
             ChatAPI::SetChatPrefix({});
 
+            void* item = nullptr;
             // If an item is linked, load the saved chat window text from before the window was closed
             if (itemID != 0)
+            {
                 realMessage = ChatAPI::GetSavedText();
+                item = EngineAPI::FindObjectByID(itemID);
+            }
 
             // If handling an interrupting chat command, return so we don't print the message
-            void* item = EngineAPI::FindObjectByID(itemID);
             if (!ProcessChatCommand(realName, realMessage, type, item))
                 return;
         }

@@ -149,7 +149,7 @@ bool ExtractZIPUpdate()
 HANDLE GameLauncher::LaunchProcess(const std::filesystem::path& exePath, const std::filesystem::path& dllPath, LPWSTR cmdArgs)
 {
     // If we need to update the launcher, unload the DLL and then overwrite it with the copy from the .zip file
-    if (spClient->HasUpdate() && !ExtractZIPUpdate())
+    if (!spClient->GetLauncherURL().empty() && !ExtractZIPUpdate())
     {
         Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to update GDCommunityLauncher.dll");
         return NULL;

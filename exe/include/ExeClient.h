@@ -12,13 +12,13 @@ class ExeClient : public Client
         static ExeClient* GetInstance();
 
         bool HasSeasons() const { return !_seasons.empty(); }
-        bool HasUpdate() const { return _hasUpdate; }
 
         const std::string& GetRole() const { return _role; }
 
+        const std::string& GetLauncherURL() const { return _launcherURL; }
         const std::unordered_map<std::wstring, std::string>& GetDownloadList() const { return _downloadList; }
 
-        void SetHasUpdate(bool hasUpdate) { _hasUpdate = hasUpdate; }
+        void SetLauncherURL(const std::string& launcherURL) { _launcherURL = launcherURL; }
         void SetRole(const std::string& role) { _role = role; }
         void SetUsername(const std::string& username) { _username = username; }
         void SetPassword(const std::string& password) { _password = password; }
@@ -38,12 +38,11 @@ class ExeClient : public Client
         ExeClient(ExeClient&) = delete;
         void operator=(const ExeClient&) = delete;
 
-        bool        _hasUpdate;
         std::string _role;
         std::string _filename;
         std::string _checksum;
         std::string _version;
-        std::string _downloadURL;
+        std::string _launcherURL;
         std::unordered_map<std::wstring, std::string> _downloadList;
         std::vector<SeasonInfo> _seasons;
 };

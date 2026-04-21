@@ -55,7 +55,7 @@ void HandleReadMutePlayer(const json& response)
     if (!arguments.is_null())
     {
         std::wstring playerName = CharToWide(arguments.at("Username").get<std::string>());
-        message = EngineAPI::UI::Localize("tagGDCLChatMute01", playerName);
+        message = EngineAPI::UI::Localize("tagGDCLChatMute01", playerName.c_str());
         ChatAPI::MutePlayer(playerName);
     }
     else
@@ -76,7 +76,7 @@ void HandleReadUnmutePlayer(const json& response)
     if (!arguments.is_null())
     {
         std::wstring playerName = CharToWide(arguments.at("Username").get<std::string>());
-        message = EngineAPI::UI::Localize("tagGDCLChatUnmute01", playerName);
+        message = EngineAPI::UI::Localize("tagGDCLChatUnmute01", playerName.c_str());
         ChatAPI::UnmutePlayer(playerName);
     }
     else

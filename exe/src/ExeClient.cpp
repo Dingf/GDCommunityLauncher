@@ -86,6 +86,8 @@ bool WriteSeasonsToPipe(void* pipe, const std::vector<SeasonInfo>& seasons)
 
 bool ExeClient::WriteDataToPipe(void* pipe) const
 {
+    bool hasUpdate = !_launcherURL.empty();
+
     if (!WriteStringToPipe(pipe, _username) ||
         !WriteStringToPipe(pipe, _password) ||
         !WriteStringToPipe(pipe, _authToken) ||
@@ -94,7 +96,7 @@ bool ExeClient::WriteDataToPipe(void* pipe) const
         !WriteStringToPipe(pipe, _host) ||
         !WriteStringToPipe(pipe, _chatURL) ||
         !WriteInt32ToPipe(pipe, _branch) ||
-        !WriteByteToPipe(pipe, (uint8_t)_hasUpdate) ||
+        !WriteByteToPipe(pipe, (uint8_t)hasUpdate) ||
         !WriteSeasonsToPipe(pipe, _seasons))
     {
         Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to write client data to the stdin pipe.");

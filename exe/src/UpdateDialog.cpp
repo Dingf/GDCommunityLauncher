@@ -62,6 +62,14 @@ bool GetDownloadList(std::unordered_map<std::wstring, std::string>& downloadList
                     if ((!std::filesystem::is_regular_file(filenamePath)) || (std::filesystem::file_size(filenamePath) != fileSize))
                         downloadList[filenamePath.wstring()] = downloadURL;
                 }
+
+                // Download the launcher as well if the version did not match previously
+                const std::string& launcherURL = spClient->GetLauncherURL();
+                if (!launcherURL.empty())
+                {
+                    std::filesystem::path filenamePath = std::filesystem::current_path() / "GDCommunityLauncher.zip";
+                    downloadList[filenamePath.wstring()] = launcherURL;
+                }
                 return true;
             }
             default:
@@ -83,21 +91,20 @@ bool DownloadFile(const std::filesystem::path& filenamePath, const std::string& 
         std::string filename = filenamePath.filename().string();
         boost::replace_all(filename, " ", "%20");               // Replace spaces with '%20' for web URLs
 
-        size_t index = downloadURL.find(filename);
+        size_t index = downloadURL.find(".com/");
         if (index == std::string::npos)
         {
             throw std::runtime_error("Could not parse download URL");
             return false;
         }
 
-        std::string host = downloadURL.substr(0, index - 1);
-        std::string target = downloadURL.substr(index - 1);
+        std::string host = downloadURL.substr(0, index + 4);
+        std::string target = downloadURL.substr(index + 4);
 
         if (host.starts_with("https://"))    // Trim https:// if it's in the hostname
             host = host.substr(8);
 
         HTTPRequest request(HTTP_METHOD_GET, target);
-
         HTTPResponse response = request.Send(host, "443");
         switch (response.GetStatus())
         {
@@ -159,7 +166,7 @@ bool VerifyBaseGameFiles(std::string& expectedVersion)
         });
     }
 
-    HTTPRequest request(HTTP_METHOD_GET, "/File/base-game/file-sizes?branch=" + spClient->GetBranchName());
+    HTTPRequest request(HTTP_METHOD_POST, "/File/base-game/file-sizes?branch=" + spClient->GetBranchName());
     request.AddHeader("Authorization", "Bearer " + spClient->GetAuthToken());
     request.SetBody(body);
 
