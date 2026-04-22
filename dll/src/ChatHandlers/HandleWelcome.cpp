@@ -24,5 +24,11 @@ void HandleReadWelcome(const json& response)
             std::wstring message = CharToWide(line.get<std::string>());
             GameAPI::AddChatMessage(name, message, ChatAPI::CHAT_TYPE_SYSTEM);
         }
+
+        if (!ChatAPI::IsServerMessagesEnabled())
+            GameAPI::AddChatMessage(name, EngineAPI::UI::Localize("tagGDCLChatAnnouncementsDisabled"), ChatAPI::CHAT_TYPE_SYSTEM);
+
+        if (ChatAPI::GetChatChannel() == 0)
+            GameAPI::AddChatMessage(name, EngineAPI::UI::Localize("tagGDCLChatGlobalDisabled"), ChatAPI::CHAT_TYPE_GLOBAL);
     }
 }

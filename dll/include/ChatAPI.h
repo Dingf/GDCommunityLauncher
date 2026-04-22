@@ -50,6 +50,9 @@ bool MutePlayer(std::wstring playerName);
 bool UnmutePlayer(std::wstring playerName);
 void ClearMutedList();
 
+void SetServerMessagesEnabled(bool enabled);
+bool IsServerMessagesEnabled();
+
 void ToggleWindowDisplay();
 
 bool Initialize();

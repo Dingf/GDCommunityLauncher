@@ -15,12 +15,12 @@
 #include "StringConvert.h"
 #include "Log.h"
 
-// TODO: Save the player file when a player dies (in hardcore only?)
 ServerCoordinator::ServerCoordinator()
 {
     if (!spClient->IsOfflineMode())
     {
         EventManager::Subscribe(GDCL_EVENT_UPDATE,             OnUpdateEvent);
+        EventManager::Subscribe(GDCL_EVENT_PRE_SHUTDOWN,       OnPreShutdownEvent);
         EventManager::Subscribe(GDCL_EVENT_DIRECT_FILE_READ,   OnDirectReadEvent);
         EventManager::Subscribe(GDCL_EVENT_DIRECT_FILE_WRITE,  OnDirectWriteEvent);
         EventManager::Subscribe(GDCL_EVENT_ADD_SAVE_JOB,       OnAddSaveJobEvent);
@@ -53,6 +53,16 @@ void ServerCoordinator::OnUpdateEvent()
             }
         }
         spCache->ClearDirtyCharacters();
+    }
+}
+
+void ServerCoordinator::OnPreShutdownEvent()
+{
+    std::wstring lastPlayerName = spCache->GetLastMainPlayerName();
+    if (const FileWriter* characterData = spCache->GetCharacterData(lastPlayerName))
+    {
+        uint32_t participantID = spCache->GetParticipantID(lastPlayerName);
+        spServer->Send("SaveCharacterFile", participantID, lastPlayerName, BinaryToBase64(characterData->GetBuffer(), characterData->GetBufferSize()));
     }
 }
 
@@ -462,7 +472,10 @@ void ServerCoordinator::OnWorldPreLoadEvent(std::string mapName, bool unk1, bool
                 DownloadParticipantFiles(downloadTasks, hardcoreID);
 
                 if (const SeasonInfo* seasonInfo = spClient->GetSeasonByType(true))
+                {
                     downloadTasks.push_back(spServer->Send("GetSeasonChallenges", seasonInfo->_seasonID));
+                    downloadTasks.push_back(spServer->Send("GetParticipantChallenges", seasonInfo->_seasonID, hardcoreID));
+                }
             }
 
             uint32_t softcoreID = spCache->GetParticipantID(false);
@@ -473,7 +486,10 @@ void ServerCoordinator::OnWorldPreLoadEvent(std::string mapName, bool unk1, bool
                 DownloadParticipantFiles(downloadTasks, softcoreID);
 
                 if (const SeasonInfo* seasonInfo = spClient->GetSeasonByType(false))
+                {
                     downloadTasks.push_back(spServer->Send("GetSeasonChallenges", seasonInfo->_seasonID));
+                    downloadTasks.push_back(spServer->Send("GetParticipantChallenges", seasonInfo->_seasonID, softcoreID));
+                }
             }
 
             for (size_t i = 0; i < downloadTasks.size(); ++i)

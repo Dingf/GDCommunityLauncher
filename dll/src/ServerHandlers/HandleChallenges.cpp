@@ -4,7 +4,7 @@
 #include "JSON.h"
 #include "Log.h"
 
-std::string HandleWriteGetChallenges(uint32_t requestID, uint32_t& participantID, uint32_t& seasonID)
+std::string HandleWriteGetChallenges(uint32_t requestID, uint32_t& seasonID, uint32_t& participantID)
 {
     json request = 
     {
@@ -31,7 +31,7 @@ std::string HandleWriteGetSeasonChallenges(uint32_t requestID, uint32_t& seasonI
     return request.dump();
 }
 
-void HandleReadGetChallenges(const json& response, uint32_t participantID, uint32_t seasonID)
+void HandleReadGetChallenges(const json& response, uint32_t seasonID, uint32_t participantID)
 {
     HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
     if (status == HTTP_STATUS_OK)
@@ -40,7 +40,7 @@ void HandleReadGetChallenges(const json& response, uint32_t participantID, uint3
         for (const json& challenge : challenges)
         {
             uint32_t challengeID = challenge.at("SeasonChallengeId").get<uint32_t>();
-            if (!spChallengeManager->SetChallengeStatus(challengeID, CHALLENGE_STATUS_COMPLETE))
+            if (!spChallengeManager->SetChallengeStatus(seasonID, challengeID, CHALLENGE_STATUS_COMPLETE))
             {
                 Logger::LogMessage(LOG_LEVEL_WARN, "Completed participant challenge (ID: %) was not found in challenge list", challengeID);
             }
@@ -58,12 +58,10 @@ void HandleReadGetSeasonChallenges(const json& response, uint32_t seasonID)
     if (status == HTTP_STATUS_OK)
     {
         const json& challenges = response.at("Data");
-        // TODO Change once Hidden has its own field or is otherwise defined
-        const uint32_t hidden_category = spChallengeManager->GetChallengeCategory("Tiebreakers");
         for (const json& challenge : challenges)
         {
             uint32_t challengeID = challenge.at("SeasonChallengeId").get<uint32_t>();
-            if (!spChallengeManager->GetChallenge(challengeID))
+            if (!spChallengeManager->GetChallenge(seasonID, challengeID))
             {
                 Challenge newChallenge;
                 newChallenge._name = challenge.at("ChallengeName").get<std::string>();
@@ -79,15 +77,14 @@ void HandleReadGetSeasonChallenges(const json& response, uint32_t seasonID)
                 newChallenge._status = CHALLENGE_STATUS_INCOMPLETE;
                 newChallenge._points = challenge.at("PointValue").get<uint32_t>();
                 newChallenge._active = challenge.at("Active").get<bool>();
-
-                std::string categoryName = challenge.at("CategoryName").get<std::string>();
-                newChallenge._category = spChallengeManager->GetChallengeCategory(categoryName);
+                newChallenge._category = challenge.at("ChallengeCategoryId").get<uint32_t>();
 
                 if (newChallenge._category == 0)
                 {
-                    Logger::LogMessage(LOG_LEVEL_WARN, "Challenge \"%\" (ID: %) has unknown category: %", newChallenge._name, challengeID, categoryName);
+                    Logger::LogMessage(LOG_LEVEL_WARN, "Challenge \"%\" (ID: %) has unknown category: %", newChallenge._name, challengeID);
                 }
-                else if (newChallenge._category == hidden_category)
+                // TODO Change once Hidden has its own field or is otherwise defined
+                else if (newChallenge._category == 10)
                 {
                     newChallenge._status = CHALLENGE_STATUS_HIDDEN;
                 }
@@ -106,7 +103,7 @@ void HandleReadGetSeasonChallenges(const json& response, uint32_t seasonID)
                     Logger::LogMessage(LOG_LEVEL_WARN, "Challenge \"%\" (ID: %) has unknown difficulty: %", newChallenge._name, challengeID, difficultyNames);
                 }
 
-                spChallengeManager->AddChallenge(newChallenge);
+                spChallengeManager->AddChallenge(seasonID, newChallenge);
             }
         }
     }

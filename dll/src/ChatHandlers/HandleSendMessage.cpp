@@ -39,6 +39,7 @@ void HandleReadSendMessage(const json& response)
     if ((playerName.empty()) || (ChatAPI::IsPlayerMuted(playerName)))
         return;
 
+    // Error messages
     if (response.at("ErrorMessage").is_string())
     {
         std::wstring name = EngineAPI::UI::Localize("tagGDCLChatDefaultName");
@@ -46,11 +47,33 @@ void HandleReadSendMessage(const json& response)
         GameAPI::AddChatMessage(name, message, ChatAPI::CHAT_TYPE_SYSTEM);
         return;
     }
+    // Direct server announcements
+    else if (playerName == L"Admin")
+    {
+        bool important = false;
+        const json& arguments = response.at("Arguments");
+        if (arguments.contains("Important"))
+            important = arguments.at("Important").get<bool>();
+
+        if ((important) || (ChatAPI::IsServerMessagesEnabled()))
+        {
+            std::wstring name = EngineAPI::UI::Localize("tagGDCLChatDefaultName");
+            const json& message = response.at("Message");
+            for (const json& line : message)
+            {
+                std::wstring message = RawToWide(line.get<std::string>());
+                GameAPI::AddChatMessage(playerName, message, ChatAPI::CHAT_TYPE_SYSTEM);
+            }
+        }
+        return;
+    }
+    // Whisper from message
     else if (response.at("DirectUsername").is_string())
     {
         playerName = EngineAPI::UI::Localize("tagGDCLChatDirectFrom", playerName);
         type = ChatAPI::CHAT_TYPE_NORMAL;
     }
+    // Whisper to message
     else if (response.at("Channel").is_null())
     {
         playerName = EngineAPI::UI::Localize("tagGDCLChatDirectTo", playerName);

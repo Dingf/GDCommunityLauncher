@@ -10,6 +10,7 @@
 #include "EngineAPI/Graphics.h"
 #include "EngineAPI/Lua.h"
 #include "EngineAPI/Object.h"
+#include "EngineAPI/Option.h"
 #include "EngineAPI/Platform.h"
 #include "EngineAPI/Rect.h"
 #include "EngineAPI/Region.h"

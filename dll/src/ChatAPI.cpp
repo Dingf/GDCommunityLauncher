@@ -11,15 +11,16 @@
 namespace ChatAPI
 {
 
-bool _initialized = false; // Whether the chat API has been initialized yet
-uint8_t _channel;          // Current global chat channel
-uint8_t* _visibleAddress;  // Address used to toggle the chat window visibility
-uint8_t* _colorAddress;    // Address used to set the chat colors
-uint32_t _systemColor;     // Last used system color
-uint32_t _globalColor;     // Last used global color
-std::wstring _prefix;      // Last used chat prefix
-std::wstring _saved;       // Saved buffer text, used for linking items in chat
-std::wstring _empty;       // Empty buffer text; used by GetBufferText() if the chat window isn't initialized yet
+bool _initialized = false;    // Whether the chat API has been initialized yet
+bool _serverMessages = false; // Whether or not server announcements are enabled
+uint8_t _channel;             // Current global chat channel
+uint8_t* _visibleAddress;     // Address used to toggle the chat window visibility
+uint8_t* _colorAddress;       // Address used to set the chat colors
+uint32_t _systemColor;        // Last used system color
+uint32_t _globalColor;        // Last used global color
+std::wstring _prefix;         // Last used chat prefix
+std::wstring _saved;          // Saved buffer text, used for linking items in chat
+std::wstring _empty;          // Empty buffer text; used by GetBufferText() if the chat window isn't initialized yet
 std::unordered_set<std::wstring> _mutedList;    // List of muted players by the current user
 
 uint32_t GetChatColor(ChatType type)
@@ -243,6 +244,16 @@ void ClearMutedList()
     _mutedList.clear();
 }
 
+void SetServerMessagesEnabled(bool enabled)
+{
+    _serverMessages = enabled;
+}
+
+bool IsServerMessagesEnabled()
+{
+    return _serverMessages;
+}
+
 void ToggleWindowDisplay()
 {
     if (_visibleAddress != nullptr)
@@ -299,6 +310,9 @@ static void LoadConfig()
 
         const Value* globalColorValue = config.GetValue("Chat", "global_color");
         _globalColor = (globalColorValue) ? globalColorValue->ToInt() : EngineAPI::Color::ORANGE.GetColorCode();
+
+        const Value* serverAnnouncementsValue = config.GetValue("Chat", "server_announcements");
+        _serverMessages = (serverAnnouncementsValue) ? serverAnnouncementsValue->ToBool() : true;
     }
     else
     {
@@ -316,6 +330,7 @@ static void SaveConfig()
         config.SetValue("Chat", "channel", (int)_channel);
         config.SetValue("Chat", "system_color", (int)(_systemColor & 0x00FFFFFF));
         config.SetValue("Chat", "global_color", (int)(_globalColor & 0x00FFFFFF));
+        config.SetValue("Chat", "server_announcements", _serverMessages);
         config.Save(configPath);
     }
     else

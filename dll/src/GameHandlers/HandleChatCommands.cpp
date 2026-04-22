@@ -14,17 +14,6 @@
 #include "GameHandler.h"
 #include "URI.h"
 
-const std::unordered_map<std::string, uint32_t> challengeCategoryMap =
-{
-    { "Level Limited Challenges", 1 },
-    { "Shattered Realm Clears", 2 },
-    { "Skeleton Key Dungeons", 3 },
-    { "World Bosses", 4 },
-    { "Super Bosses", 5 },
-    { "Nemesis Bosses", 6 },
-    { "Campaign/Story", 7 },
-};
-
 const std::unordered_map<std::wstring, EngineAPI::Color> chatColorMap =
 {
     { L"a", EngineAPI::Color::AQUA },       { L"aqua", EngineAPI::Color::AQUA },
@@ -173,6 +162,93 @@ bool HandleChatGlobalCommand(std::wstring& name, std::wstring& message, uint32_t
     return true;
 }
 
+bool HandleChatServerCommand(std::wstring& name, std::wstring& message, uint32_t& channel, uint8_t& type, void* item)
+{
+    type = ChatAPI::CHAT_TYPE_SYSTEM;
+
+    std::wstring subcommand = message.substr(0, message.find(L" "));
+    std::wstring args = (subcommand.size() == message.size()) ? L"" : message.substr(message.find(L" ") + 1);
+    std::transform(subcommand.begin(), subcommand.end(), subcommand.begin(), std::towlower);
+    std::transform(args.begin(), args.end(), args.begin(), std::towlower);
+    if (subcommand == L"on")
+    {
+        ChatAPI::SetServerMessagesEnabled(true);
+        name = EngineAPI::UI::Localize("tagGDCLChatDefaultName");
+        message = EngineAPI::UI::Localize("tagGDCLChatAnnouncementsEnabled", ChatAPI::CHAT_CHANNEL_MAX);
+        return true;
+    }
+    else if (subcommand == L"off")
+    {
+        ChatAPI::SetServerMessagesEnabled(false);
+        name = EngineAPI::UI::Localize("tagGDCLChatDefaultName");
+        message = EngineAPI::UI::Localize("tagGDCLChatAnnouncementsDisabled", ChatAPI::CHAT_CHANNEL_MAX);
+        return true;
+    }
+    else if ((subcommand == L"color") || (subcommand == L"colour"))
+    {
+        std::wsmatch match;
+        std::wregex colorRegex(L"^#?([A-Fa-f0-9]{6})$");
+
+        uint32_t colorCode = 0;
+
+        auto it = chatColorMap.find(args);
+        if (it != chatColorMap.end())
+        {
+            EngineAPI::Color color = it->second;
+            colorCode |= (uint32_t)(color._r * 255);
+            colorCode |= ((uint32_t)(color._g * 255) << 8);
+            colorCode |= ((uint32_t)(color._b * 255) << 16);
+            colorCode |= ((uint32_t)(color._a * 255) << 24);
+        }
+        else if (std::regex_match(args, match, colorRegex))
+        {
+            std::wstringstream inputStream;
+            inputStream << std::hex << match.str(1);
+            inputStream >> colorCode;
+
+            // Swap red and blue values to match color code format
+            colorCode = (colorCode & 0x00FFFFFF) | ((colorCode & 0x000000FF) << 24);
+            colorCode = (colorCode & 0xFFFFFF00) | ((colorCode & 0x00FF0000) >> 16);
+            colorCode = (colorCode & 0xFF00FFFF) | ((colorCode & 0xFF000000) >> 8);
+            colorCode = (colorCode & 0x00FFFFFF);
+        }
+
+        if (colorCode != 0)
+        {
+            if (ChatAPI::SetChatColor(ChatAPI::CHAT_TYPE_SYSTEM, colorCode))
+            {
+                std::wstringstream outputStream;
+                outputStream << std::hex << std::uppercase << std::setfill(L'0') << std::setw(2) << (colorCode & 0x0000FF) << std::setw(2) << ((colorCode & 0x00FF00) >> 8) << std::setw(2) << ((colorCode & 0xFF0000) >> 16);
+
+                name = EngineAPI::UI::Localize("tagGDCLChatDefaultName");
+                message = EngineAPI::UI::Localize("tagGDCLChatColorSuccess", outputStream.str());
+            }
+            else
+            {
+                name = EngineAPI::UI::Localize("tagGDCLChatDefaultName");
+                message = EngineAPI::UI::Localize("tagGDCLChatColorFailed");
+            }
+        }
+        else
+        {
+            name = EngineAPI::UI::Localize("tagGDCLChatDefaultName");
+            message = EngineAPI::UI::Localize("tagGDCLChatColorInvalid", args);
+        }
+        return true;
+    }
+
+    if (subcommand.empty())
+    {
+        return false;
+    }
+    else
+    {
+        name = EngineAPI::UI::Localize("tagGDCLChatDefaultName");
+        message = EngineAPI::UI::Localize("tagGDCLChatServerInvalid", subcommand.c_str());
+    }
+    return true;
+}
+
 bool HandleChatOnlineCommand(std::wstring& name, std::wstring& message, uint32_t& channel, uint8_t& type, void* item)
 {
     spChat->Send("Online");
@@ -181,10 +257,14 @@ bool HandleChatOnlineCommand(std::wstring& name, std::wstring& message, uint32_t
 
 bool HandleChatChallengesCommand(std::wstring& name, std::wstring& message, uint32_t& channel, uint8_t& type, void* item)
 {
-    const auto& challengeList = spChallengeManager->GetChallengeList();
-    const auto& challengeCategoryMap = spChallengeManager->GetChallengeCategories();
+    uint32_t seasonID = 0;
+    if (const SeasonInfo* seasonInfo = spClient->GetActiveSeason())
+        seasonID = seasonInfo->_seasonID;
 
-    if (challengeList.empty())
+    const ChallengeManager::ChallengeList* challengeList = spChallengeManager->GetChallengeList(seasonID);
+    const std::map<uint32_t, std::string>& challengeCategoryMap = spChallengeManager->GetChallengeCategories();
+
+    if (!challengeList)
     {
         Logger::LogMessage(LOG_LEVEL_WARN, "Tried to use challenges command when challenge fetch failed/hasn't happened yet");
         return false;
@@ -200,11 +280,11 @@ bool HandleChatChallengesCommand(std::wstring& name, std::wstring& message, uint
         std::unordered_map<uint32_t, uint32_t> completedCount;
         for (const auto& challengeCategory : challengeCategoryMap)
         {
-            challengeCount.emplace(challengeCategory.second, 0);
-            completedCount.emplace(challengeCategory.second, 0);
+            challengeCount.emplace(challengeCategory.first, 0);
+            completedCount.emplace(challengeCategory.first, 0);
         }
 
-        for (const auto& challenge : challengeList)
+        for (const auto& challenge : *challengeList)
         {
             if (challengeCount.count(challenge.second->_category) == 0)
             {
@@ -220,32 +300,32 @@ bool HandleChatChallengesCommand(std::wstring& name, std::wstring& message, uint
 
         for (const auto& challengeCategory : challengeCategoryMap)
         {
-            if (challengeCount[challengeCategory.second] == 0)
+            if (challengeCount[challengeCategory.first] == 0)
             {
                 continue;
             }
 
             std::wstring message = L"    ";
-            message += std::to_wstring(challengeCategory.second);
+            message += std::to_wstring(challengeCategory.first);
             message += L" - ";
 
-            message += CharToWide(challengeCategory.first);
+            message += CharToWide(challengeCategory.second);
             message += L" (";
-            message += std::to_wstring(completedCount[challengeCategory.second]);
+            message += std::to_wstring(completedCount[challengeCategory.first]);
             message += L"/";
-            message += std::to_wstring(challengeCount[challengeCategory.second]);
+            message += std::to_wstring(challengeCount[challengeCategory.first]);
             message += L")";
 
-            ChatAPI::ChatType chatType = (completedCount[challengeCategory.second] == challengeCount[challengeCategory.second]) ? ChatAPI::CHAT_TYPE_SYSTEM : ChatAPI::CHAT_TYPE_NORMAL;
+            ChatAPI::ChatType chatType = (completedCount[challengeCategory.first] == challengeCount[challengeCategory.first]) ? ChatAPI::CHAT_TYPE_SYSTEM : ChatAPI::CHAT_TYPE_NORMAL;
             GameAPI::SendChatMessage(name, message, chatType);
         }
     }
     else
     {
-        auto it = std::find_if(challengeCategoryMap.begin(), challengeCategoryMap.end(), [&channel](const std::pair<std::string, uint32_t>& p) { return p.second == channel; });
+        auto it = std::find_if(challengeCategoryMap.begin(), challengeCategoryMap.end(), [&channel](const std::pair<uint32_t, std::string>& p) { return p.first == channel; });
         if (it != challengeCategoryMap.end())
         {
-            std::wstring message = EngineAPI::UI::Localize("tagGDCLChatChallenges02", CharToWide(it->first).c_str(), CharToWide(spClient->GetUsername()).c_str());
+            std::wstring message = EngineAPI::UI::Localize("tagGDCLChatChallenges02", CharToWide(it->second).c_str(), CharToWide(spClient->GetUsername()).c_str());
             GameAPI::SendChatMessage(name, message, ChatAPI::CHAT_TYPE_SYSTEM);
         }
         else
@@ -255,7 +335,7 @@ bool HandleChatChallengesCommand(std::wstring& name, std::wstring& message, uint
             return false;
         }
 
-        for (const auto& challenge : challengeList)
+        for (const auto& challenge : *challengeList)
         {
             if (challenge.second->_category != channel || challenge.second->_status == ChallengeStatus::CHALLENGE_STATUS_HIDDEN)
             {
@@ -529,6 +609,7 @@ const std::unordered_map<ChatCommandHandler, ChatCommandInfo> chatCommandInfo =
     { HandleChatMuteCommand,       { nullptr,      "tagGDCLCommand05", "tagGDCLCommand05Desc" } },
     { HandleChatUnmuteCommand,     { nullptr,      "tagGDCLCommand06", "tagGDCLCommand06Desc" } },
     { HandleChatWhisperCommand,    { nullptr,      "tagGDCLCommand07", "tagGDCLCommand07Desc" } },
+    { HandleChatServerCommand,     { nullptr,      "tagGDCLCommand08", "tagGDCLCommand08Desc" } },
     
     // Beta testing commands
     { HandleBetaAddItemCommand,    { IsBetaBranch, "tagGDCLCommandBeta01", "tagGDCLCommandBeta01Desc" } },
@@ -553,6 +634,8 @@ const std::unordered_map<std::wstring, ChatCommandHandler> chatCommandHandlers =
     { L"m",          HandleChatMuteCommand },
     { L"unmute",     HandleChatUnmuteCommand },
     { L"u",          HandleChatUnmuteCommand },
+    { L"s",          HandleChatServerCommand },
+    { L"server",     HandleChatServerCommand },
 
     // Beta testing commands
     { L"item",       HandleBetaAddItemCommand },

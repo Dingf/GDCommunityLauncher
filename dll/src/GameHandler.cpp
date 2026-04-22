@@ -42,7 +42,7 @@ const char* HandleGetVersion(void* _this);
 uint32_t HandleGetObjectID(void* _this);
 void HandleDestroyObjectEx(void* _this, void* object, const char* unk1, int32_t unk2);
 void HandleRender(void* _this);
-void HandleRenderStyledText2D(void* _this, EngineAPI::Rect rect, const EngineAPI::Color& color1, const EngineAPI::Color& color2, const wchar_t* text, void* font, int fontSize, EngineAPI::GraphicsXAlign xAlign, EngineAPI::GraphicsYAlign yAlign, int fontStyleFlag, int fontLayout);
+void HandleRenderStyledText2D(void* _this, EngineAPI::Rect rect, const EngineAPI::Color& color1, const EngineAPI::Color& color2, const wchar_t* text, void* font, int32_t size, EngineAPI::GraphicsXAlign xAlign, EngineAPI::GraphicsYAlign yAlign, int32_t style, int32_t layout);
 void HandleLuaInitialize(void* _this, bool unk1, bool unk2);
 void HandleLuaShutdown(void* _this);
 bool HandleLoadWorld(void* _this, const char* map, bool unk1, bool modded);

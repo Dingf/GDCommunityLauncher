@@ -15,6 +15,7 @@ class ServerCoordinator
         static ServerCoordinator* GetInstance();
 
         static void OnUpdateEvent();
+        static void OnPreShutdownEvent();
         static void OnDirectReadEvent(std::string filename, void** data, size_t* size);
         static void OnDirectWriteEvent(std::string filename, void* data, size_t size);
         static void OnAddSaveJobEvent(std::string filename, void* data, size_t size);

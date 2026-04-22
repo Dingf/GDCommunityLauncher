@@ -1,6 +1,7 @@
 #ifndef INC_GDCL_DLL_CHALLENGE_MANAGER_H
 #define INC_GDCL_DLL_CHALLENGE_MANAGER_H
 
+#include <map>
 #include <string>
 #include <unordered_map>
 #include <memory>
@@ -36,21 +37,20 @@ class ChallengeManager
 
         static ChallengeManager* GetInstance();
 
-        uint32_t GetChallengeCategory(std::string categoryName) const;
-        const std::unordered_map<std::string, uint32_t>& GetChallengeCategories() const;
+        const std::map<uint32_t, std::string>& GetChallengeCategories() const;
         const std::unordered_map<std::string, uint32_t>& GetChallengeDifficulties() const;
 
-        const Challenge* GetChallenge(uint32_t challengeID) const;
-        const ChallengeList& GetChallengeList() const { return _challengeList; }
+        const Challenge* GetChallenge(uint32_t seasonID, uint32_t challengeID) const;
+        const ChallengeList* GetChallengeList(uint32_t seasonID) const;
 
-        bool SetChallengeStatus(uint32_t challengeID, ChallengeStatus status);
+        bool SetChallengeStatus(uint32_t seasonID, uint32_t challengeID, ChallengeStatus status);
 
-        void AddChallenge(const Challenge& challenge);
+        void AddChallenge(uint32_t seasonID, const Challenge& challenge);
 
     private:
         ChallengeManager() = default;
 
-        ChallengeList _challengeList;
+        std::unordered_map<uint32_t, ChallengeList> _challengeList;
 };
 
 #define spChallengeManager ChallengeManager::GetInstance()

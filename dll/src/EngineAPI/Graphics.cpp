@@ -140,6 +140,23 @@ void RenderText2D(int32_t x, int32_t y, const Color& color, const wchar_t* text,
     callback(canvas, x, y, color, text, font, size, xAlign, yAlign, style, layout);
 }
 
+void RenderStyledText2D(EngineAPI::Rect rect, const EngineAPI::Color& color1, const EngineAPI::Color& color2, const wchar_t* text, void* font, int32_t size, GraphicsXAlign xAlign, GraphicsYAlign yAlign, int32_t style, int32_t layout)
+{
+    typedef void (__thiscall* RenderStyledText2DProto)(void*, EngineAPI::Rect, const EngineAPI::Color&, const EngineAPI::Color&, const wchar_t*, void*, int32_t, GraphicsXAlign, GraphicsYAlign, int32_t, int32_t);
+
+    HMODULE engineDLL = GetModuleHandle(TEXT(ENGINE_DLL));
+    if (!engineDLL)
+        return;
+
+    RenderStyledText2DProto callback = (RenderStyledText2DProto)GetProcAddress(engineDLL, EAPI_NAME_RENDER_STYLED_TEXT_2D);
+    void* canvas = GetCanvas();
+
+    if ((!callback) || (!canvas))
+        return;
+
+    callback(canvas, rect, color1, color2, text, font, size, xAlign, yAlign, style, layout);
+}
+
 uint32_t GetTextureWidth(void* texture)
 {
     typedef uint32_t (__thiscall* GetTextureWidthProto)(void*);

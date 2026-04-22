@@ -60,6 +60,7 @@ void* LoadTexture(const std::string& textureName);
 void UnloadTexture(void* texture);
 void RenderRect(const Rect& r1, const Rect& r2, void* renderTexture, const Color& color);
 void RenderText2D(int32_t x, int32_t y, const Color& color, const wchar_t* text, void* font, int32_t size, GraphicsXAlign xAlign, GraphicsYAlign yAlign, int32_t style, int32_t layout);
+void RenderStyledText2D(EngineAPI::Rect rect, const EngineAPI::Color& color1, const EngineAPI::Color& color2, const wchar_t* text, void* font, int32_t size, GraphicsXAlign xAlign, GraphicsYAlign yAlign, int32_t style, int32_t layout);
 uint32_t GetTextureWidth(void* texture);
 uint32_t GetTextureHeight(void* texture);
 void* GetRenderTexture(void* texture);

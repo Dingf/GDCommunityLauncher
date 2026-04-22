@@ -102,15 +102,15 @@ void TemporaryLoadTagsFile()
     EngineAPI::UI::AddLocalizationTag("tagGDCLBoundlessDungeonLevel={^O} (Lv{%d0})", "text_en/tags_gdcl.txt", true);
     EngineAPI::UI::AddLocalizationTag("tagGDCLChatDefaultName=Server", "text_en/tags_gdcl.txt", true);
     EngineAPI::UI::AddLocalizationTag("tagGDCLChatOnline=There are {%d0} users currently online.", "text_en/tags_gdcl.txt", true);
-    EngineAPI::UI::AddLocalizationTag("tagGDCLChatGlobalDisabled=Global chat is currently disabled. You can enable it by typing \"/global ON\".", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLChatGlobalDisabled=Global chat is disabled. You can enable it by typing \"/global on\".", "text_en/tags_gdcl.txt", true);
     EngineAPI::UI::AddLocalizationTag("tagGDCLChatDirectFrom=[From {%t0}]", "text_en/tags_gdcl.txt", true);
     EngineAPI::UI::AddLocalizationTag("tagGDCLChatDirectTo=[To {%t0}]", "text_en/tags_gdcl.txt", true);
     EngineAPI::UI::AddLocalizationTag("tagGDCLChatChallenges01=Challenge overview for {%t0}:", "text_en/tags_gdcl.txt", true);
     EngineAPI::UI::AddLocalizationTag("tagGDCLChatChallenges02={%t0} challenges for {%t1}:", "text_en/tags_gdcl.txt", true);
     EngineAPI::UI::AddLocalizationTag("tagGDCLChatChallenges03={%d0} is not a valid challenge category.", "text_en/tags_gdcl.txt", true);
     EngineAPI::UI::AddLocalizationTag("tagGDCLChatChallengePoints=~ {%d0} points", "text_en/tags_gdcl.txt", true);
-    EngineAPI::UI::AddLocalizationTag("tagGDCLChatColorSuccess=Changed chat text color to #{%t0}.", "text_en/tags_gdcl.txt", true);
-    EngineAPI::UI::AddLocalizationTag("tagGDCLChatColorFailed=Could not change chat text color.", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLChatColorSuccess=Changed text color to #{%t0}.", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLChatColorFailed=Could not change text color.", "text_en/tags_gdcl.txt", true);
     EngineAPI::UI::AddLocalizationTag("tagGDCLChatColorInvalid={%t0} is not a valid color. Type \"/h color\" for a list of available color aliases. You can also use a hex code, e.g. #FFFFFF.", "text_en/tags_gdcl.txt", true);
     EngineAPI::UI::AddLocalizationTag("tagGDCLChatChannelJoin=Joined global channel {%d0}.", "text_en/tags_gdcl.txt", true);
     EngineAPI::UI::AddLocalizationTag("tagGDCLChatChannelInvalid=Invalid channel. The maximum number of channels is {%d0}.", "text_en/tags_gdcl.txt", true);
@@ -128,6 +128,9 @@ void TemporaryLoadTagsFile()
     EngineAPI::UI::AddLocalizationTag("tagGDCLChatHelpError=Command {%t0} was not found.", "text_en/tags_gdcl.txt", true);
     EngineAPI::UI::AddLocalizationTag("tagGDCLChatTradeNotification=You have {%d0} new trade notification(s).", "text_en/tags_gdcl.txt", true);
     EngineAPI::UI::AddLocalizationTag("tagGDCLChatSavedTags=Tags successfully written to {%t0}.", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLChatAnnouncementsEnabled=Server announcements are enabled.", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLChatAnnouncementsDisabled=Server announcements are disabled. You can enable them by typing \"/server on\".", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLChatServerInvalid=\"{%t0}\" is not a valid server command..", "text_en/tags_gdcl.txt", true);
     EngineAPI::UI::AddLocalizationTag("tagGDCLCommand01=Displays available commands and their usage.", "text_en/tags_gdcl.txt", true);
     EngineAPI::UI::AddLocalizationTag("tagGDCLCommand01Desc=Usage: /h, /help [command]{^n}{^n}Displays a detailed usage message for a chat command. If no arguments are specified, displays all available chat commands.{^n}{^n}    [command] - Specifies the command to display help information on.{^n}{^n}", "text_en/tags_gdcl.txt", true);
     EngineAPI::UI::AddLocalizationTag("tagGDCLCommand02=Sends a message to global chat.", "text_en/tags_gdcl.txt", true);
@@ -142,6 +145,8 @@ void TemporaryLoadTagsFile()
     EngineAPI::UI::AddLocalizationTag("tagGDCLCommand06Desc=Usage: /u, /unmute <user>{^n}{^n}Unblocks a user that was previously blocked, allowing you to see their messages again.{^n}{^n}    <user> - Specifies the username to be unblocked.{^n}{^n}", "text_en/tags_gdcl.txt", true);
     EngineAPI::UI::AddLocalizationTag("tagGDCLCommand07=Sends a direct message to a user.", "text_en/tags_gdcl.txt", true);
     EngineAPI::UI::AddLocalizationTag("tagGDCLCommand07Desc=Usage: /t, /tell <user> ...{^n}{^n}Sends a direct message to a user.{^n}{^n}    <user> - Specifies the username to send a message to.{^n}{^n}", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLCommand08=Changes server settings.", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLCommand08Desc=Usage: /s, /server [on|off|color]{^n}{^n}Changes server text color or enables/disables server announcements.{^n}{^n}    [on/off] - Enables or disables server announcements. Some announcements, such as maintenance notifications, cannot be disabled.{^n}{^n}    [color] - Sets the color of server chat to a color alias or a 6-digit hex code. Type \"/h color\" for a list of color aliases.{^n}{^n}", "text_en/tags_gdcl.txt", true);
     EngineAPI::UI::AddLocalizationTag("tagGDCLCommandBeta01=Adds an item directly into the user's inventory.", "text_en/tags_gdcl.txt", true);
     EngineAPI::UI::AddLocalizationTag("tagGDCLCommandBeta01Desc=Usage: /item <dbr_name> <stack_count>{^n}{^n}Adds an item directly into the user's inventory.{^n}{^n}    <dbr_name> - The full path of the item DBR to add.{^n}{^n}    <stack_count> - The stack count of the item. If not specified, this value will be 1.{^n}{^n}", "text_en/tags_gdcl.txt", true);
     EngineAPI::UI::AddLocalizationTag("tagGDCLCommandBeta02=Levels up the current character.", "text_en/tags_gdcl.txt", true);

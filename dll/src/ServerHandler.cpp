@@ -11,7 +11,7 @@
 
 // Write handlers
 std::string HandleWriteAddParticipant(uint32_t requestID, bool& hardcore);
-std::string HandleWriteGetChallenges(uint32_t requestID, uint32_t& participantID, uint32_t& seasonID);
+std::string HandleWriteGetChallenges(uint32_t requestID, uint32_t& seasonID, uint32_t& participantID);
 std::string HandleWriteGetCharacters(uint32_t requestID, uint32_t& participantID);
 std::string HandleWriteGetCharacterData(uint32_t requestID, uint32_t& participantID, std::wstring& characterName);
 std::string HandleWriteGetCharacterFile(uint32_t requestID, uint32_t& participantID, std::wstring& characterName);
@@ -45,7 +45,7 @@ std::string HandleWriteSaveTag(uint32_t requestID, uint32_t& participantID, std:
 
 // Read Handlers
 void HandleReadAddParticipant(const json& response, bool hardcore);
-void HandleReadGetChallenges(const json& response, uint32_t participantID, uint32_t seasonID);
+void HandleReadGetChallenges(const json& response, uint32_t seasonID, uint32_t participantID);
 void HandleReadGetCharacters(const json& response, uint32_t participantID);
 void HandleReadGetCharacterData(const json& response, uint32_t participantID, std::wstring characterName);
 void HandleReadGetCharacterFile(const json& response, uint32_t participantID, std::wstring characterName);
