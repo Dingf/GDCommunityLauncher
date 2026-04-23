@@ -348,13 +348,16 @@ bool UpdateDialog::Update()
         }
 
         std::unordered_map<std::wstring, std::string> downloadList;
-        if (GetDownloadList(downloadList) && (downloadList.size() > 0))
+        if (GetDownloadList(downloadList))
         {
-            DownloadFiles(downloadList);
+            if (downloadList.size() > 0)
+                DownloadFiles(downloadList);
+            else
+                SendMessage(UpdateDialog::_window, WM_UPDATE_OK, NULL, NULL);
         }
         else
         {
-            SendMessage(UpdateDialog::_window, WM_UPDATE_OK, NULL, NULL);
+            SendMessage(UpdateDialog::_window, WM_UPDATE_FAIL, NULL, NULL);
         }
     });
 

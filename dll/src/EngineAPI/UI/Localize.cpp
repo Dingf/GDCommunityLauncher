@@ -54,4 +54,21 @@ void AddLocalizationTag(const char* tagLine, const char* filename, bool keepExis
     callback(manager, tagLine, filename, keepExisting);
 }
 
+const wchar_t* LocalizeWithoutParams(const char* tag)
+{
+    typedef const wchar_t* (__thiscall* LocalizeWithoutParamsProto)(void*, const char*);
+
+    HMODULE engineDLL = GetModuleHandle(TEXT(ENGINE_DLL));
+    if (!engineDLL)
+        return nullptr;
+
+    LocalizeWithoutParamsProto callback = (LocalizeWithoutParamsProto)GetProcAddress(engineDLL, EAPI_NAME_LOCALIZE_WITHOUT_PARAMS);
+    void* manager = GetLocalizationManager();
+
+    if ((!callback) || (!manager))
+        return nullptr;
+
+    return callback(manager, tag);
+}
+
 }

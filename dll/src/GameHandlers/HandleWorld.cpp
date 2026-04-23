@@ -69,7 +69,7 @@ void LoadDatabaseValues()
 
 
     // TODO: This will probably need to be overhauled with FoA's crafting system
-    /*CraftingDatabase& craftingDB = CraftingDatabase::GetInstance();
+    CraftingDatabase& craftingDB = CraftingDatabase::GetInstance();
     if (!craftingDB.IsLoaded())
     {
         if (HRSRC res = FindResource(launcherDLL, MAKEINTRESOURCE(IDR_CRAFTINGDB), RT_RCDATA))
@@ -85,7 +85,7 @@ void LoadDatabaseValues()
 
         if (!craftingDB.IsLoaded())
             Logger::LogMessage(LOG_LEVEL_WARN, "Failed to load crafting database from DLL. Item crafting will not function properly!");
-    }*/
+    }
 }
 
 // TODO: Delete this once the tags_gdcl.txt file is bundled into the season mod
@@ -182,6 +182,12 @@ bool HandleLoadWorld(void* _this, const char* map, bool unk1, bool modded)
         bool isMainMenu = (mapName.substr(0, 16) == "levels/mainmenu/");
 
         EventManager::Publish(GDCL_EVENT_WORLD_PRE_LOAD, mapName, modded);
+
+        // Prevent loading into multiplayer sessions (online mode only)
+        if ((EngineAPI::IsMultiplayer()) && (!isMainMenu) && (!spClient->IsOfflineMode()))
+        {
+            return false;
+        }
 
         // When loading the base game, we need to initialize the mod first to ensure that the modded map is loaded instead
         if ((EngineAPI::IsMainCampaign()) && (mapName == "levels/world001.map"))

@@ -128,7 +128,9 @@ void* GetItemBitmap(void* item)
     typedef void* (__thiscall* GetItemBitmapProto)(void*);
 
     //GetItemBitmapProto callback = *(GetItemBitmapProto*)(*((uintptr_t*)item) + 0x3E0);   // Version 1.2.1.1
-    GetItemBitmapProto callback = *(GetItemBitmapProto*)(*((uintptr_t*)item) + 0x3F0);     // Version 1.2.1.6
+    //GetItemBitmapProto callback = *(GetItemBitmapProto*)(*((uintptr_t*)item) + 0x3F0);   // Version 1.2.1.6
+    GetItemBitmapProto callback = *(GetItemBitmapProto*)(*((uintptr_t*)item) + 0x408);     // Version 1.3
+
     if (callback)
         return callback(item);
 
@@ -158,7 +160,9 @@ ItemType GetItemType(void* item)
     typedef ItemType (__thiscall* GetItemTypeProto)();
 
     //GetItemTypeProto callback = *(GetItemTypeProto*)(*((uintptr_t*)item) + 0x508);   // Version 1.2.1.1
-    GetItemTypeProto callback = *(GetItemTypeProto*)(*((uintptr_t*)item) + 0x518);     // Version 1.2.1.6
+    //GetItemTypeProto callback = *(GetItemTypeProto*)(*((uintptr_t*)item) + 0x518);   // Version 1.2.1.6
+    GetItemTypeProto callback = *(GetItemTypeProto*)(*((uintptr_t*)item) + 0x530);     // Version 1.3
+
     if (callback)
         return callback();
 
@@ -170,7 +174,9 @@ WeaponType GetWeaponType(void* item)
     typedef WeaponType (__thiscall* GetWeaponTypeProto)();
 
     //GetWeaponTypeProto callback = *(GetWeaponTypeProto*)(*((uintptr_t*)item) + 0x658);   // Version 1.2.1.1
-    GetWeaponTypeProto callback = *(GetWeaponTypeProto*)(*((uintptr_t*)item) + 0x668);     // Version 1.2.1.6
+    //GetWeaponTypeProto callback = *(GetWeaponTypeProto*)(*((uintptr_t*)item) + 0x668);   // Version 1.2.1.6
+    GetWeaponTypeProto callback = *(GetWeaponTypeProto*)(*((uintptr_t*)item) + 0x538);     // Version 1.3
+
     if (callback)
         return callback();
 
@@ -180,19 +186,22 @@ WeaponType GetWeaponType(void* item)
 std::string GetItemNameTag(void* item)
 {
     //return *(std::string*)((uintptr_t)item + 0xC08);    // Version 1.2.1.1
-    return *(std::string*)((uintptr_t)item + 0xC50);      // Version 1.2.1.6
+    //return *(std::string*)((uintptr_t)item + 0xC50);    // Version 1.2.1.6
+    return *(std::string*)((uintptr_t)item + 0xD70);      // Version 1.3
 }
 
 std::string GetItemPrefixTag(void* item)
 {
     //return *(std::string*)((uintptr_t)item + 0x778);    // Pre-version 1.2.0.5
-    return *(std::string*)((uintptr_t)item + 0x790);      // Version 1.2.0.5
+    //return *(std::string*)((uintptr_t)item + 0x790);    // Version 1.2.0.5
+    return *(std::string*)((uintptr_t)item + 0x890);      // Version 1.3
 }
 
 std::string GetItemSuffixTag(void* item)
 {
     //return *(std::string*)((uintptr_t)item + 0x798);    // Pre-version 1.2.0.5
-    return *(std::string*)((uintptr_t)item + 0x7B0);      // Version 1.2.0.5
+    //return *(std::string*)((uintptr_t)item + 0x7B0);    // Version 1.2.0.5
+    return *(std::string*)((uintptr_t)item + 0x8B0);      // Version 1.3
 }
 
 }

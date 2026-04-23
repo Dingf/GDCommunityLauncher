@@ -7,7 +7,8 @@
 
 inline bool HasBetaAccess(const std::string& role)
 {
-    return (role == "admin") || (role == "tester");
+    // TODO: Revert this
+    return true;//(role == "admin") || (role == "tester");
 }
 
 bool CheckLauncherUpdates()
@@ -200,6 +201,11 @@ bool SelectorDialog::Select()
     {
         HINSTANCE instance = GetModuleHandle(NULL);
         HWND hwnd = CreateDialogParam(instance, MAKEINTRESOURCE(IDD_DIALOG3), 0, SelectorDialogHandler, 0);
+
+        // TODO: Delete this
+        EnableWindow(GetDlgItem(hwnd, IDC_RADIO1), false);
+        CheckDlgButton(hwnd, IDC_RADIO1, BST_UNCHECKED);
+        CheckDlgButton(hwnd, IDC_RADIO2, BST_CHECKED);
 
         MSG message;
         while (GetMessage(&message, 0, 0, 0))
