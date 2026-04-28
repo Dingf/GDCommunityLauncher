@@ -54,7 +54,6 @@ class ServerHandler
         friend bool InitializeModules();
 
         const std::unordered_map<std::string, std::pair<void*,void*>>& GetHandlers() const;
-        uint32_t GetThreadCount();
         void CreateThreadPool();
 
         static ServerHandler& GetInstance();

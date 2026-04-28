@@ -474,7 +474,6 @@ void ServerCoordinator::OnWorldPreLoadEvent(std::string mapName, bool unk1, bool
                 if (const SeasonInfo* seasonInfo = spClient->GetSeasonByType(true))
                 {
                     downloadTasks.push_back(spServer->Send("GetSeasonChallenges", seasonInfo->_seasonID));
-                    downloadTasks.push_back(spServer->Send("GetParticipantChallenges", seasonInfo->_seasonID, hardcoreID));
                 }
             }
 
@@ -488,7 +487,6 @@ void ServerCoordinator::OnWorldPreLoadEvent(std::string mapName, bool unk1, bool
                 if (const SeasonInfo* seasonInfo = spClient->GetSeasonByType(false))
                 {
                     downloadTasks.push_back(spServer->Send("GetSeasonChallenges", seasonInfo->_seasonID));
-                    downloadTasks.push_back(spServer->Send("GetParticipantChallenges", seasonInfo->_seasonID, softcoreID));
                 }
             }
 
@@ -559,7 +557,7 @@ static void LoadSeasonTagsForPlayer(void* player)
     }
 }
 
-void ServerCoordinator::OnSetSeasonPlayerEvent(void* player)
+void ServerCoordinator::OnSetSeasonPlayerEvent(void* player, const SeasonInfo* seasonInfo)
 {
     if (EngineAPI::IsMainCampaign())
     {
@@ -573,13 +571,20 @@ void ServerCoordinator::OnSetSeasonPlayerEvent(void* player)
         spChat->Send("JoinChannel", channel);
 
     if (uint32_t participantID = spCache->GetParticipantID(GameAPI::IsPlayerHardcore(player)))
+    {
         spServer->Send("GetParticipantPoints", participantID);
+        spServer->Send("GetParticipantChallenges", seasonInfo->_seasonID, participantID);
+    }
 }
 
-void ServerCoordinator::OnCaravanInteractEvent(uint32_t caravanID)
+bool ServerCoordinator::OnCaravanInteractEvent(uint32_t caravanID)
 {
     if (uint32_t participantID = spCache->GetParticipantID(EngineAPI::IsHardcore()))
-      spServer->Send("GetParticipantTransferQueue", participantID).wait();
+    {
+        spServer->Send("GetParticipantTransferQueue", participantID, caravanID);
+        return false;
+    }
+    return true;
 }
 
 void ServerCoordinator::OnTransferPreSaveEvent()

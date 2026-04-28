@@ -21,6 +21,7 @@ constexpr char GAPI_NAME_UI_NOTIFY[] = "?QuestCommandUiNotify@GameEngine@GAME@@Q
 constexpr char GAPI_NAME_SEND_CHAT_MESSAGE[] = "?SendChatMessage@GameEngine@GAME@@QEAAXAEBV?$basic_string@GU?$char_traits@G@std@@V?$allocator@G@2@@std@@0EV?$vector@I@mem@@I@Z";
 constexpr char GAPI_NAME_ADD_CHAT_MESSAGE[] = "?AddChatMessage@GameEngine@GAME@@QEAAXAEBV?$basic_string@GU?$char_traits@G@std@@V?$allocator@G@2@@std@@0EPEAVEntity@2@@Z";
 constexpr char GAPI_NAME_ON_CARAVAN_INTERACT[] = "?OnPlayerInteract@NpcCaravan@GAME@@UEAAXI_N0@Z";
+constexpr char GAPI_NAME_SET_CARAVAN_DRIVER_TAG[] = "?SetCaravanDriverTag@GameEngine@GAME@@QEAAXAEBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z";
 constexpr char GAPI_NAME_DISPLAY_CARAVAN_WINDOW[] = "?DisplayCaravanWindow@GameEngine@GAME@@QEAA_NI@Z";
 constexpr char GAPI_NAME_RELOAD_DATABASE[] = "?ReloadDatabase@GameEngine@GAME@@QEAAXXZ";
 #else
@@ -38,6 +39,7 @@ constexpr char GAPI_NAME_UI_NOTIFY[] = "?QuestCommandUiNotify@GameEngine@GAME@@Q
 constexpr char GAPI_NAME_SEND_CHAT_MESSAGE[] = "?SendChatMessage@GameEngine@GAME@@QAEXABV?$basic_string@GU?$char_traits@G@std@@V?$allocator@G@2@@std@@0EV?$vector@I@mem@@I@Z";
 constexpr char GAPI_NAME_ADD_CHAT_MESSAGE[] = "?AddChatMessage@GameEngine@GAME@@QAEXABV?$basic_string@GU?$char_traits@G@std@@V?$allocator@G@2@@std@@0EPAVEntity@2@@Z";
 constexpr char GAPI_NAME_ON_CARAVAN_INTERACT[] = "?OnPlayerInteract@NpcCaravan@GAME@@UAEXI_N0@Z";
+constexpr char GAPI_NAME_SET_CARAVAN_DRIVER_TAG[] = "?SetCaravanDriverTag@GameEngine@GAME@@QAEXABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@Z";
 constexpr char GAPI_NAME_DISPLAY_CARAVAN_WINDOW[] = "?DisplayCaravanWindow@GameEngine@GAME@@QAE_NI@Z";
 constexpr char GAPI_NAME_RELOAD_DATABASE[] = "?ReloadDatabase@GameEngine@GAME@@QAEXXZ";
 #endif
@@ -49,6 +51,7 @@ void SaveGame();
 void SaveTransferStash();
 void LoadTransferStash();
 void SetNumberOfTransferTabs(uint32_t amount);
+void SetCaravanDriverTag(const std::string& tag);
 void DisplayCaravanWindow(uint32_t caravanID);
 bool IsCaravanWindowOpen();
 void DisplayUINotification(const std::string& tag);

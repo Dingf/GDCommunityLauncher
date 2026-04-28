@@ -26,15 +26,12 @@ class Websocket
 
         Websocket(asio::io_context& ioc, ssl::context& ssl, T& handler) : _ioc(ioc), _ssl(ssl), _timer(ioc), _handler(handler), _connected(false)
         {
-            _ws.reset(new WebsocketStream(_ioc, _ssl));
-            // TODO: Make these configurable?
-            _ws->write_buffer_bytes(262144);
-            _ws->set_option(websocket::stream_base::timeout({std::chrono::seconds(30), websocket::stream_base::none(), false}));
+            Reset();
         }
 
         bool IsConnected() const { return _connected; }
 
-        bool Connect(std::string host, uint32_t port, std::string target, std::string authToken = {})
+        bool Connect(std::string host, uint32_t port, std::string target, std::string authToken = {}, bool silent = false)
         {
             try
             {
@@ -62,45 +59,52 @@ class Websocket
                 _connected = true;
 
                 Read();
-                Ping();
                 return true;
             }
             catch (std::exception& ex)
             {
-                Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to connect to %:%: %", host, port, ex.what());
+                if (!silent)
+                    Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to connect to %:%: %", host, port, ex.what());
+
                 return false;
             }
         };
 
         void Disconnect()
         {
-            if (_connected)
+            if (_ws->is_open())
             {
                 auto& socket = beast::get_lowest_layer(*_ws);
                 socket.cancel();
                 socket.shutdown(tcp::socket::shutdown_both);
                 _ws->async_close(websocket::close_code::normal, [&](const beast::error_code& ec)
                 {
-                    _ws.reset(new WebsocketStream(_ioc, _ssl));
-                    _connected = false;
+                    Reset();
                 });
+            }
+            else
+            {
+                Reset();
             }
         }
 
         template <typename... Ts>
         U Send(Ts... args)
         {
-            std::string message;
-            U result = _handler.OnWrite(message, args...);
-
-            if (!message.empty())
+            U result;
+            if (_connected)
             {
-                asio::post(_ws->get_executor(), [this, message]()
+                std::string message;
+                result = _handler.OnWrite(message, args...);
+                if (!message.empty())
                 {
-                    _messageQueue.emplace(std::move(message));
-                    if (_messageQueue.size() == 1)
-                        Write();
-                });
+                    asio::post(_ws->get_executor(), [this, message]()
+                    {
+                        _messageQueue.emplace(std::move(message));
+                        if (_messageQueue.size() == 1)
+                            Write();
+                    });
+                }
             }
             return result;
         }
@@ -128,6 +132,16 @@ class Websocket
 
         T& _handler;
 
+        void Reset()
+        {
+            _ws.reset(new WebsocketStream(_ioc, _ssl));
+            // TODO: Make these configurable?
+            _ws->write_buffer_bytes(262144);
+            _ws->set_option(websocket::stream_base::timeout({std::chrono::seconds(30), std::chrono::seconds(2), true}));
+            _connected = false;
+            _messageQueue.clear();
+        }
+
         void Read()
         {
             _ws->async_read(_buffer, [this](const beast::error_code& ec, size_t n)
@@ -141,8 +155,15 @@ class Websocket
                 }
                 else
                 {
-                    if (ec.value() != asio::error::operation_aborted)
+                    if (ec == beast::error::timeout)
+                    {
+                        Disconnect();
+                        Reconnect();
+                    }
+                    else if (ec.value() != asio::error::operation_aborted)
+                    {
                         Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to read data from websocket: %", ec.what());
+                    }
                 }
             });
         }
@@ -168,7 +189,7 @@ class Websocket
             }
         }
 
-        void Ping()
+        void Reconnect()
         {
             // TODO: Make this configurable?
             _timer.expires_after(std::chrono::milliseconds(1000));
@@ -176,28 +197,15 @@ class Websocket
             {
                 if (!ec)
                 {
-                    if (_connected)
+                    if (!_connected)
                     {
-                        _ws->async_ping({}, [this](const beast::error_code& ec)
-                        {
-                            if (ec)
-                            {
-                                // Reset the connection on error to allow the client to reconnect
-                                Disconnect();
-                            }
-                            Ping();
-                        });
+                        Connect(_host, _port, _target, _authToken, true);
+                        Reconnect();
                     }
-                    else
-                    {
-                        if (!Connect(_host, _port, _target, _authToken))
-                            Ping();
-                    } 
                 }
                 else
                 {
-                    Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to ping websocket: %", ec.what());
-                    Disconnect();
+                    Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to reconnect websocket: %", ec.what());
                 }
             });
         }

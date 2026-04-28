@@ -124,6 +124,23 @@ void SetNumberOfTransferTabs(uint32_t amount)
     callback(*gameEngine, amount);
 }
 
+void SetCaravanDriverTag(const std::string& tag)
+{
+    typedef void (__thiscall* SetCaravanDriverTagProto)(void*, const std::string&);
+
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
+    if (!gameDLL)
+        return;
+
+    SetCaravanDriverTagProto callback = (SetCaravanDriverTagProto)GetProcAddress(gameDLL, GAPI_NAME_SET_CARAVAN_DRIVER_TAG);
+    void** gameEngine = GetGameEngineHandle();
+
+    if ((!callback) || (!gameEngine))
+        return;
+
+    callback(*gameEngine, tag);
+}
+
 void DisplayCaravanWindow(uint32_t caravanID)
 {
     typedef void (__thiscall* DisplayCaravanWindowProto)(void*, uint32_t);
@@ -144,7 +161,10 @@ void DisplayCaravanWindow(uint32_t caravanID)
 bool IsCaravanWindowOpen()
 {
     void** gameEngine = GetGameEngineHandle();
-    uint32_t caravanID = *(uint32_t*)((uintptr_t)(*gameEngine) + 0x35B08);
+
+    //uint32_t caravanID = *(uint32_t*)((uintptr_t)(*gameEngine) + 0x35B08);    // Version 1.2.1.6
+    uint32_t caravanID = *(uint32_t*)((uintptr_t)(*gameEngine) + 0x37250);      // Version 1.3
+
     return (caravanID != 0);
 }
 

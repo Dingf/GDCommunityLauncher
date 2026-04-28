@@ -72,6 +72,13 @@ class ThreadSafeQueue
             _queue.pop();
         }
 
+        void clear()
+        {
+            std::unique_lock<std::mutex> lock(_mutex);
+            std::queue<T> empty;
+            _queue.swap(empty);
+        }
+
     private:
         std::queue<T>           _queue;
         mutable std::mutex      _mutex;

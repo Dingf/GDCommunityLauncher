@@ -42,7 +42,6 @@ const std::unordered_map<std::string, ImprintFlags> _imprintTypeMap =
 const std::regex vaalRegex("^grimleague/items/lootaffixes/ultos/ultos_affix(\\d{2}[a-z]).dbr$");
 const std::regex smithRegex("^grimleague/items/lootaffixes/ultos/ultos_smith(\\d{2}[a-z]).dbr$");
 
-void* _lastEnchantUsedOn = nullptr;
 void* _lastEquipment = nullptr;
 
 std::string GenerateAffixRoll(const std::string& tableName, uint32_t itemLevel, std::string ignore)
@@ -755,11 +754,10 @@ bool HandleCanEnchantBeUsedOn(void* _this, void* item, bool unk1, bool& unk2)
 
             // Prevent crafting on items that are already equipped
             // Use the cached equipment data if this is the same enchant as before
-            if ((!_lastEquipment) || (_this != _lastEnchantUsedOn))
+            if (!_lastEquipment)
             {
                 void* mainPlayer = GameAPI::GetMainPlayer();
                 _lastEquipment = GameAPI::GetPlayerEquipment(mainPlayer);
-                _lastEnchantUsedOn = _this;
             }
 
             uint32_t itemID = EngineAPI::GetObjectID(item);

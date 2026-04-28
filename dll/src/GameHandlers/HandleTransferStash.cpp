@@ -39,9 +39,8 @@ void HandleCaravanInteract(void* _this, uint32_t caravanID, bool unk2, bool unk3
         return;
 
     OnCaravanInteractProto callback = (OnCaravanInteractProto)HookManager::GetOriginalFunction(GAME_DLL, GameAPI::GAPI_NAME_ON_CARAVAN_INTERACT);
-    if (callback)
+    if ((callback) && (EventManager::Poll(GDCL_EVENT_CARAVAN_INTERACT, caravanID)))
     {
-        EventManager::Publish(GDCL_EVENT_CARAVAN_INTERACT, caravanID);
         callback(_this, caravanID, unk2, unk3);
     }
 }

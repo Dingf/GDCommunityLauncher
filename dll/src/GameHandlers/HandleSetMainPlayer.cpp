@@ -81,7 +81,7 @@ void HandleSetMainPlayer(void* _this, uint32_t unk1)
                 spClient->SetActiveSeason(seasonInfo->_seasonID);
                 spCache->SetMainPlayerName(characterName);
 
-                EventManager::Publish(GDCL_EVENT_SET_SEASON_PLAYER, mainPlayer);
+                EventManager::Publish(GDCL_EVENT_SET_SEASON_PLAYER, mainPlayer, seasonInfo);
             }
         }
     }

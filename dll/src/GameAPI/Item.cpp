@@ -175,7 +175,7 @@ WeaponType GetWeaponType(void* item)
 
     //GetWeaponTypeProto callback = *(GetWeaponTypeProto*)(*((uintptr_t*)item) + 0x658);   // Version 1.2.1.1
     //GetWeaponTypeProto callback = *(GetWeaponTypeProto*)(*((uintptr_t*)item) + 0x668);   // Version 1.2.1.6
-    GetWeaponTypeProto callback = *(GetWeaponTypeProto*)(*((uintptr_t*)item) + 0x538);     // Version 1.3
+    GetWeaponTypeProto callback = *(GetWeaponTypeProto*)(*((uintptr_t*)item) + 0x690);     // Version 1.3
 
     if (callback)
         return callback();

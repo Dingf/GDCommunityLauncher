@@ -155,6 +155,7 @@ void TemporaryLoadTagsFile()
     EngineAPI::UI::AddLocalizationTag("tagGDCLCommandBeta03Desc=Usage: /money <amount>{^n}{^n}Adds or removes iron bits from the user's inventory.{^n}{^n}    <amount> - Specifies the amount of iron bits to add. If this value is negative, the amount will be removed instead.{^n}{^n}", "text_en/tags_gdcl.txt", true);
     EngineAPI::UI::AddLocalizationTag("tagGDCLCommandBeta04=Saves character quest tags.", "text_en/tags_gdcl.txt", true);
     EngineAPI::UI::AddLocalizationTag("tagGDCLCommandBeta04Desc=Usage: /tags{^n}{^n}Saves all quest tags for the current character to a text file.{^n}{^n}", "text_en/tags_gdcl.txt", true);
+    EngineAPI::UI::AddLocalizationTag("tagGDLeagueCaravanName=GrimLeagueS07", "text_en/tags_gdcl.txt", true);
 }
 
 void LoadSeasonModAssets(const std::string& seasonName)

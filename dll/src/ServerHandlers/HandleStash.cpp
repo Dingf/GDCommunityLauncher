@@ -79,7 +79,7 @@ std::string HandleWriteStoreItems(uint32_t requestID, uint32_t& participantID, s
     return request.dump();
 }
 
-std::string HandleWriteTransferQueue(uint32_t requestID, uint32_t& participantID)
+std::string HandleWriteTransferQueue(uint32_t requestID, uint32_t& participantID, uint32_t& caravanID)
 {
     json request = 
     {
@@ -184,7 +184,7 @@ void HandleReadStoreItems(const json& response, uint32_t participantID, std::vec
     GameAPI::SetTransferLocked(false);
 }
 
-void HandleReadTransferQueue(const json& response, uint32_t participantID)
+void HandleReadTransferQueue(const json& response, uint32_t participantID, uint32_t caravanID)
 {
     try
     {
@@ -214,9 +214,11 @@ void HandleReadTransferQueue(const json& response, uint32_t participantID)
                     }
                 }
 
-                GameAPI::SaveTransferStash();
                 spServer->Send("TransferParticipantItems", participantID, pulledItemIDs);
+                GameAPI::SaveTransferStash();
             }
+            GameAPI::SetCaravanDriverTag("tagGDLeagueCaravanName");
+            GameAPI::DisplayCaravanWindow(caravanID);
         }
         else
         {
