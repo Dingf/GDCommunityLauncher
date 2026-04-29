@@ -217,8 +217,10 @@ void HandleReadTransferQueue(const json& response, uint32_t participantID, uint3
                 spServer->Send("TransferParticipantItems", participantID, pulledItemIDs);
                 GameAPI::SaveTransferStash();
             }
-            GameAPI::SetCaravanDriverTag("tagGDLeagueCaravanName");
-            GameAPI::DisplayCaravanWindow(caravanID);
+
+            // Calling DisplayCaravanWindow() here can lead to a race condition since this is in a separate thread
+            // So just save the caravan ID so that we can display the window on the next frame in the main thread
+            GameAPI::SetLastCaravanID(caravanID);
         }
         else
         {

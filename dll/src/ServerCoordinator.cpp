@@ -54,11 +54,23 @@ void ServerCoordinator::OnUpdateEvent()
         }
         spCache->ClearDirtyCharacters();
     }
+
+    uint32_t caravanID = GameAPI::GetLastCaravanID();
+    if (caravanID != 0)
+    {
+        if (void* caravan = EngineAPI::FindObjectByID(caravanID))
+        {
+            std::string caravanTag = *(std::string*)((uint8_t*)caravan + 0x440);
+            GameAPI::SetCaravanDriverTag(caravanTag);
+            GameAPI::DisplayCaravanWindow(caravanID);
+        }
+        GameAPI::SetLastCaravanID(0);
+    }
 }
 
 void ServerCoordinator::OnPreShutdownEvent()
 {
-    std::wstring lastPlayerName = spCache->GetLastMainPlayerName();
+    std::wstring lastPlayerName = spClient->GetMainPlayerName();
     if (const FileWriter* characterData = spCache->GetCharacterData(lastPlayerName))
     {
         uint32_t participantID = spCache->GetParticipantID(lastPlayerName);

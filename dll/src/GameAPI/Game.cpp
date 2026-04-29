@@ -5,6 +5,8 @@
 namespace GameAPI
 {
 
+uint32_t _lastCaravanID;
+
 void SetCloudStorageEnabled(bool enabled)
 {
     typedef void (__thiscall* SetCloudStorageEnabledProto)(void*, bool);
@@ -152,20 +154,20 @@ void DisplayCaravanWindow(uint32_t caravanID)
     DisplayCaravanWindowProto callback = (DisplayCaravanWindowProto)GetProcAddress(gameDLL, GAPI_NAME_DISPLAY_CARAVAN_WINDOW);
     void** gameEngine = GetGameEngineHandle();
 
-    if ((!callback) || (!gameEngine) || (IsCaravanWindowOpen()))
+    if ((!callback) || (!gameEngine))
         return;
 
     callback(*gameEngine, caravanID);
 }
 
-bool IsCaravanWindowOpen()
+void SetLastCaravanID(uint32_t caravanID)
 {
-    void** gameEngine = GetGameEngineHandle();
+    _lastCaravanID = caravanID;
+}
 
-    //uint32_t caravanID = *(uint32_t*)((uintptr_t)(*gameEngine) + 0x35B08);    // Version 1.2.1.6
-    uint32_t caravanID = *(uint32_t*)((uintptr_t)(*gameEngine) + 0x37250);      // Version 1.3
-
-    return (caravanID != 0);
+uint32_t GetLastCaravanID()
+{
+    return _lastCaravanID;
 }
 
 void DisplayUINotification(const std::string& tag)

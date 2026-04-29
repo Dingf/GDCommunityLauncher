@@ -227,7 +227,6 @@ void ServerCache::SetTagsData(bool hardcore, uint8_t* data, size_t size)
 void ServerCache::Clear()
 {
     _stashCapacity = -1;
-    _lastPlayerName.clear();
     _participantData.clear();
     _characterData.clear();
 }

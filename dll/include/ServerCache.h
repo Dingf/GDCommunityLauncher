@@ -32,11 +32,9 @@ class ServerCache
         uint32_t GetParticipantID(const std::wstring& characterName);
         uint32_t GetCharacterID(const std::wstring& characterName);
         int32_t GetStashCapacity() const { return _stashCapacity; }
-        std::wstring GetLastMainPlayerName() const { return _lastPlayerName; }
 
         void SetParticipantID(bool hardcore, uint32_t participantID);
         void SetStashCapacity(int32_t capacity) { _stashCapacity = capacity; }
-        void SetMainPlayerName(const std::wstring& characterName) { _lastPlayerName = characterName; }
 
         const CacheBuffer* GetCharacterData(const std::wstring& characterName) const;
         const CacheBuffer* GetQuestData(const std::wstring& characterName, GameAPI::Difficulty difficulty) const;
@@ -106,8 +104,7 @@ class ServerCache
 
         ServerCache();
 
-        int32_t _stashCapacity;
-        std::wstring _lastPlayerName;
+        std::atomic_int32_t _stashCapacity;
         std::unordered_set<std::wstring> _dirtyCharacters;
         std::unordered_map<bool, ParticipantData> _participantData;
         std::unordered_map<std::wstring, CharacterData> _characterData;

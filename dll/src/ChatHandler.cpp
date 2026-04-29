@@ -122,7 +122,6 @@ void ChatHandler::OnShutdown()
     if (_threadPool)
         _threadPool->join();
 }
-
 void ChatHandler::CreateThreadPool()
 {
     if (!_threadPool)

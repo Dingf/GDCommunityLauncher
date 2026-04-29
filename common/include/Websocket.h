@@ -31,7 +31,7 @@ class Websocket
 
         bool IsConnected() const { return _connected; }
 
-        bool Connect(std::string host, uint32_t port, std::string target, std::string authToken = {}, bool silent = false)
+        bool Connect(std::string host, uint32_t port, std::string target, std::string authToken = {})
         {
             try
             {
@@ -61,10 +61,11 @@ class Websocket
                 Read();
                 return true;
             }
-            catch (std::exception& ex)
+            catch (const boost::system::system_error& ex)
             {
-                if (!silent)
-                    Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to connect to %:%: %", host, port, ex.what());
+                boost::system::error_code ec = ex.code();
+                if (ec.value() != asio::error::host_not_found)
+                    Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to connect to %:%: % %", host, port, ex.code(), ex.what());
 
                 return false;
             }
@@ -199,7 +200,21 @@ class Websocket
                 {
                     if (!_connected)
                     {
-                        Connect(_host, _port, _target, _authToken, true);
+                        Connect(_host, _port, _target, _authToken);
+
+                        // Disconnect and reconnect again to close the connection gracefully
+                        if (_ws->is_open())
+                        {
+                            auto& socket = beast::get_lowest_layer(*_ws);
+                            socket.cancel();
+                            socket.shutdown(tcp::socket::shutdown_both);
+                            _ws->async_close(websocket::close_code::normal, [&](const beast::error_code& ec)
+                            {
+                                Reset();
+                                Connect(_host, _port, _target, _authToken);
+                            });
+                        }
+
                         Reconnect();
                     }
                 }

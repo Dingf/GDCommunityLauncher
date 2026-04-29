@@ -18,9 +18,11 @@ class DllClient : public Client
 
         uint32_t GetPoints() const { return _points; }
         uint32_t GetRank() const { return _rank; }
+        std::wstring GetMainPlayerName() const { return _lastPlayerName; }
 
         void SetPoints(uint32_t points) { _points = points; }
         void SetRank(uint32_t rank) { _rank = rank; }
+        void SetMainPlayerName(const std::wstring& characterName) { _lastPlayerName = characterName; }
 
         const SeasonInfo* GetActiveSeason() const { return _activeSeason; }
         const SeasonInfo* GetSeasonByType(SeasonType type);
@@ -41,6 +43,7 @@ class DllClient : public Client
 
         uint32_t _rank;
         uint32_t _points;
+        std::wstring _lastPlayerName;
 
         std::vector<SeasonInfo> _seasons;
         const SeasonInfo* _activeSeason;
