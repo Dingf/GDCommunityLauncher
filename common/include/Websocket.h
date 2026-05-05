@@ -183,8 +183,15 @@ class Websocket
                     }
                     else
                     {
-                        if (ec.value() != asio::error::operation_aborted)
+                        if (ec == beast::error::timeout)
+                        {
+                            Disconnect();
+                            Reconnect();
+                        }
+                        else if (ec.value() != asio::error::operation_aborted)
+                        {
                             Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to write data to websocket: %", ec.what());
+                        }
                     }
                 });
             }

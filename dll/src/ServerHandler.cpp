@@ -38,7 +38,7 @@ std::string HandleWriteGetFOWFile(uint32_t requestID, uint32_t& participantID, s
 std::string HandleWriteSaveFOWFile(uint32_t requestID, uint32_t& participantID, std::wstring& characterName, GameAPI::Difficulty& difficulty, std::string& base64Data);
 std::string HandleWriteStashCapacity(uint32_t requestID);
 std::string HandleWriteTransferItems(uint32_t requestID, uint32_t& participantID, std::vector<uint32_t>& itemIDs);
-std::string HandleWriteStoreItems(uint32_t requestID, uint32_t& participantID, std::vector<json>& items);
+std::string HandleWriteStoreItems(uint32_t requestID, uint32_t& participantID, std::vector<uint32_t>& itemIDs);
 std::string HandleWriteTransferQueue(uint32_t requestID, uint32_t& participantID, uint32_t& caravanID);
 std::string HandleWriteDeleteCharacter(uint32_t requestID, uint32_t& participantID, std::wstring& characterName);
 std::string HandleWriteSaveTag(uint32_t requestID, uint32_t& participantID, std::string& tagName, uint32_t& level, GameAPI::Difficulty& difficulty);
@@ -72,7 +72,7 @@ void HandleReadGetFOWFile(const json& response, uint32_t participantID, std::wst
 void HandleReadSaveFOWFile(const json& response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty, std::string base64Data);
 void HandleReadStashCapacity(const json& response);
 void HandleReadTransferItems(const json& response, uint32_t participantID, std::vector<uint32_t> itemIDs);
-void HandleReadStoreItems(const json& response, uint32_t participantID, std::vector<json> items);
+void HandleReadStoreItems(const json& response, uint32_t participantID, std::vector<uint32_t> itemIDs);
 void HandleReadTransferQueue(const json& response, uint32_t participantID, uint32_t caravanID);
 void HandleReadDeleteCharacter(const json& response, uint32_t participantID, std::wstring characterName);
 void HandleReadSaveTag(const json& response, uint32_t participantID, std::string tagName, uint32_t level, GameAPI::Difficulty difficulty);

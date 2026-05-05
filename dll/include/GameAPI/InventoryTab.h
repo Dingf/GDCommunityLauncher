@@ -18,6 +18,7 @@ constexpr char GAPI_NAME_TAB_REMOVE_ALL_ITEMS[] = "?RemoveAllItems@InventorySack
 constexpr char GAPI_NAME_TAB_GET_ITEMS[] = "?GetInventory@InventorySack@GAME@@QEBAAEBV?$map@IVRect@GAME@@@mem@@XZ";
 constexpr char GAPI_NAME_TRANSFER_ADD_ITEM_1[] = "?AddItemToTransfer@GameEngine@GAME@@QEAA_NIAEBVVec2@2@I_N@Z";
 constexpr char GAPI_NAME_TRANSFER_ADD_ITEM_2[] = "?AddItemToTransfer@GameEngine@GAME@@QEAA_NII_N@Z";
+constexpr char GAPI_NAME_GET_PLAYER_REAGENTS[] = "?GetPlayerReagents@GameEngine@GAME@@QEBAAEBV?$map@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@UReagentData@GAME@@@mem@@XZ";
 constexpr char GAPI_NAME_GET_PLAYER_INVENTORY[] = "?GetInventoryCtrl@ControllerPlayer@GAME@@QEBAAEBVPlayerInventoryCtrl@2@XZ";
 constexpr char GAPI_NAME_GET_PLAYER_EQUIPMENT[] = "?GetEquipmentCtrl@ControllerCharacter@GAME@@QEBAAEBVEquipmentCtrl@2@XZ";
 constexpr char GAPI_NAME_GET_INVENTORY_TAB[] = "?GetSack@PlayerInventoryCtrl@GAME@@QEAAPEAVInventorySack@2@H@Z";
@@ -26,6 +27,7 @@ constexpr char GAPI_NAME_GET_PERSONAL_TABS[] = "?GetPrivateStash@Player@GAME@@QE
 constexpr char GAPI_NAME_GET_TRANSFER_TABS[] = "?GetPlayerTransfer@GameEngine@GAME@@QEAAAEAV?$vector@PEAVInventorySack@GAME@@@mem@@XZ";
 constexpr char GAPI_NAME_GET_EQUIPPED_ITEM[] = "?GetItemId@EquipmentCtrl@GAME@@QEBAIW4EquipmentCtrlLocation@2@@Z";
 constexpr char GAPI_NAME_IS_ITEM_EQUIPPED[] = "?IsItemAttached@EquipmentCtrl@GAME@@QEBA_NI@Z";
+constexpr char GAPI_NAME_CLEAR_PLAYER_REAGENTS[] = "?ClearReagents@GameEngine@GAME@@QEAAXXZ";
 #else
 constexpr char GAPI_NAME_TAB_ADD_ITEM_1[] = "?AddItem@InventorySack@GAME@@QAE_NABVVec2@2@PAVItem@2@_N@Z";
 constexpr char GAPI_NAME_TAB_ADD_ITEM_2[] = "?AddItem@InventorySack@GAME@@QAE_NPAVItem@2@_N1@Z";
@@ -34,6 +36,7 @@ constexpr char GAPI_NAME_TAB_REMOVE_ALL_ITEMS[] = "?RemoveAllItems@InventorySack
 constexpr char GAPI_NAME_TAB_GET_ITEMS[] = "?GetInventory@InventorySack@GAME@@QBEABV?$map@IVRect@GAME@@@mem@@XZ";
 constexpr char GAPI_NAME_TRANSFER_ADD_ITEM_1[] = "?AddItemToTransfer@GameEngine@GAME@@QAE_NIABVVec2@2@I_N@Z";
 constexpr char GAPI_NAME_TRANSFER_ADD_ITEM_2[] = "?AddItemToTransfer@GameEngine@GAME@@QAE_NII_N@Z";
+constexpr char GAPI_NAME_GET_PLAYER_REAGENTS[] = "?GetPlayerReagents@GameEngine@GAME@@QBEABV?$map@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@UReagentData@GAME@@@mem@@XZ";
 constexpr char GAPI_NAME_GET_PLAYER_INVENTORY[] = "?GetInventoryCtrl@ControllerPlayer@GAME@@QBEABVPlayerInventoryCtrl@2@XZ";
 constexpr char GAPI_NAME_GET_PLAYER_EQUIPMENT[] = "?GetEquipmentCtrl@ControllerCharacter@GAME@@QBEABVEquipmentCtrl@2@XZ";
 constexpr char GAPI_NAME_GET_INVENTORY_TAB[] = "?GetSack@PlayerInventoryCtrl@GAME@@QAEPAVInventorySack@2@H@Z";
@@ -42,6 +45,7 @@ constexpr char GAPI_NAME_GET_PERSONAL_TABS[] = "?GetPrivateStash@Player@GAME@@QA
 constexpr char GAPI_NAME_GET_TRANSFER_TABS[] = "?GetPlayerTransfer@GameEngine@GAME@@QAEAAV?$vector@PAVInventorySack@GAME@@@mem@@XZ";
 constexpr char GAPI_NAME_GET_EQUIPPED_ITEM[] = "?GetItemId@EquipmentCtrl@GAME@@QBEIW4EquipmentCtrlLocation@2@@Z";
 constexpr char GAPI_NAME_IS_ITEM_EQUIPPED[] = "?IsItemAttached@EquipmentCtrl@GAME@@QBE_NI@Z";
+constexpr char GAPI_NAME_CLEAR_PLAYER_REAGENTS[] = "?ClearReagents@GameEngine@GAME@@QAEXXZ";
 #endif
 
 enum EquipLocation
@@ -62,6 +66,12 @@ enum EquipLocation
     EQUIp_LOCATION_MEDAL = 14
 };
 
+struct ReagentData
+{
+    uint32_t _reagentID;
+    uint32_t _reagentCount;
+};
+
 bool AddItemToTab(void* tab, const EngineAPI::Vec2& position, void* item, bool unk1);
 bool AddItemToTab(void* tab, void* item, bool unk1, bool unk2);
 bool RemoveItemFromTab(void* tab, uint32_t itemID);
@@ -69,6 +79,7 @@ void RemoveAllItemsFromTab(void* tab);
 const std::map<uint32_t, EngineAPI::Rect>& GetItemsInTab(void* tab);
 bool AddItemToTransfer(uint32_t tab, const EngineAPI::Vec2& position, uint32_t itemID, bool unk1);
 bool AddItemToTransfer(uint32_t itemID, uint32_t tab, bool unk1);
+const std::map<std::string, ReagentData>& GetPlayerReagents();
 void* GetPlayerInventory(void* player);
 void* GetPlayerEquipment(void* player);
 void* GetInventoryTab(void* inventory, int32_t index);
@@ -77,8 +88,7 @@ const std::vector<void*>& GetPersonalTabs(void* player);
 const std::vector<void*>& GetTransferTabs();
 uint32_t GetEquippedItemID(void* equipment, EquipLocation slot);
 bool IsItemEquipped(void* equipment, uint32_t itemID);
-void SetTransferLocked(bool locked);
-bool IsTransferLocked();
+void ClearPlayerReagents();
 
 }
 

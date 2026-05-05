@@ -35,9 +35,6 @@ void HandleCaravanInteract(void* _this, uint32_t caravanID, bool unk2, bool unk3
 {
     typedef void (__thiscall* OnCaravanInteractProto)(void*, uint32_t, bool, bool);
 
-    if (GameAPI::IsTransferLocked())
-        return;
-
     OnCaravanInteractProto callback = (OnCaravanInteractProto)HookManager::GetOriginalFunction(GAME_DLL, GameAPI::GAPI_NAME_ON_CARAVAN_INTERACT);
     if ((callback) && (EventManager::Poll(GDCL_EVENT_CARAVAN_INTERACT, EngineAPI::GetObjectID(_this))))
     {

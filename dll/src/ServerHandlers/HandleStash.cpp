@@ -63,8 +63,20 @@ std::string HandleWriteTransferItems(uint32_t requestID, uint32_t& participantID
     return request.dump();
 }
 
-std::string HandleWriteStoreItems(uint32_t requestID, uint32_t& participantID, std::vector<json>& items)
+std::string HandleWriteStoreItems(uint32_t requestID, uint32_t& participantID, std::vector<uint32_t>& itemIDs)
 {
+    std::vector<json> items;
+    for (uint32_t itemID : itemIDs)
+    {
+        if (void* item = EngineAPI::FindObjectByID(itemID))
+        {
+            ItemReplicaInfo itemInfo;
+            GameAPI::GetItemReplicaInfo(item, itemInfo);
+            itemInfo._participantItemID = 0;
+            items.emplace_back(itemInfo);
+        }
+    }
+
     json request = 
     {
         { "RequestName", "StoreParticipantStashItems" },
@@ -75,7 +87,6 @@ std::string HandleWriteStoreItems(uint32_t requestID, uint32_t& participantID, s
         }},
         { "Data", items }
     };
-    items.clear();
     return request.dump();
 }
 
@@ -150,7 +161,7 @@ void HandleReadTransferItems(const json& response, uint32_t participantID, std::
     }
 }
 
-void HandleReadStoreItems(const json& response, uint32_t participantID, std::vector<json> items)
+void HandleReadStoreItems(const json& response, uint32_t participantID, std::vector<uint32_t> itemIDs)
 {
     try
     {
@@ -161,9 +172,17 @@ void HandleReadStoreItems(const json& response, uint32_t participantID, std::vec
             if (transferTabs.size() >= 6)
             {
                 void* uploadTab = transferTabs[5];
-                GameAPI::RemoveAllItemsFromTab(uploadTab);
-                GameAPI::SaveTransferStash();
-                GameAPI::DisplayUINotification("tagGDLeagueStorageSuccess");
+                for (uint32_t itemID : itemIDs)
+                {
+                    if (!GameAPI::RemoveItemFromTab(uploadTab, itemID))
+                        GameAPI::DisplayUINotification("tagGDLeagueStorageFailure");
+                }
+
+                if (GameAPI::GetItemsInTab(uploadTab).size() == 0)
+                {
+                    GameAPI::DisplayUINotification("tagGDLeagueStorageSuccess");
+                    GameAPI::SaveTransferStash();
+                }
             }
         }
         else if (status == HTTP_STATUS_BAD_REQUEST)
@@ -180,8 +199,6 @@ void HandleReadStoreItems(const json& response, uint32_t participantID, std::vec
     {
         Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to upload items to cloud stash: %", ex.what());
     }
-
-    GameAPI::SetTransferLocked(false);
 }
 
 void HandleReadTransferQueue(const json& response, uint32_t participantID, uint32_t caravanID)

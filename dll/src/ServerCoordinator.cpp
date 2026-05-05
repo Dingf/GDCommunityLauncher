@@ -616,22 +616,20 @@ void ServerCoordinator::OnTransferPreSaveEvent()
                 return;
             }
 
-            std::vector<json> storedItems;
+            uint32_t participantID = spCache->GetParticipantID(EngineAPI::IsHardcore());
+            std::vector<uint32_t> storedItems;
             for (const auto& pair : items)
             {
-                if (void* item = EngineAPI::FindObjectByID(pair.first))
+                storedItems.emplace_back(pair.first);
+                if (storedItems.size() >= 5)
                 {
-                    ItemReplicaInfo itemInfo;
-                    GameAPI::GetItemReplicaInfo(item, itemInfo);
-                    itemInfo._participantItemID = 0;
-                    storedItems.emplace_back(itemInfo);
+                    spServer->Send("StoreParticipantStashItems", participantID, storedItems);
+                    storedItems.clear();
                 }
             }
 
-            GameAPI::SetTransferLocked(true);
-
-            uint32_t participantID = spCache->GetParticipantID(EngineAPI::IsHardcore());
-            spServer->Send("StoreParticipantStashItems", participantID, storedItems);
+            if (storedItems.size() > 0)
+                spServer->Send("StoreParticipantStashItems", participantID, storedItems);
         }
     }
 }
