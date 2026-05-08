@@ -42,6 +42,7 @@ std::string HandleWriteStoreItems(uint32_t requestID, uint32_t& participantID, s
 std::string HandleWriteTransferQueue(uint32_t requestID, uint32_t& participantID, uint32_t& caravanID);
 std::string HandleWriteDeleteCharacter(uint32_t requestID, uint32_t& participantID, std::wstring& characterName);
 std::string HandleWriteSaveTag(uint32_t requestID, uint32_t& participantID, std::string& tagName, uint32_t& level, GameAPI::Difficulty& difficulty);
+std::string HandleWriteGetChecksum(uint32_t requestID, uint32_t& participantID, std::wstring& characterName, GameAPI::Difficulty& difficulty, std::filesystem::path& filePath);
 
 // Read Handlers
 void HandleReadAddParticipant(const json& response, bool hardcore);
@@ -76,6 +77,7 @@ void HandleReadStoreItems(const json& response, uint32_t participantID, std::vec
 void HandleReadTransferQueue(const json& response, uint32_t participantID, uint32_t caravanID);
 void HandleReadDeleteCharacter(const json& response, uint32_t participantID, std::wstring characterName);
 void HandleReadSaveTag(const json& response, uint32_t participantID, std::string tagName, uint32_t level, GameAPI::Difficulty difficulty);
+void HandleReadGetChecksum(const json& response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty, std::filesystem::path filePath);
 
 const std::unordered_map<std::string, std::pair<void*,void*>>& ServerHandler::GetHandlers() const
 {
@@ -113,6 +115,7 @@ const std::unordered_map<std::string, std::pair<void*,void*>>& ServerHandler::Ge
         { "GetParticipantTransferQueue",               { HandleWriteTransferQueue,         HandleReadTransferQueue } },
         { "DeleteParticipantCharacter",                { HandleWriteDeleteCharacter,       HandleReadDeleteCharacter } },
         { "SaveParticipantTag",                        { HandleWriteSaveTag,               HandleReadSaveTag }},
+        { "GetFileChecksum",                           { HandleWriteGetChecksum,           HandleReadGetChecksum }}
     };
     return handlers;
 }
@@ -141,9 +144,9 @@ ServerHandler& ServerHandler::GetInstance()
     return instance;
 }
 
-Websocket<ServerHandler, std::future<json>>* ServerHandler::GetSocket()
+Websocket<ServerHandler, ServerHandlerRequest>* ServerHandler::GetSocket()
 {
-    static Websocket<ServerHandler, std::future<json>> socket(ContextManager::GetIOContext(), ContextManager::GetSSLContext(), GetInstance());
+    static Websocket<ServerHandler, ServerHandlerRequest> socket(ContextManager::GetIOContext(), ContextManager::GetSSLContext(), GetInstance());
     return &socket;
 }
 
@@ -154,14 +157,19 @@ void ServerHandler::OnRead(const std::string& data)
         json response = json::parse(data);
         uint32_t requestID = response.at("RequestId").get<uint32_t>();
 
-        std::function<void(json)> callback = _callbacks.at(requestID);
-        std::shared_ptr<std::promise<json>> promise = std::make_shared<std::promise<json>>(std::move(_promises[requestID]));
+        ServerHandlerRequest& request = _requests.at(requestID);
 
-        boost::asio::post(*_threadPool, [callback, response, promise]()
+        std::function<void(const json&)> callback = request._callback;
+        std::function<void(const json&)> then = *request._then;
+        std::shared_ptr<std::promise<json>> promise = request._promise;
+
+        boost::asio::post(*_threadPool, [response, callback, then, promise]()
         {
             try
             {
                 callback(response);
+                if (then != nullptr)
+                    then(response);
                 promise->set_value(response);
             }
             catch (const std::exception& ex)
@@ -170,8 +178,7 @@ void ServerHandler::OnRead(const std::string& data)
             }
         });
 
-        _callbacks.erase(requestID);
-        _promises.erase(requestID);
+        _requests.erase(requestID);
     }
 }
 

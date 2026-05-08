@@ -13,7 +13,11 @@
 #include "Quest.h"
 #include "FileReader.h"
 #include "StringConvert.h"
+#include "HTTP.h"
+#include "MD5.h"
 #include "Log.h"
+
+typedef ThreadSafeQueue<ServerHandlerRequest> DownloadQueue;
 
 ServerCoordinator::ServerCoordinator()
 {
@@ -410,7 +414,228 @@ void ServerCoordinator::OnAddSaveJobEvent(std::string filename, void* data, size
         it->second(filePath, (uint8_t*)data, size);
 }
 
-void DownloadParticipantFiles(std::vector<std::future<json>>& downloadTasks, uint32_t participantID)
+static void DownloadCharacterFile(uint32_t participantID, const std::wstring& characterName, std::shared_ptr<DownloadQueue> downloadQueue)
+{
+    std::filesystem::path filePath = GameAPI::GetPlayerSaveFile(characterName);
+    downloadQueue->push(spServer->Send("GetFileChecksum", participantID, characterName, GameAPI::GAME_DIFFICULTY_NORMAL, filePath).then(
+    [=](const json& response)
+    {
+        HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
+        if (status == HTTP_STATUS_OK)
+        {
+            std::string serverChecksum = response.at("Data").get<std::string>();
+            std::string clientChecksum = GenerateFileMD5(filePath);
+            if (((serverChecksum == clientChecksum) && (!clientChecksum.empty())))
+            {
+                FileReader reader(filePath);
+                spCache->SetCharacterData(characterName, reader.GetBuffer(), reader.GetBufferSize());
+            }
+            else
+            {
+                downloadQueue->push(spServer->Send("GetCharacterFile", participantID, characterName));
+            }
+        }
+    }));
+}
+
+static void DownloadQuestFile(uint32_t participantID, const std::wstring& characterName, GameAPI::Difficulty difficulty, std::shared_ptr<DownloadQueue> downloadQueue)
+{
+    std::filesystem::path filePath = GameAPI::GetPlayerFolder(characterName) / "levels_world001.map" / GameAPI::GetGameDifficultyName(difficulty) / "quests.gdd";
+    downloadQueue->push(spServer->Send("GetFileChecksum", participantID, characterName, difficulty, filePath).then(
+    [=](const json& response)
+    {
+        HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
+        if (status == HTTP_STATUS_OK)
+        {
+            std::string serverChecksum = response.at("Data").get<std::string>();
+            std::string clientChecksum = GenerateFileMD5(filePath);
+            if (((serverChecksum == clientChecksum) && (!clientChecksum.empty())))
+            {
+                FileReader reader(filePath);
+                spCache->SetQuestData(characterName, difficulty, reader.GetBuffer(), reader.GetBufferSize());
+            }
+            else
+            {
+                downloadQueue->push(spServer->Send("GetParticipantCharacterQuestFile", participantID, characterName, difficulty));
+            }
+        }
+    }));
+}
+
+static void DownloadConversationsFile(uint32_t participantID, const std::wstring& characterName, GameAPI::Difficulty difficulty, std::shared_ptr<DownloadQueue> downloadQueue)
+{
+    std::filesystem::path filePath = GameAPI::GetPlayerFolder(characterName) / "levels_world001.map" / GameAPI::GetGameDifficultyName(difficulty) / "conversations.gdd";
+    downloadQueue->push(spServer->Send("GetFileChecksum", participantID, characterName, difficulty, filePath).then(
+    [=](const json& response)
+    {
+        HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
+        if (status == HTTP_STATUS_OK)
+        {
+            std::string serverChecksum = response.at("Data").get<std::string>();
+            std::string clientChecksum = GenerateFileMD5(filePath);
+            if (((serverChecksum == clientChecksum) && (!clientChecksum.empty())))
+            {
+                FileReader reader(filePath);
+                spCache->SetConversationsData(characterName, difficulty, reader.GetBuffer(), reader.GetBufferSize());
+            }
+            else
+            {
+                downloadQueue->push(spServer->Send("GetParticipantCharacterConversationsFile", participantID, characterName, difficulty));
+            }
+        }
+    }));
+}
+
+static void DownloadMapFile(uint32_t participantID, const std::wstring& characterName, GameAPI::Difficulty difficulty, std::shared_ptr<DownloadQueue> downloadQueue)
+{
+    std::filesystem::path filePath = GameAPI::GetPlayerFolder(characterName) / "levels_world001.map" / GameAPI::GetGameDifficultyName(difficulty) / "map.dat";
+    downloadQueue->push(spServer->Send("GetFileChecksum", participantID, characterName, difficulty, filePath).then(
+    [=](const json& response)
+    {
+        HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
+        if (status == HTTP_STATUS_OK)
+        {
+            std::string serverChecksum = response.at("Data").get<std::string>();
+            std::string clientChecksum = GenerateFileMD5(filePath);
+            if (((serverChecksum == clientChecksum) && (!clientChecksum.empty())))
+            {
+                FileReader reader(filePath);
+                spCache->SetMapData(characterName, difficulty, reader.GetBuffer(), reader.GetBufferSize());
+            }
+            else
+            {
+                downloadQueue->push(spServer->Send("GetParticipantCharacterMapDatFile", participantID, characterName, difficulty));
+            }
+        }
+    }));
+}
+
+static void DownloadFOWFile(uint32_t participantID, const std::wstring& characterName, GameAPI::Difficulty difficulty, std::shared_ptr<DownloadQueue> downloadQueue)
+{
+    std::filesystem::path filePath = GameAPI::GetPlayerFolder(characterName) / "levels_world001.map" / GameAPI::GetGameDifficultyName(difficulty) / "map.fow";
+    downloadQueue->push(spServer->Send("GetFileChecksum", participantID, characterName, difficulty, filePath).then(
+    [=](const json& response)
+    {
+        HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
+        if (status == HTTP_STATUS_OK)
+        {
+            std::string serverChecksum = response.at("Data").get<std::string>();
+            std::string clientChecksum = GenerateFileMD5(filePath);
+            if (((serverChecksum == clientChecksum) && (!clientChecksum.empty())))
+            {
+                FileReader reader(filePath);
+                spCache->SetFOWData(characterName, difficulty, reader.GetBuffer(), reader.GetBufferSize());
+            }
+            else
+            {
+                downloadQueue->push(spServer->Send("GetParticipantCharacterMapFowFile", participantID, characterName, difficulty));
+            }
+        }
+    }));
+}
+
+static void DownloadStashFile(uint32_t participantID, std::shared_ptr<DownloadQueue> downloadQueue)
+{
+    bool hardcore = spCache->IsParticipantHardcore(participantID);
+    std::filesystem::path filePath = GameAPI::GetTransferStashPath(hardcore);
+    downloadQueue->push(spServer->Send("GetFileChecksum", participantID, std::wstring(), GameAPI::GAME_DIFFICULTY_NORMAL, filePath).then(
+    [=](const json& response)
+    {
+        HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
+        if (status == HTTP_STATUS_OK)
+        {
+            std::string serverChecksum = response.at("Data").get<std::string>();
+            std::string clientChecksum = GenerateFileMD5(filePath);
+            if (((serverChecksum == clientChecksum) && (!clientChecksum.empty())))
+            {
+                FileReader reader(filePath);
+                spCache->SetStashData(hardcore, reader.GetBuffer(), reader.GetBufferSize());
+            }
+            else
+            {
+                downloadQueue->push(spServer->Send("GetParticipantStashFile", participantID));
+            }
+        }
+    }));
+}
+
+static void DownloadFormulasFile(uint32_t participantID, std::shared_ptr<DownloadQueue> downloadQueue)
+{
+    bool hardcore = spCache->IsParticipantHardcore(participantID);
+    std::filesystem::path filePath = GameAPI::GetFormulasPath(hardcore);
+    downloadQueue->push(spServer->Send("GetFileChecksum", participantID, std::wstring(), GameAPI::GAME_DIFFICULTY_NORMAL, filePath).then(
+    [=](const json& response)
+    {
+        HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
+        if (status == HTTP_STATUS_OK)
+        {
+            std::string serverChecksum = response.at("Data").get<std::string>();
+            std::string clientChecksum = GenerateFileMD5(filePath);
+            if (((serverChecksum == clientChecksum) && (!clientChecksum.empty())))
+            {
+                FileReader reader(filePath);
+                spCache->SetFormulasData(hardcore, reader.GetBuffer(), reader.GetBufferSize());
+            }
+            else
+            {
+                downloadQueue->push(spServer->Send("GetParticipantFormulas", participantID));
+            }
+        }
+    }));
+}
+
+static void DownloadTransmutesFile(uint32_t participantID, std::shared_ptr<DownloadQueue> downloadQueue)
+{
+    bool hardcore = spCache->IsParticipantHardcore(participantID);
+    std::filesystem::path filePath = GameAPI::GetTransmutesPath(hardcore);
+    downloadQueue->push(spServer->Send("GetFileChecksum", participantID, std::wstring(), GameAPI::GAME_DIFFICULTY_NORMAL, filePath).then(
+    [=](const json& response)
+    {
+        HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
+        if (status == HTTP_STATUS_OK)
+        {
+            std::string serverChecksum = response.at("Data").get<std::string>();
+            std::string clientChecksum = GenerateFileMD5(filePath);
+            if (((serverChecksum == clientChecksum) && (!clientChecksum.empty())))
+            {
+                FileReader reader(filePath);
+                spCache->SetTransmutesData(hardcore, reader.GetBuffer(), reader.GetBufferSize());
+            }
+            else
+            {
+                downloadQueue->push(spServer->Send("GetParticipantTransmutes", participantID));
+            }
+        }
+    }));
+}
+
+static void DownloadTagsFile(uint32_t participantID, std::shared_ptr<DownloadQueue> downloadQueue)
+{
+    bool hardcore = spCache->IsParticipantHardcore(participantID);
+    std::string filename = hardcore ? "tags.gsh" : "tags.gst";
+    std::filesystem::path filePath = GameAPI::GetUserSaveFolder() / filename;
+    downloadQueue->push(spServer->Send("GetFileChecksum", participantID, std::wstring(), GameAPI::GAME_DIFFICULTY_NORMAL, filePath).then(
+    [=](const json& response)
+    {
+        HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
+        if (status == HTTP_STATUS_OK)
+        {
+            std::string serverChecksum = response.at("Data").get<std::string>();
+            std::string clientChecksum = GenerateFileMD5(filePath);
+            if (((serverChecksum == clientChecksum) && (!clientChecksum.empty())))
+            {
+                FileReader reader(filePath);
+                spCache->SetTagsData(hardcore, reader.GetBuffer(), reader.GetBufferSize());
+            }
+            else
+            {
+                downloadQueue->push(spServer->Send("GetParticipantTagFile", participantID));
+            }
+        }
+    }));
+}
+
+static void DownloadParticipantFiles(std::shared_ptr<DownloadQueue> downloadQueue, uint32_t participantID)
 {
     json characters = spServer->Send("GetParticipantCharacters", participantID).get().at("Data");
     for (const json& character : characters)
@@ -419,37 +644,37 @@ void DownloadParticipantFiles(std::vector<std::future<json>>& downloadTasks, uin
 
         if (!spCache->GetCharacterData(characterName))
         {
-            downloadTasks.push_back(spServer->Send("GetCharacterData", participantID, characterName));
-            downloadTasks.push_back(spServer->Send("GetCharacterFile", participantID, characterName));
+            downloadQueue->push(spServer->Send("GetCharacterData", participantID, characterName));
+            DownloadCharacterFile(participantID, characterName, downloadQueue);
         }
 
         for (GameAPI::Difficulty difficulty : GameAPI::GAME_DIFFICULTIES)
         {
             if (!spCache->GetQuestData(characterName, difficulty))
-                downloadTasks.push_back(spServer->Send("GetParticipantCharacterQuestFile", participantID, characterName, difficulty));
+                DownloadQuestFile(participantID, characterName, difficulty, downloadQueue);
             if (!spCache->GetConversationsData(characterName, difficulty))
-                downloadTasks.push_back(spServer->Send("GetParticipantCharacterConversationsFile", participantID, characterName, difficulty));
+                DownloadConversationsFile(participantID, characterName, difficulty, downloadQueue);
             if (!spCache->GetMapData(characterName, difficulty))
-                downloadTasks.push_back(spServer->Send("GetParticipantCharacterMapDatFile", participantID, characterName, difficulty));
+                DownloadMapFile(participantID, characterName, difficulty, downloadQueue);
             if (!spCache->GetFOWData(characterName, difficulty))
-                downloadTasks.push_back(spServer->Send("GetParticipantCharacterMapFowFile", participantID, characterName, difficulty));
+                DownloadFOWFile(participantID, characterName, difficulty, downloadQueue);
         }
     }
 
     bool hardcore = spCache->IsParticipantHardcore(participantID);
     if (!spCache->GetStashData(hardcore))
-        downloadTasks.push_back(spServer->Send("GetParticipantStashFile", participantID));
+        DownloadStashFile(participantID, downloadQueue);
     if (!spCache->GetFormulasData(hardcore))
-        downloadTasks.push_back(spServer->Send("GetParticipantFormulas", participantID));
+        DownloadFormulasFile(participantID, downloadQueue);
     if (!spCache->GetTransmutesData(hardcore))
-        downloadTasks.push_back(spServer->Send("GetParticipantTransmutes", participantID));
+        DownloadTransmutesFile(participantID, downloadQueue);
     if (!spCache->GetTagsData(hardcore))
-        downloadTasks.push_back(spServer->Send("GetParticipantTagFile", participantID));
+        DownloadTagsFile(participantID, downloadQueue);
     if (!spCache->GetStashCapacity())
-        downloadTasks.push_back(spServer->Send("GetParticipantSharedStashCapacity"));
+        downloadQueue->push(spServer->Send("GetParticipantSharedStashCapacity"));
 }
 
-void CleanupSaveFolder()
+static void CleanupSaveFolder()
 {
     std::filesystem::path mainPath = GameAPI::GetUserSaveFolder() / "main";
     if (std::filesystem::is_directory(mainPath))
@@ -474,18 +699,18 @@ void ServerCoordinator::OnWorldPreLoadEvent(std::string mapName, bool unk1, bool
     {
         try
         {
-            std::vector<std::future<json>> downloadTasks;
+            std::shared_ptr<DownloadQueue> downloadQueue = std::make_shared<DownloadQueue>();
 
             uint32_t hardcoreID = spCache->GetParticipantID(true);
             if (!hardcoreID)
             {
                 json result = spServer->Send("AddParticipant", true).get();
                 hardcoreID = result.at("Data").at("SeasonParticipantId").get<uint32_t>();
-                DownloadParticipantFiles(downloadTasks, hardcoreID);
+                DownloadParticipantFiles(downloadQueue, hardcoreID);
 
                 if (const SeasonInfo* seasonInfo = spClient->GetSeasonByType(true))
                 {
-                    downloadTasks.push_back(spServer->Send("GetSeasonChallenges", seasonInfo->_seasonID));
+                    downloadQueue->push(spServer->Send("GetSeasonChallenges", seasonInfo->_seasonID));
                 }
             }
 
@@ -494,16 +719,22 @@ void ServerCoordinator::OnWorldPreLoadEvent(std::string mapName, bool unk1, bool
             {
                 json result = spServer->Send("AddParticipant", false).get();
                 softcoreID = result.at("Data").at("SeasonParticipantId").get<uint32_t>();
-                DownloadParticipantFiles(downloadTasks, softcoreID);
+                DownloadParticipantFiles(downloadQueue, softcoreID);
 
                 if (const SeasonInfo* seasonInfo = spClient->GetSeasonByType(false))
                 {
-                    downloadTasks.push_back(spServer->Send("GetSeasonChallenges", seasonInfo->_seasonID));
+                    downloadQueue->push(spServer->Send("GetSeasonChallenges", seasonInfo->_seasonID));
                 }
             }
 
-            for (size_t i = 0; i < downloadTasks.size(); ++i)
-                downloadTasks[i].wait();
+            while (!downloadQueue->empty())
+            {
+                ServerHandlerRequest task;
+                if (downloadQueue->front(task) && task.valid())
+                    task.wait();
+
+                downloadQueue->pop();
+            }
 
             CleanupSaveFolder();
         }

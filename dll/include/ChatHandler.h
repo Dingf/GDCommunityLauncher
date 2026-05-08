@@ -37,6 +37,8 @@ class ChatHandler
         void OnRead(const std::string& data);
         void OnShutdown();
 
+        uint32_t GetBufferSize() const { return CHAT_BUFFER_SIZE; }
+
     private:
         ChatHandler();
         ~ChatHandler();
@@ -56,6 +58,7 @@ class ChatHandler
         static bool OnKeyButtonEvent(EngineAPI::Input::KeyButtonEvent& event);
 
         static constexpr uint32_t DEFAULT_CHAT_THREADS = 2;
+        static constexpr uint32_t CHAT_BUFFER_SIZE = 65536;
 
         std::atomic_int64_t              _repeatTime;
         EngineAPI::Input::KeyButtonEvent _repeatEvent;

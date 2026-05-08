@@ -26,6 +26,7 @@ class Websocket
 
         Websocket(asio::io_context& ioc, ssl::context& ssl, T& handler) : _ioc(ioc), _ssl(ssl), _timer(ioc), _handler(handler), _connected(false)
         {
+            _bufferSize = _handler.GetBufferSize();
             Reset();
         }
 
@@ -113,6 +114,7 @@ class Websocket
         void Shutdown()
         {
             _handler.OnShutdown();
+            _timer.cancel();
             Disconnect();
         }
 
@@ -122,6 +124,7 @@ class Websocket
         uint32_t    _port;           // The last used port number
         std::string _target;         // The last used target
         std::string _authToken;      // The last used auth token
+        uint32_t    _bufferSize;     // The size of the write message buffer
 
         asio::io_context&  _ioc;
         ssl::context&      _ssl;
@@ -136,8 +139,7 @@ class Websocket
         void Reset()
         {
             _ws.reset(new WebsocketStream(_ioc, _ssl));
-            // TODO: Make these configurable?
-            _ws->write_buffer_bytes(262144);
+            _ws->write_buffer_bytes(_bufferSize);
             _ws->set_option(websocket::stream_base::timeout({std::chrono::seconds(30), std::chrono::seconds(2), true}));
             _connected = false;
             _messageQueue.clear();
@@ -156,15 +158,11 @@ class Websocket
                 }
                 else
                 {
-                    if (ec == beast::error::timeout)
-                    {
-                        Disconnect();
-                        Reconnect();
-                    }
-                    else if (ec.value() != asio::error::operation_aborted)
-                    {
+                    if ((ec != beast::error::timeout) && (ec != asio::error::operation_aborted))
                         Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to read data from websocket: %", ec.what());
-                    }
+
+                    Disconnect();
+                    Reconnect();
                 }
             });
         }
@@ -174,7 +172,7 @@ class Websocket
             std::string message;
             if (_messageQueue.front(message))
             {
-                _ws->async_write(asio::buffer(message), [this,message](const beast::error_code& ec, size_t n)
+                _ws->async_write(asio::buffer(message), [this](const beast::error_code& ec, size_t n)
                 {
                     if (!ec)
                     {
@@ -183,15 +181,11 @@ class Websocket
                     }
                     else
                     {
-                        if (ec == beast::error::timeout)
-                        {
-                            Disconnect();
-                            Reconnect();
-                        }
-                        else if (ec.value() != asio::error::operation_aborted)
-                        {
+                        if ((ec != beast::error::timeout) && (ec.value() != asio::error::operation_aborted))
                             Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to write data to websocket: %", ec.what());
-                        }
+
+                        Disconnect();
+                        Reconnect();
                     }
                 });
             }
@@ -199,7 +193,6 @@ class Websocket
 
         void Reconnect()
         {
-            // TODO: Make this configurable?
             _timer.expires_after(std::chrono::milliseconds(1000));
             _timer.async_wait([this](const boost::system::error_code& ec)
             {
@@ -227,7 +220,8 @@ class Websocket
                 }
                 else
                 {
-                    Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to reconnect websocket: %", ec.what());
+                    if (ec != asio::error::operation_aborted)
+                        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to reconnect websocket: %", ec.what());
                 }
             });
         }

@@ -114,8 +114,11 @@ void HandleReadGetStashFile(const json& response, uint32_t participantID)
             const json& file = response.at("File");
             std::string base64Data = file.get<std::string>();
             std::vector<uint8_t> binaryData = Base64ToBinary(base64Data);
+            FileWriter writer(&binaryData[0], binaryData.size());
 
             bool hardcore = spCache->IsParticipantHardcore(participantID);
+            writer.WriteToFile(GameAPI::GetTransferStashPath(hardcore));
+
             spCache->SetStashData(hardcore, &binaryData[0], binaryData.size());
         }
         else if (status != HTTP_STATUS_NO_CONTENT)
