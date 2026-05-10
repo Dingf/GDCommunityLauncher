@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 #include <string>
+#include <memory>
+#include <boost/asio/steady_timer.hpp>
 #include "Client.h"
 #include "JSON.h"
 
@@ -40,6 +42,10 @@ class DllClient : public Client
         DllClient();
 
         void ReadDataFromPipe();
+        void RefreshAuthToken();
+
+        static void OnInitializeEvent();
+        static void OnPreShutdownEvent();
 
         uint32_t _rank;
         uint32_t _points;
@@ -47,6 +53,8 @@ class DllClient : public Client
 
         std::vector<SeasonInfo> _seasons;
         const SeasonInfo* _activeSeason;
+
+        std::unique_ptr<boost::asio::steady_timer> _refreshTimer;
 };
 
 #define spClient DllClient::GetInstance()

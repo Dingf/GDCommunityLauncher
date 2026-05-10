@@ -242,7 +242,7 @@ void ServerHandler::OnInitializeEvent()
     config.SetValue("Game", "port", (int32_t)port);
     config.Save(configPath);
 
-    spServer->Connect(host, port, "/account/connect", spClient->GetAuthToken());
+    spServer->Connect(host, port, "/account/connect", &spClient->GetAuthToken());
 }
 
 void ServerHandler::OnPostShutdownEvent()

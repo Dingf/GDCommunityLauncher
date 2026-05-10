@@ -2,12 +2,23 @@
 #include <Windows.h>
 #include <minizip/unzip.h>
 #include "GameAPI/GameFolder.h"
+#include "ContextManager.h"
+#include "EventManager.h"
 #include "DllClient.h"
+#include "ChatHandler.h"
+#include "ServerHandler.h"
+#include "HTTP.h"
 #include "Log.h"
 
 DllClient::DllClient() : _activeSeason(nullptr)
 {
     ReadDataFromPipe();
+
+    if (!IsOfflineMode())
+    {
+        EventManager::Subscribe(GDCL_EVENT_INITIALIZE,   OnInitializeEvent);
+        EventManager::Subscribe(GDCL_EVENT_PRE_SHUTDOWN, OnPreShutdownEvent);
+    }
 }
 
 DllClient* DllClient::GetInstance()
@@ -253,143 +264,61 @@ void DllClient::SetActiveSeason(uint32_t seasonID)
     }
 }
 
-//void SeasonClient::SetParticipantID(uint32_t participantID)
-//{
-    //_participantID = participantID;
-    //UpdateSeasonStanding();
-//}
-
-/*void Client::UpdateSeasonStanding()
+void DllClient::RefreshAuthToken()
 {
-    URI endpoint = GetServerGameURL() / "Season" / "participant" / std::to_string(GetCurrentParticipantID()) / "standing";
-    web::http::http_request request(web::http::methods::GET);
-
-    ServerSync::ScheduleTask([endpoint, request]()
+    // Attempt to refresh the auth token every 15mins
+    // This will automatically update the auth token in the server/chat websockets as well
+    _refreshTimer->expires_after(std::chrono::milliseconds(900000));
+    _refreshTimer->async_wait([this](const boost::system::error_code& ec)
     {
-        web::http::client::http_client httpClient((utility::string_t)endpoint);
-        httpClient.request(request).then([](web::http::http_response response)
+        try
         {
-            if (response.status_code() == web::http::status_codes::OK)
+            if (!ec)
             {
-                response.extract_json().then([](web::json::value responseBody)
+                HTTPRequest request(HTTP_METHOD_POST, "/Account/login");
+                request.SetBody({
+                    { "username", GetUsername() },
+                    { "password", GetPassword() },
+                    });
+
+                HTTPResponse response = request.Send(spClient->GetHostName(), "443");
+                if (response.GetStatus() == 200)
                 {
-                    try
-                    {
-                        web::json::value pointTotal = responseBody[U("pointTotal")];
-                        web::json::value rank = responseBody[U("rank")];
+                    json responseJSON = json::parse(response.GetBody());
+                    json& accessToken = responseJSON.at("access_token");
+                    json& refreshToken = responseJSON.at("refresh_token");
 
-                        Client& client = Client::GetInstance();
-                        client._points = pointTotal.as_integer();
-                        client._rank = rank.as_integer();
-                        client.UpdateLeagueInfoText();
-                    }
-                    catch (const std::exception& ex)
+                    if (!accessToken.is_null() && !refreshToken.is_null())
                     {
-                        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to update season standing: %", ex.what());
+                        _authToken = accessToken.get<std::string>();
+                        _refreshToken = refreshToken.get<std::string>();
                     }
-                });
+                }
+                else
+                {
+                    throw std::runtime_error("Server responded with status code " + std::to_string(response.GetStatus()));
+                }
             }
-            else
+            else if (ec != asio::error::operation_aborted)
             {
-                Logger::LogMessage(LOG_LEVEL_WARN, "Failed to update season standing: Server responded with status code %", response.status_code());
+                throw ec;
             }
-        });
+        }
+        catch (const std::exception& ex)
+        {
+            Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to refresh auth token: %", ec.message());
+        }
+        RefreshAuthToken();
     });
-}*/
+}
 
-/*int64_t Client::UpdateRefreshToken()
+void DllClient::OnInitializeEvent()
 {
-    try
-    {
-        Client& client = Client::GetInstance();
-        URI endpoint = client.GetServerGameURL() / "Account" / "login";
+    spClient->_refreshTimer = std::make_unique<boost::asio::steady_timer>(ContextManager::GetIOContext());
+    spClient->RefreshAuthToken();
+}
 
-        web::json::value requestBody;
-        requestBody[U("username")] = JSONString(client._username);
-        requestBody[U("password")] = JSONString(client._password);
-
-        web::http::http_request request(web::http::methods::POST);
-        request.set_body(requestBody);
-
-        web::http::client::http_client httpClient((utility::string_t)endpoint);
-        web::http::http_response response = httpClient.request(request).get();
-        if (response.status_code() == web::http::status_codes::OK)
-        {
-            web::json::value responseBody = response.extract_json().get();
-            web::json::value authTokenValue = responseBody[U("access_token")];
-            web::json::value refreshTokenValue = responseBody[U("refresh_token")];
-            if ((!authTokenValue.is_null()) && (!refreshTokenValue.is_null()))
-            {
-                Client& client = Client::GetInstance();
-                client._authToken = JSONString(authTokenValue.serialize());
-                client._refreshToken = JSONString(refreshTokenValue.serialize());
-            }
-        }
-        else
-        {
-            throw std::runtime_error("Server responded with status code " + std::to_string(response.status_code()));
-        }
-    }
-    catch (const std::exception& ex)
-    {
-        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to refresh token: %", ex.what());
-    }
-    return 900000;
-}*/
-
-// TODO: Use the websocket to query the online status instead
-/*int64_t Client::UpdateConnectionStatus()
+void DllClient::OnPreShutdownEvent()
 {
-    Client& client = Client::GetInstance();
-    try
-    {
-        URI endpoint = client.GetServerGameURL() / "Account" / "status";
-
-        web::http::client::http_client httpClient((utility::string_t)endpoint);
-        web::http::http_request request(web::http::methods::GET);
-
-        web::http::http_response response = httpClient.request(request).get();
-        bool status = (response.status_code() == web::http::status_codes::OK);
-        if (client._online != status)
-        {
-            client._online = status;
-            client.UpdateLeagueInfoText();
-        }
-    }
-    catch (const std::exception& ex)
-    {
-        if (client._online == true)
-        {
-            Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to query server status: % %", client._online, ex.what());
-            client._online = false;
-            client.UpdateLeagueInfoText();
-        }
-    }
-    return 10000;
-}*/
-
-/*bool Client::Initialize()
-{
-
-    //if (!IsOfflineMode())
-    {
-        // TODO: Move these to the main DLL code
-        // Initialize the server sync module
-        //ServerSync::Initialize();
-
-        // Initialize the chat client
-        //ChatClient::GetInstance();
-        //EngineAPI::UI::ChatWindow::GetInstance();
-
-        // Initialize threads to handle refreshing the server token/connection status
-        //ThreadManager::CreateThread("refresh_token", 1000, 900000, &Client::UpdateRefreshToken);
-        //ThreadManager::CreateThread("connection_status", 1000, 0, &Client::UpdateConnectionStatus);
-    }
-
-    // Initialize the death recap module
-    //DeathRecap::Initialize();
-
-    //CreatePlayMenu(GetSeasonName());
-
-    return true;
-}*/
+    spClient->_refreshTimer->cancel();
+}

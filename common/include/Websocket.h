@@ -32,7 +32,7 @@ class Websocket
 
         bool IsConnected() const { return _connected; }
 
-        bool Connect(std::string host, uint32_t port, std::string target, std::string authToken = {})
+        bool Connect(std::string host, uint32_t port, std::string target, const std::string* authToken = nullptr)
         {
             try
             {
@@ -47,11 +47,11 @@ class Websocket
                 if (!SSL_set_tlsext_host_name(_ws->next_layer().native_handle(), host.c_str()))
                     throw std::runtime_error("Failed to set SNI hostname");
 
-                if (!authToken.empty())
+                if (_authToken)
                 {
                     _ws->set_option(websocket::stream_base::decorator([authToken](websocket::request_type& request)
                     {
-                        request.set(beast::http::field::authorization, "Bearer " + authToken);
+                        request.set(beast::http::field::authorization, "Bearer " + *authToken);
                     }));
                 }
 
@@ -119,12 +119,12 @@ class Websocket
         }
 
     private:
-        std::atomic_bool _connected; // The current state of the connection
-        std::string _host;           // The last used hostname
-        uint32_t    _port;           // The last used port number
-        std::string _target;         // The last used target
-        std::string _authToken;      // The last used auth token
-        uint32_t    _bufferSize;     // The size of the write message buffer
+        uint32_t           _bufferSize; // The size of the write message buffer
+        uint32_t           _port;       // The last used port number
+        std::string        _host;       // The last used hostname
+        std::string        _target;     // The last used target
+        const std::string* _authToken;  // The last used auth token
+        std::atomic_bool   _connected;  // The current state of the connection
 
         asio::io_context&  _ioc;
         ssl::context&      _ssl;

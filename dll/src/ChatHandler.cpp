@@ -177,7 +177,7 @@ void ChatHandler::OnInitializeEvent()
         config.Save(configPath);
     }
 
-    spChat->Connect(host, port, "/chat/connect", spClient->GetAuthToken());
+    spChat->Connect(host, port, "/chat/connect", &spClient->GetAuthToken());
 }
 
 void ChatHandler::OnPostShutdownEvent()

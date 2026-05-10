@@ -267,11 +267,11 @@ bool IsItemEquipped(void* equipment, uint32_t itemID)
 
     HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
     if (!gameDLL)
-        return 0;
+        return false;
 
     IsItemEquippedProto callback = (IsItemEquippedProto)GetProcAddress(gameDLL, GameAPI::GAPI_NAME_IS_ITEM_EQUIPPED);
     if ((!callback) || (!equipment))
-        return 0;
+        return false;
 
     return callback(equipment, itemID);
 }
