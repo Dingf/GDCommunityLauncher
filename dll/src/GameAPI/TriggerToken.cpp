@@ -4,22 +4,36 @@
 namespace GameAPI
 {
 
-// Dummy vector to be returned in the event of failure
-std::vector<TriggerToken> dummy;
-
 const std::vector<TriggerToken>& GetPlayerTokens(void* player, Difficulty difficulty)
 {
+    static std::vector<TriggerToken> empty;
     typedef const std::vector<GameAPI::TriggerToken>& (__thiscall* GetPlayerTokensProto)(void*, GameAPI::Difficulty);
 
     HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
     if ((!gameDLL) || (!player))
-        return dummy;
+        return empty;
 
     GetPlayerTokensProto callback = (GetPlayerTokensProto)GetProcAddress(gameDLL, GAPI_NAME_GET_PLAYER_TOKENS);
     if (!callback)
-        return dummy;
+        return empty;
 
     return callback(player, difficulty);
+}
+
+const std::vector<TriggerToken>& GetSurvivalTokens(void* player)
+{
+    static std::vector<TriggerToken> empty;
+    typedef const std::vector<TriggerToken>& (__thiscall* GetPlayerTokensProto)(void*);
+
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
+    if ((!gameDLL) || (!player))
+        return empty;
+
+    GetPlayerTokensProto callback = (GetPlayerTokensProto)GetProcAddress(gameDLL, GAPI_NAME_GET_SURVIVAL_TOKENS);
+    if (!callback)
+        return empty;
+
+    return callback(player);
 }
 
 void BestowTokenNow(void* player, const std::string& token)

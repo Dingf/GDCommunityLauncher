@@ -1,6 +1,6 @@
 #include <boost/asio/post.hpp>
 #include "EngineAPI.h"
-#include "GameAPI/Difficulty.h"
+#include "GameAPI.h"
 #include "ContextManager.h"
 #include "DllClient.h"
 #include "EventManager.h"
@@ -43,6 +43,8 @@ std::string HandleWriteTransferQueue(uint32_t requestID, uint32_t& participantID
 std::string HandleWriteDeleteCharacter(uint32_t requestID, uint32_t& participantID, std::wstring& characterName);
 std::string HandleWriteSaveTag(uint32_t requestID, uint32_t& participantID, std::string& tagName, uint32_t& level, GameAPI::Difficulty& difficulty);
 std::string HandleWriteGetChecksum(uint32_t requestID, uint32_t& participantID, std::wstring& characterName, GameAPI::Difficulty& difficulty, std::filesystem::path& filePath);
+std::string HandleWriteGetReagentsFile(uint32_t requestID, uint32_t& participantID);
+std::string HandleWriteSaveReagentsFile(uint32_t requestID, uint32_t& participantID, std::string& base64Data);
 
 // Read Handlers
 void HandleReadAddParticipant(const json& response, bool hardcore);
@@ -78,6 +80,8 @@ void HandleReadTransferQueue(const json& response, uint32_t participantID, uint3
 void HandleReadDeleteCharacter(const json& response, uint32_t participantID, std::wstring characterName);
 void HandleReadSaveTag(const json& response, uint32_t participantID, std::string tagName, uint32_t level, GameAPI::Difficulty difficulty);
 void HandleReadGetChecksum(const json& response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty, std::filesystem::path filePath);
+void HandleReadGetReagentsFile(const json& response, uint32_t participantID);
+void HandleReadSaveReagentsFile(const json& response, uint32_t participantID, std::string base64Data);
 
 const std::unordered_map<std::string, std::pair<void*,void*>>& ServerHandler::GetHandlers() const
 {
@@ -115,7 +119,9 @@ const std::unordered_map<std::string, std::pair<void*,void*>>& ServerHandler::Ge
         { "GetParticipantTransferQueue",               { HandleWriteTransferQueue,         HandleReadTransferQueue } },
         { "DeleteParticipantCharacter",                { HandleWriteDeleteCharacter,       HandleReadDeleteCharacter } },
         { "SaveParticipantTag",                        { HandleWriteSaveTag,               HandleReadSaveTag }},
-        { "GetFileChecksum",                           { HandleWriteGetChecksum,           HandleReadGetChecksum }}
+        { "GetFileChecksum",                           { HandleWriteGetChecksum,           HandleReadGetChecksum }},
+        { "GetParticipantReagentsFile",                { HandleWriteGetReagentsFile,       HandleReadGetReagentsFile }},
+        { "SaveParticipantReagentsFile",               { HandleWriteSaveReagentsFile,      HandleReadSaveReagentsFile }},
     };
     return handlers;
 }

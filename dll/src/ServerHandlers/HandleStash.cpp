@@ -128,7 +128,7 @@ void HandleReadGetStashFile(const json& response, uint32_t participantID)
     }
     catch (const std::exception& ex)
     {
-        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to load shared tags file: %", ex.what());
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to load shared stash file: %", ex.what());
     }
 }
 

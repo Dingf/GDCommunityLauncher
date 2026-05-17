@@ -59,13 +59,13 @@ void SetItemReplicaInfo(void* item, const ItemReplicaInfo& info)
 
 void SetItemVisiblePlayer(void* item, uint32_t playerID)
 {
-    typedef void (__thiscall* SetItemReplicaInfoProto)(void*, uint32_t);
+    typedef void (__thiscall* SetItemVisiblePlayerProto)(void*, uint32_t);
 
     HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
     if ((!gameDLL) || (!item))
         return;
 
-    SetItemReplicaInfoProto callback = (SetItemReplicaInfoProto)GetProcAddress(gameDLL, GAPI_NAME_SET_ITEM_VISIBLE_PLAYER);
+    SetItemVisiblePlayerProto callback = (SetItemVisiblePlayerProto)GetProcAddress(gameDLL, GAPI_NAME_SET_ITEM_VISIBLE_PLAYER);
     if (!callback)
         return;
 
@@ -202,6 +202,21 @@ std::string GetItemSuffixTag(void* item)
     //return *(std::string*)((uintptr_t)item + 0x798);    // Pre-version 1.2.0.5
     //return *(std::string*)((uintptr_t)item + 0x7B0);    // Version 1.2.0.5
     return *(std::string*)((uintptr_t)item + 0x8B0);      // Version 1.3
+}
+
+bool IsReagentCompatible(void* item)
+{
+    typedef bool (__thiscall* IsReagentCompatibleProto)(void*);
+
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
+    if (!gameDLL)
+        return false;
+
+    IsReagentCompatibleProto callback = (IsReagentCompatibleProto)GetProcAddress(gameDLL, GAPI_NAME_IS_REAGENT_COMPATIBLE);
+    if ((!callback) || (!item))
+        return false;
+
+    return callback(item);
 }
 
 }

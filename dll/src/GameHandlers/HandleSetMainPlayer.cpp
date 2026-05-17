@@ -4,25 +4,35 @@
 #include "ServerCache.h"
 #include "Quest.h"
 
-bool HasParticipationTokenFromAPI(void* mainPlayer, std::string participationToken)
+inline static bool SearchForParticipationToken(const std::vector<GameAPI::TriggerToken>& tokens, const std::string& participationToken)
 {
-    for (auto difficulty : GameAPI::GAME_DIFFICULTIES)
+    for (size_t i = 0; i < tokens.size(); ++i)
     {
-        const std::vector<GameAPI::TriggerToken>& tokens = GameAPI::GetPlayerTokens(mainPlayer, difficulty);
-        for (size_t i = 0; i < tokens.size(); ++i)
-        {
-            std::string token = tokens[i];
-            for (char& c : token)
-                c = std::tolower(c);
+        std::string token = tokens[i];
+        for (char& c : token)
+            c = std::tolower(c);
 
-            if (token == participationToken)
-                return true;
-        }
+        if (token == participationToken)
+            return true;
     }
     return false;
 }
 
-bool HasParticipationTokenFromFile(const std::wstring& playerName, std::string participationToken)
+static bool HasParticipationTokenFromAPI(void* mainPlayer, const std::string& participationToken)
+{
+    for (auto difficulty : GameAPI::GAME_DIFFICULTIES)
+    {
+        if (SearchForParticipationToken(GameAPI::GetPlayerTokens(mainPlayer, difficulty), participationToken))
+            return true;
+    }
+
+    if (SearchForParticipationToken(GameAPI::GetSurvivalTokens(mainPlayer), participationToken))
+        return true;
+
+    return false;
+}
+
+static bool HasParticipationTokenFromFile(const std::wstring& playerName, std::string participationToken)
 {
     std::filesystem::path characterPath = GameAPI::GetPlayerFolder(playerName);
     if (std::filesystem::is_directory(characterPath))

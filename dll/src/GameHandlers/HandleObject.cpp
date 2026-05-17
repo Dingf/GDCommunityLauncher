@@ -2,12 +2,9 @@
 
 uint32_t HandleGetObjectID(void* _this)
 {
-    typedef uint32_t (__thiscall* GetObjectIDProto)(void*);
-
-    GetObjectIDProto callback = (GetObjectIDProto)HookManager::GetOriginalFunction(ENGINE_DLL, EngineAPI::EAPI_NAME_GET_OBJECT_ID);
-    if (callback)
+    if (_this)
     {
-        uint32_t objectID = callback(_this);
+        uint32_t objectID = *(uint32_t*)((uint8_t*)_this + 0x2C);
         EngineAPI::CacheObjectID(_this, objectID);
         return objectID;
     }

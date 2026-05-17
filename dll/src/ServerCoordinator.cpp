@@ -171,9 +171,21 @@ static void LoadFOWData(const std::filesystem::path& filePath, void** data, size
     }
 }
 
+// map.dat and map.fow have the same stem, so choose based on the extension
+static inline void LoadMapOrFOWData(const std::filesystem::path& filePath, void** data, size_t* size)
+{
+    std::filesystem::path extension = filePath.extension();
+    if (extension == ".dat")
+        LoadMapData(filePath, data, size);
+    else if (extension == ".fow")
+        LoadFOWData(filePath, data, size);
+    else
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to load unsupported map file %", filePath.filename().string());
+}
+
 static void LoadFormulasData(const std::filesystem::path& filePath, void** data, size_t* size)
 {
-    bool hardcore = (filePath.extension() == ".gsh");
+    bool hardcore = filePath.extension().string().ends_with("sh");
     if (const FileWriter* cacheData = spCache->GetFormulasData(hardcore))
     {
         *size = cacheData->GetBufferSize();
@@ -184,7 +196,7 @@ static void LoadFormulasData(const std::filesystem::path& filePath, void** data,
 
 static void LoadTransmutesData(const std::filesystem::path& filePath, void** data, size_t* size)
 {
-    bool hardcore = (filePath.extension() == ".gsh");
+    bool hardcore = filePath.extension().string().ends_with("sh");
     if (const FileWriter* cacheData = spCache->GetTransmutesData(hardcore))
     {
         *size = cacheData->GetBufferSize();
@@ -195,8 +207,19 @@ static void LoadTransmutesData(const std::filesystem::path& filePath, void** dat
 
 static void LoadStashData(const std::filesystem::path& filePath, void** data, size_t* size)
 {
-    bool hardcore = (filePath.extension() == ".gsh");
+    bool hardcore = filePath.extension().string().ends_with("sh");
     if (const FileWriter* cacheData = spCache->GetStashData(hardcore))
+    {
+        *size = cacheData->GetBufferSize();
+        *data = new uint8_t[*size];
+        memcpy(*data, cacheData->GetBuffer(), *size);
+    }
+}
+
+static void LoadReagentsData(const std::filesystem::path& filePath, void** data, size_t* size)
+{
+    bool hardcore = filePath.extension().string().ends_with("sh");
+    if (const FileWriter* cacheData = spCache->GetReagentsData(hardcore))
     {
         *size = cacheData->GetBufferSize();
         *data = new uint8_t[*size];
@@ -209,23 +232,20 @@ void ServerCoordinator::OnDirectReadEvent(std::string filename, void** data, siz
     typedef void (*DirectReadHandler)(const std::filesystem::path&, void**, size_t*);
     static const std::unordered_map<std::string, DirectReadHandler> directReadHandlers =
     {
-        { "player.gdc",        LoadCharacterData },
-        { "quests.gdd",        LoadQuestData },
-        { "conversations.gdd", LoadConversationsData },
-        { "map.dat",           LoadMapData },
-        { "map.fow",           LoadFOWData },
-        { "formulas.gst",      LoadFormulasData },
-        { "formulas.gsh",      LoadFormulasData },
-        { "transmutes.gst",    LoadTransmutesData },
-        { "transmutes.gsh",    LoadTransmutesData },
-        { "transfer.gst",      LoadStashData },
-        { "transfer.gsh",      LoadStashData },
+        { "player",        LoadCharacterData },
+        { "quests",        LoadQuestData },
+        { "conversations", LoadConversationsData },
+        { "map",           LoadMapOrFOWData },
+        { "formulas",      LoadFormulasData },
+        { "transmutes",    LoadTransmutesData },
+        { "transfer",      LoadStashData },
+        { "reagents",      LoadReagentsData },
     };
 
     std::filesystem::path filePath = filename;
     if (std::filesystem::is_regular_file(filePath))
     {
-        auto it = directReadHandlers.find(filePath.filename().string());
+        auto it = directReadHandlers.find(filePath.stem().string());
         if (it != directReadHandlers.end())
             it->second(filePath, data, size);
     }
@@ -233,7 +253,7 @@ void ServerCoordinator::OnDirectReadEvent(std::string filename, void** data, siz
 
 static void SaveStashData(const std::filesystem::path& filePath, uint8_t* data, size_t size)
 {
-    bool hardcore = (filePath.extension() == ".gsh");
+    bool hardcore = filePath.extension().string().ends_with("sh");
     if (uint32_t participantID = spCache->GetParticipantID(hardcore))
     {
         spCache->SetStashData(hardcore, data, size);
@@ -243,7 +263,7 @@ static void SaveStashData(const std::filesystem::path& filePath, uint8_t* data, 
 
 static void SaveFormulasData(const std::filesystem::path& filePath, uint8_t* data, size_t size)
 {
-    bool hardcore = (filePath.extension() == ".gsh");
+    bool hardcore = filePath.extension().string().ends_with("sh");
     if (uint32_t participantID = spCache->GetParticipantID(hardcore))
     {
         spCache->SetFormulasData(hardcore, data, size);
@@ -253,11 +273,21 @@ static void SaveFormulasData(const std::filesystem::path& filePath, uint8_t* dat
 
 static void SaveTransmutesData(const std::filesystem::path& filePath, uint8_t* data, size_t size)
 {
-    bool hardcore = (filePath.extension() == ".gsh");
+    bool hardcore = filePath.extension().string().ends_with("sh");
     if (uint32_t participantID = spCache->GetParticipantID(hardcore))
     {
         spCache->SetTransmutesData(hardcore, data, size);
         spServer->Send("SaveParticipantTransmutes", participantID, BinaryToBase64(data, size));
+    }
+}
+
+static void SaveReagentsData(const std::filesystem::path& filePath, uint8_t* data, size_t size)
+{
+    bool hardcore = filePath.extension().string().ends_with("sh");
+    if (uint32_t participantID = spCache->GetParticipantID(hardcore))
+    {
+        spCache->SetReagentsData(hardcore, data, size);
+        spServer->Send("SaveParticipantReagentsFile", participantID, BinaryToBase64(data, size));
     }
 }
 
@@ -266,16 +296,14 @@ void ServerCoordinator::OnDirectWriteEvent(std::string filename, void* data, siz
     typedef void (*DirectWriteHandler)(const std::filesystem::path&, uint8_t*, size_t);
     static const std::unordered_map<std::string, DirectWriteHandler> directWriteHandlers =
     {
-        { "transfer.gst",   SaveStashData },
-        { "transfer.gsh",   SaveStashData },
-        { "formulas.gst",   SaveFormulasData },
-        { "formulas.gsh",   SaveFormulasData },
-        { "transmutes.gst", SaveTransmutesData },
-        { "transmutes.gsh", SaveTransmutesData },
+        { "transfer",   SaveStashData },
+        { "formulas",   SaveFormulasData },
+        { "transmutes", SaveTransmutesData },
+        { "reagents",   SaveReagentsData }
     };
 
     std::filesystem::path filePath = filename;
-    auto it = directWriteHandlers.find(filePath.filename().string());
+    auto it = directWriteHandlers.find(filePath.stem().string());
     if (it != directWriteHandlers.end())
         it->second(filePath, (uint8_t*)data, size);
 }
@@ -302,7 +330,7 @@ static void SaveTagsFile(uint32_t participantID)
     std::filesystem::path filePath = GameAPI::GetUserSaveFolder() / filename;
 
     void* mainPlayer = GameAPI::GetMainPlayer();
-    if (mainPlayer)
+    if ((mainPlayer) && (spClient->IsPlayingSeason()))
     {
         const std::vector<GameAPI::TriggerToken>& tokens = GameAPI::GetPlayerTokens(mainPlayer, GameAPI::GetGameDifficulty());
 
@@ -429,12 +457,10 @@ static void DownloadCharacterFile(uint32_t participantID, const std::wstring& ch
             {
                 FileReader reader(filePath);
                 spCache->SetCharacterData(characterName, reader.GetBuffer(), reader.GetBufferSize());
-            }
-            else
-            {
-                downloadQueue->push(spServer->Send("GetCharacterFile", participantID, characterName));
+                return;
             }
         }
+        downloadQueue->push(spServer->Send("GetCharacterFile", participantID, characterName));
     }));
 }
 
@@ -453,12 +479,10 @@ static void DownloadQuestFile(uint32_t participantID, const std::wstring& charac
             {
                 FileReader reader(filePath);
                 spCache->SetQuestData(characterName, difficulty, reader.GetBuffer(), reader.GetBufferSize());
-            }
-            else
-            {
-                downloadQueue->push(spServer->Send("GetParticipantCharacterQuestFile", participantID, characterName, difficulty));
+                return;
             }
         }
+        downloadQueue->push(spServer->Send("GetParticipantCharacterQuestFile", participantID, characterName, difficulty));
     }));
 }
 
@@ -477,12 +501,10 @@ static void DownloadConversationsFile(uint32_t participantID, const std::wstring
             {
                 FileReader reader(filePath);
                 spCache->SetConversationsData(characterName, difficulty, reader.GetBuffer(), reader.GetBufferSize());
-            }
-            else
-            {
-                downloadQueue->push(spServer->Send("GetParticipantCharacterConversationsFile", participantID, characterName, difficulty));
+                return;
             }
         }
+        downloadQueue->push(spServer->Send("GetParticipantCharacterConversationsFile", participantID, characterName, difficulty));
     }));
 }
 
@@ -501,12 +523,10 @@ static void DownloadMapFile(uint32_t participantID, const std::wstring& characte
             {
                 FileReader reader(filePath);
                 spCache->SetMapData(characterName, difficulty, reader.GetBuffer(), reader.GetBufferSize());
-            }
-            else
-            {
-                downloadQueue->push(spServer->Send("GetParticipantCharacterMapDatFile", participantID, characterName, difficulty));
+                return;
             }
         }
+        downloadQueue->push(spServer->Send("GetParticipantCharacterMapDatFile", participantID, characterName, difficulty));
     }));
 }
 
@@ -525,12 +545,10 @@ static void DownloadFOWFile(uint32_t participantID, const std::wstring& characte
             {
                 FileReader reader(filePath);
                 spCache->SetFOWData(characterName, difficulty, reader.GetBuffer(), reader.GetBufferSize());
-            }
-            else
-            {
-                downloadQueue->push(spServer->Send("GetParticipantCharacterMapFowFile", participantID, characterName, difficulty));
+                return;
             }
         }
+        downloadQueue->push(spServer->Send("GetParticipantCharacterMapFowFile", participantID, characterName, difficulty));
     }));
 }
 
@@ -550,12 +568,10 @@ static void DownloadStashFile(uint32_t participantID, std::shared_ptr<DownloadQu
             {
                 FileReader reader(filePath);
                 spCache->SetStashData(hardcore, reader.GetBuffer(), reader.GetBufferSize());
-            }
-            else
-            {
-                downloadQueue->push(spServer->Send("GetParticipantStashFile", participantID));
+                return;
             }
         }
+        downloadQueue->push(spServer->Send("GetParticipantStashFile", participantID));
     }));
 }
 
@@ -575,12 +591,10 @@ static void DownloadFormulasFile(uint32_t participantID, std::shared_ptr<Downloa
             {
                 FileReader reader(filePath);
                 spCache->SetFormulasData(hardcore, reader.GetBuffer(), reader.GetBufferSize());
-            }
-            else
-            {
-                downloadQueue->push(spServer->Send("GetParticipantFormulas", participantID));
+                return;
             }
         }
+        downloadQueue->push(spServer->Send("GetParticipantFormulas", participantID));
     }));
 }
 
@@ -600,12 +614,10 @@ static void DownloadTransmutesFile(uint32_t participantID, std::shared_ptr<Downl
             {
                 FileReader reader(filePath);
                 spCache->SetTransmutesData(hardcore, reader.GetBuffer(), reader.GetBufferSize());
-            }
-            else
-            {
-                downloadQueue->push(spServer->Send("GetParticipantTransmutes", participantID));
+                return;
             }
         }
+        downloadQueue->push(spServer->Send("GetParticipantTransmutes", participantID));
     }));
 }
 
@@ -626,12 +638,33 @@ static void DownloadTagsFile(uint32_t participantID, std::shared_ptr<DownloadQue
             {
                 FileReader reader(filePath);
                 spCache->SetTagsData(hardcore, reader.GetBuffer(), reader.GetBufferSize());
-            }
-            else
-            {
-                downloadQueue->push(spServer->Send("GetParticipantTagFile", participantID));
+                return;
             }
         }
+        downloadQueue->push(spServer->Send("GetParticipantTagFile", participantID));
+    }));
+}
+
+static void DownloadReagentsFile(uint32_t participantID, std::shared_ptr<DownloadQueue> downloadQueue)
+{
+    bool hardcore = spCache->IsParticipantHardcore(participantID);
+    std::filesystem::path filePath = GameAPI::GetReagentsPath(hardcore);
+    downloadQueue->push(spServer->Send("GetFileChecksum", participantID, std::wstring(), GameAPI::GAME_DIFFICULTY_NORMAL, filePath).then(
+    [=](const json& response)
+    {
+        HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
+        if (status == HTTP_STATUS_OK)
+        {
+            std::string serverChecksum = response.at("Data").get<std::string>();
+            std::string clientChecksum = GenerateFileMD5(filePath);
+            if (((serverChecksum == clientChecksum) && (!clientChecksum.empty())))
+            {
+                FileReader reader(filePath);
+                spCache->SetReagentsData(hardcore, reader.GetBuffer(), reader.GetBufferSize());
+                return;
+            }
+        }
+        downloadQueue->push(spServer->Send("GetParticipantReagentsFile", participantID));
     }));
 }
 
@@ -670,6 +703,8 @@ static void DownloadParticipantFiles(std::shared_ptr<DownloadQueue> downloadQueu
         DownloadTransmutesFile(participantID, downloadQueue);
     if (!spCache->GetTagsData(hardcore))
         DownloadTagsFile(participantID, downloadQueue);
+    if (!spCache->GetReagentsData(hardcore))
+        DownloadReagentsFile(participantID, downloadQueue);
     if (!spCache->GetStashCapacity())
         downloadQueue->push(spServer->Send("GetParticipantSharedStashCapacity"));
 }
@@ -832,12 +867,11 @@ bool ServerCoordinator::OnCaravanInteractEvent(uint32_t caravanID)
 
 void ServerCoordinator::OnTransferPreSaveEvent()
 {
+    uint32_t participantID = spCache->GetParticipantID(EngineAPI::IsHardcore());
     const std::vector<void*>& transferTabs = GameAPI::GetTransferTabs();
     if (transferTabs.size() >= 6)
     {
-        void* uploadTab = transferTabs[5];
-        const std::map<uint32_t, EngineAPI::Rect>& items = GameAPI::GetItemsInTab(uploadTab);
-
+        const std::map<uint32_t, EngineAPI::Rect>& items = GameAPI::GetItemsInTab(transferTabs[5]);
         if (items.size() > 0)
         {
             int32_t capacity = spCache->GetStashCapacity();
@@ -847,7 +881,6 @@ void ServerCoordinator::OnTransferPreSaveEvent()
                 return;
             }
 
-            uint32_t participantID = spCache->GetParticipantID(EngineAPI::IsHardcore());
             std::vector<uint32_t> storedItems;
             for (const auto& pair : items)
             {

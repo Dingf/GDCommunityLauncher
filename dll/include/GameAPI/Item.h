@@ -22,6 +22,10 @@ constexpr char GAPI_NAME_GET_WEAPON_DESCRIPTION[] = "?GetUIGameDescription@Weapo
 constexpr char GAPI_NAME_GET_ARMOR_DESCRIPTION[] = "?GetUIGameDescription@Armor@GAME@@UEBAXAEAV?$vector@UGameTextLine@GAME@@@mem@@@Z";
 constexpr char GAPI_NAME_GET_ITEM_CLASSIFICATION[] = "?GetItemClassification@Item@GAME@@UEBA?AW4ItemClassification@2@_N@Z";
 constexpr char GAPI_NAME_GET_ITEM_BITMAP[] = "?GetBitmap@Item@GAME@@UEBAPEBVGraphicsTexture@2@XZ";
+constexpr char GAPI_NAME_CAN_TRANSFER_ITEM[] = "?CanBePlacedInTransferStash@Item@GAME@@UEBA_NXZ";
+constexpr char GAPI_NAME_CAN_TRANSFER_QUEST_ITEM[] = "?CanBePlacedInTransferStash@QuestItem@GAME@@UEBA_NXZ";
+constexpr char GAPI_NAME_IS_REAGENT_COMPATIBLE[] = "?IsReagentCompatible@Item@GAME@@QEBA_NXZ";
+
 #else
 constexpr char GAPI_NAME_CREATE_ITEM[] = "?CreateItem@Item@GAME@@SAPAV12@ABUItemReplicaInfo@2@@Z";
 constexpr char GAPI_NAME_GET_ITEM_REPLICA_INFO[] = "?GetItemReplicaInfo@Item@GAME@@UBEXAAUItemReplicaInfo@2@@Z";
@@ -33,6 +37,9 @@ constexpr char GAPI_NAME_CAN_ENCHANT_BE_USED_ON[] = "?CanBeUsedOn@ItemEnchantmen
 constexpr char GAPI_NAME_GET_ITEM_DESCRIPTION[] = "?GetUIGameDescription@Item@GAME@@UBEXAAV?$vector@UGameTextLine@GAME@@@mem@@@Z";
 constexpr char GAPI_NAME_GET_ITEM_CLASSIFICATION[] = "?GetItemClassification@Item@GAME@@UBE?AW4ItemClassification@2@_N@Z";
 constexpr char GAPI_NAME_GET_ITEM_BITMAP[] = "?GetBitmap@Item@GAME@@UBEPBVGraphicsTexture@2@XZ";
+constexpr char GAPI_NAME_CAN_TRANSFER_ITEM[] = "?CanBePlacedInTransferStash@Item@GAME@@UBE_NXZ";
+constexpr char GAPI_NAME_CAN_TRANSFER_QUEST_ITEM[] = "?CanBePlacedInTransferStash@QuestItem@GAME@@UBE_NXZ";
+constexpr char GAPI_NAME_IS_REAGENT_COMPATIBLE[] = "?IsReagentCompatible@Item@GAME@@QBE_NXZ";
 #endif
 
 enum ItemClassification : uint32_t
@@ -69,6 +76,7 @@ WeaponType GetWeaponType(void* item);
 std::string GetItemNameTag(void* item);
 std::string GetItemPrefixTag(void* item);
 std::string GetItemSuffixTag(void* item);
+bool IsReagentCompatible(void* item);
 
 }
 

@@ -220,6 +220,34 @@ std::string HandleWriteSaveFOWFile(uint32_t requestID, uint32_t& participantID, 
     return request.dump();
 }
 
+std::string HandleWriteGetReagentsFile(uint32_t requestID, uint32_t& participantID)
+{
+    json request =
+    {
+        { "RequestName", "GetParticipantReagentsFile" },
+        { "RequestId", requestID },
+        { "Arguments", {
+            { "SeasonParticipantId", participantID },
+        }}
+    };
+    return request.dump();
+}
+
+std::string HandleWriteSaveReagentsFile(uint32_t requestID, uint32_t& participantID, std::string& base64Data)
+{
+    json request =
+    {
+        { "RequestName", "SaveParticipantReagentsFile" },
+        { "RequestId", requestID },
+        { "Arguments", {
+            { "SeasonParticipantId", participantID },
+        }},
+        { "File", base64Data }
+    };
+    base64Data.clear();
+    return request.dump();
+}
+
 void HandleReadGetTagFile(const json& response, uint32_t participantID)
 {
     try
@@ -474,5 +502,42 @@ void HandleReadSaveFOWFile(const json& response, uint32_t participantID, std::ws
     if (status != HTTP_STATUS_OK)
     {
         Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to save character FOW file: %", response.at("ErrorMessage"));
+    }
+}
+
+void HandleReadGetReagentsFile(const json& response, uint32_t participantID)
+{
+    try
+    {
+        HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
+        if (status == HTTP_STATUS_OK)
+        {
+            const json& file = response.at("File");
+            std::string base64Data = file.get<std::string>();
+            std::vector<uint8_t> binaryData = Base64ToBinary(base64Data);
+            FileWriter writer(&binaryData[0], binaryData.size());
+
+            bool hardcore = spCache->IsParticipantHardcore(participantID);
+            writer.WriteToFile(GameAPI::GetReagentsPath(hardcore));
+
+            spCache->SetReagentsData(hardcore, &binaryData[0], binaryData.size());
+        }
+        else if (status != HTTP_STATUS_NO_CONTENT)
+        {
+            throw std::runtime_error(response.at("ErrorMessage"));
+        }
+    }
+    catch (const std::exception& ex)
+    {
+        Logger::LogMessage(LOG_LEVEL_WARN, "Failed to load reagents file: %", ex.what());
+    }
+}
+
+void HandleReadSaveReagentsFile(const json& response, uint32_t participantID, std::string base64Data)
+{
+    HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
+    if (status != HTTP_STATUS_OK)
+    {
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to save reagents file: %", response.at("ErrorMessage"));
     }
 }

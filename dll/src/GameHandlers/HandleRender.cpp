@@ -60,7 +60,7 @@ static inline void BuildLeagueInfoText(std::wstring& message)
     }
 }
 
-static inline std::wstring GetTimeText()
+static inline std::wstring GetTimeText(bool use24HourFormat)
 {
     auto now = std::chrono::zoned_time{std::chrono::current_zone(), std::chrono::system_clock::now()}.get_local_time();
     std::chrono::hh_mm_ss hms(std::chrono::floor<std::chrono::milliseconds>(now - std::chrono::floor<std::chrono::days>(now)));
@@ -70,12 +70,22 @@ static inline std::wstring GetTimeText()
     int32_t seconds = hms.seconds().count();
 
     std::wstringstream stream;
-    stream << ((hours == 0) ? 12 : (((hours - 1) % 12) + 1)) << " : ";
-    stream << std::setw(2) << std::setfill(L'0') << minutes;
-    stream << " : ";
-    stream << std::setw(2) << std::setfill(L'0') << seconds;
-    stream << " ";
-    stream << ((hours >= 12) ? "PM" : "AM");
+    if (use24HourFormat)
+    {
+        stream << hours << " : ";
+        stream << std::setw(2) << std::setfill(L'0') << minutes;
+        stream << " : ";
+        stream << std::setw(2) << std::setfill(L'0') << seconds;
+    }
+    else
+    {
+        stream << ((hours == 0) ? 12 : (((hours - 1) % 12) + 1)) << " : ";
+        stream << std::setw(2) << std::setfill(L'0') << minutes;
+        stream << " : ";
+        stream << std::setw(2) << std::setfill(L'0') << seconds;
+        stream << " ";
+        stream << ((hours >= 12) ? "PM" : "AM");
+    }
 
     return stream.str();
 }
@@ -93,15 +103,24 @@ void HandleRenderStyledText2D(void* _this, EngineAPI::Rect rect, const EngineAPI
             std::string areaTag = EngineAPI::GetRegionNameTag();
             std::wstring areaName = EngineAPI::UI::Localize(areaTag.c_str());
 
-            static std::wregex timeRegex(L"(\\d+):(\\d{2}):(\\d{2}) (AM|PM)");
-            if (std::regex_match(textString, timeRegex))
+            static bool using24HourFormat = false;
+
+            // Don't render the time string if playing the season, since it will be in the league info text instead
+            bool isDisplayTimeEnabled = EngineAPI::GetBoolOption(65);
+            if (isDisplayTimeEnabled)
             {
-                // Don't render the time string if playing the season, since it will be in the league info text instead
-                return;
+                std::wsmatch match;
+                static std::wregex timeRegex(L"(\\d+):(\\d{2}):(\\d{2})( AM| PM)?");
+                if (std::regex_match(textString, match, timeRegex))
+                {
+                    using24HourFormat = ((match.size() == 5) && (match.str(4).empty()));
+                    return;
+                }
             }
+
             // If the player is in-game on the season mod, append the league info to the difficulty text in the upper left corner
             // We modify the text instead of creating new text because that way it preserves the Z-order and doesn't conflict with the loading screen/pause overlay/etc.
-            else if ((rect._x >= 0.0f) && (rect._y >= 0.0f) && (rect._x <= 24.0f) && (rect._y <= 24.0f) && (rect._x == rect._y))
+            if ((rect._x >= 0.0f) && (rect._y >= 0.0f) && (rect._x <= 24.0f) && (rect._y <= 24.0f) && (rect._x == rect._y))
             {
                 if (textString.empty())
                     textString += EngineAPI::UI::Localize("tagRDifficultyTitle01");
@@ -110,9 +129,9 @@ void HandleRenderStyledText2D(void* _this, EngineAPI::Rect rect, const EngineAPI
 
                 // This checks whether "Display Time" is enabled
                 // Create a new instance of text because the text gets weirdly indented once color tags are added
-                if (EngineAPI::GetBoolOption(65))
+                if (isDisplayTimeEnabled)
                 {
-                    std::wstring timeText = GetTimeText();
+                    std::wstring timeText = GetTimeText(using24HourFormat);
                     callback(_this, { rect._x, rect._y + (size * 4.0f), rect._w, rect._h }, color1, color2, timeText.c_str(), font, size, xAlign, yAlign, style, layout);
                 }
 

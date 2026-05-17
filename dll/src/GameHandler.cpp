@@ -55,6 +55,8 @@ void HandleGetItemDescription(void* _this, std::vector<GameAPI::GameTextLine>& l
 void HandleGetWeaponDescription(void* _this, std::vector<GameAPI::GameTextLine>& lines);
 void HandleGetArmorDescription(void* _this, std::vector<GameAPI::GameTextLine>& lines);
 bool HandleApplyDamage(void* _this, float damage, void* playStatsDamage, GameAPI::CombatAttributeType type, const std::vector<uint32_t>& skills);
+bool HandleCanTransferItem(void* _this);
+bool HandleCanTransferQuestItem(void* _this);
 
 // Manual Hooks
 //size_t HandleSaveQuestStates(void* buffer, size_t size, size_t count, void* file);
@@ -113,6 +115,8 @@ const std::vector<HookManager::Hook> _offlineHooks =
     { GAME_DLL,   GameAPI::GAPI_NAME_GET_ITEM_DESCRIPTION,       &HandleGetItemDescription,   false },
     { GAME_DLL,   GameAPI::GAPI_NAME_GET_WEAPON_DESCRIPTION,     &HandleGetWeaponDescription, false },
     { GAME_DLL,   GameAPI::GAPI_NAME_GET_ARMOR_DESCRIPTION,      &HandleGetArmorDescription,  false },
+    { GAME_DLL,   GameAPI::GAPI_NAME_CAN_TRANSFER_ITEM,          &HandleCanTransferItem,      false },
+    { GAME_DLL,   GameAPI::GAPI_NAME_CAN_TRANSFER_QUEST_ITEM,    &HandleCanTransferQuestItem, false },
     //{ GAME_DLL,   GameAPI::GAPI_NAME_APPLY_DAMAGE,               &HandleApplyDamage,          false },
 };
 

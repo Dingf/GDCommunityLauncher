@@ -37,6 +37,7 @@ enum SharedSaveType
     SHARED_SAVE_PLAYMENU = 2,
     SHARED_SAVE_LEADERBOARD = 3,
     SHARED_SAVE_TRANSMUTES = 4,
+    SHARED_SAVE_REAGENTS = 5,
 };
 
 void SetRootPrefix(const std::string& prefix);
@@ -51,6 +52,7 @@ std::filesystem::path GetSharedSavePath(GameAPI::SharedSaveType type);
 std::filesystem::path GetTransferStashPath(bool hardcore);
 std::filesystem::path GetFormulasPath(bool hardcore);
 std::filesystem::path GetTransmutesPath(bool hardcore);
+std::filesystem::path GetReagentsPath(bool hardcore);
     
 }
 

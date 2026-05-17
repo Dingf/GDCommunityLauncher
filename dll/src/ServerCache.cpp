@@ -147,6 +147,17 @@ const ServerCache::CacheBuffer* ServerCache::GetTransmutesData(bool hardcore) co
     return nullptr;
 }
 
+const ServerCache::CacheBuffer* ServerCache::GetReagentsData(bool hardcore) const
+{
+    auto it = _participantData.find(hardcore);
+    if (it != _participantData.end())
+    {
+        std::lock_guard<std::mutex> lock(it->second._mutex);
+        return it->second._reagents.get();
+    }
+    return nullptr;
+}
+
 const ServerCache::CacheBuffer* ServerCache::GetTagsData(bool hardcore) const
 {
     auto it = _participantData.find(hardcore);
@@ -216,6 +227,12 @@ void ServerCache::SetTransmutesData(bool hardcore, uint8_t* data, size_t size)
 {
     std::lock_guard<std::mutex> lock(_participantData[hardcore]._mutex);
     _participantData[hardcore]._transmutes = std::make_unique<CacheBuffer>(data, size);
+}
+
+void ServerCache::SetReagentsData(bool hardcore, uint8_t* data, size_t size)
+{
+    std::lock_guard<std::mutex> lock(_participantData[hardcore]._mutex);
+    _participantData[hardcore]._reagents = std::make_unique<CacheBuffer>(data, size);
 }
 
 void ServerCache::SetTagsData(bool hardcore, uint8_t* data, size_t size)

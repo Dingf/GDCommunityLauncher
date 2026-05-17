@@ -1,8 +1,8 @@
-#include "Log.h"
 #include "FileReader.h"
 #include "FileWriter.h"
 #include "GDDataBlock.h"
 #include "SharedStash.h"
+#include "Log.h"
 
 size_t SharedStash::GetBufferSize() const
 {
@@ -105,7 +105,7 @@ void SharedStash::Read(EncodedFileReader* reader)
     }
 
     uint32_t numTabs = reader->ReadInt32();
-    ReadStashTabs(reader, numTabs, _headerBlock.GetBlockVersion());
+    ReadStashTabs(reader, _headerBlock.GetBlockVersion(), numTabs);
 
     _headerBlock.ReadBlockEnd(reader);
 }

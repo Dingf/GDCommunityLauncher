@@ -117,4 +117,13 @@ std::filesystem::path GetTransmutesPath(bool hardcore)
     return result;
 }
 
+std::filesystem::path GetReagentsPath(bool hardcore)
+{
+    std::filesystem::path result = GetSharedSavePath(SHARED_SAVE_REAGENTS);
+    if (hardcore)
+        result.replace_extension(".gsh");
+
+    return result;
+}
+
 }

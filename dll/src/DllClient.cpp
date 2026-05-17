@@ -279,7 +279,7 @@ void DllClient::RefreshAuthToken()
                 request.SetBody({
                     { "username", GetUsername() },
                     { "password", GetPassword() },
-                    });
+                });
 
                 HTTPResponse response = request.Send(spClient->GetHostName(), "443");
                 if (response.GetStatus() == 200)

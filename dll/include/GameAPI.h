@@ -7,14 +7,16 @@
 #include "GameAPI/Dialog.h"
 #include "GameAPI/Difficulty.h"
 #include "GameAPI/EndlessDungeon.h"
+#include "GameAPI/Equipment.h"
 #include "GameAPI/Game.h"
 #include "GameAPI/GameFolder.h"
 #include "GameAPI/GameTextLine.h"
 #include "GameAPI/InventoryTab.h"
 #include "GameAPI/Item.h"
-#include "GameAPI/Skill.h"
 #include "GameAPI/Player.h"
 #include "GameAPI/Quest.h"
+#include "GameAPI/Reagents.h"
+#include "GameAPI/Skill.h"
 #include "GameAPI/TriggerToken.h"
 
 constexpr char GAME_DLL[] = "Game.dll";

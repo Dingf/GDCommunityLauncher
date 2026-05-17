@@ -125,7 +125,7 @@ class Character
 
             uint8_t        _charIsModded;
             uint8_t        _charIsInGame;
-            uint8_t        _charDifficulty;
+            uint8_t        _charDifficulty;         // 64 = Crucible flag, 16 = Veteran flag
             uint8_t        _charMaxDifficulty;
             uint32_t       _charMoney;
             uint8_t        _charCrucibleDifficulty;

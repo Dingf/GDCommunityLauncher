@@ -45,6 +45,7 @@ class ServerCache
         const CacheBuffer* GetStashData(bool hardcore) const;
         const CacheBuffer* GetFormulasData(bool hardcore) const;
         const CacheBuffer* GetTransmutesData(bool hardcore) const;
+        const CacheBuffer* GetReagentsData(bool hardcore) const;
         const CacheBuffer* GetTagsData(bool hardcore) const;
 
         void SetCharacterID(const std::wstring& characterName, uint32_t participantID, uint32_t characterID);
@@ -57,6 +58,7 @@ class ServerCache
         void SetStashData(bool hardcore, uint8_t* data, size_t size);
         void SetFormulasData(bool hardcore, uint8_t* data, size_t size);
         void SetTransmutesData(bool hardcore, uint8_t* data, size_t size);
+        void SetReagentsData(bool hardcore, uint8_t* data, size_t size);
         void SetTagsData(bool hardcore, uint8_t* data, size_t size);
 
         const std::unordered_set<std::wstring>& GetDirtyCharacters() const { return _dirtyCharacters; }
@@ -100,6 +102,7 @@ class ServerCache
             std::unique_ptr<CacheBuffer> _formulas;
             std::unique_ptr<CacheBuffer> _transmutes;
             std::unique_ptr<CacheBuffer> _tags;
+            std::unique_ptr<CacheBuffer> _reagents;
         };
 
         ServerCache();
