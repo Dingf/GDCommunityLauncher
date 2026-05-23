@@ -100,9 +100,10 @@ class Websocket
                 result = _handler.OnWrite(message, args...);
                 if (!message.empty())
                 {
-                    asio::post(_ws->get_executor(), [this, message]()
+                    std::shared_ptr<std::string> messagePtr = std::make_shared<std::string>(message);
+                    asio::post(_ws->get_executor(), [this, messagePtr]()
                     {
-                        _messageQueue.emplace(std::move(message));
+                        _messageQueue.emplace(messagePtr);
                         if (_messageQueue.size() == 1)
                             Write();
                     });
@@ -132,7 +133,7 @@ class Websocket
         beast::flat_buffer _buffer;
         boost::scoped_ptr<WebsocketStream> _ws;
 
-        ThreadSafeQueue<std::string> _messageQueue;
+        ThreadSafeQueue<std::shared_ptr<std::string>> _messageQueue;
 
         T& _handler;
 
@@ -169,10 +170,10 @@ class Websocket
 
         void Write()
         {
-            std::string message;
+            std::shared_ptr<std::string> message;
             if (_messageQueue.front(message))
             {
-                _ws->async_write(asio::buffer(message), [this](const beast::error_code& ec, size_t n)
+                _ws->async_write(asio::buffer(*message), [this](const beast::error_code& ec, size_t n)
                 {
                     if (!ec)
                     {

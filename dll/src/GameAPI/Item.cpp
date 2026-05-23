@@ -129,7 +129,7 @@ void* GetItemBitmap(void* item)
 
     //GetItemBitmapProto callback = *(GetItemBitmapProto*)(*((uintptr_t*)item) + 0x3E0);   // Version 1.2.1.1
     //GetItemBitmapProto callback = *(GetItemBitmapProto*)(*((uintptr_t*)item) + 0x3F0);   // Version 1.2.1.6
-    GetItemBitmapProto callback = *(GetItemBitmapProto*)(*((uintptr_t*)item) + 0x408);     // Version 1.3
+    GetItemBitmapProto callback = *(GetItemBitmapProto*)(*((uintptr_t*)item) + 0x3D0);     // Version 1.3
 
     if (callback)
         return callback(item);
@@ -161,7 +161,7 @@ ItemType GetItemType(void* item)
 
     //GetItemTypeProto callback = *(GetItemTypeProto*)(*((uintptr_t*)item) + 0x508);   // Version 1.2.1.1
     //GetItemTypeProto callback = *(GetItemTypeProto*)(*((uintptr_t*)item) + 0x518);   // Version 1.2.1.6
-    GetItemTypeProto callback = *(GetItemTypeProto*)(*((uintptr_t*)item) + 0x530);     // Version 1.3
+    GetItemTypeProto callback = *(GetItemTypeProto*)(*((uintptr_t*)item) + 0x538);     // Version 1.3
 
     if (callback)
         return callback();
@@ -175,7 +175,7 @@ WeaponType GetWeaponType(void* item)
 
     //GetWeaponTypeProto callback = *(GetWeaponTypeProto*)(*((uintptr_t*)item) + 0x658);   // Version 1.2.1.1
     //GetWeaponTypeProto callback = *(GetWeaponTypeProto*)(*((uintptr_t*)item) + 0x668);   // Version 1.2.1.6
-    GetWeaponTypeProto callback = *(GetWeaponTypeProto*)(*((uintptr_t*)item) + 0x690);     // Version 1.3
+    GetWeaponTypeProto callback = *(GetWeaponTypeProto*)(*((uintptr_t*)item) + 0x698);     // Version 1.3
 
     if (callback)
         return callback();
