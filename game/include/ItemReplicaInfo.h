@@ -44,10 +44,11 @@ struct ItemReplicaInfo
         uint32_t    _unk3;          // 168
         uint32_t    _unk4;          // 16C
         uint32_t    _unk5;          // 170
-        uint32_t    _stackCount;    // 174
-        uint32_t    _rerollsUsed;   // 178
-        uint32_t    _unk6;          // 17C
+        uint32_t    _unk6;          // 174
+        uint32_t    _stackCount;    // 178
+        uint32_t    _rerollsUsed;   // 17C
         uint32_t    _unk7;          // 180
+        uint32_t    _unk8;          // 184
         uint32_t    _participantItemID;
 };
 

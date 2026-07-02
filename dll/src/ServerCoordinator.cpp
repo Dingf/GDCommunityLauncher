@@ -850,6 +850,7 @@ void ServerCoordinator::OnSetSeasonPlayerEvent(void* player, const SeasonInfo* s
 
     if (uint32_t participantID = spCache->GetParticipantID(GameAPI::IsPlayerHardcore(player)))
     {
+        spServer->Send("GetNewTradeNotificationCount", participantID);
         spServer->Send("GetParticipantPoints", participantID);
         spServer->Send("GetParticipantChallenges", seasonInfo->_seasonID, participantID);
     }
