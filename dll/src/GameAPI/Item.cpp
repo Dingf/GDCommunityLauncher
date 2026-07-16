@@ -194,14 +194,14 @@ std::string GetItemPrefixTag(void* item)
 {
     //return *(std::string*)((uintptr_t)item + 0x778);    // Pre-version 1.2.0.5
     //return *(std::string*)((uintptr_t)item + 0x790);    // Version 1.2.0.5
-    return *(std::string*)((uintptr_t)item + 0x890);      // Version 1.3
+    return *(std::string*)((uintptr_t)item + 0x898);      // Version 1.3
 }
 
 std::string GetItemSuffixTag(void* item)
 {
     //return *(std::string*)((uintptr_t)item + 0x798);    // Pre-version 1.2.0.5
     //return *(std::string*)((uintptr_t)item + 0x7B0);    // Version 1.2.0.5
-    return *(std::string*)((uintptr_t)item + 0x8B0);      // Version 1.3
+    return *(std::string*)((uintptr_t)item + 0x8B8);      // Version 1.3
 }
 
 bool IsReagentCompatible(void* item)

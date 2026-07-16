@@ -157,7 +157,7 @@ void Stash::WriteStashTabs(EncodedFileWriter* writer, uint32_t version)
             uint32_t itemX = (pair.second >> 32) & 0xFFFFFFFF;
             uint32_t itemY = (pair.second & 0xFFFFFFFF);
 
-            pair.first->Write(writer, version);
+            pair.first->Write(writer);
             if (containerType == ITEM_CONTAINER_CHAR_BAG)
             {
                 writer->BufferInt32(itemX);

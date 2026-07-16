@@ -26,6 +26,7 @@ enum CharacterClass
     CHAR_CLASS_INQUISITOR = 0x07,
     CHAR_CLASS_NECROMANCER = 0x08,
     CHAR_CLASS_OATHKEEPER = 0x09,
+    CHAR_CLASS_BERSERKER = 0x0A,
     CHAR_CLASS_COMMANDO = 0x12,
     CHAR_CLASS_WITCHBLADE = 0x13,
     CHAR_CLASS_BLADEMASTER = 0x14,
@@ -34,6 +35,7 @@ enum CharacterClass
     CHAR_CLASS_TACTICIAN = 0x17,
     CHAR_CLASS_DEATH_KNIGHT = 0x18,
     CHAR_CLASS_WARLORD = 0x19,
+    CHAR_CLASS_THANE = 0x1A,
     CHAR_CLASS_PYROMANCER = 0x23,
     CHAR_CLASS_SABOTEUR = 0x24,
     CHAR_CLASS_SORCERER = 0x25,
@@ -41,27 +43,35 @@ enum CharacterClass
     CHAR_CLASS_PURIFIER = 0x27,
     CHAR_CLASS_DEFILER = 0x28,
     CHAR_CLASS_SHIELDBREAKER = 0x29,
+    CHAR_CLASS_DREADNAUGHT = 0x2A,
     CHAR_CLASS_WITCH_HUNTER = 0x34,
     CHAR_CLASS_WARLOCK = 0x35,
     CHAR_CLASS_CONJURER = 0x36,
     CHAR_CLASS_DECEIVER = 0x37,
     CHAR_CLASS_CABALIST = 0x38,
     CHAR_CLASS_SENTINEL = 0x39,
+    CHAR_CLASS_MYSTIC = 0x3A,
     CHAR_CLASS_SPELLBREAKER = 0x45,
     CHAR_CLASS_TRICKSTER = 0x46,
     CHAR_CLASS_INFILTRATOR = 0x47,
     CHAR_CLASS_REAPER = 0x48,
     CHAR_CLASS_DERVISH = 0x49,
+    CHAR_CLASS_REAVER = 0x4A,
     CHAR_CLASS_DRUID = 0x56,
     CHAR_CLASS_MAGE_HUNTER = 0x57,
     CHAR_CLASS_SPELLBINDER = 0x58,
     CHAR_CLASS_TEMPLAR = 0x59,
+    CHAR_CLASS_EVOKER = 0x5A,
     CHAR_CLASS_VINDICATOR = 0x67,
     CHAR_CLASS_RITUALIST = 0x68,
     CHAR_CLASS_ARCHON = 0x69,
+    CHAR_CLASS_PRIMALIST = 0x6A,
     CHAR_CLASS_APOSTATE = 0x78,
     CHAR_CLASS_PALADIN = 0x79,
+    CHAR_CLASS_RUNEKEEPER = 0x7A,
     CHAR_CLASS_OPPRESSOR = 0x89,
+    CHAR_CLASS_VEILWALKER = 0x8A,
+    CHAR_CLASS_ZEALOT = 0x9A,
 };
 
 enum CharacterInventorySlot
@@ -162,10 +172,10 @@ class Character
         }
         _attributesBlock;
 
-        // Inventory Block, ID = 3, Version = 4,8
+        // Inventory Block, ID = 3, Version = 4,8,11
         struct CharacterInventoryBlock : public GDDataBlock
         {
-            CharacterInventoryBlock() : GDDataBlock(0x03, 0x88) {}
+            CharacterInventoryBlock() : GDDataBlock(0x03, 0x488) {}
 
             friend void to_json(json& j, const CharacterInventoryBlock& data);
             friend void from_json(const json& j, CharacterInventoryBlock& data);
@@ -221,10 +231,10 @@ class Character
         }
         _inventoryBlock;
 
-        // Stash Block, ID = 4, Version = 5,6,8,10
+        // Stash Block, ID = 4, Version = 5,6,8,10,11
         struct CharacterStashBlock : public GDDataBlock
         {
-            CharacterStashBlock() : GDDataBlock(0x04, 0x2B0) {}
+            CharacterStashBlock() : GDDataBlock(0x04, 0x6B0) {}
 
             friend void to_json(json& j, const CharacterStashBlock& data);
             friend void from_json(const json& j, CharacterStashBlock& data);
@@ -374,14 +384,21 @@ class Character
                 std::wstring   _slotLabel;
             };
 
+            struct CharacterUISkillSet
+            {
+                friend void to_json(json& j, const CharacterUISkillSet& data);
+                friend void from_json(const json& j, CharacterUISkillSet& data);
+
+                uint32_t _skillSetID;
+                std::vector<CharacterUISlot> _skillSetSlots;
+            };
+
             uint8_t            _unk1;
             uint32_t           _unk2;
             uint8_t            _unk3;
-            uint32_t           _unk5;
-            int32_t            _unk6;
             float              _charCameraDistance;
             std::vector<CharacterUIUnkData> _unk4;
-            std::vector<CharacterUISlot>    _charUISlots;
+            std::vector<CharacterUISkillSet> _charUISets;
         }
         _UIBlock;
 
@@ -397,10 +414,10 @@ class Character
         }
         _tutorialBlock;
 
-        // Stats Block, ID = 16, Version = 7,9,11
+        // Stats Block, ID = 16, Version = 7,9,11,12
         struct CharacterStatsBlock : public GDDataBlock
         {
-            CharacterStatsBlock() : GDDataBlock(0x10, 0x540) {}
+            CharacterStatsBlock() : GDDataBlock(0x10, 0xD40) {}
 
             friend void to_json(json& j, const CharacterStatsBlock& data);
             friend void from_json(const json& j, CharacterStatsBlock& data);
@@ -458,6 +475,10 @@ class Character
             uint32_t _charSRSoulsCollected;     // Not 100% sure about this one
             uint32_t _charSRFlag;               // Seems to either be 10 if SR has been completed or 0 otherwise. Might need to test with some lower level/difficulty characters...
             uint8_t  _charMeritUsed;            // 3 = Ultimate Merit, 0 = No Merit. Need to test Elite Merit case as well.
+
+            // Version 12+ - FoA Stats
+            uint32_t _charAscendantBossKills;
+            uint32_t _charHiddenChestsOpened;
 
             CharacterPerDifficultyStats _charDifficultyStats[3];
         }

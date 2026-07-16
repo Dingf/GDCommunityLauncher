@@ -15,6 +15,7 @@ const std::unordered_map<CharacterClass, std::string> classNameLookup =
     { CHAR_CLASS_INQUISITOR,    "Inquisitor" },
     { CHAR_CLASS_NECROMANCER,   "Necromancer" },
     { CHAR_CLASS_OATHKEEPER,    "Oathkeeper" },
+    { CHAR_CLASS_BERSERKER,     "Berserker" },
     { CHAR_CLASS_COMMANDO,      "Commando" },
     { CHAR_CLASS_WITCHBLADE,    "Witchblade" },
     { CHAR_CLASS_BLADEMASTER,   "Blademaster" },
@@ -23,6 +24,7 @@ const std::unordered_map<CharacterClass, std::string> classNameLookup =
     { CHAR_CLASS_TACTICIAN,     "Tactician" },
     { CHAR_CLASS_DEATH_KNIGHT,  "Death Knight" },
     { CHAR_CLASS_WARLORD,       "Warlord" },
+    { CHAR_CLASS_THANE,         "Thane" },
     { CHAR_CLASS_PYROMANCER,    "Pyromancer" },
     { CHAR_CLASS_SABOTEUR,      "Saboteur" },
     { CHAR_CLASS_SORCERER,      "Sorcerer" },
@@ -30,27 +32,35 @@ const std::unordered_map<CharacterClass, std::string> classNameLookup =
     { CHAR_CLASS_PURIFIER,      "Purifier" },
     { CHAR_CLASS_DEFILER,       "Defiler" },
     { CHAR_CLASS_SHIELDBREAKER, "Shieldbreaker" },
+    { CHAR_CLASS_DREADNAUGHT,   "Dreadnaught" },
     { CHAR_CLASS_WITCH_HUNTER,  "Witch Hunter" },
     { CHAR_CLASS_WARLOCK,       "Warlock" },
     { CHAR_CLASS_CONJURER,      "Conjurer" },
     { CHAR_CLASS_DECEIVER,      "Deceiver" },
     { CHAR_CLASS_CABALIST,      "Cabalist" },
     { CHAR_CLASS_SENTINEL,      "Sentinel" },
+    { CHAR_CLASS_MYSTIC,        "Mystic" },
     { CHAR_CLASS_SPELLBREAKER,  "Spellbreaker" },
     { CHAR_CLASS_TRICKSTER,     "Trickster" },
     { CHAR_CLASS_INFILTRATOR,   "Infiltrator" },
     { CHAR_CLASS_REAPER,        "Reaper" },
     { CHAR_CLASS_DERVISH,       "Dervish" },
+    { CHAR_CLASS_REAVER,        "Reaver" },
     { CHAR_CLASS_DRUID,         "Druid" },
     { CHAR_CLASS_MAGE_HUNTER,   "Mage Hunter" },
     { CHAR_CLASS_SPELLBINDER,   "Spellbinder" },
     { CHAR_CLASS_TEMPLAR,       "Templar" },
+    { CHAR_CLASS_EVOKER,        "Evoker" },
     { CHAR_CLASS_VINDICATOR,    "Vindicator" },
     { CHAR_CLASS_RITUALIST,     "Ritualist" },
     { CHAR_CLASS_ARCHON,        "Archon" },
+    { CHAR_CLASS_PRIMALIST,     "Primalist" },
     { CHAR_CLASS_APOSTATE,      "Apostate" },
     { CHAR_CLASS_PALADIN,       "Paladin" },
+    { CHAR_CLASS_RUNEKEEPER,    "Runekeeper" },
     { CHAR_CLASS_OPPRESSOR,     "Oppressor" },
+    { CHAR_CLASS_VEILWALKER,    "Veilwalker" },
+    { CHAR_CLASS_ZEALOT,        "Zealot" },
 };
 
 std::string GetCharacterClassName(CharacterClass charClass)
@@ -329,7 +339,7 @@ void Character::CharacterInventoryBlock::CharacterEquipped::Write(EncodedFileWri
         else if (index == CHAR_INV_SLOT_MAIN_2)
             writer->BufferInt8(_weaponSet2);
 
-        pair.first->Write(writer, blockVersion);
+        pair.first->Write(writer);
         writer->BufferInt8(GetAttachState(index));
     }
 }
@@ -561,53 +571,67 @@ void Character::ReadUIBlock(EncodedFileReader* reader)
             _UIBlock._unk4.push_back(unknown);
         }
     }
-    
-    _UIBlock._charUISlots.clear();
-    uint32_t numSlots = (_UIBlock.GetBlockVersion() >= 5) ? 46 : 36;
-    for (uint32_t i = 0; i < numSlots; ++i)
-    {
-        CharacterUIBlock::CharacterUISlot slot;
-        memset(&slot, 0, sizeof(CharacterUIBlock::CharacterUISlot));
 
-        slot._slotType = reader->ReadInt32();
-        switch (slot._slotType)
-        {
-            case 0:    // Item/Class Skill
-                slot._slotSkillName = reader->ReadString();
-                slot._slotIsItemSkill = reader->ReadInt8();
-                slot._slotItemName = reader->ReadString();
-                slot._slotEquip = reader->ReadInt32();
-                break;
-            case 4:    // Item
-                slot._slotItemName = reader->ReadString();
-                slot._slotBitmapUp = reader->ReadString();
-                slot._slotBitmapDown = reader->ReadString();
-                slot._slotLabel = reader->ReadWideString();
-                break;
-            // Unknown case, hasn't appeared before 1.2.1.0
-            case 1:
-                reader->ReadInt32();    // Value is "47" on most characters
-                reader->ReadInt32();    // Value is "0" on most characters
-                break;
-            // Not sure what these are; they appear to contain no data other than the slot type
-            case 2:
-            case 3:
-            case 5:     // Seems to be the evade skill?
-            case -1:    // Maybe an empty slot?
-                break;
-            default:
-                throw std::runtime_error(Logger::LogMessage(LOG_LEVEL_WARN, "Invalid or unsupported item slot type \"%\"", slot._slotType));
-        }
-        _UIBlock._charUISlots.push_back(slot);
+    uint32_t numSets = 1;
+    uint32_t numSlots = 36;
+    if (_UIBlock.GetBlockVersion() >= 7)
+    {
+        numSets = reader->ReadInt32();
+        numSlots = reader->ReadInt32();
+    }
+    else if (_UIBlock.GetBlockVersion() == 6)
+    {
+        numSlots = 47;
+    }
+    else if (_UIBlock.GetBlockVersion() == 5)
+    {
+        numSlots = 46;
     }
 
-    // Added in version 7, value is "-1" on most characters
-    if (_UIBlock.GetBlockVersion() >= 7)
-        _UIBlock._unk6 = reader->ReadInt32();
+    _UIBlock._charUISets.clear();
+    for (uint32_t i = 0; i < numSets; ++i)
+    {
+        _UIBlock._charUISets.push_back({ ._skillSetID = 0 });
+        if (_UIBlock.GetBlockVersion() >= 7)
+            _UIBlock._charUISets[i]._skillSetID = reader->ReadInt32();
 
-    // Added in version 6, value is "5" on most characters, probably something to do with the evade/potion buttons or the unknown data above?
-    if (_UIBlock.GetBlockVersion() >= 6)
-        _UIBlock._unk5 = reader->ReadInt32();
+        for (uint32_t j = 0; j < numSlots; ++j)
+        {
+            CharacterUIBlock::CharacterUISlot slot;
+            memset(&slot, 0, sizeof(CharacterUIBlock::CharacterUISlot));
+
+            slot._slotType = reader->ReadInt32();
+            switch (slot._slotType)
+            {
+                case 0:    // Item/Class Skill
+                    slot._slotSkillName = reader->ReadString();
+                    slot._slotIsItemSkill = reader->ReadInt8();
+                    slot._slotItemName = reader->ReadString();
+                    slot._slotEquip = reader->ReadInt32();
+                    break;
+                case 4:    // Item
+                    slot._slotItemName = reader->ReadString();
+                    slot._slotBitmapUp = reader->ReadString();
+                    slot._slotBitmapDown = reader->ReadString();
+                    slot._slotLabel = reader->ReadWideString();
+                    break;
+                // Unknown case, hasn't appeared before 1.2.1.0
+                case 1:
+                    reader->ReadInt32();    // Value is "47" on most characters
+                    reader->ReadInt32();    // Value is "0" on most characters
+                    break;
+                // Not sure what these are; they appear to contain no data other than the slot type
+                case 2:
+                case 3:
+                case 5:     // Seems to be the evade skill?
+                case -1:    // Maybe an empty slot?
+                    break;
+                default:
+                    throw std::runtime_error(Logger::LogMessage(LOG_LEVEL_WARN, "Invalid or unsupported item slot type \"%\"", slot._slotType));
+            }
+            _UIBlock._charUISets[i]._skillSetSlots.push_back(slot);
+        }
+    }
 
     _UIBlock._charCameraDistance = reader->ReadFloat();
 
@@ -706,6 +730,17 @@ void Character::ReadStatsBlock(EncodedFileReader* reader)
         _statsBlock._charSRSoulsCollected = 0;
         _statsBlock._charSRFlag = 0;
         _statsBlock._charMeritUsed = 0;
+    }
+
+    if (_statsBlock.GetBlockVersion() >= 12)
+    {
+        _statsBlock._charAscendantBossKills = reader->ReadInt32();
+        _statsBlock._charHiddenChestsOpened = reader->ReadInt32();
+    }
+    else
+    {
+        _statsBlock._charAscendantBossKills = 0;
+        _statsBlock._charHiddenChestsOpened = 0;
     }
 
     _statsBlock._unk1 = reader->ReadInt32();
@@ -1072,7 +1107,7 @@ void to_json(json& j, const Character::CharacterUIBlock& data)
         { "Unknown3",       data._unk3 },
         { "CameraDistance", data._charCameraDistance },
         { "Unknown4",       data._unk4 },
-        { "UISlots",        data._charUISlots },
+        { "SkillSets",      data._charUISets },
     };
 }
 
@@ -1083,7 +1118,7 @@ void from_json(const json& j, Character::CharacterUIBlock& data)
     j.at("Unknown3")      .get_to(data._unk3);
     j.at("CameraDistance").get_to(data._charCameraDistance);
     j.at("Unknown4")      .get_to(data._unk4);
-    j.at("UISlots")       .get_to(data._charUISlots);
+    j.at("SkillSets")     .get_to(data._charUISets);
 }
 
 void to_json(json& j, const Character::CharacterUIBlock::CharacterUIUnkData& data)
@@ -1128,6 +1163,21 @@ void from_json(const json& j, Character::CharacterUIBlock::CharacterUISlot& data
     j.at("BitmapUp")   .get_to(data._slotBitmapUp);
     j.at("BitmapDown") .get_to(data._slotBitmapDown);
     j.at("Label")      .get_to(data._slotLabel);
+}
+
+void to_json(json& j, const Character::CharacterUIBlock::CharacterUISkillSet& data)
+{
+    j =
+    {
+        { "ID",    data._skillSetID },
+        { "Slots", data._skillSetSlots },
+    };
+}
+
+void from_json(const json& j, Character::CharacterUIBlock::CharacterUISkillSet& data)
+{
+    j.at("ID")   .get_to(data._skillSetID);
+    j.at("Slots").get_to(data._skillSetSlots);
 }
 
 void to_json(json& j, const Character::CharacterTutorialBlock& data)
@@ -1186,6 +1236,8 @@ void to_json(json& j, const Character::CharacterStatsBlock& data)
         { "SRSoulsCollected",          data._charSRSoulsCollected },
         { "SRFlag",                    data._charSRFlag },
         { "MeritUsed",                 data._charMeritUsed },
+        { "AscendantBossKills",        data._charAscendantBossKills },
+        { "HiddenChestsOpened",        data._charHiddenChestsOpened },
     };
 }
 
@@ -1226,6 +1278,8 @@ void from_json(const json& j, Character::CharacterStatsBlock& data)
     j.at("SRSoulsCollected")         .get_to(data._charSRSoulsCollected);
     j.at("SRFlag")                   .get_to(data._charSRFlag);
     j.at("MeritUsed")                .get_to(data._charMeritUsed);
+    j.at("AscendantBossKills")       .get_to(data._charAscendantBossKills);
+    j.at("HiddenChestsOpened")       .get_to(data._charHiddenChestsOpened);
 }
 
 void to_json(json& j, const Character::CharacterStatsBlock::CharacterPerDifficultyStats& data)

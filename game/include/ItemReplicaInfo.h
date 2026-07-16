@@ -10,7 +10,9 @@
 struct ItemReplicaInfo
 {
     public:
-        ItemReplicaInfo() : _participantItemID(0) {}
+        static constexpr uint32_t CURRENT_VERSION = 11;
+
+        ItemReplicaInfo() : _participantItemID(0), _version(CURRENT_VERSION) {}
         ItemReplicaInfo(EncodedFileReader* reader, uint32_t version) { Read(reader, version); }
         ItemReplicaInfo(const ItemReplicaInfo& item) { *this = item; }
 
@@ -20,7 +22,7 @@ struct ItemReplicaInfo
         friend void from_json(const json& j, ItemReplicaInfo& data);
 
         void Read(EncodedFileReader* reader, uint32_t version);
-        void Write(EncodedFileWriter* writer, uint32_t version);
+        void Write(EncodedFileWriter* writer);
 
         size_t GetBufferSize() const;
 
@@ -46,10 +48,11 @@ struct ItemReplicaInfo
         uint32_t    _unk5;          // 170
         uint32_t    _unk6;          // 174
         uint32_t    _stackCount;    // 178
-        uint32_t    _rerollsUsed;   // 17C
-        uint32_t    _unk7;          // 180
+        uint32_t    _rerolls;       // 17C
+        uint32_t    _affixRerolls;  // 180
         uint32_t    _unk8;          // 184
         uint32_t    _participantItemID;
+        uint32_t    _version;
 };
 
 #endif//INC_GDCL_GAME_ITEM_REPLICA_INFO_H

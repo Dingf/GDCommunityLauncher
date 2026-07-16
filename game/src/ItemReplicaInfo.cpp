@@ -21,7 +21,9 @@ ItemReplicaInfo& ItemReplicaInfo::operator=(const ItemReplicaInfo& item)
     _stackCount = item._stackCount;
     _ascendant = item._ascendant;
     _ascendant2H = item._ascendant2H;
-    _rerollsUsed = item._rerollsUsed;
+    _rerolls = item._rerolls;
+    _affixRerolls = item._affixRerolls;
+    _version = item._version;
     return *this;
 }
 
@@ -50,11 +52,16 @@ void ItemReplicaInfo::Read(EncodedFileReader* reader, uint32_t version)
     _stackCount = reader->ReadInt32();
     if (version >= 8)
     {
-        _rerollsUsed = reader->ReadInt32();
+        _rerolls = reader->ReadInt32();
     }
+    if (version >= 11)
+    {
+        _affixRerolls = reader->ReadInt32();
+    }
+    _version = version;
 }
 
-void ItemReplicaInfo::Write(EncodedFileWriter* writer, uint32_t version)
+void ItemReplicaInfo::Write(EncodedFileWriter* writer)
 {
     writer->BufferString(_name);
     writer->BufferString(_prefix);
@@ -68,22 +75,30 @@ void ItemReplicaInfo::Write(EncodedFileWriter* writer, uint32_t version)
     writer->BufferString(_augment);
     writer->BufferInt32(_augmentLevel);
     writer->BufferInt32(_augmentSeed);
-    if (version >= 8)
+    if (_version >= 8)
     {
         writer->BufferString(_ascendant);
         writer->BufferString(_ascendant2H);
     }
     writer->BufferInt32(_unk1);
     writer->BufferInt32(_stackCount);
-    if (version >= 8)
+    if (_version >= 8)
     {
-        writer->BufferInt32(_rerollsUsed);
+        writer->BufferInt32(_rerolls);
+    }
+    if (_version >= 11)
+    {
+        writer->BufferInt32(_affixRerolls);
     }
 }
 
 size_t ItemReplicaInfo::GetBufferSize() const
 {
-    size_t size = 68;
+    size_t size = 56;
+    if (_version >= 8)
+        size += 12;
+    if (_version >= 11)
+        size += 4;
     size += _name.length();
     size += _prefix.length();
     size += _suffix.length();
@@ -92,8 +107,11 @@ size_t ItemReplicaInfo::GetBufferSize() const
     size += _component.length();
     size += _completion.length();
     size += _augment.length();
-    size += _ascendant.length();
-    size += _ascendant2H.length();
+    if (_version >= 8)
+    {
+        size += _ascendant.length();
+        size += _ascendant2H.length();
+    }
     return size;
 }
 
@@ -116,8 +134,10 @@ void to_json(json& j, const ItemReplicaInfo& data)
         { "StackCount",        data._stackCount },
         { "Ascendant",         data._ascendant },
         { "Ascendant2h",       data._ascendant2H },
-        { "RerollsUsed",       data._rerollsUsed },
+        { "RerollsUsed",       data._rerolls },
+        { "AffixRerollsUsed",  data._affixRerolls },
         { "ParticipantItemId", data._participantItemID },
+        { "Version",           data._version },
     };
 }
 
@@ -143,8 +163,11 @@ void from_json(const json& j, ItemReplicaInfo& data)
     if ((j.contains("Ascendant2h")) && (!j.at("Ascendant2h").is_null()))
         j.at("Ascendant2h").get_to(data._ascendant2H);
     if ((j.contains("RerollsUsed")) && (!j.at("RerollsUsed").is_null()))
-        j.at("RerollsUsed").get_to(data._rerollsUsed);
-
+        j.at("RerollsUsed").get_to(data._rerolls);
+    if ((j.contains("AffixRerollsUsed")) && (!j.at("AffixRerollsUsed").is_null()))
+        j.at("AffixRerollsUsed").get_to(data._affixRerolls);
     if ((j.contains("ParticipantItemId")) && (!j.at("ParticipantItemId").is_null()))
         j.at("ParticipantItemId").get_to(data._participantItemID);
+    if ((j.contains("Version")) && (!j.at("Version").is_null()))
+        j.at("Version").get_to(data._version);
 }
