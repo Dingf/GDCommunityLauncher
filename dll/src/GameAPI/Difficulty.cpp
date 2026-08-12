@@ -61,4 +61,21 @@ std::string GetCurrentGameDifficultyName()
     return GetGameDifficultyName(GetGameDifficulty());
 }
 
+bool IsAscendantDifficulty()
+{
+    typedef bool (__thiscall* IsAscendantDiffucltyProto)(void*);
+
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
+    if (!gameDLL)
+        return {};
+
+    IsAscendantDiffucltyProto callback = (IsAscendantDiffucltyProto)GetProcAddress(gameDLL, GAPI_NAME_IS_ASCENDANT_DIFFICULTY);
+    void** gameEngine = GetGameEngineHandle();
+
+    if ((!callback) || (!gameEngine))
+        return false;
+
+    return callback(*gameEngine);
+}
+
 }

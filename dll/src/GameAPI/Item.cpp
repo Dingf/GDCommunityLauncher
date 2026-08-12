@@ -129,7 +129,8 @@ void* GetItemBitmap(void* item)
 
     //GetItemBitmapProto callback = *(GetItemBitmapProto*)(*((uintptr_t*)item) + 0x3E0);   // Version 1.2.1.1
     //GetItemBitmapProto callback = *(GetItemBitmapProto*)(*((uintptr_t*)item) + 0x3F0);   // Version 1.2.1.6
-    GetItemBitmapProto callback = *(GetItemBitmapProto*)(*((uintptr_t*)item) + 0x420);     // Version 1.3
+    //GetItemBitmapProto callback = *(GetItemBitmapProto*)(*((uintptr_t*)item) + 0x420);   // Version 1.3
+    GetItemBitmapProto callback = *(GetItemBitmapProto*)(*((uintptr_t*)item) + 0x428);     // Version 1.3.0.6
 
     if (callback)
         return callback(item);
@@ -161,7 +162,8 @@ ItemType GetItemType(void* item)
 
     //GetItemTypeProto callback = *(GetItemTypeProto*)(*((uintptr_t*)item) + 0x508);   // Version 1.2.1.1
     //GetItemTypeProto callback = *(GetItemTypeProto*)(*((uintptr_t*)item) + 0x518);   // Version 1.2.1.6
-    GetItemTypeProto callback = *(GetItemTypeProto*)(*((uintptr_t*)item) + 0x548);     // Version 1.3
+    //GetItemTypeProto callback = *(GetItemTypeProto*)(*((uintptr_t*)item) + 0x548);   // Version 1.3
+    GetItemTypeProto callback = *(GetItemTypeProto*)(*((uintptr_t*)item) + 0x550);     // Version 1.3.0.6
 
     if (callback)
         return callback();
@@ -175,7 +177,8 @@ WeaponType GetWeaponType(void* item)
 
     //GetWeaponTypeProto callback = *(GetWeaponTypeProto*)(*((uintptr_t*)item) + 0x658);   // Version 1.2.1.1
     //GetWeaponTypeProto callback = *(GetWeaponTypeProto*)(*((uintptr_t*)item) + 0x668);   // Version 1.2.1.6
-    GetWeaponTypeProto callback = *(GetWeaponTypeProto*)(*((uintptr_t*)item) + 0x6A8);     // Version 1.3
+    //GetWeaponTypeProto callback = *(GetWeaponTypeProto*)(*((uintptr_t*)item) + 0x6A8);   // Version 1.3
+    GetWeaponTypeProto callback = *(GetWeaponTypeProto*)(*((uintptr_t*)item) + 0x6B0);     // Version 1.3.0.6
 
     if (callback)
         return callback();
@@ -187,21 +190,24 @@ std::string GetItemNameTag(void* item)
 {
     //return *(std::string*)((uintptr_t)item + 0xC08);    // Version 1.2.1.1
     //return *(std::string*)((uintptr_t)item + 0xC50);    // Version 1.2.1.6
-    return *(std::string*)((uintptr_t)item + 0xD78);      // Version 1.3
+    //return *(std::string*)((uintptr_t)item + 0xD78);    // Version 1.3
+    return *(std::string*)((uintptr_t)item + 0xD88);      // Version 1.3.0.6
 }
 
 std::string GetItemPrefixTag(void* item)
 {
     //return *(std::string*)((uintptr_t)item + 0x778);    // Pre-version 1.2.0.5
     //return *(std::string*)((uintptr_t)item + 0x790);    // Version 1.2.0.5
-    return *(std::string*)((uintptr_t)item + 0x898);      // Version 1.3
+    //return *(std::string*)((uintptr_t)item + 0x898);    // Version 1.3
+    return *(std::string*)((uintptr_t)item + 0x8A8);      // Version 1.3.0.6
 }
 
 std::string GetItemSuffixTag(void* item)
 {
     //return *(std::string*)((uintptr_t)item + 0x798);    // Pre-version 1.2.0.5
     //return *(std::string*)((uintptr_t)item + 0x7B0);    // Version 1.2.0.5
-    return *(std::string*)((uintptr_t)item + 0x8B8);      // Version 1.3
+    //return *(std::string*)((uintptr_t)item + 0x8B8);    // Version 1.3
+    return *(std::string*)((uintptr_t)item + 0x8C8);      // Version 1.3.0.6
 }
 
 bool IsReagentCompatible(void* item)

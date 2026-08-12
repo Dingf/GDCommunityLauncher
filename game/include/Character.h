@@ -309,10 +309,10 @@ class Character
         }
         _shrineBlock;
 
-        // Skills Block, ID = 8, Version = 5,6,7
+        // Skills Block, ID = 8, Version = 5,6,7,8
         struct CharacterSkillBlock : public GDDataBlock
         {
-            CharacterSkillBlock() : GDDataBlock(0x08, 0x70) {}
+            CharacterSkillBlock() : GDDataBlock(0x08, 0xF0) {}
 
             friend void to_json(json& j, const CharacterSkillBlock& data);
             friend void from_json(const json& j, CharacterSkillBlock& data);
@@ -346,7 +346,7 @@ class Character
             friend void to_json(json& j, const CharacterFactionBlock& data);
             friend void from_json(const json& j, CharacterFactionBlock& data);
 
-            uint32_t             _unk1;             // GDStash has this listed as "faction", not sure what that means... value appears to always be 0
+            uint32_t             _unk1;
             std::vector<Faction> _charFactions;
         }
         _factionBlock;
