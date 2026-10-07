@@ -1,0 +1,38 @@
+#include <windows.h>
+#include "../include/LoginWindow.h"
+
+IDB_LAUNCHER_BACKGROUND PNG "launcher_bg.png"
+IDB_LAUNCHER_SPLASH PNG "splash.png"
+
+IDB_LOGIN_EXIT_UP    PNG "exit_up.png"
+IDB_LOGIN_EXIT_OVER  PNG "exit_over.png"
+IDB_LOGIN_EXIT_DOWN  PNG "exit_down.png"
+
+IDB_LOGIN_UP   PNG "login_up.png"
+IDB_LOGIN_OVER PNG "login_over.png"
+IDB_LOGIN_DOWN PNG "login_down.png"
+IDB_LOGIN_DISABLED PNG "login_disabled.png"
+
+IDB_USER_UP    PNG "username_up.png"
+IDB_USER_OVER  PNG "username_over.png"
+
+IDB_PASSWORD_UP   PNG "password_up.png"
+IDB_PASSWORD_OVER PNG "password_over.png"
+
+IDB_CHECKBOX_UP   PNG "checkbox_up.png"
+IDB_CHECKBOX_OVER PNG "checkbox_over.png"
+IDB_CHECKBOX_DOWN PNG "checkbox_down.png"
+IDB_CHECKBOX_DOWNOVER PNG "checkbox_downover.png"
+
+IDB_ROUNDBUTTON_UP   PNG "roundbutton_up.png"
+IDB_ROUNDBUTTON_OVER PNG "roundbutton_over.png"
+IDB_ROUNDBUTTON_DOWN PNG "roundbutton_down.png"
+IDB_ROUNDBUTTON_DOWNOVER PNG "roundbutton_downover.png"
+
+IDB_FLAG_BR PNG "flag_br.png"
+IDB_FLAG_DE PNG "flag_de.png"
+IDB_FLAG_FR PNG "flag_fr.png"
+IDB_FLAG_ID PNG "flag_id.png"
+IDB_FLAG_NL PNG "flag_nl.png"
+IDB_FLAG_SG PNG "flag_sg.png"
+IDB_FLAG_US PNG "flag_us.png"

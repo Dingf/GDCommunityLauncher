@@ -172,9 +172,9 @@ void HandleReadStoreItems(const json& response, uint32_t participantID, std::vec
         if (status == HTTP_STATUS_OK)
         {
             const std::vector<void*>& transferTabs = GameAPI::GetTransferTabs();
-            if (transferTabs.size() >= 6)
+            if (transferTabs.size() >= 10)
             {
-                void* uploadTab = transferTabs[5];
+                void* uploadTab = transferTabs[9];
                 for (uint32_t itemID : itemIDs)
                 {
                     if (!GameAPI::RemoveItemFromTab(uploadTab, itemID))
@@ -212,7 +212,7 @@ void HandleReadTransferQueue(const json& response, uint32_t participantID, uint3
         if (status == HTTP_STATUS_OK)
         {
             const json& itemsArray = response.at("Data");
-            if ((GameAPI::GetTransferTabs().size() >= 6) && (itemsArray.size() > 0))
+            if ((GameAPI::GetTransferTabs().size() >= 10) && (itemsArray.size() > 0))
             {
                 std::vector<uint32_t> pulledItemIDs;
                 uint32_t playerID = EngineAPI::GetObjectID(GameAPI::GetMainPlayer());
@@ -223,7 +223,7 @@ void HandleReadTransferQueue(const json& response, uint32_t participantID, uint3
                     if (void* item = GameAPI::CreateItem(itemInfo))
                     {
                         GameAPI::SetItemVisiblePlayer(item, playerID);
-                        if (GameAPI::AddItemToTransfer(EngineAPI::GetObjectID(item), 4, true))
+                        if (GameAPI::AddItemToTransfer(EngineAPI::GetObjectID(item), 8, true))
                             pulledItemIDs.push_back(itemInfo._participantItemID);
 
                         EngineAPI::DestroyObjectEx(item);

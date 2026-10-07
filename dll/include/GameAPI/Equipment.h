@@ -31,7 +31,7 @@ enum EquipLocation
     EQUIP_LOCATION_RELIC = 11,
     EQUIP_LOCATION_WAIST = 12,
     EQUIP_LOCATION_SHOULDER = 13,
-    EQUIp_LOCATION_MEDAL = 14
+    EQUIP_LOCATION_MEDAL = 14
 };
 
 void* GetPlayerEquipment(void* player);

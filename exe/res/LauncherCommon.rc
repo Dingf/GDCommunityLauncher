@@ -1,0 +1,5 @@
+#include "../include/LauncherCommon.h"
+
+IDB_ICON ICON "icon.ico"
+IDB_CURSOR CURSOR "cursor.cur"
+IDB_FONT_VINQUE FONT "Vinque.otf"

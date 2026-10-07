@@ -1,0 +1,13 @@
+#include <windows.h>
+#include "../include/MessageBox.h"
+
+IDB_MESSAGE_BACKGROUND PNG "message_bg.png"
+
+IDB_MESSAGE_EXIT_UP    PNG "exit_up.png"
+IDB_MESSAGE_EXIT_OVER  PNG "exit_over.png"
+IDB_MESSAGE_EXIT_DOWN  PNG "exit_down.png"
+
+IDB_MESSAGE_OK_UP        PNG "ok_up.png"
+IDB_MESSAGE_OK_OVER      PNG "ok_over.png"
+IDB_MESSAGE_OK_DOWN      PNG "ok_down.png"
+IDB_MESSAGE_OK_DISABLED  PNG "ok_disabled.png"

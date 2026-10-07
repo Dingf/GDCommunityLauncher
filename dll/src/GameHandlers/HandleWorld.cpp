@@ -59,7 +59,6 @@ void LoadDatabaseValues()
                 DWORD size = SizeofResource(launcherDLL, res);
                 char* data = (char*)LockResource(handle);
                 dungeonDB.Load(data, size, UpdateDungeonData);
-                FreeResource(handle);
             }
         }
 
@@ -79,7 +78,6 @@ void LoadDatabaseValues()
                 DWORD size = SizeofResource(launcherDLL, res);
                 char* data = (char*)LockResource(handle);
                 craftingDB.Load(data, size);
-                FreeResource(handle);
             }
         }
 

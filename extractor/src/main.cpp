@@ -81,18 +81,28 @@ int main(int argc, char** argv)
             ARCExtractor::Extract(inputPath / "resources" / "Text_EN.arc", outputPath);
             std::cout << "Extracting Grim Dawn items..." << std::endl;
             ARCExtractor::Extract(inputPath / "resources" / "Items.arc", outputPath);
+
             std::cout << "Extracting Ashes of Malmouth records..." << std::endl;
             ARZExtractor::Extract(inputPath / "gdx1" / "database" / "GDX1.arz", outputPath);
             std::cout << "Extracting Ashes of Malmouth text..." << std::endl;
             ARCExtractor::Extract(inputPath / "gdx1" / "resources" / "Text_EN.arc", outputPath);
             std::cout << "Extracting Ashes of Malmouth items..." << std::endl;
             ARCExtractor::Extract(inputPath / "gdx1" / "resources" / "Items.arc", outputPath);
+
             std::cout << "Extracting Forgotten Gods records..." << std::endl;
             ARZExtractor::Extract(inputPath / "gdx2" / "database" / "GDX2.arz", outputPath);
             std::cout << "Extracting Forgotten Gods text..." << std::endl;
             ARCExtractor::Extract(inputPath / "gdx2" / "resources" / "Text_EN.arc", outputPath);
             std::cout << "Extracting Forgotten Gods items..." << std::endl;
             ARCExtractor::Extract(inputPath / "gdx2" / "resources" / "Items.arc", outputPath);
+
+            std::cout << "Extracting Fangs of Asterkarn records..." << std::endl;
+            ARZExtractor::Extract(inputPath / "gdx3" / "database" / "GDX3.arz", outputPath);
+            std::cout << "Extracting Fangs of Asterkarn text..." << std::endl;
+            ARCExtractor::Extract(inputPath / "gdx3" / "resources" / "Text_EN.arc", outputPath);
+            std::cout << "Extracting Fangs of Asterkarn items..." << std::endl;
+            ARCExtractor::Extract(inputPath / "gdx3" / "resources" / "Items.arc", outputPath);
+
             std::cout << "Extracting GrimLeague records..." << std::endl;
             ARZExtractor::Extract(inputPath / "mods" / modName / "database" / (modName + ".arz"), outputPath);
             std::cout << "Extracting GrimLeague text..." << std::endl;

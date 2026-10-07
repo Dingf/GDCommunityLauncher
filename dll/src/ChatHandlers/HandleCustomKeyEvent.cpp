@@ -36,10 +36,10 @@ bool HandlePasteEvent(std::wstring text, uint32_t carat, uint32_t selectStart, u
                 ChatAPI::SetSelectEndPosition(0);
 
                 GlobalUnlock(data);
-                CloseClipboard();
                 return true;
             }
         }
+        CloseClipboard();
     }
     return false;
 }

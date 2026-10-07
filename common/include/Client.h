@@ -29,6 +29,7 @@ struct SeasonInfo
 };
 
 constexpr char OFFLINE_SEASON_NAME[] = "GrimLeagueS07";
+constexpr char DEFAULT_HOST_NAME[] = "gdcl-api.azurewebsites.net";
 
 class Client
 {

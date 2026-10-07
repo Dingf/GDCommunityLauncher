@@ -1,5 +1,4 @@
-cmake_minimum_required(VERSION 3.15)
-cmake_policy(SET CMP0048 NEW)
+cmake_minimum_required(VERSION 3.16)
 project (GDCommunityLauncher VERSION 2.0.0)
 
 set(CMAKE_GENERATOR_PLATFORM x64)
@@ -9,9 +8,9 @@ set(GDCL_BUILD_PRINTTOOL ON)
 
 configure_file(${CMAKE_SOURCE_DIR}/common/include/Version.cmake ${CMAKE_SOURCE_DIR}/common/include/Version.h)
 
-find_package(unofficial-minizip CONFIG REQUIRED)
-if (unofficial-minizip)
-    include_directories(${unofficial-minizip_INCLUDE_DIR})
+find_package(minizip CONFIG REQUIRED)
+if (minizip_FOUND)
+    include_directories(${minizip_INCLUDE_DIR})
 endif()
 
 find_package(minhook CONFIG REQUIRED)

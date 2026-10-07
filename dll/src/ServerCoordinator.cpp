@@ -77,8 +77,16 @@ void ServerCoordinator::OnPreShutdownEvent()
     std::wstring lastPlayerName = spClient->GetMainPlayerName();
     if (const FileWriter* characterData = spCache->GetCharacterData(lastPlayerName))
     {
+        // When shutting down, make sure that the server receives the data before continuing
+        // This ensures that the player data isn't lost due to the connection being terminated
+        std::atomic_bool lock = true;
         uint32_t participantID = spCache->GetParticipantID(lastPlayerName);
-        spServer->Send("SaveCharacterFile", participantID, lastPlayerName, BinaryToBase64(characterData->GetBuffer(), characterData->GetBufferSize()));
+        spServer->Send("SaveCharacterFile", participantID, lastPlayerName, BinaryToBase64(characterData->GetBuffer(), characterData->GetBufferSize())).then(
+        [&lock](const json& response)
+        {
+            lock = false;
+        });
+        while (lock && spServer->IsConnected());
     }
 }
 
@@ -870,7 +878,7 @@ void ServerCoordinator::OnTransferPreSaveEvent()
 {
     uint32_t participantID = spCache->GetParticipantID(EngineAPI::IsHardcore());
     const std::vector<void*>& transferTabs = GameAPI::GetTransferTabs();
-    if (transferTabs.size() >= 6)
+    if (transferTabs.size() >= 10)
     {
         const std::map<uint32_t, EngineAPI::Rect>& items = GameAPI::GetItemsInTab(transferTabs[5]);
         if (items.size() > 0)

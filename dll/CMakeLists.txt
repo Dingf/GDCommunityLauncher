@@ -6,7 +6,7 @@ add_library(dll SHARED ${INCLUDE} ${RESOURCE} ${SOURCE})
 
 target_include_directories(dll PRIVATE include)
 target_link_libraries(dll PRIVATE OpenSSL::SSL)
-target_link_libraries(dll PRIVATE unofficial::minizip::minizip)
+target_link_libraries(dll PRIVATE $<IF:$<TARGET_EXISTS:MINIZIP::minizip>,MINIZIP::minizip,MINIZIP::minizipstatic>)
 target_link_libraries(dll PRIVATE minhook::minhook)
 target_link_libraries(dll PRIVATE ${LUA_LIBRARY})
 target_link_libraries(dll PRIVATE game)

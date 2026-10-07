@@ -1,0 +1,11 @@
+#include <windows.h>
+#include "../include/DownloadWindow.h"
+
+IDB_DOWNLOAD_BACKGROUND PNG "download_bg.png"
+
+IDB_DOWNLOAD_EXIT_UP    PNG "exit_up.png"
+IDB_DOWNLOAD_EXIT_OVER  PNG "exit_over.png"
+IDB_DOWNLOAD_EXIT_DOWN  PNG "exit_down.png"
+
+IDB_PROGRESS_EMPTY PNG "progress_empty.png"
+IDB_PROGRESS_FULL  PNG "progress_full.png"

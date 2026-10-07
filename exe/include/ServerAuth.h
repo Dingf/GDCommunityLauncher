@@ -5,10 +5,11 @@
 
 enum ServerAuthResult
 {
-    SERVER_AUTH_CALLBACK = -1,
     SERVER_AUTH_OK = 0,
     SERVER_AUTH_INVALID_LOGIN = 1,
     SERVER_AUTH_TIMEOUT = 2,
+    SERVER_AUTH_NO_ACTIVE_SEASON = 3,
+    SERVER_AUTH_OTHER_ERROR = 4,
 };
 
 typedef void (*ServerAuthCallback)(ServerAuthResult);
