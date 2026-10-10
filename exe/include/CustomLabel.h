@@ -29,6 +29,8 @@ class CustomLabel : public CustomWidget
         void SetWidgetState(WidgetState state) { _state = state; }
         void SetFocusState(bool focus) {}
 
+        std::wstring GetText() const { return _text; }
+
         void SetText(const std::wstring& text) { _text = text; Redraw(); }
 
     private:

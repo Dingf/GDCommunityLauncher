@@ -29,29 +29,32 @@ CustomRadioButton::CustomRadioButton(HINSTANCE instance, HDC parent, RECT bounds
 
 void CustomRadioButton::SetSelectedState(bool selected, CustomSelectButton* source)
 {
-    if (selected)
+    if (_state != WIDGET_STATE_DISABLED)
     {
-        _selected = true;
-        SetWidgetState(WIDGET_STATE_DOWNOVER);
-        for (CustomRadioButton* button : _group._buttons)
+        if (selected)
         {
-            if (button == this)
-                continue;
+            _selected = true;
+            SetWidgetState(WIDGET_STATE_DOWNOVER);
+            for (CustomRadioButton* button : _group._buttons)
+            {
+                if (button == this)
+                    continue;
 
-            button->SetSelectedState(false, this);
+                button->SetSelectedState(false, this);
+            }
+            _group._selected = this;
         }
-        _group._selected = this;
-    }
-    else if (source != this)
-    {
-        _selected = false;
-        if (_state == WIDGET_STATE_DOWNOVER)
+        else if (source != this)
         {
-            SetWidgetState(WIDGET_STATE_OVER);
-        }
-        else if (_state != WIDGET_STATE_OVER)
-        {
-            SetWidgetState(WIDGET_STATE_UP);
+            _selected = false;
+            if (_state == WIDGET_STATE_DOWNOVER)
+            {
+                SetWidgetState(WIDGET_STATE_OVER);
+            }
+            else if (_state != WIDGET_STATE_OVER)
+            {
+                SetWidgetState(WIDGET_STATE_UP);
+            }
         }
     }
 }

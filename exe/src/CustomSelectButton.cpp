@@ -11,28 +11,34 @@ CustomSelectButton::CustomSelectButton(HINSTANCE instance, HDC parent, RECT boun
 
 void CustomSelectButton::SetFocusState(bool focus)
 {
-    if (focus)
+    if (_state != WIDGET_STATE_DISABLED)
     {
-        SetWidgetState(_selected ? WIDGET_STATE_DOWNOVER : WIDGET_STATE_OVER);
-        _focus = true;
-    }
-    else
-    {
-        SetWidgetState(_selected ? WIDGET_STATE_DOWN : WIDGET_STATE_UP);
-        _focus = false;
+        if (focus)
+        {
+            SetWidgetState(_selected ? WIDGET_STATE_DOWNOVER : WIDGET_STATE_OVER);
+            _focus = true;
+        }
+        else
+        {
+            SetWidgetState(_selected ? WIDGET_STATE_DOWN : WIDGET_STATE_UP);
+            _focus = false;
+        }
     }
 }
 
 void CustomSelectButton::SetSelectedState(bool selected, CustomSelectButton* source)
 {
-    _selected = selected;
-    if ((_state == WIDGET_STATE_OVER) || (_state == WIDGET_STATE_DOWNOVER))
+    if (_state != WIDGET_STATE_DISABLED)
     {
-        SetWidgetState(_selected ? WIDGET_STATE_DOWNOVER : WIDGET_STATE_OVER);
-    }
-    else
-    {
-        SetWidgetState(_selected ? WIDGET_STATE_DOWN : WIDGET_STATE_UP);
+        _selected = selected;
+        if ((_state == WIDGET_STATE_OVER) || (_state == WIDGET_STATE_DOWNOVER))
+        {
+            SetWidgetState(_selected ? WIDGET_STATE_DOWNOVER : WIDGET_STATE_OVER);
+        }
+        else
+        {
+            SetWidgetState(_selected ? WIDGET_STATE_DOWN : WIDGET_STATE_UP);
+        }
     }
 }
 

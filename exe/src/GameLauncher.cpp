@@ -97,7 +97,7 @@ LPVOID BuildEnvironmentVariables()
     }
     else
     {
-        return NULL;
+        return GetEnvironmentStringsW();
     }
 }
 

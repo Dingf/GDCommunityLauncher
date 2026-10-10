@@ -30,6 +30,8 @@ class CustomTextField : public CustomWidget
 
         std::wstring GetText() const { return _text; }
 
+        void SetText(const std::wstring& text);
+
     private:
         bool DefaultLButtonDownHandler(HWND hwnd, UINT msg,  WPARAM wp, LPARAM lp);
         bool DefaultCharHandler(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp);

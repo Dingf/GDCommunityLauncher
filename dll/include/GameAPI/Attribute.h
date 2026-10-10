@@ -43,5 +43,4 @@ double GetCurrentLife(void* character);
 
 }
 
-
 #endif//INC_GDCL_DLL_GAME_API_ATTRIBUTE_H

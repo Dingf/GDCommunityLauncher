@@ -172,7 +172,27 @@ bool ExtractZIPUpdate()
         unzCloseCurrentFile(zipFile);
         unzClose(zipFile);
 
-        std::filesystem::rename(tempPath, filenamePath);
+        // The .exe might still be in use so keep trying to rename it until it works
+        uint32_t renameAttempts = 100;
+        for (uint32_t i = 0; i < 100; ++i)
+        {
+            try
+            {
+                std::filesystem::rename(tempPath, filenamePath);
+                break;
+            }
+            catch (const std::exception& ex)
+            {
+                if (i == (renameAttempts - 1))
+                {
+                    Logger::LogMessage(LOG_LEVEL_ERROR, "Could not rename \"%\" to \"%\"", tempPath.string().c_str(), filenamePath.string().c_str());
+                    return false;
+                }
+
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                continue;
+            }
+        }
 
         return true;
     }

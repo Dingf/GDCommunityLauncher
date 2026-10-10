@@ -425,6 +425,8 @@ void LoginWindow::BuildWindow(HINSTANCE instance)
         _widgets.emplace("mode03", modeButton3);
         _widgets.emplace("modeLabel03", modeLabel3);
 
+        modeButton3->SetWidgetState(WIDGET_STATE_DISABLED);     // TODO: Delete me
+
         CustomButton* exitButton = new CustomButton(instance, _buffer, RECT(797, 45, 813, 61), IDB_LOGIN_EXIT_UP, &CustomWidget::DefaultHandler);
         exitButton->SetClickHandler([](CustomWidget* _this, HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) -> bool { SendMessage(hwnd, WM_CLOSE, NULL, NULL); return true; });
         _widgets.emplace("exit", exitButton);
@@ -435,7 +437,7 @@ void LoginWindow::BuildWindow(HINSTANCE instance)
 
         CustomWidget* autoLoginButton = new CustomSelectButton(instance, _buffer, RECT(265, 205, 289, 229), IDB_CHECKBOX_UP, &CustomWidget::DefaultHandler);
         CustomLabelSettings autoLoginLabelSettings = { {}, vinque, Gdiplus::FontStyleBold, 15, 0xC0FFF0C0, 0, L"Log in Automatically", autoLoginButton };
-        CustomWidget* autoLoginLabel = new CustomLabel(instance, _buffer, RECT(288, 205, 440, 222), NULL, autoLoginLabelSettings, &CustomWidget::DefaultHandler);
+        CustomWidget* autoLoginLabel = new CustomLabel(instance, _buffer, RECT(288, 205, 460, 222), NULL, autoLoginLabelSettings, &CustomWidget::DefaultHandler);
         _widgets.emplace("loginAuto", autoLoginButton);
         _widgets.emplace("loginAutoLabel", autoLoginLabel);
 
@@ -506,7 +508,7 @@ void LoginWindow::BuildWindow(HINSTANCE instance)
                 }
                 default:
                 {
-                    dynamic_cast<CustomRadioButton*>(modeButton3)->SetSelectedState(true, nullptr);
+                    dynamic_cast<CustomRadioButton*>(modeButton2)->SetSelectedState(true, nullptr);     // TODO: Change me back
                     break;
                 }
             }
@@ -553,6 +555,20 @@ void LoginWindow::BuildWindow(HINSTANCE instance)
                     dynamic_cast<CustomRadioButton*>(regionButton1)->SetSelectedState(true, nullptr);
                     break;
                 }
+            }
+
+            const Value* usernameValue = config->GetValue("Login", "username");
+            if ((usernameValue) && (usernameValue->GetType() == VALUE_TYPE_STRING))
+            {
+                std::string username = usernameValue->ToString();
+                usernameField->SetText(CharToWide(username));
+            }
+
+            const Value* passwordValue = config->GetValue("Login", "password");
+            if ((passwordValue) && (passwordValue->GetType() == VALUE_TYPE_STRING))
+            {
+                std::string password = passwordValue->ToString();
+                passwordField->SetText(CharToWide(password));
             }
         }
 

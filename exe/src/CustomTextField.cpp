@@ -170,6 +170,15 @@ bool CustomTextField::DefaultKeyDownHandler(HWND hwnd, UINT msg, WPARAM wp, LPAR
     return false;
 }
 
+void CustomTextField::SetText(const std::wstring& text)
+{
+    _text = text;
+    _carat = text.size();
+    _selectStart = 0;
+    _selectEnd = 0;
+    Redraw();
+}
+
 void CustomTextField::Redraw()
 {
     if (_parent != nullptr)

@@ -880,7 +880,7 @@ void ServerCoordinator::OnTransferPreSaveEvent()
     const std::vector<void*>& transferTabs = GameAPI::GetTransferTabs();
     if (transferTabs.size() >= 10)
     {
-        const std::map<uint32_t, EngineAPI::Rect>& items = GameAPI::GetItemsInTab(transferTabs[5]);
+        const std::map<uint32_t, EngineAPI::Rect>& items = GameAPI::GetItemsInTab(transferTabs[9]);
         if (items.size() > 0)
         {
             int32_t capacity = spCache->GetStashCapacity();
