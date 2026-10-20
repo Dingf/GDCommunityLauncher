@@ -3,7 +3,6 @@
 #include "GameAPI.h"
 #include "ChatAPI.h"
 #include "JSON.h"
-#include "Log.h"
 
 std::string HandleWriteGetMutedList()
 {

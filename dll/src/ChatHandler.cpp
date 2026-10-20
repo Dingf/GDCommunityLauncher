@@ -36,11 +36,16 @@ const std::unordered_map<std::string, std::pair<void*, void*>>& ChatHandler::Get
         { "Online",      { HandleWriteOnline,       HandleReadOnline }},
         { "JoinChannel", { HandleWriteJoinChannel,  HandleReadJoinChannel }},
         { "Send",        { HandleWriteSendMessage,  HandleReadSendMessage }},
-        { "MutedList",   { HandleWriteGetMutedList, HandleReadGetMutedList }},
+        { "MuteList",    { HandleWriteGetMutedList, HandleReadGetMutedList }},
         { "Mute",        { HandleWriteMutePlayer,   HandleReadMutePlayer }},
         { "Unmute",      { HandleWriteUnmutePlayer, HandleReadUnmutePlayer }},
     };
     return handlers;
+}
+
+const void* ChatHandler::GetDefaultHandler() const
+{
+    return HandleReadSendMessage;
 }
 
 ChatHandler::ChatHandler()
@@ -83,31 +88,34 @@ void ChatHandler::OnRead(const std::string& data)
         {
             json response = json::parse(data);
             const json& requestName = response.at("RequestName");
-            if (requestName.is_null())
+            const json& errorMessage = response.at("ErrorMessage");
+            if (errorMessage.is_string())
             {
                 throw std::runtime_error(response.at("ErrorMessage").get<std::string>());
             }
-            else if (requestName.is_string())
+            else
             {
-                const auto& handlers = GetHandlers();
-                auto it = handlers.find(requestName.get<std::string>());
-                if (it != handlers.end())
+                typedef void (*ReadHandlerProto)(json);
+                ReadHandlerProto callback = (ReadHandlerProto)GetDefaultHandler();
+                if (requestName.is_string())
                 {
-                    typedef void (*ReadHandlerProto)(json);
-
-                    ReadHandlerProto callback = (ReadHandlerProto)it->second.second;
-                    boost::asio::post(*_threadPool, [callback, response]()
-                    {
-                        try
-                        {
-                            callback(response);
-                        }
-                        catch (const std::exception& ex)
-                        {
-                            Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to handle chat websocket message: %", ex.what());
-                        }
-                    });
+                    const auto& handlers = GetHandlers();
+                    auto it = handlers.find(requestName.get<std::string>());
+                    if (it != handlers.end())
+                        callback = (ReadHandlerProto)it->second.second;
                 }
+
+                boost::asio::post(*_threadPool, [callback, response]()
+                {
+                    try
+                    {
+                        callback(response);
+                    }
+                    catch (const std::exception& ex)
+                    {
+                        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to handle chat websocket message: %", ex.what());
+                    }
+                });
             }
         }
         catch (const std::exception& ex)

@@ -224,6 +224,17 @@ static void LoadStashData(const std::filesystem::path& filePath, void** data, si
     }
 }
 
+static void LoadPotionsData(const std::filesystem::path& filePath, void** data, size_t* size)
+{
+    bool hardcore = filePath.extension().string().ends_with("sh");
+    if (const FileWriter* cacheData = spCache->GetPotionsData(hardcore))
+    {
+        *size = cacheData->GetBufferSize();
+        *data = new uint8_t[*size];
+        memcpy(*data, cacheData->GetBuffer(), *size);
+    }
+}
+
 static void LoadReagentsData(const std::filesystem::path& filePath, void** data, size_t* size)
 {
     bool hardcore = filePath.extension().string().ends_with("sh");
@@ -247,6 +258,7 @@ void ServerCoordinator::OnDirectReadEvent(std::string filename, void** data, siz
         { "formulas",      LoadFormulasData },
         { "transmutes",    LoadTransmutesData },
         { "transfer",      LoadStashData },
+        { "potions",       LoadPotionsData },
         { "reagents",      LoadReagentsData },
     };
 
@@ -289,6 +301,16 @@ static void SaveTransmutesData(const std::filesystem::path& filePath, uint8_t* d
     }
 }
 
+static void SavePotionsData(const std::filesystem::path& filePath, uint8_t* data, size_t size)
+{
+    bool hardcore = filePath.extension().string().ends_with("sh");
+    if (uint32_t participantID = spCache->GetParticipantID(hardcore))
+    {
+        spCache->SetPotionsData(hardcore, data, size);
+        spServer->Send("SaveParticipantPotions", participantID, BinaryToBase64(data, size));
+    }
+}
+
 static void SaveReagentsData(const std::filesystem::path& filePath, uint8_t* data, size_t size)
 {
     bool hardcore = filePath.extension().string().ends_with("sh");
@@ -307,6 +329,7 @@ void ServerCoordinator::OnDirectWriteEvent(std::string filename, void* data, siz
         { "transfer",   SaveStashData },
         { "formulas",   SaveFormulasData },
         { "transmutes", SaveTransmutesData },
+        { "potions",    SavePotionsData },
         { "reagents",   SaveReagentsData }
     };
 
@@ -653,6 +676,29 @@ static void DownloadTagsFile(uint32_t participantID, std::shared_ptr<DownloadQue
     }));
 }
 
+static void DownloadPotionsFile(uint32_t participantID, std::shared_ptr<DownloadQueue> downloadQueue)
+{
+    bool hardcore = spCache->IsParticipantHardcore(participantID);
+    std::filesystem::path filePath = GameAPI::GetPotionsPath(hardcore);
+    downloadQueue->push(spServer->Send("GetFileChecksum", participantID, std::wstring(), GameAPI::GAME_DIFFICULTY_NORMAL, filePath).then(
+    [=](const json& response)
+    {
+        HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
+        if (status == HTTP_STATUS_OK)
+        {
+            std::string serverChecksum = response.at("Data").get<std::string>();
+            std::string clientChecksum = GenerateFileMD5(filePath);
+            if (((serverChecksum == clientChecksum) && (!clientChecksum.empty())))
+            {
+                FileReader reader(filePath);
+                spCache->SetPotionsData(hardcore, reader.GetBuffer(), reader.GetBufferSize());
+                return;
+            }
+        }
+        downloadQueue->push(spServer->Send("GetParticipantReagentsFile", participantID));
+    }));
+}
+
 static void DownloadReagentsFile(uint32_t participantID, std::shared_ptr<DownloadQueue> downloadQueue)
 {
     bool hardcore = spCache->IsParticipantHardcore(participantID);
@@ -711,6 +757,8 @@ static void DownloadParticipantFiles(std::shared_ptr<DownloadQueue> downloadQueu
         DownloadTransmutesFile(participantID, downloadQueue);
     if (!spCache->GetTagsData(hardcore))
         DownloadTagsFile(participantID, downloadQueue);
+    if (!spCache->GetPotionsData(hardcore))
+        DownloadPotionsFile(participantID, downloadQueue);
     if (!spCache->GetReagentsData(hardcore))
         DownloadReagentsFile(participantID, downloadQueue);
     if (!spCache->GetStashCapacity())

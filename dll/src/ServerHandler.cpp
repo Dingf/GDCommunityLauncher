@@ -24,6 +24,10 @@ std::string HandleWriteGetTagFile(uint32_t requestID, uint32_t& participantID);
 std::string HandleWriteSaveTagFile(uint32_t requestID, uint32_t& participantID, std::string& base64Data);
 std::string HandleWriteGetStashFile(uint32_t requestID, uint32_t& participantID);
 std::string HandleWriteSaveStashFile(uint32_t requestID, uint32_t& participantID, std::string& base64Data);
+std::string HandleWriteGetPotionsFile(uint32_t requestID, uint32_t& participantID);
+std::string HandleWriteSavePotionsFile(uint32_t requestID, uint32_t& participantID, std::string& base64Data);
+std::string HandleWriteGetReagentsFile(uint32_t requestID, uint32_t& participantID);
+std::string HandleWriteSaveReagentsFile(uint32_t requestID, uint32_t& participantID, std::string& base64Data);
 std::string HandleWriteGetTransmuteFile(uint32_t requestID, uint32_t& participantID);
 std::string HandleWriteSaveTransmuteFile(uint32_t requestID, uint32_t& participantID, std::string& base64Data);
 std::string HandleWriteGetFormulasFile(uint32_t requestID, uint32_t& participantID);
@@ -43,8 +47,6 @@ std::string HandleWriteTransferQueue(uint32_t requestID, uint32_t& participantID
 std::string HandleWriteDeleteCharacter(uint32_t requestID, uint32_t& participantID, std::wstring& characterName);
 std::string HandleWriteSaveTag(uint32_t requestID, uint32_t& participantID, std::string& tagName, uint32_t& level, GameAPI::Difficulty& difficulty);
 std::string HandleWriteGetChecksum(uint32_t requestID, uint32_t& participantID, std::wstring& characterName, GameAPI::Difficulty& difficulty, std::filesystem::path& filePath);
-std::string HandleWriteGetReagentsFile(uint32_t requestID, uint32_t& participantID);
-std::string HandleWriteSaveReagentsFile(uint32_t requestID, uint32_t& participantID, std::string& base64Data);
 
 // Read Handlers
 void HandleReadAddParticipant(const json& response, bool hardcore);
@@ -61,6 +63,10 @@ void HandleReadGetTagFile(const json& response, uint32_t participantID);
 void HandleReadSaveTagFile(const json& response, uint32_t participantID, std::string base64Data);
 void HandleReadGetStashFile(const json& response, uint32_t participantID);
 void HandleReadSaveStashFile(const json& response, uint32_t participantID, std::string base64Data);
+void HandleReadGetPotionsFile(const json& response, uint32_t participantID);
+void HandleReadSavePotionsFile(const json& response, uint32_t participantID, std::string base64Data);
+void HandleReadGetReagentsFile(const json& response, uint32_t participantID);
+void HandleReadSaveReagentsFile(const json& response, uint32_t participantID, std::string base64Data);
 void HandleReadGetTransmuteFile(const json& response, uint32_t participantID);
 void HandleReadSaveTransmuteFile(const json& response, uint32_t participantID, std::string base64Data);
 void HandleReadGetFormulasFile(const json& response, uint32_t participantID);
@@ -80,8 +86,6 @@ void HandleReadTransferQueue(const json& response, uint32_t participantID, uint3
 void HandleReadDeleteCharacter(const json& response, uint32_t participantID, std::wstring characterName);
 void HandleReadSaveTag(const json& response, uint32_t participantID, std::string tagName, uint32_t level, GameAPI::Difficulty difficulty);
 void HandleReadGetChecksum(const json& response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty, std::filesystem::path filePath);
-void HandleReadGetReagentsFile(const json& response, uint32_t participantID);
-void HandleReadSaveReagentsFile(const json& response, uint32_t participantID, std::string base64Data);
 
 const std::unordered_map<std::string, std::pair<void*,void*>>& ServerHandler::GetHandlers() const
 {
@@ -101,6 +105,10 @@ const std::unordered_map<std::string, std::pair<void*,void*>>& ServerHandler::Ge
         { "SaveParticipantTagFile",                    { HandleWriteSaveTagFile,           HandleReadSaveTagFile } },
         { "GetParticipantStashFile",                   { HandleWriteGetStashFile,          HandleReadGetStashFile } },
         { "SaveParticipantStashFile",                  { HandleWriteSaveStashFile,         HandleReadSaveStashFile } },
+        { "GetParticipantPotionsFile",                 { HandleWriteGetPotionsFile,        HandleReadGetPotionsFile } },
+        { "SaveParticipantPotionsFile",                { HandleWriteSavePotionsFile,       HandleReadSavePotionsFile } },
+        { "GetParticipantReagentsFile",                { HandleWriteGetReagentsFile,       HandleReadGetReagentsFile } },
+        { "SaveParticipantReagentsFile",               { HandleWriteSaveReagentsFile,      HandleReadSaveReagentsFile } },
         { "GetParticipantTransmutes",                  { HandleWriteGetTransmuteFile,      HandleReadGetTransmuteFile } },
         { "SaveParticipantTransmutes",                 { HandleWriteSaveTransmuteFile,     HandleReadSaveTransmuteFile } },
         { "GetParticipantFormulas",                    { HandleWriteGetFormulasFile,       HandleReadGetFormulasFile } },
@@ -120,8 +128,6 @@ const std::unordered_map<std::string, std::pair<void*,void*>>& ServerHandler::Ge
         { "DeleteParticipantCharacter",                { HandleWriteDeleteCharacter,       HandleReadDeleteCharacter } },
         { "SaveParticipantTag",                        { HandleWriteSaveTag,               HandleReadSaveTag }},
         { "GetFileChecksum",                           { HandleWriteGetChecksum,           HandleReadGetChecksum }},
-        { "GetParticipantReagentsFile",                { HandleWriteGetReagentsFile,       HandleReadGetReagentsFile }},
-        { "SaveParticipantReagentsFile",               { HandleWriteSaveReagentsFile,      HandleReadSaveReagentsFile }},
     };
     return handlers;
 }

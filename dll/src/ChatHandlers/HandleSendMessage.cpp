@@ -57,11 +57,11 @@ void HandleReadSendMessage(const json& response)
 
         if ((important) || (ChatAPI::IsServerMessagesEnabled()))
         {
-            std::wstring name = EngineAPI::UI::Localize("tagGDCLChatDefaultName");
+            playerName = EngineAPI::UI::Localize("tagGDCLChatDefaultName");
             const json& message = response.at("Message");
             for (const json& line : message)
             {
-                std::wstring message = RawToWide(line.get<std::string>());
+                std::wstring message = CharToWide(line.get<std::string>());
                 GameAPI::AddChatMessage(playerName, message, ChatAPI::CHAT_TYPE_SYSTEM);
             }
         }

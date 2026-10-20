@@ -45,6 +45,7 @@ class ServerCache
         const CacheBuffer* GetStashData(bool hardcore) const;
         const CacheBuffer* GetFormulasData(bool hardcore) const;
         const CacheBuffer* GetTransmutesData(bool hardcore) const;
+        const CacheBuffer* GetPotionsData(bool hardcore) const;
         const CacheBuffer* GetReagentsData(bool hardcore) const;
         const CacheBuffer* GetTagsData(bool hardcore) const;
 
@@ -58,6 +59,7 @@ class ServerCache
         void SetStashData(bool hardcore, uint8_t* data, size_t size);
         void SetFormulasData(bool hardcore, uint8_t* data, size_t size);
         void SetTransmutesData(bool hardcore, uint8_t* data, size_t size);
+        void SetPotionsData(bool hardcore, uint8_t* data, size_t size);
         void SetReagentsData(bool hardcore, uint8_t* data, size_t size);
         void SetTagsData(bool hardcore, uint8_t* data, size_t size);
 
@@ -102,6 +104,7 @@ class ServerCache
             std::unique_ptr<CacheBuffer> _formulas;
             std::unique_ptr<CacheBuffer> _transmutes;
             std::unique_ptr<CacheBuffer> _tags;
+            std::unique_ptr<CacheBuffer> _potions;
             std::unique_ptr<CacheBuffer> _reagents;
         };
 

@@ -48,6 +48,7 @@ class ChatHandler
         friend bool InitializeModules();
 
         const std::unordered_map<std::string, std::pair<void*,void*>>& GetHandlers() const;
+        const void* GetDefaultHandler() const;
         void CreateThreadPool();
         void CreateRepeatKeyThread();
 

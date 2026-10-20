@@ -126,4 +126,13 @@ std::filesystem::path GetReagentsPath(bool hardcore)
     return result;
 }
 
+std::filesystem::path GetPotionsPath(bool hardcore)
+{
+    std::filesystem::path result = GetSharedSavePath(SHARED_SAVE_POTIONS);
+    if (hardcore)
+        result.replace_extension(".gsh");
+
+    return result;
+}
+
 }

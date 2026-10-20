@@ -5,7 +5,8 @@ const std::unordered_map<std::string, uint32_t> challengeDifficultyMap =
 {
     { "Normal", (1 << GameAPI::GAME_DIFFICULTY_NORMAL) },
     { "Elite", (1 << GameAPI::GAME_DIFFICULTY_ELITE) },
-    { "Ultimate", (1 << GameAPI::GAME_DIFFICULTY_ULTIMATE) }
+    { "Ultimate", (1 << GameAPI::GAME_DIFFICULTY_ULTIMATE) },
+    { "Any", { (1 << GameAPI::GAME_DIFFICULTY_NORMAL) | (1 << GameAPI::GAME_DIFFICULTY_ELITE) | (1 << GameAPI::GAME_DIFFICULTY_ULTIMATE)}}
 };
 
 ChallengeManager* ChallengeManager::GetInstance()
@@ -22,7 +23,8 @@ const std::map<uint32_t, std::string>& ChallengeManager::GetChallengeCategories(
         { 2, "Shattered Realm Clears" },
         { 3, "World Bosses" },
         { 4, "Nemesis Bosses" },
-        // No 5 or 6 in any challenge
+        { 5, "Rare Items" },
+        { 6, "Miscellaneous" },
         { 7, "Leveling Achievements" },
         { 8, "Super Bosses" },
         { 9, "Campaign/Story" },
