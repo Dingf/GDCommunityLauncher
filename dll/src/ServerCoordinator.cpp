@@ -899,7 +899,7 @@ void ServerCoordinator::OnSetSeasonPlayerEvent(void* player, const SeasonInfo* s
         LoadSeasonTagsForPlayer(player);
     }
 
-    spChat->Send("MutedList");
+    spChat->Send("MuteList");
     spChat->Send("Welcome");
     if (uint32_t channel = ChatAPI::GetChatChannel())
         spChat->Send("JoinChannel", channel);

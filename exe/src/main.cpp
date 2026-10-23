@@ -2,6 +2,7 @@
 #include <boost/asio.hpp>
 #include <Windows.h>
 #include <gdiplus.h>
+#include <tlhelp32.h>
 #include "Configuration.h"
 #include "FontManager.h"
 #include "LoginWindow.h"
@@ -10,6 +11,7 @@
 #include "ContextManager.h"
 #include "ExeClient.h"
 #include "LauncherCommon.h"
+#include "CustomMessageBox.h"
 #include "Log.h"
 
 inline static std::unique_ptr<Configuration> LoadConfiguration(const std::filesystem::path& configPath)
@@ -49,21 +51,53 @@ inline static bool VerifyLauncherPath(Configuration* config, std::filesystem::pa
     return (std::filesystem::is_regular_file(gamePath) && std::filesystem::is_regular_file(libraryPath));
 }
 
+inline static bool RunLauncherTasks(Configuration* config, LPWSTR cmdLine)
+{
+    // Check to make sure that both the DLL and the GD executables are present in their relative paths
+    std::filesystem::path gamePath, libraryPath;
+    if (!VerifyLauncherPath(config, gamePath, libraryPath))
+    {
+        CustomMessageBox::CreateMessageBox(NULL, L"Both GDCommunityLauncher.exe and GDCommunityLauncher.dll must be located in the base Grim Dawn install directory.", MB_ICONERROR);
+        return false;
+    }
+
+    // Display the login window or automatically login the user if autologin is enabled
+    if (!HandleLoginWindow(config))
+        return false;
+
+    // Get the list of files from the server and download any files that need to be updated
+    if ((!spClient->IsOfflineMode()) && (!HandleDownloadWindow()))
+        return false;
+
+    // Attempt to launch the process and hook into it with the DLL
+    if (!GameLauncher::LaunchProcess(gamePath, libraryPath, cmdLine))
+    {
+        CustomMessageBox::CreateMessageBox(NULL, L"Failed to start the Grim Dawn Community Launcher. Check your log file for more details.", MB_ICONERROR);
+        return false;
+    }
+
+    return true;
+}
+
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLine, int nCmdShow)
 {
     Logger::SetMinimumLogLevel(LOG_LEVEL_DEBUG);
 
+    // Create a mutex to prevent multiple instances of the launcher from running
+    std::wstring mutexName = std::wstring(L"Global\\GDCL_v") + GDCL_VERSION_WIDE;
+    HANDLE mutex = CreateMutexW(NULL, TRUE, mutexName.c_str());
+
+    if ((GetLastError() == ERROR_ALREADY_EXISTS) || (mutex == NULL))
+    {
+        if (mutex)
+            CloseHandle(mutex);
+
+        return EXIT_FAILURE;
+    }
+
     // Load the launcher configuration from the .ini file
     std::filesystem::path configPath = std::filesystem::current_path() / "GDCommunityLauncher.ini";
     std::unique_ptr<Configuration> config = LoadConfiguration(configPath);
-
-    // Check to make sure that both the DLL and the GD executables are present in their relative paths
-    std::filesystem::path gamePath, libraryPath;
-    if (!VerifyLauncherPath(config.get(), gamePath, libraryPath))
-    {
-        MessageBox(NULL, TEXT("Both GDCommunityLauncher.exe and GDCommunityLauncher.dll must be located in the base Grim Dawn install directory."), NULL, MB_OK | MB_ICONERROR);
-        return EXIT_FAILURE;
-    }
 
     ULONG_PTR gdipToken;
     Gdiplus::GdiplusStartupInput gdipStartup;
@@ -76,31 +110,15 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR pCmdLin
 
     ContextManager::Run();
 
-    // Display the login window or automatically login the user if autologin is enabled
-    if (!HandleLoginWindow(config.get()))
-    {
-        ContextManager::Stop();
-        return EXIT_FAILURE;
-    }
+    bool result = RunLauncherTasks(config.get(), pCmdLine);
 
     config->Save(configPath);
 
-    // Get the list of files from the server and download any files that need to be updated
-    if ((!spClient->IsOfflineMode()) && (!HandleDownloadWindow()))
-    {
-        ContextManager::Stop();
-        return EXIT_FAILURE;
-    }
-
     ContextManager::Stop();
-
     Gdiplus::GdiplusShutdown(gdipToken);
 
-    if (!GameLauncher::LaunchProcess(gamePath, libraryPath, pCmdLine))
-    {
-        MessageBox(NULL, TEXT("Failed to launch Grim Dawn."), NULL, MB_OK | MB_ICONERROR);
-        return EXIT_FAILURE;
-    }
+    ReleaseMutex(mutex);
+    CloseHandle(mutex);
 
-    return EXIT_SUCCESS;
+    return (result) ? EXIT_SUCCESS : EXIT_FAILURE;
 }

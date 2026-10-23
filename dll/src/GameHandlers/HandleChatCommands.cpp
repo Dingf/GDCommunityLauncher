@@ -45,6 +45,36 @@ const std::unordered_map<std::wstring, EngineAPI::Color> chatColorMap =
     { L"gorstak", EngineAPI::Color(0.871f, 0.680f, 1.000f, 1.000f) }
 };
 
+static void ListChatColors(uint8_t chatType)
+{
+    std::map<uint32_t, std::set<std::wstring>> chatColorLookup;
+    for (const auto& pair : chatColorMap)
+        chatColorLookup[pair.second.GetColorCode()].insert(pair.first);
+
+    std::set<std::wstring> chatColorStrings;
+    for (const auto& pair : chatColorLookup)
+    {
+        size_t count = 0;
+        std::wstring commandString = L"    ";
+        for (const std::wstring& command : pair.second)
+        {
+            commandString += command;
+            if (++count < pair.second.size())
+                commandString += L", ";
+        }
+        chatColorStrings.insert(commandString);
+    }
+
+    std::wstring name = EngineAPI::UI::Localize("tagGDCLChatDefaultName");
+    std::wstring message = EngineAPI::UI::Localize("tagGDCLChatHelp03");
+    GameAPI::SendChatMessage(name, message, chatType);
+
+    for (const std::wstring& command : chatColorStrings)
+    {
+        GameAPI::SendChatMessage(name, command, chatType);
+    }
+}
+
 // Prototype since we need to reference the actual command table, which isn't defined until later
 bool HandleChatHelpCommand(std::wstring& name, std::wstring& message, uint32_t& channel, uint8_t& type, void* item);
 
@@ -68,7 +98,9 @@ bool HandleChatGlobalCommand(std::wstring& name, std::wstring& message, uint32_t
     }
     else if ((subcommand == L"off") && (subcommand.size() == message.size()))
     {
-        // TODO: Need to properly handle the /g off command
+        name = EngineAPI::UI::Localize("tagGDCLChatDefaultName");
+        message = EngineAPI::UI::Localize("tagGDCLChatGlobalDisabled");
+        GameAPI::SendChatMessage(name, message, ChatAPI::CHAT_TYPE_GLOBAL);
         ChatAPI::SetChatChannel(0);
         return false;
     }
@@ -99,6 +131,11 @@ bool HandleChatGlobalCommand(std::wstring& name, std::wstring& message, uint32_t
             colorCode = (colorCode & 0xFFFFFF00) | ((colorCode & 0x00FF0000) >> 16);
             colorCode = (colorCode & 0xFF00FFFF) | ((colorCode & 0xFF000000) >> 8);
             colorCode = (colorCode & 0x00FFFFFF);
+        }
+        else if (args.empty())
+        {
+            ListChatColors(ChatAPI::CHAT_TYPE_GLOBAL);
+            return false;
         }
 
         if (colorCode != 0)
@@ -143,23 +180,13 @@ bool HandleChatGlobalCommand(std::wstring& name, std::wstring& message, uint32_t
     uint8_t currentChannel = ChatAPI::GetChatChannel();
     if (currentChannel > 0)
     {
-        if ((message.empty()) && (item == nullptr))
-        {
-            return false;
-        }
-        else
+        if ((!message.empty()) || (item != nullptr))
         {
             name = CharToWide(spClient->GetUsername());
             spChat->Send("Send", currentChannel, message, std::wstring(), item);
-            return false;
         }
     }
-    else
-    {
-        name = EngineAPI::UI::Localize("tagGDCLChatDefaultName");
-        message = EngineAPI::UI::Localize("tagGDCLChatGlobalDisabled");
-    }
-    return true;
+    return false;
 }
 
 bool HandleChatServerCommand(std::wstring& name, std::wstring& message, uint32_t& channel, uint8_t& type, void* item)
@@ -174,14 +201,14 @@ bool HandleChatServerCommand(std::wstring& name, std::wstring& message, uint32_t
     {
         ChatAPI::SetServerMessagesEnabled(true);
         name = EngineAPI::UI::Localize("tagGDCLChatDefaultName");
-        message = EngineAPI::UI::Localize("tagGDCLChatAnnouncementsEnabled", ChatAPI::CHAT_CHANNEL_MAX);
+        message = EngineAPI::UI::Localize("tagGDCLChatAnnouncementsEnabled");
         return true;
     }
     else if (subcommand == L"off")
     {
         ChatAPI::SetServerMessagesEnabled(false);
         name = EngineAPI::UI::Localize("tagGDCLChatDefaultName");
-        message = EngineAPI::UI::Localize("tagGDCLChatAnnouncementsDisabled", ChatAPI::CHAT_CHANNEL_MAX);
+        message = EngineAPI::UI::Localize("tagGDCLChatAnnouncementsDisabled");
         return true;
     }
     else if ((subcommand == L"color") || (subcommand == L"colour"))
@@ -707,31 +734,7 @@ bool HandleChatHelpCommand(std::wstring& name, std::wstring& message, uint32_t& 
         }
         else if ((message == L"color") || (message == L"colour"))
         {
-            std::map<uint32_t, std::set<std::wstring>> chatColorLookup;
-            for (const auto& pair : chatColorMap)
-                chatColorLookup[pair.second.GetColorCode()].insert(pair.first);
-
-            std::set<std::wstring> chatColorStrings;
-            for (const auto& pair : chatColorLookup)
-            {
-                size_t count = 0;
-                std::wstring commandString = L"    ";
-                for (const std::wstring& command : pair.second)
-                {
-                    commandString += command;
-                    if (++count < pair.second.size())
-                        commandString += L", ";
-                }
-                chatColorStrings.insert(commandString);
-            }
-
-            std::wstring message = EngineAPI::UI::Localize("tagGDCLChatHelp03");
-            GameAPI::SendChatMessage(name, message, ChatAPI::CHAT_TYPE_SYSTEM);
-
-            for (const std::wstring& command : chatColorStrings)
-            {
-                GameAPI::SendChatMessage(name, command, ChatAPI::CHAT_TYPE_SYSTEM);
-            }
+            ListChatColors(ChatAPI::CHAT_TYPE_SYSTEM);
         }
         else
         {

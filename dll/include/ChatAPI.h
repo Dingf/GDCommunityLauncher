@@ -52,6 +52,7 @@ void ClearMutedList();
 
 void SetServerMessagesEnabled(bool enabled);
 bool IsServerMessagesEnabled();
+bool IsGlobalChatEnabled();
 
 void ToggleWindowDisplay();
 

@@ -254,6 +254,11 @@ bool IsServerMessagesEnabled()
     return _serverMessages;
 }
 
+bool IsGlobalChatEnabled()
+{
+    return _channel != 0;
+}
+
 void ToggleWindowDisplay()
 {
     if (_visibleAddress != nullptr)

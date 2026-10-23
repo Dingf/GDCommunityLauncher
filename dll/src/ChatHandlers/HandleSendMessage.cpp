@@ -36,6 +36,7 @@ void HandleReadSendMessage(const json& response)
     if (response.at("From").is_string())
         playerName = CharToWide(response.at("From").get<std::string>());
 
+    // Skip messages from players that are muted
     if ((playerName.empty()) || (ChatAPI::IsPlayerMuted(playerName)))
         return;
 
@@ -78,6 +79,11 @@ void HandleReadSendMessage(const json& response)
     {
         playerName = EngineAPI::UI::Localize("tagGDCLChatDirectTo", playerName);
         type = ChatAPI::CHAT_TYPE_NORMAL;
+    }
+    // Skip other messages if global chat is turned off
+    else if (!ChatAPI::IsGlobalChatEnabled())
+    {
+        return;
     }
 
     void* item = nullptr;
