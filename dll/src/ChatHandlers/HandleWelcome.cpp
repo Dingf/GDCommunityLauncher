@@ -28,7 +28,7 @@ void HandleReadWelcome(const json& response)
         if (!ChatAPI::IsServerMessagesEnabled())
             GameAPI::AddChatMessage(name, EngineAPI::UI::Localize("tagGDCLChatAnnouncementsDisabled"), ChatAPI::CHAT_TYPE_SYSTEM);
 
-        if (ChatAPI::GetChatChannel() == 0)
+        if (!ChatAPI::IsGlobalChatEnabled())
             GameAPI::AddChatMessage(name, EngineAPI::UI::Localize("tagGDCLChatGlobalDisabled"), ChatAPI::CHAT_TYPE_GLOBAL);
     }
 }

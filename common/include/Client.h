@@ -28,7 +28,7 @@ struct SeasonInfo
     std::string _participationToken;
 };
 
-constexpr char OFFLINE_SEASON_NAME[] = "GrimLeagueS07";
+constexpr char OFFLINE_SEASON_NAME[] = "GrimLeagueS08";
 constexpr char DEFAULT_HOST_NAME[] = "gdcl-api.azurewebsites.net";
 
 class Client

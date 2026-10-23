@@ -3,7 +3,7 @@
 #include "HTTP.h"
 #include "Log.h"
 
-bool GetChatAPI()
+bool GetChatAPI(ServerAuthResult& result)
 {
     HTTPRequest request(HTTP_METHOD_GET, "/Admin/chat-url");
     request.AddHeader("Authorization", "Bearer " + spClient->GetAuthToken());
@@ -24,12 +24,13 @@ bool GetChatAPI()
     }
     catch (const std::exception& ex)
     {
+        result = SERVER_AUTH_OTHER_ERROR;
         Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve chat API: %", ex.what());
     }
     return false;
 }
 
-bool GetSeasonName()
+bool GetSeasonName(ServerAuthResult& result)
 {
     HTTPRequest request(HTTP_METHOD_GET, "/Season/latest/season-name?branch=" + spClient->GetBranchName());
 
@@ -49,12 +50,13 @@ bool GetSeasonName()
     }
     catch (const std::exception& ex)
     {
+        result = SERVER_AUTH_OTHER_ERROR;
         Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve season name: %", ex.what());
     }
     return false;
 }
 
-bool GetSeasonData()
+bool GetSeasonData(ServerAuthResult& result)
 {
     HTTPRequest request(HTTP_METHOD_GET, "/Season/latest?branch=" + spClient->GetBranchName());
     request.AddHeader("Authorization", "Bearer " + spClient->GetAuthToken());
@@ -84,12 +86,18 @@ bool GetSeasonData()
                 }
                 return true;
             }
+            case 403:
+            {
+                result = SERVER_AUTH_NO_ACTIVE_SEASON;
+                return false;
+            }
             default:
                 throw std::runtime_error("Server responded with status code " + std::to_string(response.GetStatus()));
         }
     }
     catch (const std::exception& ex)
     {
+        result = SERVER_AUTH_OTHER_ERROR;
         Logger::LogMessage(LOG_LEVEL_WARN, "Failed to retrieve season data: %", ex.what());
     }
     return false;
@@ -125,23 +133,14 @@ ServerAuthResult ServerAuthenticate(ServerAuthCallback callback)
                 spClient->SetAuthToken(accessToken.get<std::string>());
                 spClient->SetRefreshToken(refreshToken.get<std::string>());
 
-                if (!GetChatAPI())
-                {
-                    result = SERVER_AUTH_OTHER_ERROR;
+                if (!GetChatAPI(result))
                     throw std::runtime_error("Could not retrieve chat API information from the server.");
-                }
 
-                if (!GetSeasonName())
-                {
-                    result = SERVER_AUTH_OTHER_ERROR;
+                if (!GetSeasonName(result))
                     throw std::runtime_error("Could not retrieve mod name from the server.");
-                }
 
-                if (!GetSeasonData())
-                {
-                    result = SERVER_AUTH_OTHER_ERROR;
+                if (!GetSeasonData(result) && (result != SERVER_AUTH_NO_ACTIVE_SEASON))
                     throw std::runtime_error("Could not retrieve season information from the server.");
-                }
 
                 result = (spClient->HasSeasons()) ? SERVER_AUTH_OK : SERVER_AUTH_NO_ACTIVE_SEASON;
             }

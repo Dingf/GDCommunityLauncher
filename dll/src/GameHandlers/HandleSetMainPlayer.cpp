@@ -93,6 +93,15 @@ void HandleSetMainPlayer(void* _this, uint32_t unk1)
 
                 EventManager::Publish(GDCL_EVENT_SET_SEASON_PLAYER, mainPlayer, seasonInfo);
             }
+
+            if (EngineAPI::IsMultiplayer())
+            {
+                GameAPI::AddDialog(GameAPI::DIALOG_OKAY, true, 0, "tagGDLeagueMultiplayerWarning", true, true);
+            }
+            else if (GameAPI::IsCloudStorageEnabled())
+            {
+                GameAPI::AddDialog(GameAPI::DIALOG_OKAY, true, 0, "tagGDLeagueCloudWarning", true, true);
+            }
         }
     }
 }

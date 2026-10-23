@@ -166,7 +166,7 @@ void DisplayLoginErrorMessageBox(HWND hwnd, ServerAuthResult result)
             CustomMessageBox::CreateMessageBox(hwnd, L"The Grim Dawn Community League is not currently active. Please wait for the upcoming season or continue in offline mode.", MB_ICONINFORMATION);
             break;
         case SERVER_AUTH_OTHER_ERROR:
-            CustomMessageBox::CreateMessageBox(hwnd, L"Failed to start the Grim Dawn Community Launcher. Check your GDCommunityLauncher.log file for more details.", MB_ICONERROR);
+            CustomMessageBox::CreateMessageBox(hwnd, L"Failed to start the Grim Dawn Community Launcher. Check your log file for more details.", MB_ICONERROR);
             break;
     }
 }
@@ -425,8 +425,6 @@ void LoginWindow::BuildWindow(HINSTANCE instance)
         _widgets.emplace("mode03", modeButton3);
         _widgets.emplace("modeLabel03", modeLabel3);
 
-        modeButton3->SetWidgetState(WIDGET_STATE_DISABLED);     // TODO: Delete me
-
         CustomButton* exitButton = new CustomButton(instance, _buffer, RECT(797, 45, 813, 61), IDB_LOGIN_EXIT_UP, &CustomWidget::DefaultHandler);
         exitButton->SetClickHandler([](CustomWidget* _this, HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) -> bool { SendMessage(hwnd, WM_CLOSE, NULL, NULL); return true; });
         _widgets.emplace("exit", exitButton);
@@ -508,7 +506,7 @@ void LoginWindow::BuildWindow(HINSTANCE instance)
                 }
                 default:
                 {
-                    dynamic_cast<CustomRadioButton*>(modeButton2)->SetSelectedState(true, nullptr);     // TODO: Change me back
+                    dynamic_cast<CustomRadioButton*>(modeButton3)->SetSelectedState(true, nullptr);
                     break;
                 }
             }

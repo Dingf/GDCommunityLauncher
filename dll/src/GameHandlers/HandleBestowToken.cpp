@@ -3,46 +3,6 @@
 #include "EventManager.h"
 #include "URI.h"
 
-// TODO: Move the dialog popups here to somewhere else
-/*bool HandleParticipationToken(const std::string& tokenString)
-{
-    if (spClient->GetActiveSeason() == nullptr)
-    {
-        // If this is a new character, set the character as the active character so that they can participate in the season
-        void* mainPlayer = GameAPI::GetMainPlayer();
-        if (const SeasonInfo* seasonInfo = spClient->GetSeasonByType(GameAPI::IsPlayerHardcore(mainPlayer)))
-        {
-            if (tokenString == seasonInfo->_participationToken)
-            {
-                if (EngineAPI::IsMultiplayer())
-                {
-                    GameAPI::AddDialog(GameAPI::DIALOG_OKAY, true, 0, "tagGDLeagueMultiplayerWarning", true, true);
-                }
-                else if (GameAPI::IsCloudStorageEnabled())
-                {
-                    GameAPI::AddDialog(GameAPI::DIALOG_OKAY, true, 0, "tagGDLeagueCloudWarning", true, true);
-                }
-
-                spClient->SetActiveSeason(seasonInfo->_seasonID);
-                return true;
-            } 
-        }
-    }
-    return false;
-}*/
-
-/*bool HandleUnlockToken(const std::string& tokenString)
-{
-    if ((tokenString == "unlock_all_diff") && (spClient->IsPlayingSeason()))
-    {
-        // Unlock all difficulties after obtaining the unlock token
-        void* mainPlayer = GameAPI::GetMainPlayer();
-        GameAPI::SetPlayerMaxDifficulty(mainPlayer, GameAPI::GAME_DIFFICULTY_ULTIMATE);
-        return true;
-    }
-    return false;
-}*/
-
 void HandleBestowToken(void* _this, const GameAPI::TriggerToken& token)
 {
     typedef void (__thiscall* BestowTokenProto)(void*, const GameAPI::TriggerToken&);

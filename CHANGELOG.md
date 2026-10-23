@@ -201,3 +201,12 @@
 
 - Fixed a bug where essences would not work properly after Patch 1.2.1.6.
 - Fixed a bug where the chat window would not work properly after Patch 1.2.1.6.
+
+## 2.0.0 (2026-10-23)
+
+- Added Fangs of Asterkarn support.
+- Redesigned the UI for the main launcher window.
+    - Added an option to select a download mirror on the launcher window. This allows players to choose a regional datacenter to download files from.
+- Added a new chat command - `/server`. This command allows players to enable or disable most server-wide announcements.
+- Added in-game localization support for all errors and messages produced by the launcher.
+- Fixed a bug where the in-game time displayed by the "Display Time" option would conflict with the league overlay text.
