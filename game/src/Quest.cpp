@@ -156,9 +156,8 @@ void Quest::QuestTask::Read(EncodedFileReader* reader)
 
     _objectives.clear();
 
-    int32_t numObjects = ((int32_t)questTaskBlock.GetBlockLength() - 5) / 4;
-
-    for (int32_t i = 0; i < numObjects; ++i)
+    int32_t numObjectives = ((int32_t)questTaskBlock.GetBlockLength() - 5) / 4;
+    for (int32_t i = 0; i < numObjectives; ++i)
     {
         _objectives.emplace_back(reader->ReadInt32());
     }

@@ -45,7 +45,7 @@ std::string HandleWriteTransferItems(uint32_t requestID, uint32_t& participantID
 std::string HandleWriteStoreItems(uint32_t requestID, uint32_t& participantID, std::vector<uint32_t>& itemIDs);
 std::string HandleWriteTransferQueue(uint32_t requestID, uint32_t& participantID, uint32_t& caravanID);
 std::string HandleWriteDeleteCharacter(uint32_t requestID, uint32_t& participantID, std::wstring& characterName);
-std::string HandleWriteSaveTag(uint32_t requestID, uint32_t& participantID, std::string& tagName, uint32_t& level, GameAPI::Difficulty& difficulty);
+std::string HandleWriteSaveTag(uint32_t requestID, uint32_t& participantID, std::string& tagName);
 std::string HandleWriteGetChecksum(uint32_t requestID, uint32_t& participantID, std::wstring& characterName, GameAPI::Difficulty& difficulty, std::filesystem::path& filePath);
 
 // Read Handlers
@@ -84,7 +84,7 @@ void HandleReadTransferItems(const json& response, uint32_t participantID, std::
 void HandleReadStoreItems(const json& response, uint32_t participantID, std::vector<uint32_t> itemIDs);
 void HandleReadTransferQueue(const json& response, uint32_t participantID, uint32_t caravanID);
 void HandleReadDeleteCharacter(const json& response, uint32_t participantID, std::wstring characterName);
-void HandleReadSaveTag(const json& response, uint32_t participantID, std::string tagName, uint32_t level, GameAPI::Difficulty difficulty);
+void HandleReadSaveTag(const json& response, uint32_t participantID, std::string tagName);
 void HandleReadGetChecksum(const json& response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty, std::filesystem::path filePath);
 
 const std::unordered_map<std::string, std::pair<void*,void*>>& ServerHandler::GetHandlers() const
@@ -166,31 +166,44 @@ void ServerHandler::OnRead(const std::string& data)
 {
     if (_threadPool)
     {
+        // Heartbeat ping from the server, ignore these as they are only used to keep the connection from timing out
+        if ((data.size() == 1) && (data[0] == 0x01))
+            return;
+
         json response = json::parse(data);
-        uint32_t requestID = response.at("RequestId").get<uint32_t>();
+        uint32_t requestID = 0xFFFFFFFF;
 
-        ServerHandlerRequest& request = _requests.at(requestID);
-
-        std::function<void(const json&)> callback = request._callback;
-        std::function<void(const json&)> then = *request._then;
-        std::shared_ptr<std::promise<json>> promise = request._promise;
-
-        boost::asio::post(*_threadPool, [response, callback, then, promise]()
+        if (response.contains("RequestId"))
         {
-            try
-            {
-                callback(response);
-                if (then != nullptr)
-                    then(response);
-                promise->set_value(response);
-            }
-            catch (const std::exception& ex)
-            {
-                Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to handle server websocket message: %", ex.what());
-            }
-        });
+            requestID = response.at("RequestId").get<uint32_t>();
+        }
 
-        _requests.erase(requestID);
+        auto it = _requests.find(requestID);
+        if (it != _requests.end())
+        {
+            ServerHandlerRequest& request = it->second;
+
+            std::function<void(const json&)> callback = request._callback;
+            std::function<void(const json&)> then = *request._then;
+            std::shared_ptr<std::promise<json>> promise = request._promise;
+
+            boost::asio::post(*_threadPool, [response, callback, then, promise]()
+            {
+                try
+                {
+                    callback(response);
+                    if (then != nullptr)
+                        then(response);
+                    promise->set_value(response);
+                }
+                catch (const std::exception& ex)
+                {
+                    Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to handle server websocket message: %", ex.what());
+                }
+            });
+
+            _requests.erase(requestID);
+        }
     }
 }
 

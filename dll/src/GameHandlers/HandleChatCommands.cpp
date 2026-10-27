@@ -177,13 +177,12 @@ bool HandleChatGlobalCommand(std::wstring& name, std::wstring& message, uint32_t
         }
     }
 
-    uint8_t currentChannel = ChatAPI::GetChatChannel();
-    if (currentChannel > 0)
+    if (ChatAPI::IsGlobalChatEnabled())
     {
         if ((!message.empty()) || (item != nullptr))
         {
             name = CharToWide(spClient->GetUsername());
-            spChat->Send("Send", currentChannel, message, std::wstring(), item);
+            spChat->Send("Send", ChatAPI::GetChatChannel(), message, std::wstring(), item);
         }
     }
     return false;

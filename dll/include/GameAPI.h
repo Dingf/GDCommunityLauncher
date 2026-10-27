@@ -2,6 +2,7 @@
 #define INC_GDCL_DLL_GAME_API_H
 
 #include "GameAPI/GameEngine.h"
+#include "GameAPI/Achievement.h"
 #include "GameAPI/Attribute.h"
 #include "GameAPI/CombatManager.h"
 #include "GameAPI/Dialog.h"

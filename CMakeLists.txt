@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project (GDCommunityLauncher VERSION 2.0.0)
+project (GDCommunityLauncher VERSION 2.0.1)
 
 set(CMAKE_GENERATOR_PLATFORM x64)
 set(CMAKE_CXX_STANDARD 20)

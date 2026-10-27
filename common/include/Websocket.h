@@ -141,7 +141,7 @@ class Websocket
         {
             _ws.reset(new WebsocketStream(_ioc, _ssl));
             _ws->write_buffer_bytes(_bufferSize);
-            _ws->set_option(websocket::stream_base::timeout({std::chrono::seconds(30), std::chrono::seconds(2), true}));
+            _ws->set_option(websocket::stream_base::timeout({std::chrono::seconds(30), std::chrono::seconds(5), true}));
             _connected = false;
             _messageQueue.clear();
         }

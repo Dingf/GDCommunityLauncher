@@ -1,5 +1,6 @@
 #include <unordered_map>
 #include <Windows.h>
+#include "EngineAPI/GameInfo.h"
 #include "GameAPI.h"
 
 namespace GameAPI
@@ -42,23 +43,33 @@ Difficulty GetGameDifficultyByName(const std::string& difficultyName)
     }
 }
 
-std::string GetGameDifficultyName(Difficulty difficulty)
+std::string GetGameDifficultyName(Difficulty difficulty, uint32_t challenge)
 {
     switch (difficulty)
     {
         case GAME_DIFFICULTY_NORMAL:
-            return "Normal";
+        {
+            if (challenge == 0x01)
+                return "Veteran";
+            else
+                return "Normal";
+        }
         case GAME_DIFFICULTY_ELITE:
             return "Elite";
         case GAME_DIFFICULTY_ULTIMATE:
-            return "Ultimate";
+        {
+            if (challenge == 0x03)
+                return "Ascendant";
+            else
+                return "Ultimate";
+        }
     }
     return "";
 }
 
 std::string GetCurrentGameDifficultyName()
 {
-    return GetGameDifficultyName(GetGameDifficulty());
+    return GetGameDifficultyName(GetGameDifficulty(), EngineAPI::GetGameChallenge());
 }
 
 bool IsAscendantDifficulty()

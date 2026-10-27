@@ -210,3 +210,14 @@
 - Added a new chat command - `/server`. This command allows players to enable or disable most server-wide announcements.
 - Added in-game localization support for all errors and messages produced by the launcher.
 - Fixed a bug where the in-game time displayed by the "Display Time" option would conflict with the league overlay text.
+
+## 2.0.1 (2026-10-24)
+
+- Fixed a bug where the launcher would still attempt to start the game if the download did not finish successfully.
+- Fixed a bug where the in-game warning messages for playing on multiplayer or with cloud saving enabled were not displaying properly.
+- Fixed a bug where challenges completed in Ascendant difficulty were incorrectly classified as Ultimate difficulty, and would therefore not award points.
+- Fixed a bug where the in-game time display would sometimes still appear when using a specific time format.
+- Disabled the unlocking of achievements while playing on the launcher.
+- Added a new warning message when playing on the beta branch.
+- Increased the timeout threshold of the underlying websocket connection.
+

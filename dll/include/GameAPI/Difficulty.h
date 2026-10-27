@@ -27,7 +27,7 @@ const GameAPI::Difficulty GAME_DIFFICULTIES[] = { GameAPI::GAME_DIFFICULTY_NORMA
 
 Difficulty GetGameDifficulty();
 Difficulty GetGameDifficultyByName(const std::string& difficultyName);
-std::string GetGameDifficultyName(Difficulty difficulty);
+std::string GetGameDifficultyName(Difficulty difficulty, uint32_t challenge = 0);
 std::string GetCurrentGameDifficultyName();
 bool IsAscendantDifficulty();
 

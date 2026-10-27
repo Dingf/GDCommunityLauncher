@@ -66,7 +66,7 @@ std::string HandleWriteAddParticipant(uint32_t requestID, bool& hardcore)
     return request.dump();
 }
 
-std::string HandleWriteSaveTag(uint32_t requestID, uint32_t& participantID, std::string& tagName, uint32_t& level, GameAPI::Difficulty& difficulty)
+std::string HandleWriteSaveTag(uint32_t requestID, uint32_t& participantID, std::string& tagName)
 {
     json request =
     {
@@ -75,8 +75,8 @@ std::string HandleWriteSaveTag(uint32_t requestID, uint32_t& participantID, std:
         { "Arguments", {
             { "SeasonParticipantId", participantID },
             { "TagName", tagName },
-            { "Level", level },
-            { "CurrentDifficulty", GameAPI::GetGameDifficultyName(difficulty) },
+            { "Level", EngineAPI::GetPlayerLevel() },
+            { "CurrentDifficulty", GameAPI::GetCurrentGameDifficultyName()},
         }}
     };
     return request.dump();
@@ -156,7 +156,7 @@ void HandleReadAddParticipant(const json& response, bool hardcore)
     }
 }
 
-void HandleReadSaveTag(const json& response, uint32_t participantID, std::string tagName, uint32_t level, GameAPI::Difficulty difficulty)
+void HandleReadSaveTag(const json& response, uint32_t participantID, std::string tagName)
 {
     HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
     if (status == HTTP_STATUS_OK)

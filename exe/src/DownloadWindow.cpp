@@ -30,6 +30,9 @@ class DownloadWindow : public CustomLayeredWindow
         void AddToTotalSize(size_t size) { *_totalSize += size; }
         void AddToDownloadSize(size_t size) { *_downloadSize += size; }
 
+        bool GetDownloadResult() const { return _result; }
+        void SetDownloadResult(bool result) { _result = result; }
+
         static void SetUpdateProgress();
 
         void RegisterWindow(HINSTANCE instance);
@@ -45,11 +48,13 @@ class DownloadWindow : public CustomLayeredWindow
 
         std::shared_ptr<std::atomic_uint64_t> _totalSize;
         std::shared_ptr<std::atomic_uint64_t> _downloadSize;
+
+        bool _result;
 };
 
 #define spDownloadWindow DownloadWindow::GetInstance()
 
-DownloadWindow::DownloadWindow()
+DownloadWindow::DownloadWindow() : _result(false)
 {
     _totalSize = std::make_shared<std::atomic_uint64_t>(0);
     _downloadSize = std::make_shared<std::atomic_uint64_t>(0);
@@ -348,6 +353,7 @@ INT_PTR CALLBACK DownloadWindow::DownloadWindowHandler(HWND hwnd, UINT msg, WPAR
         }
         case WM_UPDATE_OK:
         {
+            spDownloadWindow->SetDownloadResult(true);
             DestroyWindow(hwnd);
             return TRUE;
         }
@@ -480,6 +486,10 @@ bool HandleDownloadWindow()
             DispatchMessage(&message);
         }
     }
+    else
+    {
+        spDownloadWindow->SetDownloadResult(true);
+    }
 
-    return true;
+    return spDownloadWindow->GetDownloadResult();
 }

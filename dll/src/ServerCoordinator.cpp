@@ -18,7 +18,6 @@
 #include "Log.h"
 
 typedef ThreadSafeQueue<ServerHandlerRequest> DownloadQueue;
-
 ServerCoordinator::ServerCoordinator()
 {
     if (!spClient->IsOfflineMode())
@@ -932,7 +931,7 @@ void ServerCoordinator::OnTransferPreSaveEvent()
         if (items.size() > 0)
         {
             int32_t capacity = spCache->GetStashCapacity();
-            if ((items.size() > capacity) && (capacity >= 0))
+            if ((items.size() > capacity) && (capacity > 0))
             {
                 GameAPI::DisplayUINotification("tagGDLeagueStorageFull");
                 return;
@@ -985,6 +984,6 @@ void ServerCoordinator::OnBestowTokenEvent(std::string token)
     if ((token.starts_with("gdl_")) && (spClient->IsPlayingSeason()))
     {
         uint32_t participantID = spCache->GetParticipantID(EngineAPI::IsHardcore());
-        spServer->Send("SaveParticipantTag", participantID, token, EngineAPI::GetPlayerLevel(), GameAPI::GetGameDifficulty());
+        spServer->Send("SaveParticipantTag", participantID, token);
     }
 }

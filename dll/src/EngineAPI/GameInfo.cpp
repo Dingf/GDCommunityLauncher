@@ -44,9 +44,26 @@ uint32_t GetPlayerLevel()
 
     HMODULE engineDLL = GetModuleHandle(TEXT(ENGINE_DLL));
     if (!engineDLL)
-        return false;
+        return 0;
 
     GetPlayerLevelProto callback = (GetPlayerLevelProto)GetProcAddress(engineDLL, EAPI_NAME_GET_PLAYER_LEVEL);
+    void* gameInfo = GetGameInfo();
+
+    if ((!callback) || (!gameInfo))
+        return 0;
+
+    return callback(gameInfo);
+}
+
+uint32_t GetGameChallenge()
+{
+    typedef uint32_t(__thiscall* GetGameChallengeProto)(void*);
+
+    HMODULE engineDLL = GetModuleHandle(TEXT(ENGINE_DLL));
+    if (!engineDLL)
+        return 0;
+
+    GetGameChallengeProto callback = (GetGameChallengeProto)GetProcAddress(engineDLL, EAPI_NAME_GET_CHALLENGE);
     void* gameInfo = GetGameInfo();
 
     if ((!callback) || (!gameInfo))

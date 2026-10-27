@@ -40,3 +40,15 @@ void HandleGameUpdate(void* _this, int32_t unk1)
         callback(_this, unk1);
     }
 }
+
+void HandleGameLoading(void* _this, bool state)
+{
+    typedef void (__thiscall* SetGameLoadingProto)(void*, bool);
+
+    SetGameLoadingProto callback = (SetGameLoadingProto)HookManager::GetOriginalFunction(GAME_DLL, GameAPI::GAPI_NAME_SET_GAME_LOADING);
+    if (callback)
+    {
+        EventManager::Publish(GDCL_EVENT_LOADING, state);
+        callback(_this, state);
+    }
+}

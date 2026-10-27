@@ -110,7 +110,7 @@ void HandleRenderStyledText2D(void* _this, EngineAPI::Rect rect, const EngineAPI
             if (isDisplayTimeEnabled)
             {
                 std::wsmatch match;
-                static std::wregex timeRegex(L"(\\d+):(\\d{2}):(\\d{2})( AM| PM)?");
+                static std::wregex timeRegex(L"(\\d+):(\\d{2}):(\\d{2})( AM| PM| am| pm)?");
                 if (std::regex_match(textString, match, timeRegex))
                 {
                     using24HourFormat = ((match.size() == 5) && (match.str(4).empty()));

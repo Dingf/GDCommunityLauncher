@@ -14,9 +14,9 @@ void* GetDialogManager()
 // Seems to be some sort of grouping/layering thing?
 // e.g. if a custom dialog is set to 8, which is the same as the main menu prompt, then the main menu prompt won't show up
 //      when pressing ESC and will automatically exit to main menu instead
-void AddDialog(DialogType type, bool unk1, uint32_t unk2, const std::string& message, bool unk3, bool unk4)
+void AddDialogA(GameAPI::DialogType type, bool unk1, uint32_t unk2, const std::string& message, bool unk3, uint32_t unk4, bool unk5, std::string unk6, std::string unk7)
 {
-    typedef void (__thiscall* AddDialogAProto)(void*, DialogType, bool, uint32_t, const std::string&, bool, bool);
+    typedef void (__thiscall* AddDialogAProto)(void*, DialogType, bool, uint32_t, const std::string&, bool, uint32_t, bool, std::string, std::string);
 
     HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
     if (!gameDLL)
@@ -28,12 +28,12 @@ void AddDialog(DialogType type, bool unk1, uint32_t unk2, const std::string& mes
     if ((!callback) || (!manager))
         return;
 
-    callback(manager, type, unk1, unk2, message, unk3, unk4);
+    callback(manager, type, unk1, unk2, message, unk3, unk4, unk5, unk6, unk7);
 }
 
-void AddDialog(DialogType type, bool unk1, uint32_t unk2, const std::wstring& message, bool unk3, bool unk4)
+void AddDialogW(DialogType type, bool unk1, uint32_t unk2, const std::wstring& message, bool unk3, bool unk4, std::string unk5, std::string unk6)
 {
-    typedef void (__thiscall* AddDialogWProto)(void*, DialogType, bool, uint32_t, const std::wstring&, bool, bool);
+    typedef void (__thiscall* AddDialogWProto)(void*, DialogType, bool, uint32_t, const std::wstring&, bool, bool, std::string, std::string);
 
     HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
     if (!gameDLL)
@@ -45,7 +45,7 @@ void AddDialog(DialogType type, bool unk1, uint32_t unk2, const std::wstring& me
     if ((!callback) || (!manager))
         return;
 
-    callback(manager, type, unk1, unk2, message, unk3, unk4);
+    callback(manager, type, unk1, unk2, message, unk3, unk4, unk5, unk6);
 }
 
 }

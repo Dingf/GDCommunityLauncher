@@ -94,13 +94,20 @@ void HandleSetMainPlayer(void* _this, uint32_t unk1)
                 EventManager::Publish(GDCL_EVENT_SET_SEASON_PLAYER, mainPlayer, seasonInfo);
             }
 
-            if (EngineAPI::IsMultiplayer())
+            if (!spClient->IsOfflineMode())
             {
-                GameAPI::AddDialog(GameAPI::DIALOG_OKAY, true, 0, "tagGDLeagueMultiplayerWarning", true, true);
+                if (EngineAPI::IsMultiplayer())
+                {
+                    GameAPI::AddDialogA(GameAPI::DIALOG_OKAY, true, 0, "tagGDLeagueMultiplayerWarning", true, 0, true, {}, {});
+                }
+                if (GameAPI::IsCloudStorageEnabled())
+                {
+                    GameAPI::AddDialogA(GameAPI::DIALOG_OKAY, true, 0, "tagGDLeagueCloudWarning", true, 0, true, {}, {});
+                }
             }
-            else if (GameAPI::IsCloudStorageEnabled())
+            if (spClient->GetBranch() == SEASON_BRANCH_BETA)
             {
-                GameAPI::AddDialog(GameAPI::DIALOG_OKAY, true, 0, "tagGDLeagueCloudWarning", true, true);
+                GameAPI::AddDialogA(GameAPI::DIALOG_OKAY, true, 0, "tagGDLeagueBetaWarning", true, 0, true, {}, {});
             }
         }
     }
