@@ -272,51 +272,66 @@ void ServerCoordinator::OnDirectReadEvent(std::string filename, void** data, siz
 
 static void SaveStashData(const std::filesystem::path& filePath, uint8_t* data, size_t size)
 {
-    bool hardcore = filePath.extension().string().ends_with("sh");
-    if (uint32_t participantID = spCache->GetParticipantID(hardcore))
+    if (spClient->IsPlayingSeason())
     {
-        spCache->SetStashData(hardcore, data, size);
-        spServer->Send("SaveParticipantStashFile", participantID, BinaryToBase64(data, size));
+        bool hardcore = filePath.extension().string().ends_with("sh");
+        if (uint32_t participantID = spCache->GetParticipantID(hardcore))
+        {
+            spCache->SetStashData(hardcore, data, size);
+            spServer->Send("SaveParticipantStashFile", participantID, BinaryToBase64(data, size));
+        }
     }
 }
 
 static void SaveFormulasData(const std::filesystem::path& filePath, uint8_t* data, size_t size)
 {
-    bool hardcore = filePath.extension().string().ends_with("sh");
-    if (uint32_t participantID = spCache->GetParticipantID(hardcore))
+    if (spClient->IsPlayingSeason())
     {
-        spCache->SetFormulasData(hardcore, data, size);
-        spServer->Send("SaveParticipantFormulas", participantID, BinaryToBase64(data, size));
+        bool hardcore = filePath.extension().string().ends_with("sh");
+        if (uint32_t participantID = spCache->GetParticipantID(hardcore))
+        {
+            spCache->SetFormulasData(hardcore, data, size);
+            spServer->Send("SaveParticipantFormulas", participantID, BinaryToBase64(data, size));
+        }
     }
 }
 
 static void SaveTransmutesData(const std::filesystem::path& filePath, uint8_t* data, size_t size)
 {
-    bool hardcore = filePath.extension().string().ends_with("sh");
-    if (uint32_t participantID = spCache->GetParticipantID(hardcore))
+    if (spClient->IsPlayingSeason())
     {
-        spCache->SetTransmutesData(hardcore, data, size);
-        spServer->Send("SaveParticipantTransmutes", participantID, BinaryToBase64(data, size));
+        bool hardcore = filePath.extension().string().ends_with("sh");
+        if (uint32_t participantID = spCache->GetParticipantID(hardcore))
+        {
+            spCache->SetTransmutesData(hardcore, data, size);
+            spServer->Send("SaveParticipantTransmutes", participantID, BinaryToBase64(data, size));
+        }
     }
 }
 
 static void SavePotionsData(const std::filesystem::path& filePath, uint8_t* data, size_t size)
 {
-    bool hardcore = filePath.extension().string().ends_with("sh");
-    if (uint32_t participantID = spCache->GetParticipantID(hardcore))
+    if (spClient->IsPlayingSeason())
     {
-        spCache->SetPotionsData(hardcore, data, size);
-        spServer->Send("SaveParticipantPotions", participantID, BinaryToBase64(data, size));
+        bool hardcore = filePath.extension().string().ends_with("sh");
+        if (uint32_t participantID = spCache->GetParticipantID(hardcore))
+        {
+            spCache->SetPotionsData(hardcore, data, size);
+            spServer->Send("SaveParticipantPotions", participantID, BinaryToBase64(data, size));
+        }
     }
 }
 
 static void SaveReagentsData(const std::filesystem::path& filePath, uint8_t* data, size_t size)
 {
-    bool hardcore = filePath.extension().string().ends_with("sh");
-    if (uint32_t participantID = spCache->GetParticipantID(hardcore))
+    if (spClient->IsPlayingSeason())
     {
-        spCache->SetReagentsData(hardcore, data, size);
-        spServer->Send("SaveParticipantReagentsFile", participantID, BinaryToBase64(data, size));
+        bool hardcore = filePath.extension().string().ends_with("sh");
+        if (uint32_t participantID = spCache->GetParticipantID(hardcore))
+        {
+            spCache->SetReagentsData(hardcore, data, size);
+            spServer->Send("SaveParticipantReagentsFile", participantID, BinaryToBase64(data, size));
+        }
     }
 }
 
@@ -505,7 +520,7 @@ static void DownloadQuestFile(uint32_t participantID, const std::wstring& charac
         {
             std::string serverChecksum = response.at("Data").get<std::string>();
             std::string clientChecksum = GenerateFileMD5(filePath);
-            if (((serverChecksum == clientChecksum) && (!clientChecksum.empty())))
+            if ((serverChecksum == clientChecksum) && (!clientChecksum.empty()))
             {
                 FileReader reader(filePath);
                 spCache->SetQuestData(characterName, difficulty, reader.GetBuffer(), reader.GetBufferSize());
@@ -527,7 +542,7 @@ static void DownloadConversationsFile(uint32_t participantID, const std::wstring
         {
             std::string serverChecksum = response.at("Data").get<std::string>();
             std::string clientChecksum = GenerateFileMD5(filePath);
-            if (((serverChecksum == clientChecksum) && (!clientChecksum.empty())))
+            if ((serverChecksum == clientChecksum) && (!clientChecksum.empty()))
             {
                 FileReader reader(filePath);
                 spCache->SetConversationsData(characterName, difficulty, reader.GetBuffer(), reader.GetBufferSize());
@@ -549,7 +564,7 @@ static void DownloadMapFile(uint32_t participantID, const std::wstring& characte
         {
             std::string serverChecksum = response.at("Data").get<std::string>();
             std::string clientChecksum = GenerateFileMD5(filePath);
-            if (((serverChecksum == clientChecksum) && (!clientChecksum.empty())))
+            if ((serverChecksum == clientChecksum) && (!clientChecksum.empty()))
             {
                 FileReader reader(filePath);
                 spCache->SetMapData(characterName, difficulty, reader.GetBuffer(), reader.GetBufferSize());
@@ -571,7 +586,7 @@ static void DownloadFOWFile(uint32_t participantID, const std::wstring& characte
         {
             std::string serverChecksum = response.at("Data").get<std::string>();
             std::string clientChecksum = GenerateFileMD5(filePath);
-            if (((serverChecksum == clientChecksum) && (!clientChecksum.empty())))
+            if ((serverChecksum == clientChecksum) && (!clientChecksum.empty()))
             {
                 FileReader reader(filePath);
                 spCache->SetFOWData(characterName, difficulty, reader.GetBuffer(), reader.GetBufferSize());
@@ -594,7 +609,7 @@ static void DownloadStashFile(uint32_t participantID, std::shared_ptr<DownloadQu
         {
             std::string serverChecksum = response.at("Data").get<std::string>();
             std::string clientChecksum = GenerateFileMD5(filePath);
-            if (((serverChecksum == clientChecksum) && (!clientChecksum.empty())))
+            if ((serverChecksum == clientChecksum) && (!clientChecksum.empty()))
             {
                 FileReader reader(filePath);
                 spCache->SetStashData(hardcore, reader.GetBuffer(), reader.GetBufferSize());
@@ -617,7 +632,7 @@ static void DownloadFormulasFile(uint32_t participantID, std::shared_ptr<Downloa
         {
             std::string serverChecksum = response.at("Data").get<std::string>();
             std::string clientChecksum = GenerateFileMD5(filePath);
-            if (((serverChecksum == clientChecksum) && (!clientChecksum.empty())))
+            if ((serverChecksum == clientChecksum) && (!clientChecksum.empty()))
             {
                 FileReader reader(filePath);
                 spCache->SetFormulasData(hardcore, reader.GetBuffer(), reader.GetBufferSize());
@@ -640,7 +655,7 @@ static void DownloadTransmutesFile(uint32_t participantID, std::shared_ptr<Downl
         {
             std::string serverChecksum = response.at("Data").get<std::string>();
             std::string clientChecksum = GenerateFileMD5(filePath);
-            if (((serverChecksum == clientChecksum) && (!clientChecksum.empty())))
+            if ((serverChecksum == clientChecksum) && (!clientChecksum.empty()))
             {
                 FileReader reader(filePath);
                 spCache->SetTransmutesData(hardcore, reader.GetBuffer(), reader.GetBufferSize());
@@ -664,7 +679,7 @@ static void DownloadTagsFile(uint32_t participantID, std::shared_ptr<DownloadQue
         {
             std::string serverChecksum = response.at("Data").get<std::string>();
             std::string clientChecksum = GenerateFileMD5(filePath);
-            if (((serverChecksum == clientChecksum) && (!clientChecksum.empty())))
+            if ((serverChecksum == clientChecksum) && (!clientChecksum.empty()))
             {
                 FileReader reader(filePath);
                 spCache->SetTagsData(hardcore, reader.GetBuffer(), reader.GetBufferSize());
@@ -687,7 +702,7 @@ static void DownloadPotionsFile(uint32_t participantID, std::shared_ptr<Download
         {
             std::string serverChecksum = response.at("Data").get<std::string>();
             std::string clientChecksum = GenerateFileMD5(filePath);
-            if (((serverChecksum == clientChecksum) && (!clientChecksum.empty())))
+            if ((serverChecksum == clientChecksum) && (!clientChecksum.empty()))
             {
                 FileReader reader(filePath);
                 spCache->SetPotionsData(hardcore, reader.GetBuffer(), reader.GetBufferSize());
@@ -710,7 +725,7 @@ static void DownloadReagentsFile(uint32_t participantID, std::shared_ptr<Downloa
         {
             std::string serverChecksum = response.at("Data").get<std::string>();
             std::string clientChecksum = GenerateFileMD5(filePath);
-            if (((serverChecksum == clientChecksum) && (!clientChecksum.empty())))
+            if ((serverChecksum == clientChecksum) && (!clientChecksum.empty()))
             {
                 FileReader reader(filePath);
                 spCache->SetReagentsData(hardcore, reader.GetBuffer(), reader.GetBufferSize());

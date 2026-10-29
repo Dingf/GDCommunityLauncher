@@ -160,6 +160,15 @@ void DisplayCaravanWindow(uint32_t caravanID)
     callback(*gameEngine, caravanID);
 }
 
+bool IsCaravanWindowOpen()
+{
+    void** gameEngine = GetGameEngineHandle();
+    if (!gameEngine)
+        return false;
+
+    return (*(uint32_t*)((uintptr_t)*gameEngine + 0x373A8) != 0);
+}
+
 void SetLastCaravanID(uint32_t caravanID)
 {
     _lastCaravanID = caravanID;

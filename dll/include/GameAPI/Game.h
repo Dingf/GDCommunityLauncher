@@ -53,6 +53,7 @@ void LoadTransferStash();
 void SetNumberOfTransferTabs(uint32_t amount);
 void SetCaravanDriverTag(const std::string& tag);
 void DisplayCaravanWindow(uint32_t caravanID);
+bool IsCaravanWindowOpen();
 void SetLastCaravanID(uint32_t caravanID);
 uint32_t GetLastCaravanID();
 void DisplayUINotification(const std::string& tag);

@@ -221,3 +221,7 @@
 - Added a new warning message when playing on the beta branch.
 - Increased the timeout threshold of the underlying websocket connection.
 
+## 2.0.2 (2026-10-28)
+
+- Fixed a bug where pre-existing shared data could be loaded when first starting the game with cloud saving enabled.
+- Fixed a bug where items retrieved from the cloud stash could sometimes be duplicated when clicking on the smuggler NPC multiple times.

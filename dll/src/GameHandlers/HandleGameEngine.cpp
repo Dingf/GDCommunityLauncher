@@ -52,3 +52,21 @@ void HandleGameLoading(void* _this, bool state)
         callback(_this, state);
     }
 }
+
+void HandleSetCloudStorage(void* _this, bool state)
+{
+    typedef void (__thiscall* SetCloudStorageProto)(void*, bool);
+
+    SetCloudStorageProto callback = (SetCloudStorageProto)HookManager::GetOriginalFunction(GAME_DLL, GameAPI::GAPI_NAME_SET_CLOUD_STORAGE);
+    if (callback)
+    {
+        // Always return false to disable cloud storage while playing in the season
+        callback(_this, false);
+    }
+}
+
+bool HandleGetCloudStorage(void* _this)
+{
+    // Always return false to disable cloud storage while playing in the season
+    return false;
+}

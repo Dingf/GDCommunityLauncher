@@ -15,6 +15,8 @@ void HandleGameInitialize(void* _this);
 void HandleGameShutdown(void* _this);
 void HandleGameUpdate(void* _this, int32_t unk1);
 void HandleGameLoading(void* _this, bool state);
+void HandleSetCloudStorage(void* _this, bool state);
+bool HandleGetCloudStorage(void* _this);
 void HandleExitPlayingMode(void* _this);
 void HandleCaravanInteract(void* _this, uint32_t caravanID, bool unk2, bool unk3);
 void HandleSaveNewFormatData(void* _this, void* writer);
@@ -73,6 +75,8 @@ const std::vector<HookManager::Hook> _onlineHooks =
     { GAME_DLL,   GameAPI::GAPI_NAME_GAME_ENGINE_SHUTDOWN,       &HandleGameShutdown,         false },
     { GAME_DLL,   GameAPI::GAPI_NAME_GAME_ENGINE_UPDATE,         &HandleGameUpdate,           false },
     { GAME_DLL,   GameAPI::GAPI_NAME_SET_GAME_LOADING,           &HandleGameLoading,          false },
+    { GAME_DLL,   GameAPI::GAPI_NAME_SET_CLOUD_STORAGE,          &HandleSetCloudStorage,      false },
+    { GAME_DLL,   GameAPI::GAPI_NAME_IS_CLOUD_STORAGE,           &HandleGetCloudStorage,      false },
     { GAME_DLL,   GameAPI::GAPI_NAME_EXIT_PLAYING_MODE,          &HandleExitPlayingMode,      false },
     { GAME_DLL,   GameAPI::GAPI_NAME_ON_CARAVAN_INTERACT,        &HandleCaravanInteract,      false },
     { GAME_DLL,   GameAPI::GAPI_NAME_SAVE_NEW_FORMAT_DATA,       &HandleSaveNewFormatData,    false },
@@ -94,7 +98,7 @@ const std::vector<HookManager::Hook> _onlineHooks =
     { GAME_DLL,   GameAPI::GAPI_NAME_SET_INVINCIBLE,             &HandleSetInvincible,        true  },
     { GAME_DLL,   GameAPI::GAPI_NAME_SET_GOD,                    &HandleSetGod,               true  },
     { GAME_DLL,   GameAPI::GAPI_NAME_SET_SUPER_DAMAGE,           &HandleSetSuperDamage,       true  },
-    { GAME_DLL,   GameAPI::GAPI_NAME_UNLOCK_ACHIEVEMENT,         &HandleUnlockAchievement,    true  },
+    //{ GAME_DLL,   GameAPI::GAPI_NAME_UNLOCK_ACHIEVEMENT,         &HandleUnlockAchievement,    true  },
     { KERNEL_DLL, WindowsAPI::WAPI_NAME_DELETE_FILE,             &HandleDeleteFile,           true  },
 };
 

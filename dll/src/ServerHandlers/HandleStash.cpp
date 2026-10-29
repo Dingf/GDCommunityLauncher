@@ -211,36 +211,39 @@ void HandleReadTransferQueue(const json& response, uint32_t participantID, uint3
         HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
         if (status == HTTP_STATUS_OK)
         {
-            const json& itemsArray = response.at("Data");
-            if ((GameAPI::GetTransferTabs().size() >= 10) && (itemsArray.size() > 0))
+            if ((GameAPI::GetLastCaravanID() == 0) && (!GameAPI::IsCaravanWindowOpen()))
             {
-                std::vector<uint32_t> pulledItemIDs;
-                uint32_t playerID = EngineAPI::GetObjectID(GameAPI::GetMainPlayer());
+                // Calling DisplayCaravanWindow() here can lead to a race condition since this is in a separate thread
+                // So just save the caravan ID so that we can display the window on the next frame in the main thread
+                GameAPI::SetLastCaravanID(caravanID);
 
-                for (const auto& itemJSON : itemsArray)
+                const json& itemsArray = response.at("Data");
+                if ((GameAPI::GetTransferTabs().size() >= 10) && (itemsArray.size() > 0))
                 {
-                    ItemReplicaInfo itemInfo = itemJSON;
-                    if (void* item = GameAPI::CreateItem(itemInfo))
-                    {
-                        GameAPI::SetItemVisiblePlayer(item, playerID);
-                        if (GameAPI::AddItemToTransfer(EngineAPI::GetObjectID(item), 8, true))
-                            pulledItemIDs.push_back(itemInfo._participantItemID);
+                    std::vector<uint32_t> pulledItemIDs;
+                    uint32_t playerID = EngineAPI::GetObjectID(GameAPI::GetMainPlayer());
 
-                        EngineAPI::DestroyObjectEx(item);
-                    }
-                    else
+                    for (const auto& itemJSON : itemsArray)
                     {
-                        throw std::runtime_error("Failed to recreate stash item from item data");
+                        ItemReplicaInfo itemInfo = itemJSON;
+                        if (void* item = GameAPI::CreateItem(itemInfo))
+                        {
+                            GameAPI::SetItemVisiblePlayer(item, playerID);
+                            if (GameAPI::AddItemToTransfer(EngineAPI::GetObjectID(item), 8, true))
+                                pulledItemIDs.push_back(itemInfo._participantItemID);
+
+                            EngineAPI::DestroyObjectEx(item);
+                        }
+                        else
+                        {
+                            throw std::runtime_error("Failed to recreate stash item from item data");
+                        }
                     }
+
+                    spServer->Send("TransferParticipantItems", participantID, pulledItemIDs);
+                    GameAPI::SaveTransferStash();
                 }
-
-                spServer->Send("TransferParticipantItems", participantID, pulledItemIDs);
-                GameAPI::SaveTransferStash();
             }
-
-            // Calling DisplayCaravanWindow() here can lead to a race condition since this is in a separate thread
-            // So just save the caravan ID so that we can display the window on the next frame in the main thread
-            GameAPI::SetLastCaravanID(caravanID);
         }
         else
         {
