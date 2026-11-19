@@ -240,3 +240,10 @@
 - Fixed a bug where the launcher would sometimes not properly reconnect the chat service after being disconnected.
 - Added checksum verification to all save endpoints.
 - The launcher now attempts to save data in the background upon exiting instead of blocking the current thread.
+
+## 2.0.5 (2026-11-19)
+
+- Reduced the frequency at which fog of war data is sent to the server.
+- Fixed a bug where the launcher did not check for whether Fangs of Asterkarn was present before launching.
+- Fixed a bug where the game would sometimes crash when displaying the season version of the "Display Time" option.
+- Added affix and seed reroll count to weapon and armor item tooltips.

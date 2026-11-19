@@ -35,13 +35,13 @@ std::string HandleWriteUnmutePlayer(std::wstring playerName)
 
 void HandleReadGetMutedList(const json& response)
 {
-    ChatAPI::ClearMutedList();
+    spChat->ClearMutedList();
 
     const json& message = response.at("Message");
     for (const json& player : message)
     {
         std::wstring playerName = CharToWide(player.get<std::string>());
-        ChatAPI::MutePlayer(playerName);
+        spChat->MutePlayer(playerName);
     }
 }
 
@@ -55,14 +55,14 @@ void HandleReadMutePlayer(const json& response)
     {
         std::wstring playerName = CharToWide(arguments.at("Username").get<std::string>());
         message = EngineAPI::UI::Localize("tagGDCLChatMute01", playerName.c_str());
-        ChatAPI::MutePlayer(playerName);
+        spChat->MutePlayer(playerName);
     }
     else
     {
         message = EngineAPI::UI::Localize(response.at("ErrorMessage").get<std::string>().c_str());
     }
 
-    GameAPI::AddChatMessage(name, message, ChatAPI::CHAT_TYPE_SYSTEM);
+    GameAPI::AddChatMessage(name, message, CHAT_TYPE_SYSTEM);
 
 }
 
@@ -76,12 +76,12 @@ void HandleReadUnmutePlayer(const json& response)
     {
         std::wstring playerName = CharToWide(arguments.at("Username").get<std::string>());
         message = EngineAPI::UI::Localize("tagGDCLChatUnmute01", playerName.c_str());
-        ChatAPI::UnmutePlayer(playerName);
+        spChat->UnmutePlayer(playerName);
     }
     else
     {
         message = EngineAPI::UI::Localize(response.at("ErrorMessage").get<std::string>().c_str());
     }
 
-    GameAPI::AddChatMessage(name, message, ChatAPI::CHAT_TYPE_SYSTEM);
+    GameAPI::AddChatMessage(name, message, CHAT_TYPE_SYSTEM);
 }

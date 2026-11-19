@@ -86,6 +86,13 @@ void LoadDatabaseValues()
     }
 }
 
+void TEMPLoadSeasonTags()
+{
+    // TODO: Remove these once they're added to the mod's tag file
+    EngineAPI::UI::AddLocalizationTag("tagGDCLAffixRerollCount=Affix Rerolls: {%d0}", "tag_gdcl.txt", false);
+    EngineAPI::UI::AddLocalizationTag("tagGDCLSeedRerollCount=Seed Rerolls: {%d0}", "tag_gdcl.txt", false);
+}
+
 void LoadSeasonModAssets(const std::string& seasonName)
 {
     std::string sourceName = "mods/" + seasonName + "/resources";
@@ -95,6 +102,7 @@ void LoadSeasonModAssets(const std::string& seasonName)
     EngineAPI::LoadDatabase(databaseName);
     EngineAPI::UI::LoadLocalizationTags(true);
     GameAPI::ReloadDatabase();
+    TEMPLoadSeasonTags();
 }
 
 bool HandleLoadWorld(void* _this, const char* map, bool unk1, bool modded)
@@ -176,10 +184,6 @@ void HandleUnloadWorld(void* _this)
     {
         EventManager::Publish(GDCL_EVENT_WORLD_PRE_UNLOAD);
         callback(_this);
-
-        if (spClient->IsPlayingSeason())
-            spClient->SetActiveSeason(0);
-
         EventManager::Publish(GDCL_EVENT_WORLD_POST_UNLOAD);
     }
 }

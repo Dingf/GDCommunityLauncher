@@ -10,8 +10,11 @@ namespace GameAPI
 struct GameTextLine
 {
     uint32_t _style;    // Font size/color, seems to be fixed presets
-    uint32_t _unk1;
+    float _unk1;
     std::wstring _text;
+    uint64_t _unk2;
+    uint64_t _unk3;
+    uint64_t _unk4;
 };
 
 }

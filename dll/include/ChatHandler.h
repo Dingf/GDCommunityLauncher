@@ -66,6 +66,6 @@ class ChatHandler
         std::unique_ptr<boost::asio::thread_pool> _threadPool;
 };
 
-#define spChat ChatHandler::GetSocket()
+#define spChatServer ChatHandler::GetSocket()
 
 #endif//INC_GDCL_CHAT_HANDLER_H

@@ -145,13 +145,17 @@ void HandleReadGetCharacterFile(const json& response, uint32_t participantID, st
 void HandleReadSaveCharacterFile(const json& response, uint32_t participantID, std::wstring characterName, std::string base64Data)
 {
     HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
-    if (status == HTTP_STATUS_BAD_REQUEST)
+    switch (status)
     {
-        spServer->Send("SaveCharacterFile", participantID, characterName, base64Data);
-    }
-    else if (status != HTTP_STATUS_OK)
-    {
-        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to save character file: %", response.at("ErrorMessage"));
+        case HTTP_STATUS_BAD_REQUEST:
+            spServer->Send("SaveCharacterFile", participantID, characterName, base64Data);
+            break;
+        case HTTP_STATUS_OK:
+            spCache->GetCharacterData(characterName)->SetClean();
+            break;
+        default:
+            Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to save character file: %", response.at("ErrorMessage"));
+            break;
     }
 }
 

@@ -23,6 +23,7 @@ constexpr char GAPI_NAME_GET_INVENTORY_TAB[] = "?GetSack@PlayerInventoryCtrl@GAM
 constexpr char GAPI_NAME_GET_INVENTORY_TAB_COUNT[] = "?GetNumberOfSacks@PlayerInventoryCtrl@GAME@@QEBAIXZ";
 constexpr char GAPI_NAME_GET_PERSONAL_TABS[] = "?GetPrivateStash@Player@GAME@@QEAAAEAV?$vector@PEAVInventorySack@GAME@@@mem@@XZ";
 constexpr char GAPI_NAME_GET_TRANSFER_TABS[] = "?GetPlayerTransfer@GameEngine@GAME@@QEAAAEAV?$vector@PEAVInventorySack@GAME@@@mem@@XZ";
+constexpr char GAPI_NAME_RESTORE_NUMBER_OF_TRANSFER_SACKS[] = "?RestoreNumberOfTransferSacks@GameEngine@GAME@@QEAAXI@Z";
 #else
 constexpr char GAPI_NAME_TAB_ADD_ITEM_1[] = "?AddItem@InventorySack@GAME@@QAE_NABVVec2@2@PAVItem@2@_N@Z";
 constexpr char GAPI_NAME_TAB_ADD_ITEM_2[] = "?AddItem@InventorySack@GAME@@QAE_NPAVItem@2@_N1@Z";
@@ -36,6 +37,7 @@ constexpr char GAPI_NAME_GET_INVENTORY_TAB[] = "?GetSack@PlayerInventoryCtrl@GAM
 constexpr char GAPI_NAME_GET_INVENTORY_TAB_COUNT[] = "?GetNumberOfSacks@PlayerInventoryCtrl@GAME@@QBEIXZ";
 constexpr char GAPI_NAME_GET_PERSONAL_TABS[] = "?GetPrivateStash@Player@GAME@@QAEAAV?$vector@PAVInventorySack@GAME@@@mem@@XZ";
 constexpr char GAPI_NAME_GET_TRANSFER_TABS[] = "?GetPlayerTransfer@GameEngine@GAME@@QAEAAV?$vector@PAVInventorySack@GAME@@@mem@@XZ";
+constexpr char GAPI_NAME_RESTORE_NUMBER_OF_TRANSFER_SACKS[] = "?RestoreNumberOfTransferSacks@GameEngine@GAME@@QAEXI@Z";
 #endif
 
 bool AddItemToTab(void* tab, const EngineAPI::Vec2& position, void* item, bool unk1);
@@ -50,6 +52,7 @@ void* GetInventoryTab(void* inventory, int32_t index);
 uint32_t GetInventoryTabCount(void* inventory);
 const std::vector<void*>& GetPersonalTabs(void* player);
 const std::vector<void*>& GetTransferTabs();
+void SetNumberOfTransferTabs(uint32_t amount);
 
 }
 

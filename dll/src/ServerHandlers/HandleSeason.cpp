@@ -133,7 +133,7 @@ void HandleReadGetTradeNotifications(const json& response, uint32_t participantI
         {
             std::wstring name = EngineAPI::UI::Localize("tagGDCLChatDefaultName");
             std::wstring message = EngineAPI::UI::Localize("tagGDCLChatTradeNotification", notificationCount);
-            GameAPI::AddChatMessage(name, message, static_cast<uint8_t>(ChatAPI::CHAT_TYPE_SYSTEM));
+            GameAPI::AddChatMessage(name, message, CHAT_TYPE_SYSTEM);
         }
     }
     else

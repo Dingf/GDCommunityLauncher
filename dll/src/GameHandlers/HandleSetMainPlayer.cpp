@@ -92,6 +92,10 @@ void HandleSetMainPlayer(void* _this, uint32_t unk1)
                 spClient->SetActiveSeason(seasonInfo->_seasonID);
                 EventManager::Publish(GDCL_EVENT_SET_SEASON_PLAYER, mainPlayer, seasonInfo);
             }
+            else
+            {
+                spClient->SetActiveSeason(0);
+            }
 
             if (!spClient->IsOfflineMode())
             {
@@ -107,10 +111,6 @@ void HandleSetMainPlayer(void* _this, uint32_t unk1)
                 {
                     GameAPI::AddDialogA(GameAPI::DIALOG_OKAY, true, 0, "tagGDLeagueNoTokenWarning", true, 0, true, {}, {});
                 }
-            }
-            if (spClient->GetBranch() == SEASON_BRANCH_BETA)
-            {
-                GameAPI::AddDialogA(GameAPI::DIALOG_OKAY, true, 0, "tagGDLeagueBetaWarning", true, 0, true, {}, {});
             }
         }
     }

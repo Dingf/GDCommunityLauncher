@@ -135,14 +135,19 @@ void HandleReadGetStashFile(const json& response, uint32_t participantID)
 
 void HandleReadSaveStashFile(const json& response, uint32_t participantID, std::string base64Data)
 {
+    bool hardcore = spCache->IsParticipantHardcore(participantID);
     HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
-    if (status == HTTP_STATUS_BAD_REQUEST)
+    switch (status)
     {
-        spServer->Send("SaveParticipantStashFile", participantID, base64Data);
-    }
-    else if (status != HTTP_STATUS_OK)
-    {
-        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to save shared stash file: %", response.at("ErrorMessage"));
+        case HTTP_STATUS_BAD_REQUEST:
+            spServer->Send("SaveParticipantStashFile", participantID, base64Data);
+            break;
+        case HTTP_STATUS_OK:
+            spCache->GetStashData(hardcore)->SetClean();
+            break;
+        default:
+            Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to save shared stash file: %", response.at("ErrorMessage"));
+            break;
     }
 }
 
@@ -181,16 +186,9 @@ void HandleReadStoreItems(const json& response, uint32_t participantID, std::vec
             {
                 void* uploadTab = transferTabs[9];
                 for (uint32_t itemID : itemIDs)
-                {
-                    if (!GameAPI::RemoveItemFromTab(uploadTab, itemID))
-                        GameAPI::DisplayUINotification("tagGDLeagueStorageFailure");
-                }
+                    GameAPI::RemoveItemFromTab(uploadTab, itemID);
 
-                if (GameAPI::GetItemsInTab(uploadTab).size() == 0)
-                {
-                    GameAPI::DisplayUINotification("tagGDLeagueStorageSuccess");
-                    GameAPI::SaveTransferStash();
-                }
+                GameAPI::DisplayUINotification((GameAPI::GetItemsInTab(uploadTab).size() == 0) ? "tagGDLeagueStorageSuccess" : "tagGDLeagueStorageFailure");
             }
         }
         else if (status == HTTP_STATUS_BAD_REQUEST)
@@ -218,10 +216,6 @@ void HandleReadTransferQueue(const json& response, uint32_t participantID, uint3
         {
             if ((GameAPI::GetLastCaravanID() == 0) && (!GameAPI::IsCaravanWindowOpen()))
             {
-                // Calling DisplayCaravanWindow() here can lead to a race condition since this is in a separate thread
-                // So just save the caravan ID so that we can display the window on the next frame in the main thread
-                GameAPI::SetLastCaravanID(caravanID);
-
                 const json& itemsArray = response.at("Data");
                 if ((GameAPI::GetTransferTabs().size() >= 10) && (itemsArray.size() > 0))
                 {
@@ -246,8 +240,11 @@ void HandleReadTransferQueue(const json& response, uint32_t participantID, uint3
                     }
 
                     spServer->Send("TransferParticipantItems", participantID, pulledItemIDs);
-                    GameAPI::SaveTransferStash();
                 }
+
+                // Calling DisplayCaravanWindow() here can lead to a race condition since this is in a separate thread
+                // So just save the caravan ID so that we can display the window on the next frame in the main thread
+                GameAPI::SetLastCaravanID(caravanID);
             }
         }
         else

@@ -7,6 +7,7 @@ class ServerCoordinator
 {
     private:
         ServerCoordinator();
+        ~ServerCoordinator();
         ServerCoordinator(ServerCoordinator&) = delete;
         void operator=(const ServerCoordinator&) = delete;
 

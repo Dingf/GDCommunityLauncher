@@ -16,9 +16,9 @@ bool HandleMouseEvent(void* _this, EngineAPI::Input::MouseEvent& event)
             // This allows us to retrieve the text when processing the chat command later
             if ((event._action == EngineAPI::Input::MOUSE_ACTION_LEFT) && 
                 ((event._modifier == EngineAPI::Input::KEY_MODIFIER_CTRL_SHIFT) || (event._modifier == EngineAPI::Input::KEY_MODIFIER_SHIFT)) && 
-                (ChatAPI::IsWindowVisible()))
+                (spChat->IsWindowVisible()))
             {
-                ChatAPI::SaveBufferText();
+                spChat->SaveBufferText();
             }
         }
 

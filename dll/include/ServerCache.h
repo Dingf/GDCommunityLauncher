@@ -10,15 +10,35 @@
 #include "GameAPI/Difficulty.h"
 #include "FileWriter.h"
 
+enum CacheStatus : uint32_t
+{
+    CACHE_STATUS_CLEAN = 0,
+    CACHE_STATUS_DIRTY = 1,
+    CACHE_STATUS_PENDING = 2,
+};
+
 class ServerCache
 {
     public:
         struct CacheBuffer : public FileWriter
         {
-            CacheBuffer(uint8_t* buffer, size_t size);
+            public:
+                CacheBuffer(uint8_t* buffer, size_t size, bool clean);
 
-            std::string _checksum;
+                void SetClean() const { _status = CACHE_STATUS_CLEAN; }
+                void SetPending() const { _status = CACHE_STATUS_PENDING; }
+
+                std::string GetChecksum() const { return _checksum; }
+                CacheStatus GetStatus() const { return _status; }
+                bool IsClean() const { return _status == CACHE_STATUS_CLEAN; }
+
+            private:
+                std::string _checksum;
+                mutable CacheStatus _status;
         };
+
+        struct CharacterData;
+        struct ParticipantData;
 
         ServerCache(ServerCache&) = delete;
         void operator=(const ServerCache&) = delete;
@@ -50,21 +70,21 @@ class ServerCache
         const CacheBuffer* GetTagsData(bool hardcore) const;
 
         void SetCharacterID(const std::wstring& characterName, uint32_t participantID, uint32_t characterID);
-        void SetCharacterData(const std::wstring& characterName, uint8_t* data, size_t size);
-        void SetQuestData(const std::wstring& characterName, GameAPI::Difficulty difficulty, uint8_t* data, size_t size);
-        void SetConversationsData(const std::wstring& characterName, GameAPI::Difficulty difficulty, uint8_t* data, size_t size);
-        void SetMapData(const std::wstring& characterName, GameAPI::Difficulty difficulty, uint8_t* data, size_t size);
-        void SetFOWData(const std::wstring& characterName, GameAPI::Difficulty difficulty, uint8_t* data, size_t size);
+        void SetCharacterData(const std::wstring& characterName, uint8_t* data, size_t size, bool clean = false);
+        void SetQuestData(const std::wstring& characterName, GameAPI::Difficulty difficulty, uint8_t* data, size_t size, bool clean = false);
+        void SetConversationsData(const std::wstring& characterName, GameAPI::Difficulty difficulty, uint8_t* data, size_t size, bool clean = false);
+        void SetMapData(const std::wstring& characterName, GameAPI::Difficulty difficulty, uint8_t* data, size_t size, bool clean = false);
+        void SetFOWData(const std::wstring& characterName, GameAPI::Difficulty difficulty, uint8_t* data, size_t size, bool clean = false);
 
-        void SetStashData(bool hardcore, uint8_t* data, size_t size);
-        void SetFormulasData(bool hardcore, uint8_t* data, size_t size);
-        void SetTransmutesData(bool hardcore, uint8_t* data, size_t size);
-        void SetPotionsData(bool hardcore, uint8_t* data, size_t size);
-        void SetReagentsData(bool hardcore, uint8_t* data, size_t size);
-        void SetTagsData(bool hardcore, uint8_t* data, size_t size);
+        void SetStashData(bool hardcore, uint8_t* data, size_t size, bool clean = false);
+        void SetFormulasData(bool hardcore, uint8_t* data, size_t size, bool clean = false);
+        void SetTransmutesData(bool hardcore, uint8_t* data, size_t size, bool clean = false);
+        void SetPotionsData(bool hardcore, uint8_t* data, size_t size, bool clean = false);
+        void SetReagentsData(bool hardcore, uint8_t* data, size_t size, bool clean = false);
+        void SetTagsData(bool hardcore, uint8_t* data, size_t size, bool clean = false);
 
-        const std::unordered_set<std::wstring>& GetDirtyCharacters() const { return _dirtyCharacters; }
-        void ClearDirtyCharacters() { _dirtyCharacters.clear(); }
+        const std::unordered_map<std::wstring, CharacterData>& GetCharacterCache() const { return _characterData; }
+        const std::unordered_map<bool, ParticipantData>& GetParticipantCache() const { return _participantData; }
 
         void Clear();
 
@@ -111,7 +131,6 @@ class ServerCache
         ServerCache();
 
         std::atomic_int32_t _stashCapacity;
-        std::unordered_set<std::wstring> _dirtyCharacters;
         std::unordered_map<bool, ParticipantData> _participantData;
         std::unordered_map<std::wstring, CharacterData> _characterData;
 

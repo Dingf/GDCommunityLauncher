@@ -31,10 +31,10 @@ bool HandlePasteEvent(std::wstring text, uint32_t carat, uint32_t selectStart, u
                 text.insert(carat, pasteText);
                 carat += (uint32_t)pasteText.size();
 
-                ChatAPI::SetBufferTextDirect(text);
-                ChatAPI::SetCaratPosition(carat);
-                ChatAPI::SetSelectStartPosition(0);
-                ChatAPI::SetSelectEndPosition(0);
+                spChat->SetBufferTextDirect(text);
+                spChat->SetCaratPosition(carat);
+                spChat->SetSelectStartPosition(0);
+                spChat->SetSelectEndPosition(0);
 
                 GlobalUnlock(data);
                 result = true;
@@ -53,12 +53,12 @@ const std::unordered_map<EngineAPI::Input::KeyCode, ControlKeyHandler> controlKe
 
 bool HandleCustomKeyEvent(EngineAPI::Input::KeyButtonEvent& event)
 {
-    if (ChatAPI::HasChatWindow())
+    if (spChat->HasChatWindow())
     {
-        std::wstring text = ChatAPI::GetBufferText();
-        uint32_t carat = ChatAPI::GetCaratPosition();
-        uint32_t selectStart = ChatAPI::GetSelectStartPosition();
-        uint32_t selectEnd = ChatAPI::GetSelectEndPosition();
+        std::wstring text = spChat->GetBufferText();
+        uint32_t carat = spChat->GetCaratPosition();
+        uint32_t selectStart = spChat->GetSelectStartPosition();
+        uint32_t selectEnd = spChat->GetSelectEndPosition();
         wchar_t output = (wchar_t)event._output;    // Cast to avoid endianness issues between different OS
 
         switch (event._key)
@@ -68,22 +68,22 @@ bool HandleCustomKeyEvent(EngineAPI::Input::KeyButtonEvent& event)
                 return false;
             case EngineAPI::Input::KEY_BACKSPACE:
             {
-                if (ChatAPI::IsWindowVisible())
+                if (spChat->IsWindowVisible())
                 {
                     int32_t select = selectEnd - selectStart;
                     if (select > 0)
                     {
                         text.erase(selectStart, select);
-                        ChatAPI::SetBufferTextDirect(text);
-                        ChatAPI::SetCaratPosition(selectStart);
-                        ChatAPI::SetSelectStartPosition(0);
-                        ChatAPI::SetSelectEndPosition(0);
+                        spChat->SetBufferTextDirect(text);
+                        spChat->SetCaratPosition(selectStart);
+                        spChat->SetSelectStartPosition(0);
+                        spChat->SetSelectEndPosition(0);
                     }
                     else if (carat > 0)
                     {
                         text.erase(--carat, 1);
-                        ChatAPI::SetBufferTextDirect(text);
-                        ChatAPI::SetCaratPosition(carat);
+                        spChat->SetBufferTextDirect(text);
+                        spChat->SetCaratPosition(carat);
                     }
                     return true;
                 }
@@ -91,16 +91,16 @@ bool HandleCustomKeyEvent(EngineAPI::Input::KeyButtonEvent& event)
             }
             case EngineAPI::Input::KEY_ENTER:
             {
-                if (!ChatAPI::IsWindowVisible())
+                if (!spChat->IsWindowVisible())
                 {
-                    ChatAPI::ToggleWindowDisplay();
+                    spChat->ToggleWindowDisplay();
                     return true;
                 }
                 return false;
             }
             default:
             {
-                if ((ChatAPI::IsWindowVisible()) && (output != 0))
+                if ((spChat->IsWindowVisible()) && (output != 0))
                 {
                     // Ctrl + key usually has output, but shouldn't actually print a character to the window
                     // Most of the time, just let the main program handle it
@@ -128,10 +128,10 @@ bool HandleCustomKeyEvent(EngineAPI::Input::KeyButtonEvent& event)
                     }
 
                     text.insert(carat, 1, output);
-                    ChatAPI::SetBufferTextDirect(text);
-                    ChatAPI::SetCaratPosition(carat + 1);
-                    ChatAPI::SetSelectStartPosition(0);
-                    ChatAPI::SetSelectEndPosition(0);
+                    spChat->SetBufferTextDirect(text);
+                    spChat->SetCaratPosition(carat + 1);
+                    spChat->SetSelectStartPosition(0);
+                    spChat->SetSelectEndPosition(0);
                     return true;
                 }
                 return false;

@@ -306,14 +306,19 @@ void HandleReadGetTagFile(const json& response, uint32_t participantID)
 
 void HandleReadSaveTagFile(const json& response, uint32_t participantID, std::string base64Data)
 {
+    bool hardcore = spCache->IsParticipantHardcore(participantID);
     HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
-    if (status == HTTP_STATUS_BAD_REQUEST)
+    switch (status)
     {
-        spServer->Send("SaveParticipantTagFile", participantID, base64Data);
-    }
-    else if (status != HTTP_STATUS_OK)
-    {
-        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to save shared tags file: %", response.at("ErrorMessage"));
+        case HTTP_STATUS_BAD_REQUEST:
+            spServer->Send("SaveParticipantTagFile", participantID, base64Data);
+            break;
+        case HTTP_STATUS_OK:
+            spCache->GetTagsData(hardcore)->SetClean();
+            break;
+        default:
+            Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to save shared tags file: %", response.at("ErrorMessage"));
+            break;
     }
 }
 
@@ -348,14 +353,19 @@ void HandleReadGetTransmuteFile(const json& response, uint32_t participantID)
 
 void HandleReadSaveTransmuteFile(const json& response, uint32_t participantID, std::string base64Data)
 {
+    bool hardcore = spCache->IsParticipantHardcore(participantID);
     HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
-    if (status == HTTP_STATUS_BAD_REQUEST)
+    switch (status)
     {
-        spServer->Send("SaveParticipantTransmutes", participantID, base64Data);
-    }
-    else if (status != HTTP_STATUS_OK)
-    {
-        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to save shared transmutes file: %", response.at("ErrorMessage"));
+        case HTTP_STATUS_BAD_REQUEST:
+            spServer->Send("SaveParticipantTransmutes", participantID, base64Data);
+            break;
+        case HTTP_STATUS_OK:
+            spCache->GetTransmutesData(hardcore)->SetClean();
+            break;
+        default:
+            Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to save shared transmutes file: %", response.at("ErrorMessage"));
+            break;
     }
 }
 
@@ -389,14 +399,19 @@ void HandleReadGetFormulasFile(const json& response, uint32_t participantID)
 
 void HandleReadSaveFormulasFile(const json& response, uint32_t participantID, std::string base64Data)
 {
+    bool hardcore = spCache->IsParticipantHardcore(participantID);
     HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
-    if (status == HTTP_STATUS_BAD_REQUEST)
+    switch (status)
     {
-        spServer->Send("SaveParticipantFormulas", participantID, base64Data);
-    }
-    else if (status != HTTP_STATUS_OK)
-    {
-        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to save shared formulas file: %", response.at("ErrorMessage"));
+        case HTTP_STATUS_BAD_REQUEST:
+            spServer->Send("SaveParticipantFormulas", participantID, base64Data);
+            break;
+        case HTTP_STATUS_OK:
+            spCache->GetFormulasData(hardcore)->SetClean();
+            break;
+        default:
+            Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to save shared formulas file: %", response.at("ErrorMessage"));
+            break;
     }
 }
 
@@ -431,13 +446,17 @@ void HandleReadGetQuestFile(const json& response, uint32_t participantID, std::w
 void HandleReadSaveQuestFile(const json& response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty, std::string base64Data)
 {
     HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
-    if (status == HTTP_STATUS_BAD_REQUEST)
+    switch (status)
     {
-        spServer->Send("SaveParticipantCharacterQuestFile", participantID, characterName, difficulty, base64Data);
-    }
-    else if (status != HTTP_STATUS_OK)
-    {
-        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to save character quest file: %", response.at("ErrorMessage"));
+        case HTTP_STATUS_BAD_REQUEST:
+            spServer->Send("SaveParticipantCharacterQuestFile", participantID, characterName, difficulty, base64Data);
+            break;
+        case HTTP_STATUS_OK:
+            spCache->GetQuestData(characterName, difficulty)->SetClean();
+            break;
+        default:
+            Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to save character quest file: %", response.at("ErrorMessage"));
+            break;
     }
 }
 
@@ -472,13 +491,17 @@ void HandleReadGetConversationFile(const json& response, uint32_t participantID,
 void HandleReadSaveConversationFile(const json& response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty, std::string base64Data)
 {
     HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
-    if (status == HTTP_STATUS_BAD_REQUEST)
+    switch (status)
     {
-        spServer->Send("SaveParticipantCharacterConversationsFile", participantID, characterName, difficulty, base64Data);
-    }
-    else if (status != HTTP_STATUS_OK)
-    {
-        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to save character conversation file: %", response.at("ErrorMessage"));
+        case HTTP_STATUS_BAD_REQUEST:
+            spServer->Send("SaveParticipantCharacterConversationsFile", participantID, characterName, difficulty, base64Data);
+            break;
+        case HTTP_STATUS_OK:
+            spCache->GetConversationsData(characterName, difficulty)->SetClean();
+            break;
+        default:
+            Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to save character conversation file: %", response.at("ErrorMessage"));
+            break;
     }
 }
 
@@ -513,13 +536,17 @@ void HandleReadGetMapFile(const json& response, uint32_t participantID, std::wst
 void HandleReadSaveMapFile(const json& response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty, std::string base64Data)
 {
     HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
-    if (status == HTTP_STATUS_BAD_REQUEST)
+    switch (status)
     {
-        spServer->Send("SaveParticipantCharacterMapDatFile", participantID, characterName, difficulty, base64Data);
-    }
-    else if (status != HTTP_STATUS_OK)
-    {
-        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to save character map file: %", response.at("ErrorMessage"));
+        case HTTP_STATUS_BAD_REQUEST:
+            spServer->Send("SaveParticipantCharacterMapDatFile", participantID, characterName, difficulty, base64Data);
+            break;
+        case HTTP_STATUS_OK:
+            spCache->GetMapData(characterName, difficulty)->SetClean();
+            break;
+        default:
+            Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to save character map file: %", response.at("ErrorMessage"));
+            break;
     }
 }
 
@@ -554,13 +581,17 @@ void HandleReadGetFOWFile(const json& response, uint32_t participantID, std::wst
 void HandleReadSaveFOWFile(const json& response, uint32_t participantID, std::wstring characterName, GameAPI::Difficulty difficulty, std::string base64Data)
 {
     HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
-    if (status == HTTP_STATUS_BAD_REQUEST)
+    switch (status)
     {
-        spServer->Send("SaveParticipantCharacterMapFowFile", participantID, characterName, difficulty, base64Data);
-    }
-    else if (status != HTTP_STATUS_OK)
-    {
-        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to save character FOW file: %", response.at("ErrorMessage"));
+        case HTTP_STATUS_BAD_REQUEST:
+            spServer->Send("SaveParticipantCharacterMapFowFile", participantID, characterName, difficulty, base64Data);
+            break;
+        case HTTP_STATUS_OK:
+            spCache->GetFOWData(characterName, difficulty)->SetClean();
+            break;
+        default:
+            Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to save character FOW file: %", response.at("ErrorMessage"));
+            break;
     }
 }
 
@@ -594,14 +625,19 @@ void HandleReadGetPotionsFile(const json& response, uint32_t participantID)
 
 void HandleReadSavePotionsFile(const json& response, uint32_t participantID, std::string base64Data)
 {
+    bool hardcore = spCache->IsParticipantHardcore(participantID);
     HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
-    if (status == HTTP_STATUS_BAD_REQUEST)
+    switch (status)
     {
-        spServer->Send("SaveParticipantPotionsFile", participantID, base64Data);
-    }
-    else if (status != HTTP_STATUS_OK)
-    {
-        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to save potions file: %", response.at("ErrorMessage"));
+        case HTTP_STATUS_BAD_REQUEST:
+            spServer->Send("SaveParticipantPotionsFile", participantID, base64Data);
+            break;
+        case HTTP_STATUS_OK:
+            spCache->GetPotionsData(hardcore)->SetClean();
+            break;
+        default:
+            Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to save potions file: %", response.at("ErrorMessage"));
+            break;
     }
 }
 
@@ -635,13 +671,18 @@ void HandleReadGetReagentsFile(const json& response, uint32_t participantID)
 
 void HandleReadSaveReagentsFile(const json& response, uint32_t participantID, std::string base64Data)
 {
+    bool hardcore = spCache->IsParticipantHardcore(participantID);
     HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
-    if (status == HTTP_STATUS_BAD_REQUEST)
+    switch (status)
     {
-        spServer->Send("SaveParticipantReagentsFile", participantID, base64Data);
-    }
-    else if (status != HTTP_STATUS_OK)
-    {
-        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to save reagents file: %", response.at("ErrorMessage"));
+        case HTTP_STATUS_BAD_REQUEST:
+            spServer->Send("SaveParticipantReagentsFile", participantID, base64Data);
+            break;
+        case HTTP_STATUS_OK:
+            spCache->GetReagentsData(hardcore)->SetClean();
+            break;
+        default:
+            Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to save reagents file: %", response.at("ErrorMessage"));
+            break;
     }
 }

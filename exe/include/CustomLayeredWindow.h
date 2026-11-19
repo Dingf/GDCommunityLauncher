@@ -22,12 +22,13 @@ class CustomLayeredWindow
 
         void ClearWidgets() { _widgets.clear(); }
 
-        CustomWidget* GetWidget(std::string name) const
+        template <typename T>
+        T* GetWidget(std::string name) const
         {
             auto it = _widgets.find(name);
             if (it != _widgets.end())
             {
-                return it->second.get();
+                return dynamic_cast<T*>(it->second.get());
             }
             return nullptr;
         }

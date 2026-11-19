@@ -103,3 +103,18 @@ void HandleGetArmorDescription(void* _this, std::vector<GameAPI::GameTextLine>& 
         TransformSmithAffix(itemInfo, lines);
     }
 }
+
+void HandleGetEquipmentText(void* _this, void* character, std::vector<GameAPI::GameTextLine>& lines, bool unk1)
+{
+    typedef void (__thiscall* GetEquipmentTextProto)(void*, void*, std::vector<GameAPI::GameTextLine>&, bool);
+
+    GetEquipmentTextProto callback = (GetEquipmentTextProto)HookManager::GetOriginalFunction(GAME_DLL, GameAPI::GAPI_NAME_GET_EQUIPMENT_DISPLAY_TEXT);
+    if (callback)
+    {
+        callback(_this, character, lines, unk1);
+
+        ItemReplicaInfo itemInfo = GameAPI::GetItemReplicaInfo(_this);
+        lines.emplace_back(20, 0.0f, EngineAPI::UI::Localize("tagGDCLAffixRerollCount", itemInfo._affixRerolls), 0, 0, 0);
+        lines.emplace_back(20, 0.0f, EngineAPI::UI::Localize("tagGDCLSeedRerollCount", itemInfo._seedRerolls), 0, 0, 0);
+    }
+}

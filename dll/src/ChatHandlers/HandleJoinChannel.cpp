@@ -23,7 +23,7 @@ void HandleReadJoinChannel(const json& response)
         std::wstring name = EngineAPI::UI::Localize("tagGDCLChatDefaultName");
         std::wstring message = EngineAPI::UI::Localize("tagGDCLChatChannelJoin", channel);
 
-        ChatAPI::SetChatChannel(channel);
-        GameAPI::AddChatMessage(name, message, ChatAPI::CHAT_TYPE_GLOBAL);
+        spChat->SetChatChannel(channel);
+        GameAPI::AddChatMessage(name, message, CHAT_TYPE_GLOBAL);
     }
 }

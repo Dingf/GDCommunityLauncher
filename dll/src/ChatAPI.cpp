@@ -3,27 +3,41 @@
 #include "ChatAPI.h"
 #include "EngineAPI.h"
 #include "GameAPI.h"
+#include "DllClient.h"
 #include "EventManager.h"
 #include "Configuration.h"
 #include "JSON.h"
 #include "Log.h"
 
-namespace ChatAPI
+ChatAPI::ChatAPI() : _serverMessages(true), _channel(0), _visibleAddress(nullptr), _colorAddress(nullptr), _globalColor(0xFFFFFFFF), _systemColor(0xFFFFFFFF)
 {
+    if (!spClient->IsOfflineMode())
+    {
+        EventManager::Subscribe(GDCL_EVENT_INITIALIZE,       OnInitializeEvent);
+        EventManager::Subscribe(GDCL_EVENT_PRE_SHUTDOWN,     OnPreShutdownEvent);
+        EventManager::Subscribe(GDCL_EVENT_SET_MAIN_PLAYER,  OnSetMainPlayerEvent);
+        EventManager::Subscribe(GDCL_EVENT_WORLD_PRE_UNLOAD, OnWorldPreUnloadEvent);
+    }
+}
 
-bool _initialized = false;    // Whether the chat API has been initialized yet
-bool _serverMessages = false; // Whether or not server announcements are enabled
-uint8_t _channel;             // Current global chat channel
-uint8_t* _visibleAddress;     // Address used to toggle the chat window visibility
-uint8_t* _colorAddress;       // Address used to set the chat colors
-uint32_t _systemColor;        // Last used system color
-uint32_t _globalColor;        // Last used global color
-std::wstring _prefix;         // Last used chat prefix
-std::wstring _saved;          // Saved buffer text, used for linking items in chat
-std::wstring _empty;          // Empty buffer text; used by GetBufferText() if the chat window isn't initialized yet
-std::unordered_set<std::wstring> _mutedList;    // List of muted players by the current user
+ChatAPI::~ChatAPI()
+{
+    if (!spClient->IsOfflineMode())
+    {
+        EventManager::Unsubscribe(GDCL_EVENT_INITIALIZE,       OnInitializeEvent);
+        EventManager::Unsubscribe(GDCL_EVENT_PRE_SHUTDOWN,     OnPreShutdownEvent);
+        EventManager::Unsubscribe(GDCL_EVENT_SET_MAIN_PLAYER,  OnSetMainPlayerEvent);
+        EventManager::Unsubscribe(GDCL_EVENT_WORLD_PRE_UNLOAD, OnWorldPreUnloadEvent);
+    }
+}
 
-uint32_t GetChatColor(ChatType type)
+ChatAPI* ChatAPI::GetInstance()
+{
+    static ChatAPI instance;
+    return &instance;
+}
+
+uint32_t ChatAPI::GetChatColor(ChatType type)
 {
     if (_colorAddress)
     {
@@ -52,63 +66,64 @@ uint32_t GetChatColor(ChatType type)
     return EngineAPI::Color::WHITE.GetColorCode();
 }
 
-uint8_t GetChatChannel()
+uint8_t ChatAPI::GetChatChannel()
 {
     return _channel;
 }
 
-const std::wstring& GetChatPrefix()
+const std::wstring& ChatAPI::GetChatPrefix()
 {
     return _prefix;
 }
 
-const std::wstring& GetBufferText()
+const std::wstring& ChatAPI::GetBufferText()
 {
+    static std::wstring _empty = {};
     return (_visibleAddress) ? *(std::wstring*)(_visibleAddress + 0xB0) : _empty;
 }
 
-const std::wstring& GetSavedText()
+const std::wstring& ChatAPI::GetSavedText()
 {
     return _saved;
 }
 
-uint32_t GetCaratPosition()
+uint32_t ChatAPI::GetCaratPosition()
 {
     return (_visibleAddress) ? *(uint32_t*)(_visibleAddress + 0x160) : 0;
 }
 
-uint32_t GetSelectStartPosition()
+uint32_t ChatAPI::GetSelectStartPosition()
 {
     return (_visibleAddress) ? *(uint32_t*)(_visibleAddress + 0x164) : 0;
 }
 
-uint32_t GetSelectEndPosition()
+uint32_t ChatAPI::GetSelectEndPosition()
 {
     return (_visibleAddress) ? *(uint32_t*)(_visibleAddress + 0x168) : 0;
 }
 
-const std::unordered_set<std::wstring>& GetMutedList()
+const std::unordered_set<std::wstring>& ChatAPI::GetMutedList()
 {
     return _mutedList;
 }
 
-bool IsPlayerMuted(std::wstring playerName)
+bool ChatAPI::IsPlayerMuted(std::wstring playerName)
 {
     std::transform(playerName.begin(), playerName.end(), playerName.begin(), std::towlower);
     return (_mutedList.count(playerName) > 0);
 }
 
-bool IsWindowVisible()
+bool ChatAPI::IsWindowVisible()
 {
     return (_visibleAddress) ? (*_visibleAddress != 0) : false;
 }
 
-bool HasChatWindow()
+bool ChatAPI::HasChatWindow()
 {
     return (_visibleAddress != nullptr);
 }
 
-bool SetChatColor(ChatType type, uint32_t color)
+bool ChatAPI::SetChatColor(ChatType type, uint32_t color)
 {
     if (_colorAddress)
     {
@@ -144,12 +159,12 @@ bool SetChatColor(ChatType type, uint32_t color)
     return false;
 }
 
-void SetChatChannel(uint8_t channel)
+void ChatAPI::SetChatChannel(uint8_t channel)
 {
     _channel = channel;
 }
 
-void SetCaratPosition(uint32_t position)
+void ChatAPI::SetCaratPosition(uint32_t position)
 {
     if (_visibleAddress)
     {
@@ -159,7 +174,7 @@ void SetCaratPosition(uint32_t position)
     }
 }
 
-void SetSelectStartPosition(uint32_t position)
+void ChatAPI::SetSelectStartPosition(uint32_t position)
 {
     if (_visibleAddress)
     {
@@ -169,7 +184,7 @@ void SetSelectStartPosition(uint32_t position)
     }
 }
 
-void SetSelectEndPosition(uint32_t position)
+void ChatAPI::SetSelectEndPosition(uint32_t position)
 {
     if (_visibleAddress)
     {
@@ -179,12 +194,12 @@ void SetSelectEndPosition(uint32_t position)
     }
 }
 
-void SetChatPrefix(const std::wstring& prefix)
+void ChatAPI::SetChatPrefix(const std::wstring& prefix)
 {
     _prefix = prefix;
 }
 
-void SetBufferText(const std::wstring& text)
+void ChatAPI::SetBufferText(const std::wstring& text)
 {
     if (_visibleAddress)
     {
@@ -197,7 +212,7 @@ void SetBufferText(const std::wstring& text)
     }
 }
 
-void SetBufferTextDirect(const std::wstring& text)
+void ChatAPI::SetBufferTextDirect(const std::wstring& text)
 {
     if (_visibleAddress)
     {
@@ -205,12 +220,12 @@ void SetBufferTextDirect(const std::wstring& text)
     }
 }
 
-void SaveBufferText()
+void ChatAPI::SaveBufferText()
 {
     _saved = GetBufferText();
 }
 
-bool MutePlayer(std::wstring playerName)
+bool ChatAPI::MutePlayer(std::wstring playerName)
 {
     std::transform(playerName.begin(), playerName.end(), playerName.begin(), std::towlower);
     if (!_mutedList.contains(playerName))
@@ -224,7 +239,7 @@ bool MutePlayer(std::wstring playerName)
     }
 }
 
-bool UnmutePlayer(std::wstring playerName)
+bool ChatAPI::UnmutePlayer(std::wstring playerName)
 {
     std::transform(playerName.begin(), playerName.end(), playerName.begin(), std::towlower);
     auto it = _mutedList.find(playerName);
@@ -239,27 +254,27 @@ bool UnmutePlayer(std::wstring playerName)
     }
 }
 
-void ClearMutedList()
+void ChatAPI::ClearMutedList()
 {
     _mutedList.clear();
 }
 
-void SetServerMessagesEnabled(bool enabled)
+void ChatAPI::SetServerMessagesEnabled(bool enabled)
 {
     _serverMessages = enabled;
 }
 
-bool IsServerMessagesEnabled()
+bool ChatAPI::IsServerMessagesEnabled()
 {
     return _serverMessages;
 }
 
-bool IsGlobalChatEnabled()
+bool ChatAPI::IsGlobalChatEnabled()
 {
     return _channel != 0;
 }
 
-void ToggleWindowDisplay()
+void ChatAPI::ToggleWindowDisplay()
 {
     if (_visibleAddress != nullptr)
     {
@@ -271,7 +286,7 @@ void ToggleWindowDisplay()
     }
 }
 
-static void FindMagicAddresses()
+void ChatAPI::FindMagicAddresses()
 {
     void* gameEngine = *GameAPI::GetGameEngineHandle();
     if (gameEngine)
@@ -299,7 +314,7 @@ static void FindMagicAddresses()
     }
 }
 
-static void LoadConfig()
+void ChatAPI::LoadConfig()
 {
     Configuration config;
     std::filesystem::path configPath = std::filesystem::current_path() / "GDCommunityLauncher.ini";
@@ -325,7 +340,7 @@ static void LoadConfig()
     }
 }
 
-static void SaveConfig()
+void ChatAPI::SaveConfig()
 {
     Configuration config;
     std::filesystem::path configPath = std::filesystem::current_path() / "GDCommunityLauncher.ini";
@@ -344,43 +359,27 @@ static void SaveConfig()
     }
 }
 
-static void OnInitializeEvent()
+void ChatAPI::OnInitializeEvent()
 {
-    LoadConfig();
+    spChat->LoadConfig();
 }
 
-static void OnPreShutdownEvent()
+void ChatAPI::OnPreShutdownEvent()
 {
-    SaveConfig();
-    _visibleAddress = nullptr;
-    _colorAddress = nullptr;
+    spChat->SaveConfig();
+    spChat->_visibleAddress = nullptr;
+    spChat->_colorAddress = nullptr;
 }
 
-static void OnSetMainPlayerEvent(void* player)
+void ChatAPI::OnSetMainPlayerEvent(void* player)
 {
-    FindMagicAddresses();
-    SetChatColor(CHAT_TYPE_SYSTEM, _systemColor);
-    SetChatColor(CHAT_TYPE_GLOBAL, _globalColor);
+    spChat->FindMagicAddresses();
+    spChat->SetChatColor(CHAT_TYPE_SYSTEM, spChat->_systemColor);
+    spChat->SetChatColor(CHAT_TYPE_GLOBAL, spChat->_globalColor);
 }
 
-static void OnWorldPreUnloadEvent()
+void ChatAPI::OnWorldPreUnloadEvent()
 {
-    _visibleAddress = nullptr;
-    _colorAddress = nullptr;
-}
-
-bool Initialize()
-{
-    if (!_initialized)
-    {
-        EventManager::Subscribe(GDCL_EVENT_INITIALIZE,       OnInitializeEvent);
-        EventManager::Subscribe(GDCL_EVENT_PRE_SHUTDOWN,     OnPreShutdownEvent);
-        EventManager::Subscribe(GDCL_EVENT_SET_MAIN_PLAYER,  OnSetMainPlayerEvent);
-        EventManager::Subscribe(GDCL_EVENT_WORLD_PRE_UNLOAD, OnWorldPreUnloadEvent);
-        _initialized = true;
-        return true;
-    }
-    return false;
-}
-
+    spChat->_visibleAddress = nullptr;
+    spChat->_colorAddress = nullptr;
 }

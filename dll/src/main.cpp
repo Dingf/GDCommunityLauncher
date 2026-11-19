@@ -46,7 +46,13 @@ bool InitializeModules()
         return false;
     }
 
-    ChatAPI::Initialize();
+    try { ChatAPI::GetInstance(); }
+    catch (const std::exception& ex)
+    {
+        Logger::LogMessage(LOG_LEVEL_ERROR, "Failed to initialize ChatAPI module: %", ex.what());
+        return false;
+    }
+
     LuaAPI::Initialize();
     return true;
 }

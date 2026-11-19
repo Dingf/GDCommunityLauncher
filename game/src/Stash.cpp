@@ -34,9 +34,9 @@ size_t Stash::GetBufferSize() const
             size += 8;
         }
 
-        if (containerType == ITEM_CONTAINER_CHAR_STASH)
+        if ((containerType == ITEM_CONTAINER_SHARED_STASH) || (containerType == ITEM_CONTAINER_CHAR_STASH))
         {
-            CharacterStashTab* charTab = dynamic_cast<CharacterStashTab*>(_stashTabs[i]->_stashTab.get());
+            CustomizableTab* charTab = dynamic_cast<CustomizableTab*>(_stashTabs[i]->_stashTab.get());
             size += 20;
             size += charTab->_buttonName.size() * 2;
         }
@@ -58,8 +58,9 @@ void Stash::ReadStashTabs(EncodedFileReader* reader, uint32_t version, size_t co
 
         stashTabBlock->ReadBlockStart(reader, GD_DATA_BLOCK_FLAG_ID);
 
-        ItemContainerType type = GetContainerType();
-        switch (type)
+        ItemContainerType containerType = GetContainerType();
+        bool isCustomizableTab = (containerType == ITEM_CONTAINER_SHARED_STASH) || (containerType == ITEM_CONTAINER_CHAR_STASH);
+        switch (containerType)
         {
             case ITEM_CONTAINER_SHARED_STASH:
             case ITEM_CONTAINER_CHAR_STASH:
@@ -72,7 +73,7 @@ void Stash::ReadStashTabs(EncodedFileReader* reader, uint32_t version, size_t co
                 height = 8;
                 break;
             default:
-                throw std::runtime_error(Logger::LogMessage(LOG_LEVEL_ERROR, "Invalid or unsupported item container type \"%\"", type));
+                throw std::runtime_error(Logger::LogMessage(LOG_LEVEL_ERROR, "Invalid or unsupported item container type \"%\"", containerType));
         }
 
         // This has been observed frequently but it's unclear what causes it or how to reproduce it
@@ -84,17 +85,17 @@ void Stash::ReadStashTabs(EncodedFileReader* reader, uint32_t version, size_t co
         }
 
         std::unique_ptr<StashTab> stashTab;
-        if (GetContainerType() == ITEM_CONTAINER_CHAR_STASH)
-            stashTab = std::make_unique<CharacterStashTab>(width, height);
+        if (isCustomizableTab)
+            stashTab = std::make_unique<CustomizableTab>(width, height);
         else
-            stashTab = std::make_unique<StashTab>(type, width, height);
+            stashTab = std::make_unique<StashTab>(containerType, width, height);
 
         uint16_t itemX, itemY;
         uint32_t numItems = reader->ReadInt32();
         for (uint32_t j = 0; j < numItems; ++j)
         {
             ItemReplicaInfo item(reader, version);
-            if (type == ITEM_CONTAINER_CHAR_BAG)
+            if (containerType == ITEM_CONTAINER_CHAR_BAG)
             {
                 itemX = (uint16_t)reader->ReadInt32();
                 itemY = (uint16_t)reader->ReadInt32();
@@ -112,14 +113,16 @@ void Stash::ReadStashTabs(EncodedFileReader* reader, uint32_t version, size_t co
         if (stashTab->GetItemCount() != numItems)
             Logger::LogMessage(LOG_LEVEL_WARN, "The number of items read from the container (%) does not match the expected number of items (%)", stashTab->GetItemCount(), numItems);
 
-        if ((GetContainerType() == ITEM_CONTAINER_CHAR_STASH) && (version >= 10))
+        if (isCustomizableTab && (version >= 10))
         {
-            CharacterStashTab* charTab = dynamic_cast<CharacterStashTab*>(stashTab.get());
-            charTab->_borderIndex = reader->ReadInt32();
-            charTab->_borderColorIndex = reader->ReadInt32();
-            charTab->_symbolIndex = reader->ReadInt32();
-            charTab->_symbolColorIndex = reader->ReadInt32();
-            charTab->_buttonName = reader->ReadWideString();
+            if (CustomizableTab* charTab = dynamic_cast<CustomizableTab*>(stashTab.get()))
+            {
+                charTab->_borderIndex = reader->ReadInt32();
+                charTab->_borderColorIndex = reader->ReadInt32();
+                charTab->_symbolIndex = reader->ReadInt32();
+                charTab->_symbolColorIndex = reader->ReadInt32();
+                charTab->_buttonName = reader->ReadWideString();
+            }
         }
 
         stashTabBlock->ReadBlockEnd(reader);
@@ -136,6 +139,7 @@ void Stash::WriteStashTabs(EncodedFileWriter* writer, uint32_t version)
         _stashTabs[i]->WriteBlockStart(writer, GD_DATA_BLOCK_FLAG_ID);
 
         ItemContainerType containerType = GetContainerType();
+        bool isCustomizableTab = (containerType == ITEM_CONTAINER_SHARED_STASH) || (containerType == ITEM_CONTAINER_CHAR_STASH);
         switch (containerType)
         {
             case ITEM_CONTAINER_SHARED_STASH:
@@ -170,14 +174,16 @@ void Stash::WriteStashTabs(EncodedFileWriter* writer, uint32_t version)
             }
         }
 
-        if ((GetContainerType() == ITEM_CONTAINER_CHAR_STASH) && (version >= 10))
+        if (isCustomizableTab && (version >= 10))
         {
-            CharacterStashTab* charTab = dynamic_cast<CharacterStashTab*>(_stashTabs[i]->_stashTab.get());
-            writer->BufferInt32(charTab->_borderIndex);
-            writer->BufferInt32(charTab->_borderColorIndex);
-            writer->BufferInt32(charTab->_symbolIndex);
-            writer->BufferInt32(charTab->_symbolColorIndex);
-            writer->BufferWideString(charTab->_buttonName);
+            if (CustomizableTab* charTab = dynamic_cast<CustomizableTab*>(_stashTabs[i]->_stashTab.get()))
+            {
+                writer->BufferInt32(charTab->_borderIndex);
+                writer->BufferInt32(charTab->_borderColorIndex);
+                writer->BufferInt32(charTab->_symbolIndex);
+                writer->BufferInt32(charTab->_symbolColorIndex);
+                writer->BufferWideString(charTab->_buttonName);
+            }
         }
 
         _stashTabs[i]->WriteBlockEnd(writer);

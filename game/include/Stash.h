@@ -25,10 +25,10 @@ class Stash
                 ItemContainerType _type;
         };
 
-        class CharacterStashTab : public StashTab
+        class CustomizableTab : public StashTab
         {
             public:
-                CharacterStashTab(uint32_t width, uint32_t height) : StashTab(ITEM_CONTAINER_CHAR_STASH, width, height) {}
+                CustomizableTab(uint32_t width, uint32_t height) : StashTab(ITEM_CONTAINER_CHAR_STASH, width, height) {}
 
                 uint32_t _borderIndex;
                 uint32_t _borderColorIndex;

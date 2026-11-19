@@ -185,7 +185,7 @@ void ChatHandler::OnInitializeEvent()
         config.Save(configPath);
     }
 
-    spChat->Connect(host, port, "/chat/connect", &spClient->GetAuthToken());
+    spChatServer->Connect(host, port, "/chat/connect", &spClient->GetAuthToken());
 }
 
 void ChatHandler::OnPostShutdownEvent()
@@ -193,12 +193,12 @@ void ChatHandler::OnPostShutdownEvent()
     GetInstance()._repeatTime = -1;
     GetInstance()._repeatTime.notify_one();
 
-    spChat->Shutdown();
+    spChatServer->Shutdown();
 }
 
 bool ChatHandler::OnKeyButtonEvent(EngineAPI::Input::KeyButtonEvent& event)
 {
-    if ((spClient->IsPlayingSeasonOrOffline()) && (!EngineAPI::IsMultiplayer()) && (ChatAPI::HasChatWindow()))
+    if ((spClient->IsPlayingSeasonOrOffline()) && (!EngineAPI::IsMultiplayer()) && (spChat->HasChatWindow()))
     {
         auto& handler = GetInstance();
         if (event._state == EngineAPI::Input::KEY_STATE_DOWN)

@@ -59,13 +59,13 @@ LoginWindow* LoginWindow::GetInstance()
 
 std::string LoginWindow::GetUsername() const
 {
-    CustomTextField* usernameField = dynamic_cast<CustomTextField*>(GetWidget("username"));
+    CustomTextField* usernameField = GetWidget<CustomTextField>("username");
     return WideToChar(usernameField->GetText());
 }
 
 std::string LoginWindow::GetPassword() const
 {
-    CustomTextField* passwordField = dynamic_cast<CustomTextField*>(GetWidget("password"));
+    CustomTextField* passwordField = GetWidget<CustomTextField>("password");
     return WideToChar(passwordField->GetText());
 }
 
@@ -131,7 +131,7 @@ void SetConfigValues(Configuration* config = nullptr)
     bool isAutoLoginEnabled = false;
     if (config == nullptr)
     {
-        isAutoLoginEnabled = dynamic_cast<CustomSelectButton*>(spLoginWindow->GetWidget("loginAuto"))->IsSelected();
+        isAutoLoginEnabled = spLoginWindow->GetWidget<CustomSelectButton>("loginAuto")->IsSelected();
         config = spLoginWindow->GetConfig();
     }
     else
@@ -265,7 +265,7 @@ INT_PTR CALLBACK LoginWindow::LoginWindowHandler(HWND hwnd, UINT msg, WPARAM wp,
             spClient->SetRegion(spLoginWindow->GetRegion());
             spClient->SetBranch(spLoginWindow->GetBranch());
 
-            CustomSelectButton* offlineModeButton = dynamic_cast<CustomSelectButton*>(spLoginWindow->GetWidget("mode01"));
+            CustomSelectButton* offlineModeButton = spLoginWindow->GetWidget<CustomSelectButton>("mode01");
             if ((offlineModeButton != nullptr) && (offlineModeButton->IsSelected()))
             {
                 spClient->SetSeasonName(OFFLINE_SEASON_NAME);
@@ -276,7 +276,7 @@ INT_PTR CALLBACK LoginWindow::LoginWindowHandler(HWND hwnd, UINT msg, WPARAM wp,
                 std::thread t(&ServerAuthenticate, LoginValidateCallback);
                 t.detach();
 
-                CustomButton* loginButton = dynamic_cast<CustomButton*>(spLoginWindow->GetWidget("login"));
+                CustomButton* loginButton = spLoginWindow->GetWidget<CustomButton>("login");
                 loginButton->SetWidgetState(WIDGET_STATE_DISABLED);
             }
             return TRUE;
@@ -298,7 +298,7 @@ INT_PTR CALLBACK LoginWindow::LoginWindowHandler(HWND hwnd, UINT msg, WPARAM wp,
         }
         case WM_CUSTOM_MB_OK:
         {
-            CustomButton* loginButton = dynamic_cast<CustomButton*>(spLoginWindow->GetWidget("login"));
+            CustomButton* loginButton = spLoginWindow->GetWidget<CustomButton>("login");
             loginButton->SetWidgetState(WIDGET_STATE_OVER);
             return TRUE;
         }

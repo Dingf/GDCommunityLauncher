@@ -2,6 +2,7 @@
 #include <regex>
 #include <sstream>
 #include <unordered_map>
+#include <Windows.h>
 #include "GameHandler.h"
 #include "ServerHandler.h"
 #include "DeathRecap.h"
@@ -62,29 +63,25 @@ static inline void BuildLeagueInfoText(std::wstring& message)
 
 static inline std::wstring GetTimeText(bool use24HourFormat)
 {
-    auto now = std::chrono::zoned_time{std::chrono::current_zone(), std::chrono::system_clock::now()}.get_local_time();
-    std::chrono::hh_mm_ss hms(std::chrono::floor<std::chrono::milliseconds>(now - std::chrono::floor<std::chrono::days>(now)));
-
-    int32_t hours = hms.hours().count();
-    int32_t minutes = hms.minutes().count();
-    int32_t seconds = hms.seconds().count();
+    SYSTEMTIME currentTime;
+    GetLocalTime(&currentTime);
 
     std::wstringstream stream;
     if (use24HourFormat)
     {
-        stream << hours << " : ";
-        stream << std::setw(2) << std::setfill(L'0') << minutes;
+        stream << currentTime.wHour << " : ";
+        stream << std::setw(2) << std::setfill(L'0') << currentTime.wMinute;
         stream << " : ";
-        stream << std::setw(2) << std::setfill(L'0') << seconds;
+        stream << std::setw(2) << std::setfill(L'0') << currentTime.wSecond;
     }
     else
     {
-        stream << ((hours == 0) ? 12 : (((hours - 1) % 12) + 1)) << " : ";
-        stream << std::setw(2) << std::setfill(L'0') << minutes;
+        stream << ((currentTime.wHour == 0) ? 12 : (((currentTime.wHour - 1) % 12) + 1)) << " : ";
+        stream << std::setw(2) << std::setfill(L'0') << currentTime.wMinute;
         stream << " : ";
-        stream << std::setw(2) << std::setfill(L'0') << seconds;
+        stream << std::setw(2) << std::setfill(L'0') << currentTime.wSecond;
         stream << " ";
-        stream << ((hours >= 12) ? "PM" : "AM");
+        stream << ((currentTime.wHour >= 12) ? "PM" : "AM");
     }
 
     return stream.str();
@@ -110,7 +107,7 @@ void HandleRenderStyledText2D(void* _this, EngineAPI::Rect rect, const EngineAPI
             if (isDisplayTimeEnabled)
             {
                 std::wsmatch match;
-                static std::wregex timeRegex(L"(\\d+):(\\d{2}):(\\d{2})( AM| PM| am| pm)?");
+                static std::wregex timeRegex(L"(\\d+)(:|\\.)(\\d{2})(:|\\.)(\\d{2})( AM| PM| am| pm)?");
                 if (std::regex_match(textString, match, timeRegex))
                 {
                     using24HourFormat = ((match.size() == 5) && (match.str(4).empty()));

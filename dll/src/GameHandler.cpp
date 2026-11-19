@@ -59,6 +59,7 @@ bool HandleCanEnchantBeUsedOn(void* _this, void* item, bool unk1, bool& unk2);
 void HandleGetItemDescription(void* _this, std::vector<GameAPI::GameTextLine>& lines);
 void HandleGetWeaponDescription(void* _this, std::vector<GameAPI::GameTextLine>& lines);
 void HandleGetArmorDescription(void* _this, std::vector<GameAPI::GameTextLine>& lines);
+void HandleGetEquipmentText(void* _this, void* character, std::vector<GameAPI::GameTextLine>& lines, bool unk1);
 bool HandleApplyDamage(void* _this, float damage, void* playStatsDamage, GameAPI::CombatAttributeType type, const std::vector<uint32_t>& skills);
 bool HandleCanTransferItem(void* _this);
 bool HandleCanTransferQuestItem(void* _this);
@@ -122,6 +123,7 @@ const std::vector<HookManager::Hook> _offlineHooks =
     { GAME_DLL,   GameAPI::GAPI_NAME_GET_ITEM_DESCRIPTION,       &HandleGetItemDescription,   false },
     { GAME_DLL,   GameAPI::GAPI_NAME_GET_WEAPON_DESCRIPTION,     &HandleGetWeaponDescription, false },
     { GAME_DLL,   GameAPI::GAPI_NAME_GET_ARMOR_DESCRIPTION,      &HandleGetArmorDescription,  false },
+    { GAME_DLL,   GameAPI::GAPI_NAME_GET_EQUIPMENT_DISPLAY_TEXT, &HandleGetEquipmentText,     false },
     { GAME_DLL,   GameAPI::GAPI_NAME_CAN_TRANSFER_ITEM,          &HandleCanTransferItem,      false },
     { GAME_DLL,   GameAPI::GAPI_NAME_CAN_TRANSFER_QUEST_ITEM,    &HandleCanTransferQuestItem, false },
     //{ GAME_DLL,   GameAPI::GAPI_NAME_APPLY_DAMAGE,               &HandleApplyDamage,          false },

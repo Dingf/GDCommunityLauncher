@@ -227,7 +227,7 @@ bool DownloadFile(const std::filesystem::path& filenamePath, const std::string& 
 
 bool VerifyBaseGameFiles()
 {
-    std::vector<std::string> paths = { "database/database.arz", "gdx1/database/GDX1.arz", "gdx2/database/GDX2.arz" };
+    std::vector<std::string> paths = { "database/database.arz", "gdx1/database/GDX1.arz", "gdx2/database/GDX2.arz", "gdx3/database/GDX3.arz" };
 
     json body = json::array();
     for (const auto& path : paths)
@@ -250,9 +250,7 @@ bool VerifyBaseGameFiles()
             case 200:
                 return true;
             case 400:
-            {
                 throw std::runtime_error("One or more files do not match the server");
-            }
             default:
                 throw std::runtime_error("Server responed with status code " + response.GetStatus());
         }
@@ -292,7 +290,7 @@ void DownloadWindow::SetUpdateProgress()
         uint64_t downloadSize = *spDownloadWindow->_downloadSize;
         uint64_t totalSize = *spDownloadWindow->_totalSize;
 
-        if (CustomLabel* progressLabel = dynamic_cast<CustomLabel*>(spDownloadWindow->GetWidget("progressLabel")))
+        if (CustomLabel* progressLabel = spDownloadWindow->GetWidget<CustomLabel>("progressLabel"))
         {
             std::wstringstream messageStream;
             messageStream << std::fixed << std::setprecision(1);
@@ -307,8 +305,8 @@ void DownloadWindow::SetUpdateProgress()
             progressLabel->SetText(messageStream.str());
         }
 
-        if (CustomProgressBar* progressBar = dynamic_cast<CustomProgressBar*>(spDownloadWindow->GetWidget("progressBar")))
-            progressBar->SetProgress((totalSize != 0) ?  (float)downloadSize / (float)totalSize : 0.0f);
+        if (CustomProgressBar* progressBar = spDownloadWindow->GetWidget<CustomProgressBar>("progressBar"))
+            progressBar->SetProgress((totalSize != 0) ? (float)downloadSize / (float)totalSize : 0.0f);
 
         SendMessage(spDownloadWindow->GetWindow(), WM_PAINT, NULL, NULL);
     }

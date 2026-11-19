@@ -118,7 +118,7 @@ EncodedFileReader::EncodedFileReader(const std::filesystem::path& path) : FileRe
 {
     if (_bufferPos + 4 <= _bufferSize)
     {
-        uint32_t val = (uint32_t)_buffer[_bufferPos] | ((uint32_t)_buffer[_bufferPos + 1] << 8) | ((uint32_t)_buffer[_bufferPos + 2] << 16) | ((uint32_t)_buffer[_bufferPos + 3] << 24);
+        uint32_t val = *(uint32_t*)(&_buffer[_bufferPos]);
 
         _bufferPos += 4;
         _key = (val ^= 0x55555555);
@@ -134,7 +134,7 @@ EncodedFileReader::EncodedFileReader(const uint8_t* buffer, size_t size) : FileR
 {
     if (_bufferPos + 4 <= _bufferSize)
     {
-        uint32_t val = (uint32_t)_buffer[_bufferPos] | ((uint32_t)_buffer[_bufferPos + 1] << 8) | ((uint32_t)_buffer[_bufferPos + 2] << 16) | ((uint32_t)_buffer[_bufferPos + 3] << 24);
+        uint32_t val = *(uint32_t*)(&_buffer[_bufferPos]);
 
         _bufferPos += 4;
         _key = (val ^= 0x55555555);

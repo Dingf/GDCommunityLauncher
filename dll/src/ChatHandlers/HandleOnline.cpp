@@ -24,7 +24,7 @@ void HandleReadOnline(const json& response)
             uint32_t count = std::stoi(message[0].get<std::string>());
             std::wstring name = EngineAPI::UI::Localize("tagGDCLChatDefaultName");
             std::wstring message = EngineAPI::UI::Localize("tagGDCLChatOnline", count);
-            GameAPI::SendChatMessage(name, message, ChatAPI::CHAT_TYPE_SYSTEM);
+            GameAPI::SendChatMessage(name, message, CHAT_TYPE_SYSTEM);
         }
         catch (const std::exception& ex)
         {

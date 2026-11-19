@@ -9,10 +9,10 @@
 class SharedStash : public Stash
 {
     public:
-        // Header block, ID = 18, Version = 3,4,5
+        // Header block, ID = 18, Version = 3,4,5,9,11
         struct SharedStashHeaderBlock : public GDDataBlock
         {
-            SharedStashHeaderBlock() : GDDataBlock(0x12, 0x1C) {}
+            SharedStashHeaderBlock() : GDDataBlock(0x12, 0x51C) {}
 
             friend void to_json(json& j, const SharedStashHeaderBlock& data);
             friend void from_json(const json& j, SharedStashHeaderBlock& data);

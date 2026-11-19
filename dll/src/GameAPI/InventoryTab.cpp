@@ -212,4 +212,21 @@ const std::vector<void*>& GetTransferTabs()
     return callback(*gameEngine);
 }
 
+void SetNumberOfTransferTabs(uint32_t amount)
+{
+    typedef void (__thiscall* SetNumberOfTransferTabsProto)(void*, uint32_t);
+
+    HMODULE gameDLL = GetModuleHandle(TEXT(GAME_DLL));
+    if (!gameDLL)
+        return;
+
+    SetNumberOfTransferTabsProto callback = (SetNumberOfTransferTabsProto)GetProcAddress(gameDLL, GAPI_NAME_RESTORE_NUMBER_OF_TRANSFER_SACKS);
+    void** gameEngine = GetGameEngineHandle();
+
+    if ((!callback) || (!gameEngine))
+        return;
+
+    callback(*gameEngine, amount);
+}
+
 }

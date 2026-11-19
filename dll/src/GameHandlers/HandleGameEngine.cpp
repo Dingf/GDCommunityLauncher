@@ -22,6 +22,7 @@ void HandleGameShutdown(void* _this)
     GameShutdownProto callback = (GameShutdownProto)HookManager::GetOriginalFunction(GAME_DLL, GameAPI::GAPI_NAME_GAME_ENGINE_SHUTDOWN);
     if (callback)
     {
+        GameAPI::SaveTransferStash();
         EventManager::Publish(GDCL_EVENT_PRE_SHUTDOWN);
         callback(_this);
         EventManager::Publish(GDCL_EVENT_POST_SHUTDOWN);
@@ -36,6 +37,18 @@ void HandleGameUpdate(void* _this, int32_t unk1)
     GameUpdateProto callback = (GameUpdateProto)HookManager::GetOriginalFunction(GAME_DLL, GameAPI::GAPI_NAME_GAME_ENGINE_UPDATE);
     if (callback)
     {
+        uint32_t caravanID = GameAPI::GetLastCaravanID();
+        if (caravanID != 0)
+        {
+            if (void* caravan = EngineAPI::FindObjectByID(caravanID))
+            {
+                std::string caravanTag = *(std::string*)((uint8_t*)caravan + 0x440);
+                GameAPI::SetCaravanDriverTag(caravanTag);
+                GameAPI::DisplayCaravanWindow(caravanID);
+            }
+            GameAPI::SetLastCaravanID(0);
+        }
+
         EventManager::Publish(GDCL_EVENT_UPDATE);
         callback(_this, unk1);
     }

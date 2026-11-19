@@ -30,14 +30,14 @@ std::string HandleWriteSendMessage(uint8_t channel, std::wstring message, std::w
 
 void HandleReadSendMessage(const json& response)
 {
-    uint8_t type = ChatAPI::CHAT_TYPE_GLOBAL;
+    uint8_t type = CHAT_TYPE_GLOBAL;
 
     std::wstring playerName;
     if (response.at("From").is_string())
         playerName = CharToWide(response.at("From").get<std::string>());
 
     // Skip messages from players that are muted
-    if ((playerName.empty()) || (ChatAPI::IsPlayerMuted(playerName)))
+    if ((playerName.empty()) || (spChat->IsPlayerMuted(playerName)))
         return;
 
     // Error messages
@@ -45,7 +45,7 @@ void HandleReadSendMessage(const json& response)
     {
         std::wstring name = EngineAPI::UI::Localize("tagGDCLChatDefaultName");
         std::wstring message = CharToWide(response.at("ErrorMessage").get<std::string>());
-        GameAPI::AddChatMessage(name, message, ChatAPI::CHAT_TYPE_SYSTEM);
+        GameAPI::AddChatMessage(name, message, CHAT_TYPE_SYSTEM);
         return;
     }
     // Direct server announcements
@@ -56,14 +56,14 @@ void HandleReadSendMessage(const json& response)
         if (arguments.contains("Important"))
             important = arguments.at("Important").get<bool>();
 
-        if ((important) || (ChatAPI::IsServerMessagesEnabled()))
+        if ((important) || (spChat->IsServerMessagesEnabled()))
         {
             std::wstring name = EngineAPI::UI::Localize("tagGDCLChatDefaultName");
             const json& message = response.at("Message");
             for (const json& line : message)
             {
                 std::wstring message = CharToWide(line.get<std::string>());
-                GameAPI::AddChatMessage(name, message, ChatAPI::CHAT_TYPE_SYSTEM);
+                GameAPI::AddChatMessage(name, message, CHAT_TYPE_SYSTEM);
             }
         }
         return;
@@ -73,17 +73,17 @@ void HandleReadSendMessage(const json& response)
     {
         playerName.push_back(0);
         playerName = EngineAPI::UI::Localize("tagGDCLChatDirectFrom", WideToRaw(playerName, false).c_str());
-        type = ChatAPI::CHAT_TYPE_NORMAL;
+        type = CHAT_TYPE_NORMAL;
     }
     // Whisper to message
     else if (response.at("Channel").is_null())
     {
         playerName.push_back(0);
         playerName = EngineAPI::UI::Localize("tagGDCLChatDirectTo", WideToRaw(playerName, false).c_str());
-        type = ChatAPI::CHAT_TYPE_NORMAL;
+        type = CHAT_TYPE_NORMAL;
     }
     // Skip other messages if global chat is turned off
-    else if (!ChatAPI::IsGlobalChatEnabled())
+    else if (!spChat->IsGlobalChatEnabled())
     {
         return;
     }

@@ -4,9 +4,6 @@
 #include <string>
 #include <unordered_set>
 
-namespace ChatAPI
-{
-
 enum ChatType : uint8_t
 {
     CHAT_TYPE_NORMAL = 0,
@@ -14,51 +11,80 @@ enum ChatType : uint8_t
     CHAT_TYPE_GLOBAL = 2,
 };
 
-static constexpr uint32_t CHAT_CHANNEL_MAX = 255;
-static constexpr uint32_t MAX_MESSAGE_SIZE = 255;
+class ChatAPI
+{
+    public:
+        static constexpr uint32_t CHAT_CHANNEL_MAX = 255;
+        static constexpr uint32_t MAX_MESSAGE_SIZE = 255;
 
-uint32_t GetChatColor(ChatType type);
-uint8_t  GetChatChannel();
+        ChatAPI(ChatAPI&) = delete;
+        void operator=(const ChatAPI&) = delete;
 
-const std::wstring& GetChatPrefix();
-const std::wstring& GetBufferText();
-const std::wstring& GetSavedText();
+        static ChatAPI* GetInstance();
 
-uint32_t GetCaratPosition();
-uint32_t GetSelectStartPosition();
-uint32_t GetSelectEndPosition();
+        uint32_t GetChatColor(ChatType type);
+        uint8_t  GetChatChannel();
 
-const std::unordered_set<std::wstring>& GetMutedList();
+        const std::wstring& GetChatPrefix();
+        const std::wstring& GetBufferText();
+        const std::wstring& GetSavedText();
 
-bool IsPlayerMuted(std::wstring playerName);
-bool IsWindowVisible();
-bool HasChatWindow();
+        uint32_t GetCaratPosition();
+        uint32_t GetSelectStartPosition();
+        uint32_t GetSelectEndPosition();
 
-bool SetChatColor(ChatType type, uint32_t color);
-void SetChatChannel(uint8_t channel);
+        const std::unordered_set<std::wstring>& GetMutedList();
 
-void SetCaratPosition(uint32_t position);
-void SetSelectStartPosition(uint32_t position);
-void SetSelectEndPosition(uint32_t position);
+        bool IsPlayerMuted(std::wstring playerName);
+        bool IsWindowVisible();
+        bool HasChatWindow();
 
-void SetChatPrefix(const std::wstring& prefix);
-void SetBufferText(const std::wstring& text);
-void SetBufferTextDirect(const std::wstring& text);
-void SaveBufferText();
+        bool SetChatColor(ChatType type, uint32_t color);
+        void SetChatChannel(uint8_t channel);
 
-bool MutePlayer(std::wstring playerName);
-bool UnmutePlayer(std::wstring playerName);
-void ClearMutedList();
+        void SetCaratPosition(uint32_t position);
+        void SetSelectStartPosition(uint32_t position);
+        void SetSelectEndPosition(uint32_t position);
 
-void SetServerMessagesEnabled(bool enabled);
-bool IsServerMessagesEnabled();
-bool IsGlobalChatEnabled();
+        void SetChatPrefix(const std::wstring& prefix);
+        void SetBufferText(const std::wstring& text);
+        void SetBufferTextDirect(const std::wstring& text);
+        void SaveBufferText();
 
-void ToggleWindowDisplay();
+        bool MutePlayer(std::wstring playerName);
+        bool UnmutePlayer(std::wstring playerName);
+        void ClearMutedList();
 
-bool Initialize();
+        void SetServerMessagesEnabled(bool enabled);
+        bool IsServerMessagesEnabled();
+        bool IsGlobalChatEnabled();
 
-}
+        void ToggleWindowDisplay();
 
+    private:
+        ChatAPI();
+        ~ChatAPI();
+
+        void FindMagicAddresses();
+        void LoadConfig();
+        void SaveConfig();
+
+        static void OnInitializeEvent();
+        static void OnPreShutdownEvent();
+        static void OnSetMainPlayerEvent(void* player);
+        static void OnWorldPreUnloadEvent();
+
+        bool _serverMessages;         // Whether or not server announcements are enabled
+        uint8_t _channel;             // Current global chat channel
+        uint8_t* _visibleAddress;     // Address used to toggle the chat window visibility
+        uint8_t* _colorAddress;       // Address used to set the chat colors
+        uint32_t _systemColor;        // Last used system color
+        uint32_t _globalColor;        // Last used global color
+        std::wstring _prefix;         // Last used chat prefix
+        std::wstring _saved;          // Saved buffer text, used for linking items in chat
+        std::unordered_set<std::wstring> _mutedList;    // List of muted players by the current user
+};
+
+#define spChat ChatAPI::GetInstance()
 
 #endif//INC_GDCL_DLL_CHAT_API_H

@@ -3,9 +3,10 @@
 #include "JSON.h"
 #include "MD5.h"
 
-ServerCache::CacheBuffer::CacheBuffer(uint8_t* buffer, size_t size) : FileWriter(buffer, size)
+ServerCache::CacheBuffer::CacheBuffer(uint8_t* buffer, size_t size, bool clean) : FileWriter(buffer, size)
 {
     _checksum = GenerateBufferMD5(buffer, size);
+    _status = (clean) ? CACHE_STATUS_CLEAN : CACHE_STATUS_DIRTY;
 }
 
 ServerCache::ServerCache() : _stashCapacity(0)
@@ -187,75 +188,74 @@ void ServerCache::SetCharacterID(const std::wstring& characterName, uint32_t par
     _characterData[characterName]._characterID = characterID;
 }
 
-void ServerCache::SetCharacterData(const std::wstring& characterName, uint8_t* data, size_t size)
+void ServerCache::SetCharacterData(const std::wstring& characterName, uint8_t* data, size_t size, bool clean)
 {
     std::lock_guard<std::mutex> lock(_characterData[characterName]._mutex);
-    _characterData[characterName]._character = std::make_unique<CacheBuffer>(data, size);
-    _dirtyCharacters.insert(characterName);
+    _characterData[characterName]._character = std::make_unique<CacheBuffer>(data, size, clean);
 }
 
-void ServerCache::SetQuestData(const std::wstring& characterName, GameAPI::Difficulty difficulty, uint8_t* data, size_t size)
-{
-    std::lock_guard<std::mutex> lock(_characterData[characterName]._mutex);
-    if (difficulty != GameAPI::GAME_DIFFICULTY_UNKNOWN)
-        _characterData[characterName]._quests->_buffers[difficulty] = std::make_unique<CacheBuffer>(data, size);
-}
-
-void ServerCache::SetConversationsData(const std::wstring& characterName, GameAPI::Difficulty difficulty, uint8_t* data, size_t size)
+void ServerCache::SetQuestData(const std::wstring& characterName, GameAPI::Difficulty difficulty, uint8_t* data, size_t size, bool clean)
 {
     std::lock_guard<std::mutex> lock(_characterData[characterName]._mutex);
     if (difficulty != GameAPI::GAME_DIFFICULTY_UNKNOWN)
-        _characterData[characterName]._conversations->_buffers[difficulty] = std::make_unique<CacheBuffer>(data, size);
+        _characterData[characterName]._quests->_buffers[difficulty] = std::make_unique<CacheBuffer>(data, size, clean);
 }
 
-void ServerCache::SetMapData(const std::wstring& characterName, GameAPI::Difficulty difficulty, uint8_t* data, size_t size)
+void ServerCache::SetConversationsData(const std::wstring& characterName, GameAPI::Difficulty difficulty, uint8_t* data, size_t size, bool clean)
 {
     std::lock_guard<std::mutex> lock(_characterData[characterName]._mutex);
     if (difficulty != GameAPI::GAME_DIFFICULTY_UNKNOWN)
-        _characterData[characterName]._map->_buffers[difficulty] = std::make_unique<CacheBuffer>(data, size);
+        _characterData[characterName]._conversations->_buffers[difficulty] = std::make_unique<CacheBuffer>(data, size, clean);
 }
 
-void ServerCache::SetFOWData(const std::wstring& characterName, GameAPI::Difficulty difficulty, uint8_t* data, size_t size)
+void ServerCache::SetMapData(const std::wstring& characterName, GameAPI::Difficulty difficulty, uint8_t* data, size_t size, bool clean)
 {
     std::lock_guard<std::mutex> lock(_characterData[characterName]._mutex);
     if (difficulty != GameAPI::GAME_DIFFICULTY_UNKNOWN)
-        _characterData[characterName]._FOW->_buffers[difficulty] = std::make_unique<CacheBuffer>(data, size);
+        _characterData[characterName]._map->_buffers[difficulty] = std::make_unique<CacheBuffer>(data, size, clean);
 }
 
-void ServerCache::SetStashData(bool hardcore, uint8_t* data, size_t size)
+void ServerCache::SetFOWData(const std::wstring& characterName, GameAPI::Difficulty difficulty, uint8_t* data, size_t size, bool clean)
 {
-    std::lock_guard<std::mutex> lock(_participantData[hardcore]._mutex);
-    _participantData[hardcore]._stash = std::make_unique<CacheBuffer>(data, size);
+    std::lock_guard<std::mutex> lock(_characterData[characterName]._mutex);
+    if (difficulty != GameAPI::GAME_DIFFICULTY_UNKNOWN)
+        _characterData[characterName]._FOW->_buffers[difficulty] = std::make_unique<CacheBuffer>(data, size, clean);
 }
 
-void ServerCache::SetFormulasData(bool hardcore, uint8_t* data, size_t size)
+void ServerCache::SetStashData(bool hardcore, uint8_t* data, size_t size, bool clean)
 {
     std::lock_guard<std::mutex> lock(_participantData[hardcore]._mutex);
-    _participantData[hardcore]._formulas = std::make_unique<CacheBuffer>(data, size);
+    _participantData[hardcore]._stash = std::make_unique<CacheBuffer>(data, size, clean);
 }
 
-void ServerCache::SetTransmutesData(bool hardcore, uint8_t* data, size_t size)
+void ServerCache::SetFormulasData(bool hardcore, uint8_t* data, size_t size, bool clean)
 {
     std::lock_guard<std::mutex> lock(_participantData[hardcore]._mutex);
-    _participantData[hardcore]._transmutes = std::make_unique<CacheBuffer>(data, size);
+    _participantData[hardcore]._formulas = std::make_unique<CacheBuffer>(data, size, clean);
 }
 
-void ServerCache::SetPotionsData(bool hardcore, uint8_t* data, size_t size)
+void ServerCache::SetTransmutesData(bool hardcore, uint8_t* data, size_t size, bool clean)
 {
     std::lock_guard<std::mutex> lock(_participantData[hardcore]._mutex);
-    _participantData[hardcore]._potions = std::make_unique<CacheBuffer>(data, size);
+    _participantData[hardcore]._transmutes = std::make_unique<CacheBuffer>(data, size, clean);
 }
 
-void ServerCache::SetReagentsData(bool hardcore, uint8_t* data, size_t size)
+void ServerCache::SetPotionsData(bool hardcore, uint8_t* data, size_t size, bool clean)
 {
     std::lock_guard<std::mutex> lock(_participantData[hardcore]._mutex);
-    _participantData[hardcore]._reagents = std::make_unique<CacheBuffer>(data, size);
+    _participantData[hardcore]._potions = std::make_unique<CacheBuffer>(data, size, clean);
 }
 
-void ServerCache::SetTagsData(bool hardcore, uint8_t* data, size_t size)
+void ServerCache::SetReagentsData(bool hardcore, uint8_t* data, size_t size, bool clean)
 {
     std::lock_guard<std::mutex> lock(_participantData[hardcore]._mutex);
-    _participantData[hardcore]._tags = std::make_unique<CacheBuffer>(data, size);
+    _participantData[hardcore]._reagents = std::make_unique<CacheBuffer>(data, size, clean);
+}
+
+void ServerCache::SetTagsData(bool hardcore, uint8_t* data, size_t size, bool clean)
+{
+    std::lock_guard<std::mutex> lock(_participantData[hardcore]._mutex);
+    _participantData[hardcore]._tags = std::make_unique<CacheBuffer>(data, size, clean);
 }
 
 void ServerCache::Clear()

@@ -10,6 +10,7 @@ constexpr char GAPI_NAME_GAME_ENGINE_INITIALIZE[] = "?Initialize@GameEngine@GAME
 constexpr char GAPI_NAME_GAME_ENGINE_SHUTDOWN[] = "?Shutdown@GameEngine@GAME@@QEAAXXZ";
 constexpr char GAPI_NAME_GAME_ENGINE_UPDATE[] = "?Update@GameEngine@GAME@@QEAAXH@Z";
 constexpr char GAPI_NAME_SET_GAME_LOADING[] = "?SetGameLoading@GameEngine@GAME@@QEAAX_N@Z";
+constexpr char GAPI_NAME_IS_GAME_LOADING[] = "?IsGameLoading@GameEngine@GAME@@QEBA_NXZ";
 constexpr char GAPI_NAME_EXIT_PLAYING_MODE[] = "?ExitPlayingMode@GameEngine@GAME@@QEAAXXZ";
 #else
 constexpr char GAPI_NAME_GAME_ENGINE[] = "?gGameEngine@GAME@@3PAVGameEngine@1@A";
@@ -17,6 +18,7 @@ constexpr char GAPI_NAME_GAME_ENGINE_INITIALIZE[] = "?Initialize@GameEngine@GAME
 constexpr char GAPI_NAME_GAME_ENGINE_SHUTDOWN[] = "?Shutdown@GameEngine@GAME@@QAEXXZ";
 constexpr char GAPI_NAME_GAME_ENGINE_UPDATE[] = "?Update@GameEngine@GAME@@QAEXH@Z";
 constexpr char GAPI_NAME_SET_GAME_LOADING[] = "?SetGameLoading@GameEngine@GAME@@QAEX_N@Z";
+constexpr char GAPI_NAME_IS_GAME_LOADING[] = "?IsGameLoading@GameEngine@GAME@@QBE_NXZ";
 constexpr char GAPI_NAME_EXIT_PLAYING_MODE[] = "?ExitPlayingMode@GameEngine@GAME@@QAEXXZ";
 #endif
 

@@ -17,23 +17,42 @@
 #include "MD5.h"
 #include "Log.h"
 
-typedef ThreadSafeQueue<ServerHandlerRequest> DownloadQueue;
+typedef ThreadSafeQueue<ServerHandlerRequest> ServerQueue;
 ServerCoordinator::ServerCoordinator()
 {
     if (!spClient->IsOfflineMode())
     {
-        EventManager::Subscribe(GDCL_EVENT_UPDATE,             OnUpdateEvent);
-        EventManager::Subscribe(GDCL_EVENT_PRE_SHUTDOWN,       OnPreShutdownEvent);
-        EventManager::Subscribe(GDCL_EVENT_DIRECT_FILE_READ,   OnDirectReadEvent);
-        EventManager::Subscribe(GDCL_EVENT_DIRECT_FILE_WRITE,  OnDirectWriteEvent);
-        EventManager::Subscribe(GDCL_EVENT_ADD_SAVE_JOB,       OnAddSaveJobEvent);
-        EventManager::Subscribe(GDCL_EVENT_WORLD_PRE_LOAD,     OnWorldPreLoadEvent);
-        EventManager::Subscribe(GDCL_EVENT_SET_SEASON_PLAYER,  OnSetSeasonPlayerEvent);
-        EventManager::Subscribe(GDCL_EVENT_CARAVAN_INTERACT,   OnCaravanInteractEvent);
-        EventManager::Subscribe(GDCL_EVENT_TRANSFER_PRE_SAVE,  OnTransferPreSaveEvent);
-        EventManager::Subscribe(GDCL_EVENT_DELETE_FILE,        OnDeleteFileEvent);
-        EventManager::Subscribe(GDCL_EVENT_BESTOW_TOKEN,       OnBestowTokenEvent);
-        EventManager::Subscribe(GDCL_EVENT_REMOVE_TOKEN,       OnRemoveTokenEvent);
+        EventManager::Subscribe(GDCL_EVENT_UPDATE,            OnUpdateEvent);
+        EventManager::Subscribe(GDCL_EVENT_PRE_SHUTDOWN,      OnPreShutdownEvent);
+        EventManager::Subscribe(GDCL_EVENT_DIRECT_FILE_READ,  OnDirectReadEvent);
+        EventManager::Subscribe(GDCL_EVENT_DIRECT_FILE_WRITE, OnDirectWriteEvent);
+        EventManager::Subscribe(GDCL_EVENT_ADD_SAVE_JOB,      OnAddSaveJobEvent);
+        EventManager::Subscribe(GDCL_EVENT_WORLD_PRE_LOAD,    OnWorldPreLoadEvent);
+        EventManager::Subscribe(GDCL_EVENT_SET_SEASON_PLAYER, OnSetSeasonPlayerEvent);
+        EventManager::Subscribe(GDCL_EVENT_CARAVAN_INTERACT,  OnCaravanInteractEvent);
+        EventManager::Subscribe(GDCL_EVENT_TRANSFER_PRE_SAVE, OnTransferPreSaveEvent);
+        EventManager::Subscribe(GDCL_EVENT_DELETE_FILE,       OnDeleteFileEvent);
+        EventManager::Subscribe(GDCL_EVENT_BESTOW_TOKEN,      OnBestowTokenEvent);
+        EventManager::Subscribe(GDCL_EVENT_REMOVE_TOKEN,      OnRemoveTokenEvent);
+    }
+}
+
+ServerCoordinator::~ServerCoordinator()
+{
+    if (!spClient->IsOfflineMode())
+    {
+        EventManager::Unsubscribe(GDCL_EVENT_UPDATE,            OnUpdateEvent);
+        EventManager::Unsubscribe(GDCL_EVENT_PRE_SHUTDOWN,      OnPreShutdownEvent);
+        EventManager::Unsubscribe(GDCL_EVENT_DIRECT_FILE_READ,  OnDirectReadEvent);
+        EventManager::Unsubscribe(GDCL_EVENT_DIRECT_FILE_WRITE, OnDirectWriteEvent);
+        EventManager::Unsubscribe(GDCL_EVENT_ADD_SAVE_JOB,      OnAddSaveJobEvent);
+        EventManager::Unsubscribe(GDCL_EVENT_WORLD_PRE_LOAD,    OnWorldPreLoadEvent);
+        EventManager::Unsubscribe(GDCL_EVENT_SET_SEASON_PLAYER, OnSetSeasonPlayerEvent);
+        EventManager::Unsubscribe(GDCL_EVENT_CARAVAN_INTERACT,  OnCaravanInteractEvent);
+        EventManager::Unsubscribe(GDCL_EVENT_TRANSFER_PRE_SAVE, OnTransferPreSaveEvent);
+        EventManager::Unsubscribe(GDCL_EVENT_DELETE_FILE,       OnDeleteFileEvent);
+        EventManager::Unsubscribe(GDCL_EVENT_BESTOW_TOKEN,      OnBestowTokenEvent);
+        EventManager::Unsubscribe(GDCL_EVENT_REMOVE_TOKEN,      OnRemoveTokenEvent);
     }
 }
 
@@ -45,30 +64,17 @@ ServerCoordinator* ServerCoordinator::GetInstance()
 
 void ServerCoordinator::OnUpdateEvent()
 {
-    const auto& dirtyCharacters = spCache->GetDirtyCharacters();
-    if (!dirtyCharacters.empty())
+    for (const auto& pair : spCache->GetCharacterCache())
     {
-        for (const std::wstring& characterName : dirtyCharacters)
+        std::wstring characterName = pair.first;
+        if (const ServerCache::CacheBuffer* buffer = spCache->GetCharacterData(characterName))
         {
-            if (const FileWriter* buffer = spCache->GetCharacterData(characterName))
+            if (buffer->GetStatus() == CACHE_STATUS_DIRTY)
             {
-                uint32_t participantID = spCache->GetParticipantID(characterName);
-                spServer->Send("SaveCharacterFile", participantID, characterName, BinaryToBase64(buffer->GetBuffer(), buffer->GetBufferSize()));
+                buffer->SetPending();
+                spServer->Send("SaveCharacterFile", spCache->GetParticipantID(characterName), characterName, BinaryToBase64(buffer->GetBuffer(), buffer->GetBufferSize()));
             }
         }
-        spCache->ClearDirtyCharacters();
-    }
-
-    uint32_t caravanID = GameAPI::GetLastCaravanID();
-    if (caravanID != 0)
-    {
-        if (void* caravan = EngineAPI::FindObjectByID(caravanID))
-        {
-            std::string caravanTag = *(std::string*)((uint8_t*)caravan + 0x440);
-            GameAPI::SetCaravanDriverTag(caravanTag);
-            GameAPI::DisplayCaravanWindow(caravanID);
-        }
-        GameAPI::SetLastCaravanID(0);
     }
 }
 
@@ -78,24 +84,62 @@ void ServerCoordinator::OnPreShutdownEvent()
     if (HWND hwnd = GetActiveWindow())
         DestroyWindow(hwnd);
 
-    std::unordered_set<std::wstring> dirtyCharacters = spCache->GetDirtyCharacters();
-    while (!dirtyCharacters.empty())
+    while (true)
     {
-        for (auto it = dirtyCharacters.begin(); it != dirtyCharacters.end();)
+        ServerQueue uploadQueue;
+        for (const auto& pair : spCache->GetCharacterCache())
         {
-            std::wstring characterName = *it;
-            if (const FileWriter* buffer = spCache->GetCharacterData(characterName))
+            std::wstring characterName = pair.first;
+            uint32_t participantID = spCache->GetParticipantID(characterName);
+
+            if (const ServerCache::CacheBuffer* buffer = spCache->GetCharacterData(characterName); buffer != nullptr && !buffer->IsClean())
+                uploadQueue.push(spServer->Send("SaveCharacterFile", participantID, characterName, BinaryToBase64(buffer->GetBuffer(), buffer->GetBufferSize())));
+
+            for (GameAPI::Difficulty difficulty : GameAPI::GAME_DIFFICULTIES)
             {
-                uint32_t participantID = spCache->GetParticipantID(characterName);
-                json response = spServer->Send("SaveCharacterFile", participantID, characterName, BinaryToBase64(buffer->GetBuffer(), buffer->GetBufferSize())).get();
-                HTTPStatus status = response.at("StatusCode").get<HTTPStatus>();
-                if (status != HTTP_STATUS_OK)
-                {
-                    it++;
-                    continue;
-                }
+                if (const ServerCache::CacheBuffer* buffer = spCache->GetQuestData(characterName, difficulty); buffer != nullptr && !buffer->IsClean())
+                    uploadQueue.push(spServer->Send("SaveParticipantCharacterQuestFile", participantID, characterName, difficulty, BinaryToBase64(buffer->GetBuffer(), buffer->GetBufferSize())));
+                if (const ServerCache::CacheBuffer* buffer = spCache->GetConversationsData(characterName, difficulty); buffer != nullptr && !buffer->IsClean())
+                    uploadQueue.push(spServer->Send("SaveParticipantCharacterConversationsFile", participantID, characterName, difficulty, BinaryToBase64(buffer->GetBuffer(), buffer->GetBufferSize())));
+                if (const ServerCache::CacheBuffer* buffer = spCache->GetMapData(characterName, difficulty); buffer != nullptr && !buffer->IsClean())
+                    uploadQueue.push(spServer->Send("SaveParticipantCharacterMapDatFile", participantID, characterName, difficulty, BinaryToBase64(buffer->GetBuffer(), buffer->GetBufferSize())));
+                if (const ServerCache::CacheBuffer* buffer = spCache->GetFOWData(characterName, difficulty); buffer != nullptr && !buffer->IsClean())
+                    uploadQueue.push(spServer->Send("SaveParticipantCharacterMapFowFile", participantID, characterName, difficulty, BinaryToBase64(buffer->GetBuffer(), buffer->GetBufferSize())));
             }
-            it = dirtyCharacters.erase(it);
+        }
+
+        for (const auto& pair : spCache->GetParticipantCache())
+        {
+            bool hardcore = pair.first;
+            uint32_t participantID = spCache->GetParticipantID(hardcore);
+
+            if (const ServerCache::CacheBuffer* buffer = spCache->GetStashData(hardcore); buffer != nullptr && !buffer->IsClean())
+                uploadQueue.push(spServer->Send("SaveParticipantStashFile", participantID, BinaryToBase64(buffer->GetBuffer(), buffer->GetBufferSize())));
+            if (const ServerCache::CacheBuffer* buffer = spCache->GetFormulasData(hardcore); buffer != nullptr && !buffer->IsClean())
+                uploadQueue.push(spServer->Send("SaveParticipantFormulas", participantID, BinaryToBase64(buffer->GetBuffer(), buffer->GetBufferSize())));
+            if (const ServerCache::CacheBuffer* buffer = spCache->GetTransmutesData(hardcore); buffer != nullptr && !buffer->IsClean())
+                uploadQueue.push(spServer->Send("SaveParticipantTransmutes", participantID, BinaryToBase64(buffer->GetBuffer(), buffer->GetBufferSize())));
+            if (const ServerCache::CacheBuffer* buffer = spCache->GetTagsData(hardcore); buffer != nullptr && !buffer->IsClean())
+                uploadQueue.push(spServer->Send("SaveParticipantTagFile", participantID, BinaryToBase64(buffer->GetBuffer(), buffer->GetBufferSize())));
+            if (const ServerCache::CacheBuffer* buffer = spCache->GetPotionsData(hardcore); buffer != nullptr && !buffer->IsClean())
+                uploadQueue.push(spServer->Send("SaveParticipantPotionsFile", participantID, BinaryToBase64(buffer->GetBuffer(), buffer->GetBufferSize())));
+            if (const ServerCache::CacheBuffer* buffer = spCache->GetReagentsData(hardcore); buffer != nullptr && !buffer->IsClean())
+                uploadQueue.push(spServer->Send("SaveParticipantReagentsFile", participantID, BinaryToBase64(buffer->GetBuffer(), buffer->GetBufferSize())));
+        }
+
+        if (uploadQueue.empty())
+        {
+            break;
+        }
+        else
+        {
+            while (!uploadQueue.empty())
+            {
+                ServerHandlerRequest task;
+                if (uploadQueue.front(task) && task.valid())
+                    task.wait();
+                uploadQueue.pop();
+            }
         }
     }
 }
@@ -475,7 +519,7 @@ static void SaveFOWData(const std::filesystem::path& filePath, uint8_t* data, si
         if (uint32_t participantID = spCache->GetParticipantID(characterName))
         {
             spCache->SetFOWData(characterName, difficulty, data, size);
-            spServer->Send("SaveParticipantCharacterMapFowFile", participantID, characterName, difficulty, BinaryToBase64(data, size));
+            // Don't save FOW data immediately since it's large and is saved often; just cache it and save it on exit
         }
     }
 }
@@ -498,7 +542,7 @@ void ServerCoordinator::OnAddSaveJobEvent(std::string filename, void* data, size
         it->second(filePath, (uint8_t*)data, size);
 }
 
-static void DownloadCharacterFile(uint32_t participantID, const std::wstring& characterName, std::shared_ptr<DownloadQueue> downloadQueue)
+static void DownloadCharacterFile(uint32_t participantID, const std::wstring& characterName, std::shared_ptr<ServerQueue> downloadQueue)
 {
     std::filesystem::path filePath = GameAPI::GetPlayerSaveFile(characterName);
     downloadQueue->push(spServer->Send("GetFileChecksum", participantID, characterName, GameAPI::GAME_DIFFICULTY_NORMAL, filePath).then(
@@ -512,7 +556,7 @@ static void DownloadCharacterFile(uint32_t participantID, const std::wstring& ch
             if (((serverChecksum == clientChecksum) && (!clientChecksum.empty())))
             {
                 FileReader reader(filePath);
-                spCache->SetCharacterData(characterName, reader.GetBuffer(), reader.GetBufferSize());
+                spCache->SetCharacterData(characterName, reader.GetBuffer(), reader.GetBufferSize(), true);
                 return;
             }
         }
@@ -520,7 +564,7 @@ static void DownloadCharacterFile(uint32_t participantID, const std::wstring& ch
     }));
 }
 
-static void DownloadQuestFile(uint32_t participantID, const std::wstring& characterName, GameAPI::Difficulty difficulty, std::shared_ptr<DownloadQueue> downloadQueue)
+static void DownloadQuestFile(uint32_t participantID, const std::wstring& characterName, GameAPI::Difficulty difficulty, std::shared_ptr<ServerQueue> downloadQueue)
 {
     std::filesystem::path filePath = GameAPI::GetPlayerFolder(characterName) / "levels_world001.map" / GameAPI::GetGameDifficultyName(difficulty) / "quests.gdd";
     downloadQueue->push(spServer->Send("GetFileChecksum", participantID, characterName, difficulty, filePath).then(
@@ -534,7 +578,7 @@ static void DownloadQuestFile(uint32_t participantID, const std::wstring& charac
             if ((serverChecksum == clientChecksum) && (!clientChecksum.empty()))
             {
                 FileReader reader(filePath);
-                spCache->SetQuestData(characterName, difficulty, reader.GetBuffer(), reader.GetBufferSize());
+                spCache->SetQuestData(characterName, difficulty, reader.GetBuffer(), reader.GetBufferSize(), true);
                 return;
             }
         }
@@ -542,7 +586,7 @@ static void DownloadQuestFile(uint32_t participantID, const std::wstring& charac
     }));
 }
 
-static void DownloadConversationsFile(uint32_t participantID, const std::wstring& characterName, GameAPI::Difficulty difficulty, std::shared_ptr<DownloadQueue> downloadQueue)
+static void DownloadConversationsFile(uint32_t participantID, const std::wstring& characterName, GameAPI::Difficulty difficulty, std::shared_ptr<ServerQueue> downloadQueue)
 {
     std::filesystem::path filePath = GameAPI::GetPlayerFolder(characterName) / "levels_world001.map" / GameAPI::GetGameDifficultyName(difficulty) / "conversations.gdd";
     downloadQueue->push(spServer->Send("GetFileChecksum", participantID, characterName, difficulty, filePath).then(
@@ -556,7 +600,7 @@ static void DownloadConversationsFile(uint32_t participantID, const std::wstring
             if ((serverChecksum == clientChecksum) && (!clientChecksum.empty()))
             {
                 FileReader reader(filePath);
-                spCache->SetConversationsData(characterName, difficulty, reader.GetBuffer(), reader.GetBufferSize());
+                spCache->SetConversationsData(characterName, difficulty, reader.GetBuffer(), reader.GetBufferSize(), true);
                 return;
             }
         }
@@ -564,7 +608,7 @@ static void DownloadConversationsFile(uint32_t participantID, const std::wstring
     }));
 }
 
-static void DownloadMapFile(uint32_t participantID, const std::wstring& characterName, GameAPI::Difficulty difficulty, std::shared_ptr<DownloadQueue> downloadQueue)
+static void DownloadMapFile(uint32_t participantID, const std::wstring& characterName, GameAPI::Difficulty difficulty, std::shared_ptr<ServerQueue> downloadQueue)
 {
     std::filesystem::path filePath = GameAPI::GetPlayerFolder(characterName) / "levels_world001.map" / GameAPI::GetGameDifficultyName(difficulty) / "map.dat";
     downloadQueue->push(spServer->Send("GetFileChecksum", participantID, characterName, difficulty, filePath).then(
@@ -578,7 +622,7 @@ static void DownloadMapFile(uint32_t participantID, const std::wstring& characte
             if ((serverChecksum == clientChecksum) && (!clientChecksum.empty()))
             {
                 FileReader reader(filePath);
-                spCache->SetMapData(characterName, difficulty, reader.GetBuffer(), reader.GetBufferSize());
+                spCache->SetMapData(characterName, difficulty, reader.GetBuffer(), reader.GetBufferSize(), true);
                 return;
             }
         }
@@ -586,7 +630,7 @@ static void DownloadMapFile(uint32_t participantID, const std::wstring& characte
     }));
 }
 
-static void DownloadFOWFile(uint32_t participantID, const std::wstring& characterName, GameAPI::Difficulty difficulty, std::shared_ptr<DownloadQueue> downloadQueue)
+static void DownloadFOWFile(uint32_t participantID, const std::wstring& characterName, GameAPI::Difficulty difficulty, std::shared_ptr<ServerQueue> downloadQueue)
 {
     std::filesystem::path filePath = GameAPI::GetPlayerFolder(characterName) / "levels_world001.map" / GameAPI::GetGameDifficultyName(difficulty) / "map.fow";
     downloadQueue->push(spServer->Send("GetFileChecksum", participantID, characterName, difficulty, filePath).then(
@@ -600,7 +644,7 @@ static void DownloadFOWFile(uint32_t participantID, const std::wstring& characte
             if ((serverChecksum == clientChecksum) && (!clientChecksum.empty()))
             {
                 FileReader reader(filePath);
-                spCache->SetFOWData(characterName, difficulty, reader.GetBuffer(), reader.GetBufferSize());
+                spCache->SetFOWData(characterName, difficulty, reader.GetBuffer(), reader.GetBufferSize(), true);
                 return;
             }
         }
@@ -608,7 +652,7 @@ static void DownloadFOWFile(uint32_t participantID, const std::wstring& characte
     }));
 }
 
-static void DownloadStashFile(uint32_t participantID, std::shared_ptr<DownloadQueue> downloadQueue)
+static void DownloadStashFile(uint32_t participantID, std::shared_ptr<ServerQueue> downloadQueue)
 {
     bool hardcore = spCache->IsParticipantHardcore(participantID);
     std::filesystem::path filePath = GameAPI::GetTransferStashPath(hardcore);
@@ -623,7 +667,7 @@ static void DownloadStashFile(uint32_t participantID, std::shared_ptr<DownloadQu
             if ((serverChecksum == clientChecksum) && (!clientChecksum.empty()))
             {
                 FileReader reader(filePath);
-                spCache->SetStashData(hardcore, reader.GetBuffer(), reader.GetBufferSize());
+                spCache->SetStashData(hardcore, reader.GetBuffer(), reader.GetBufferSize(), true);
                 return;
             }
         }
@@ -631,7 +675,7 @@ static void DownloadStashFile(uint32_t participantID, std::shared_ptr<DownloadQu
     }));
 }
 
-static void DownloadFormulasFile(uint32_t participantID, std::shared_ptr<DownloadQueue> downloadQueue)
+static void DownloadFormulasFile(uint32_t participantID, std::shared_ptr<ServerQueue> downloadQueue)
 {
     bool hardcore = spCache->IsParticipantHardcore(participantID);
     std::filesystem::path filePath = GameAPI::GetFormulasPath(hardcore);
@@ -646,7 +690,7 @@ static void DownloadFormulasFile(uint32_t participantID, std::shared_ptr<Downloa
             if ((serverChecksum == clientChecksum) && (!clientChecksum.empty()))
             {
                 FileReader reader(filePath);
-                spCache->SetFormulasData(hardcore, reader.GetBuffer(), reader.GetBufferSize());
+                spCache->SetFormulasData(hardcore, reader.GetBuffer(), reader.GetBufferSize(), true);
                 return;
             }
         }
@@ -654,7 +698,7 @@ static void DownloadFormulasFile(uint32_t participantID, std::shared_ptr<Downloa
     }));
 }
 
-static void DownloadTransmutesFile(uint32_t participantID, std::shared_ptr<DownloadQueue> downloadQueue)
+static void DownloadTransmutesFile(uint32_t participantID, std::shared_ptr<ServerQueue> downloadQueue)
 {
     bool hardcore = spCache->IsParticipantHardcore(participantID);
     std::filesystem::path filePath = GameAPI::GetTransmutesPath(hardcore);
@@ -669,7 +713,7 @@ static void DownloadTransmutesFile(uint32_t participantID, std::shared_ptr<Downl
             if ((serverChecksum == clientChecksum) && (!clientChecksum.empty()))
             {
                 FileReader reader(filePath);
-                spCache->SetTransmutesData(hardcore, reader.GetBuffer(), reader.GetBufferSize());
+                spCache->SetTransmutesData(hardcore, reader.GetBuffer(), reader.GetBufferSize(), true);
                 return;
             }
         }
@@ -677,7 +721,7 @@ static void DownloadTransmutesFile(uint32_t participantID, std::shared_ptr<Downl
     }));
 }
 
-static void DownloadTagsFile(uint32_t participantID, std::shared_ptr<DownloadQueue> downloadQueue)
+static void DownloadTagsFile(uint32_t participantID, std::shared_ptr<ServerQueue> downloadQueue)
 {
     bool hardcore = spCache->IsParticipantHardcore(participantID);
     std::string filename = hardcore ? "tags.gsh" : "tags.gst";
@@ -693,7 +737,7 @@ static void DownloadTagsFile(uint32_t participantID, std::shared_ptr<DownloadQue
             if ((serverChecksum == clientChecksum) && (!clientChecksum.empty()))
             {
                 FileReader reader(filePath);
-                spCache->SetTagsData(hardcore, reader.GetBuffer(), reader.GetBufferSize());
+                spCache->SetTagsData(hardcore, reader.GetBuffer(), reader.GetBufferSize(), true);
                 return;
             }
         }
@@ -701,7 +745,7 @@ static void DownloadTagsFile(uint32_t participantID, std::shared_ptr<DownloadQue
     }));
 }
 
-static void DownloadPotionsFile(uint32_t participantID, std::shared_ptr<DownloadQueue> downloadQueue)
+static void DownloadPotionsFile(uint32_t participantID, std::shared_ptr<ServerQueue> downloadQueue)
 {
     bool hardcore = spCache->IsParticipantHardcore(participantID);
     std::filesystem::path filePath = GameAPI::GetPotionsPath(hardcore);
@@ -716,7 +760,7 @@ static void DownloadPotionsFile(uint32_t participantID, std::shared_ptr<Download
             if ((serverChecksum == clientChecksum) && (!clientChecksum.empty()))
             {
                 FileReader reader(filePath);
-                spCache->SetPotionsData(hardcore, reader.GetBuffer(), reader.GetBufferSize());
+                spCache->SetPotionsData(hardcore, reader.GetBuffer(), reader.GetBufferSize(), true);
                 return;
             }
         }
@@ -724,7 +768,7 @@ static void DownloadPotionsFile(uint32_t participantID, std::shared_ptr<Download
     }));
 }
 
-static void DownloadReagentsFile(uint32_t participantID, std::shared_ptr<DownloadQueue> downloadQueue)
+static void DownloadReagentsFile(uint32_t participantID, std::shared_ptr<ServerQueue> downloadQueue)
 {
     bool hardcore = spCache->IsParticipantHardcore(participantID);
     std::filesystem::path filePath = GameAPI::GetReagentsPath(hardcore);
@@ -739,7 +783,7 @@ static void DownloadReagentsFile(uint32_t participantID, std::shared_ptr<Downloa
             if ((serverChecksum == clientChecksum) && (!clientChecksum.empty()))
             {
                 FileReader reader(filePath);
-                spCache->SetReagentsData(hardcore, reader.GetBuffer(), reader.GetBufferSize());
+                spCache->SetReagentsData(hardcore, reader.GetBuffer(), reader.GetBufferSize(), true);
                 return;
             }
         }
@@ -747,7 +791,7 @@ static void DownloadReagentsFile(uint32_t participantID, std::shared_ptr<Downloa
     }));
 }
 
-static void DownloadParticipantFiles(std::shared_ptr<DownloadQueue> downloadQueue, uint32_t participantID)
+static void DownloadParticipantFiles(std::shared_ptr<ServerQueue> downloadQueue, uint32_t participantID)
 {
     json characters = spServer->Send("GetParticipantCharacters", participantID).get().at("Data");
     for (const json& character : characters)
@@ -815,7 +859,7 @@ void ServerCoordinator::OnWorldPreLoadEvent(std::string mapName, bool unk1, bool
     {
         try
         {
-            std::shared_ptr<DownloadQueue> downloadQueue = std::make_shared<DownloadQueue>();
+            std::shared_ptr<ServerQueue> downloadQueue = std::make_shared<ServerQueue>();
 
             uint32_t hardcoreID = spCache->GetParticipantID(true);
             if (!hardcoreID)
@@ -862,7 +906,6 @@ void ServerCoordinator::OnWorldPreLoadEvent(std::string mapName, bool unk1, bool
                 ServerHandlerRequest task;
                 if (downloadQueue->front(task) && task.valid())
                     task.wait();
-
                 downloadQueue->pop();
             }
 
@@ -938,10 +981,10 @@ void ServerCoordinator::OnSetSeasonPlayerEvent(void* player, const SeasonInfo* s
         LoadSeasonTagsForPlayer(player);
     }
 
-    spChat->Send("MuteList");
-    spChat->Send("Welcome");
-    if (uint32_t channel = ChatAPI::GetChatChannel())
-        spChat->Send("JoinChannel", channel);
+    spChatServer->Send("MuteList");
+    spChatServer->Send("Welcome");
+    if (uint32_t channel = spChat->GetChatChannel())
+        spChatServer->Send("JoinChannel", channel);
 
     if (uint32_t participantID = spCache->GetParticipantID(GameAPI::IsPlayerHardcore(player)))
     {
